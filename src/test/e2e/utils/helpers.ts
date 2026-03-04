@@ -88,8 +88,8 @@ export class E2ETestHelper {
 						this.cachedFrame = frame
 						return frame
 					}
-				} catch (error: any) {
-					if (!error.message.includes("detached") && !error.message.includes("navigation")) {
+				} catch (error: unknown) {
+					if (error instanceof Error && !error.message.includes("detached") && !error.message.includes("navigation")) {
 						throw error
 					}
 				}
@@ -201,7 +201,7 @@ export class E2ETestHelper {
  */
 export const e2e = test
 	.extend<{ server: CodemarieApiServerMock | null }>({
-		server: async ({}, use) => {
+		server: async (_, use) => {
 			// Start server if it doesn't exist
 			if (!CodemarieApiServerMock.globalSharedServer) {
 				await CodemarieApiServerMock.startGlobalServer()
@@ -210,17 +210,17 @@ export const e2e = test
 		},
 	})
 	.extend<E2ETestDirectories>({
-		workspaceDir: async ({}, use) => {
+		workspaceDir: async (_, use) => {
 			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "workspace"))
 		},
-		multiRootWorkspaceDir: async ({}, use) => {
+		multiRootWorkspaceDir: async (_, use) => {
 			// DOCS: https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces
 			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "multiroots.code-workspace"))
 		},
-		userDataDir: async ({}, use) => {
+		userDataDir: async (_, use) => {
 			await use(mkdtempSync(path.join(os.tmpdir(), "vsce")))
 		},
-		extensionsDir: async ({}, use) => {
+		extensionsDir: async (_, use) => {
 			await use(mkdtempSync(path.join(os.tmpdir(), "vsce")))
 		},
 	})
@@ -275,16 +275,6 @@ export const e2e = test
 		app: async ({ openVSCode, userDataDir, extensionsDir, workspaceType, workspaceDir, multiRootWorkspaceDir }, use) => {
 			const workspacePath = workspaceType === "single" ? workspaceDir : multiRootWorkspaceDir
 
-			// Track the codemarieTestDir created in openVSCode
-			let codemarieTestDir: string | undefined
-			const originalOpenVSCode = openVSCode
-			const wrappedOpenVSCode = async (wp: string) => {
-				const app = await originalOpenVSCode(wp)
-				// Extract CLINE_DIR from the launched app's environment
-				// We'll need to pass it through the fixture chain
-				return app
-			}
-
 			const app = await openVSCode(workspacePath)
 
 			try {
@@ -307,20 +297,20 @@ export const e2e = test
 							cleanupTasks.push(E2ETestHelper.rmForRetries(path.join(tmpDir, entry), { recursive: true }))
 						}
 					}
-				} catch (error) {
+				} catch {
 					// Ignore cleanup errors
 				}
 
 				await Promise.allSettled(cleanupTasks)
 			}
 		},
-		codemarieTestDir: async ({}, use) => {
+		codemarieTestDir: async (_, use) => {
 			// This will be set by the openVSCode fixture
 			await use("")
 		},
 	})
 	.extend<{ helper: E2ETestHelper }>({
-		helper: async ({}, use) => {
+		helper: async (_, use) => {
 			const helper = new E2ETestHelper()
 			await use(helper)
 		},
@@ -340,7 +330,7 @@ export const e2e = test
 		},
 	})
 	.extend<{ sidebar: Frame }>({
-		sidebar: async ({ page, helper, server }, use) => {
+		sidebar: async ({ page, helper }, use) => {
 			await E2ETestHelper.openCodemarieSidebar(page)
 			const sidebar = await helper.getSidebar(page)
 			await use(sidebar)
