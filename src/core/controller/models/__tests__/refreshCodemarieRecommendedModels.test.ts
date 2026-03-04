@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, it } from "mocha"
 import sinon from "sinon"
 import { CodemarieEnv, Environment } from "@/config"
 import { getFeatureFlagsService } from "@/services/feature-flags"
-import { CLINE_RECOMMENDED_MODELS_FALLBACK } from "@/shared/codemarie/recommended-models"
+import { CODEMARIE_RECOMMENDED_MODELS_FALLBACK } from "@/shared/codemarie/recommended-models"
 import { FeatureFlag } from "@/shared/services/feature-flags/feature-flags"
 import { Logger } from "@/shared/services/Logger"
 import {
@@ -35,13 +35,13 @@ describe("refreshCodemarieRecommendedModels", () => {
 
 		const result = await refreshCodemarieRecommendedModels()
 
-		expect(result).to.deep.equal(CLINE_RECOMMENDED_MODELS_FALLBACK)
+		expect(result).to.deep.equal(CODEMARIE_RECOMMENDED_MODELS_FALLBACK)
 		expect(axiosGetStub.called).to.equal(false)
 	})
 
 	it("fetches from upstream when rollout flag is on", async () => {
 		sandbox.stub(getFeatureFlagsService(), "getBooleanFlagEnabled").callsFake((flag) => {
-			return flag === FeatureFlag.CLINE_RECOMMENDED_MODELS_UPSTREAM
+			return flag === FeatureFlag.CODEMARIE_RECOMMENDED_MODELS_UPSTREAM
 		})
 		sandbox.stub(CodemarieEnv, "config").returns({
 			environment: Environment.production,
@@ -104,7 +104,7 @@ describe("refreshCodemarieRecommendedModels", () => {
 		const secondResult = await refreshCodemarieRecommendedModels()
 
 		expect(axiosGetStub.calledOnce).to.equal(true)
-		expect(firstResult).to.not.deep.equal(CLINE_RECOMMENDED_MODELS_FALLBACK)
-		expect(secondResult).to.deep.equal(CLINE_RECOMMENDED_MODELS_FALLBACK)
+		expect(firstResult).to.not.deep.equal(CODEMARIE_RECOMMENDED_MODELS_FALLBACK)
+		expect(secondResult).to.deep.equal(CODEMARIE_RECOMMENDED_MODELS_FALLBACK)
 	})
 })
