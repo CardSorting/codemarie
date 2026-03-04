@@ -84,7 +84,7 @@ export class E2ETestHelper {
 
 				try {
 					const title = await frame.title()
-					if (title.startsWith("Codemarie")) {
+					if (title.toLowerCase().startsWith("codemarie")) {
 						this.cachedFrame = frame
 						return frame
 					}
@@ -119,16 +119,19 @@ export class E2ETestHelper {
 	}
 
 	public async signin(webview: Frame): Promise<void> {
-		await webview.getByRole("button", { name: "Login to Codemarie" }).click({ delay: 100 })
+		await webview.getByRole("button", { name: /Login to CodeMarie/i }).click({ delay: 100 })
 
 		// Verify start up page is no longer visible
-		await expect(webview.getByRole("button", { name: "Login to Codemarie" })).not.toBeVisible()
+		await expect(webview.getByRole("button", { name: /Login to CodeMarie/i })).not.toBeVisible()
 
 		await webview.getByRole("button", { name: "Close" }).click({ delay: 50 })
 	}
 
 	public static async openCodemarieSidebar(page: Page): Promise<void> {
-		await page.getByRole("tab", { name: /Codemarie/ }).locator("a").click()
+		await page
+			.getByRole("tab", { name: /CodeMarie/i })
+			.locator("a")
+			.click()
 	}
 
 	public static async runCommandPalette(page: Page, command: string): Promise<void> {
