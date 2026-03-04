@@ -260,7 +260,7 @@ export class TelemetryService {
 			// Tracks when yolo mode setting is toggled on/off
 			YOLO_MODE_TOGGLED: "task.yolo_mode_toggled",
 			// Tracks when Codemarie web tools setting is toggled on/off
-			CLINE_WEB_TOOLS_TOGGLED: "task.codemarie_web_tools_toggled",
+			CODEMARIE_WEB_TOOLS_TOGGLED: "task.codemarie_web_tools_toggled",
 			// Tracks task initialization timing
 			INITIALIZATION: "task.initialization",
 			// Terminal execution telemetry events
@@ -1566,7 +1566,7 @@ export class TelemetryService {
 	 */
 	public captureCodemarieWebToolsToggle(ulid: string, enabled: boolean) {
 		this.capture({
-			event: TelemetryService.EVENTS.TASK.CLINE_WEB_TOOLS_TOGGLED,
+			event: TelemetryService.EVENTS.TASK.CODEMARIE_WEB_TOOLS_TOGGLED,
 			properties: {
 				ulid,
 				enabled,

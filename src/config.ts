@@ -36,11 +36,15 @@ class CodemarieEndpoint {
 	private onPremiseConfig: EndpointsFileSchema | null = null
 	private environment: Environment = Environment.production
 	// Track if config came from bundled file (enterprise distribution)
-	private isBundled: boolean = false
+	private isBundled = false
 
 	private constructor() {
 		// Set environment at module load. Use override if provided.
-		const _env = process?.env?.CLINE_ENVIRONMENT_OVERRIDE || process?.env?.CLINE_ENVIRONMENT
+		const _env =
+			process?.env?.CODEMARIE_ENVIRONMENT_OVERRIDE ||
+			process?.env?.CLINE_ENVIRONMENT_OVERRIDE ||
+			process?.env?.CODEMARIE_ENVIRONMENT ||
+			process?.env?.CLINE_ENVIRONMENT
 		if (_env && Object.values(Environment).includes(_env as Environment)) {
 			this.environment = _env as Environment
 		}
@@ -274,7 +278,9 @@ class CodemarieEndpoint {
 	 */
 	public setEnvironment(env: string) {
 		if (this.onPremiseConfig) {
-			throw new Error("Cannot change environment in on-premise mode. Endpoints are configured via ~/.codemarie/endpoints.json")
+			throw new Error(
+				"Cannot change environment in on-premise mode. Endpoints are configured via ~/.codemarie/endpoints.json",
+			)
 		}
 
 		switch (env.toLowerCase()) {

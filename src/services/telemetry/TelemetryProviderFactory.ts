@@ -26,7 +26,7 @@ export type TelemetryProviderConfig =
 	 * @param config - Config for this specific collector
 	 * @param bypassUserSettings - When true, telemetry is sent regardless of the user's Codemarie telemetry opt-in/opt-out settings.
 	 * This is used for:
-	 * 	- User-controlled collectors configured via environment variables (e.g., CLINE_OTEL_TELEMETRY_ENABLED).
+	 * 	- User-controlled collectors configured via environment variables (e.g., CODEMARIE_OTEL_TELEMETRY_ENABLED).
 	 * 	- Organization-controlled collectors configured via remote config.
 	 */
 	| { type: "opentelemetry"; config: OpenTelemetryClientValidConfig; bypassUserSettings: boolean }
@@ -127,7 +127,7 @@ export class TelemetryProviderFactory {
 			configs.push({
 				type: "opentelemetry",
 				config: runtimeOtelConfig,
-				// If the user has `CLINE_OTEL_TELEMETRY_ENABLED` in his environment, enable
+				// If the user has `CODEMARIE_OTEL_TELEMETRY_ENABLED` (or `CLINE_OTEL_TELEMETRY_ENABLED`) in his environment, enable
 				// OTEL regardless of his Codemarie telemetry settings
 				bypassUserSettings: true,
 			})

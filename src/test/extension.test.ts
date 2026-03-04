@@ -4,7 +4,7 @@ import path from "path"
 import "should"
 import * as vscode from "vscode"
 
-const packagePath = path.join(__dirname, "..", "..", "package.json")
+const packagePath = path.join(__dirname, "..", "..", "..", "package.json")
 
 describe("Codemarie Extension", () => {
 	after(() => {

@@ -200,35 +200,41 @@ export class E2ETestHelper {
  * - Configures VS Code with disabled updates, workspace trust, and welcome screens
  */
 export const e2e = test
-	.extend<{ server: CodemarieApiServerMock | null }>({
-		server: async (_, use) => {
-			// Start server if it doesn't exist
-			if (!CodemarieApiServerMock.globalSharedServer) {
-				await CodemarieApiServerMock.startGlobalServer()
-			}
-			await use(CodemarieApiServerMock.globalSharedServer)
-		},
+	.extend<{}, { server: CodemarieApiServerMock | null }>({
+		server: [
+			async (_, use) => {
+				// Start server if it doesn't exist
+				if (!CodemarieApiServerMock.globalSharedServer) {
+					await CodemarieApiServerMock.startGlobalServer()
+				}
+				await use(CodemarieApiServerMock.globalSharedServer)
+
+				// Teardown: stop server after all tests in the worker are done
+				// Playwright workers can be reused, but we want to ensure clean state
+				// For truly global server, we might want to keep it running until the end,
+				// but stopGlobalServer handles multiple calls and existing sockets.
+				await CodemarieApiServerMock.stopGlobalServer()
+			},
+			{ scope: "worker" },
+		],
 	})
 	.extend<E2ETestDirectories>({
 		workspaceDir: async (_, use) => {
 			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "workspace"))
 		},
-		multiRootWorkspaceDir: async (_, use) => {
+		multiRootWorkspaceDir: async (_, use) =>
 			// DOCS: https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces
-			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "multiroots.code-workspace"))
-		},
-		userDataDir: async (_, use) => {
-			await use(mkdtempSync(path.join(os.tmpdir(), "vsce")))
-		},
-		extensionsDir: async (_, use) => {
-			await use(mkdtempSync(path.join(os.tmpdir(), "vsce")))
-		},
+			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "multiroots.code-workspace")),
+		userDataDir: async (_, use) => await use(mkdtempSync(path.join(os.tmpdir(), "vsce"))),
+		extensionsDir: async (_, use) => await use(mkdtempSync(path.join(os.tmpdir(), "vsce"))),
 	})
 	.extend<E2ETestConfigs>({
 		workspaceType: "single",
 		channel: "stable",
 	})
-	.extend<{ openVSCode: (workspacePath: string) => Promise<ElectronApplication> }>({
+	.extend<{
+		openVSCode: (workspacePath: string) => Promise<ElectronApplication>
+	}>({
 		openVSCode: async ({ userDataDir, channel }, use, testInfo) => {
 			const executablePath = await downloadAndUnzipVSCode(channel, undefined, new SilentReporter())
 
@@ -242,8 +248,9 @@ export const e2e = test
 						...process.env,
 						TEMP_PROFILE: "true",
 						E2E_TEST: "true",
-						CLINE_ENVIRONMENT: "local",
-						CLINE_DIR: codemarieTestDir, // Isolate test data from user's ~/.codemarie
+						CODEMARIE_ENVIRONMENT: process.env.CODEMARIE_ENVIRONMENT || process.env.CLINE_ENVIRONMENT || "local",
+						CODEMARIE_DIR: codemarieTestDir, // Isolate test data from user's ~/.codemarie
+						CLINE_DIR: codemarieTestDir, // Backwards compatibility for now
 						GRPC_RECORDER_FILE_NAME: E2ETestHelper.generateTestFileName(testInfo.title, testInfo.project.name),
 						// GRPC_RECORDER_ENABLED: "true",
 						// GRPC_RECORDER_TESTS_FILTERS_ENABLED: "true"
@@ -271,7 +278,10 @@ export const e2e = test
 			})
 		},
 	})
-	.extend<{ app: ElectronApplication; codemarieTestDir: string }>({
+	.extend<{
+		app: ElectronApplication
+		codemarieTestDir: string
+	}>({
 		app: async ({ openVSCode, userDataDir, extensionsDir, workspaceType, workspaceDir, multiRootWorkspaceDir }, use) => {
 			const workspacePath = workspaceType === "single" ? workspaceDir : multiRootWorkspaceDir
 
@@ -304,12 +314,13 @@ export const e2e = test
 				await Promise.allSettled(cleanupTasks)
 			}
 		},
-		codemarieTestDir: async (_, use) => {
+		codemarieTestDir: async (_, use) =>
 			// This will be set by the openVSCode fixture
-			await use("")
-		},
+			await use(""),
 	})
-	.extend<{ helper: E2ETestHelper }>({
+	.extend<{
+		helper: E2ETestHelper
+	}>({
 		helper: async (_, use) => {
 			const helper = new E2ETestHelper()
 			await use(helper)
@@ -329,8 +340,10 @@ export const e2e = test
 			}
 		},
 	})
-	.extend<{ sidebar: Frame }>({
-		sidebar: async ({ page, helper }, use) => {
+	.extend<{
+		sidebar: Frame
+	}>({
+		sidebar: async ({ page, helper, server }, use) => {
 			await E2ETestHelper.openCodemarieSidebar(page)
 			const sidebar = await helper.getSidebar(page)
 			await use(sidebar)

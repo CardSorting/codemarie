@@ -8,9 +8,9 @@ import { CodemarieDataMock } from "./data"
 
 const E2E_API_SERVER_PORT = 7777
 
-export const MOCK_CLINE_API_SERVER_URL = `http://localhost:${E2E_API_SERVER_PORT}`
+export const MOCK_CODEMARIE_API_SERVER_URL = `http://localhost:${E2E_API_SERVER_PORT}`
 
-const useVerboseLogging = process.env.CLINE_E2E_TESTS_VERBOSE === "true"
+const useVerboseLogging = process.env.CODEMARIE_E2E_TESTS_VERBOSE === "true" || process.env.CLINE_E2E_TESTS_VERBOSE === "true"
 function log(...args: unknown[]) {
 	if (useVerboseLogging) {
 		console.log("[CodemarieApiServerMock]", ...args)
@@ -454,31 +454,30 @@ export class CodemarieApiServerMock {
 
 							sendChunk()
 							return
-						} else {
-							const response = {
-								id: generationId,
-								object: "chat.completion",
-								created: Math.floor(Date.now() / 1000),
-								model,
-								choices: [
-									{
-										index: 0,
-										message: {
-											role: "assistant",
-											content: "Hello! I'm a mock Codemarie API response.",
-										},
-										finish_reason: "stop",
-									},
-								],
-								usage: {
-									prompt_tokens: 140,
-									completion_tokens: responseText.length,
-									total_tokens: 140 + responseText.length,
-									cost: (140 + responseText.length) * 0.00015,
-								},
-							}
-							return sendJson(response)
 						}
+						const response = {
+							id: generationId,
+							object: "chat.completion",
+							created: Math.floor(Date.now() / 1000),
+							model,
+							choices: [
+								{
+									index: 0,
+									message: {
+										role: "assistant",
+										content: "Hello! I'm a mock Codemarie API response.",
+									},
+									finish_reason: "stop",
+								},
+							],
+							usage: {
+								prompt_tokens: 140,
+								completion_tokens: responseText.length,
+								total_tokens: 140 + responseText.length,
+								cost: (140 + responseText.length) * 0.00015,
+							},
+						}
+						return sendJson(response)
 					}
 
 					// Generation details endpoint
@@ -534,7 +533,7 @@ export class CodemarieApiServerMock {
 				}
 
 				// If we get here, the route was matched but not handled
-				return sendJson({ error: "Endpoint not implemented" }, 500)
+				return sendJson({ error: "Endpoint not implemented" }, 501)
 			}
 
 			handleRequest().catch((err) => {

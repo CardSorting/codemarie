@@ -40,7 +40,7 @@ export interface StorageContext {
 
 export interface StorageContextOptions {
 	/**
-	 * Override the Codemarie home directory. Defaults to CLINE_DIR env var or ~/.codemarie.
+	 * Override the Codemarie home directory. Defaults to CODEMARIE_DIR env var or ~/.codemarie.
 	 */
 	codemarieDir?: string
 
@@ -92,7 +92,8 @@ function hashString(str: string): string {
  * @returns A StorageContext ready for use by StateManager
  */
 export function createStorageContext(opts: StorageContextOptions = {}): StorageContext {
-	const codemarieDir = opts.codemarieDir || process.env.CLINE_DIR || path.join(os.homedir(), ".codemarie")
+	const codemarieDir =
+		opts.codemarieDir || process.env.CODEMARIE_DIR || process.env.CLINE_DIR || path.join(os.homedir(), ".codemarie")
 	const dataDir = path.join(codemarieDir, SETTINGS_SUBFOLDER)
 
 	// Resolve workspace storage directory
