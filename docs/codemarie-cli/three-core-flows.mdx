@@ -175,7 +175,7 @@ jobs:
         run: npm install -g cline
       
       - name: Configure Cline
-        run: cline auth -p anthropic -k ${{ secrets.ANTHROPIC_API_KEY }}
+        run: codemarie auth -p anthropic -k ${{ secrets.ANTHROPIC_API_KEY }}
       
       - name: Review PR
         run: |

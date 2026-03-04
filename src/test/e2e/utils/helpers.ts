@@ -200,9 +200,10 @@ export class E2ETestHelper {
  * - Configures VS Code with disabled updates, workspace trust, and welcome screens
  */
 export const e2e = test
+	// biome-ignore lint/complexity/noBannedTypes: Playwright extend requires {} for empty fixtures
 	.extend<{}, { server: CodemarieApiServerMock | null }>({
 		server: [
-			async (_, use) => {
+			async ({}, use) => {
 				// Start server if it doesn't exist
 				if (!CodemarieApiServerMock.globalSharedServer) {
 					await CodemarieApiServerMock.startGlobalServer()
@@ -219,14 +220,14 @@ export const e2e = test
 		],
 	})
 	.extend<E2ETestDirectories>({
-		workspaceDir: async (_, use) => {
+		workspaceDir: async ({}, use) => {
 			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "workspace"))
 		},
-		multiRootWorkspaceDir: async (_, use) =>
+		multiRootWorkspaceDir: async ({}, use) =>
 			// DOCS: https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces
 			await use(path.join(E2ETestHelper.E2E_TESTS_DIR, "fixtures", "multiroots.code-workspace")),
-		userDataDir: async (_, use) => await use(mkdtempSync(path.join(os.tmpdir(), "vsce"))),
-		extensionsDir: async (_, use) => await use(mkdtempSync(path.join(os.tmpdir(), "vsce"))),
+		userDataDir: async ({}, use) => await use(mkdtempSync(path.join(os.tmpdir(), "vsce"))),
+		extensionsDir: async ({}, use) => await use(mkdtempSync(path.join(os.tmpdir(), "vsce"))),
 	})
 	.extend<E2ETestConfigs>({
 		workspaceType: "single",
@@ -314,14 +315,14 @@ export const e2e = test
 				await Promise.allSettled(cleanupTasks)
 			}
 		},
-		codemarieTestDir: async (_, use) =>
+		codemarieTestDir: async ({}, use) =>
 			// This will be set by the openVSCode fixture
 			await use(""),
 	})
 	.extend<{
 		helper: E2ETestHelper
 	}>({
-		helper: async (_, use) => {
+		helper: async ({}, use) => {
 			const helper = new E2ETestHelper()
 			await use(helper)
 		},
@@ -343,7 +344,7 @@ export const e2e = test
 	.extend<{
 		sidebar: Frame
 	}>({
-		sidebar: async ({ page, helper, server }, use) => {
+		sidebar: async ({ page, helper }, use) => {
 			await E2ETestHelper.openCodemarieSidebar(page)
 			const sidebar = await helper.getSidebar(page)
 			await use(sidebar)

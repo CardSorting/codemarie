@@ -6,22 +6,14 @@ We actively patch only the most recent minor release of Cline. Older versions re
 
 ## Reporting a Vulnerability
 
-We appreciate your efforts to responsibly disclose your findings and will make every effort to acknowledge your contributions.
+If you discover a potential security vulnerability in CodeMarie, please contact us by sending an email to security@codemarie.bot.
 
-To report a security issue, please use the GitHub Security Advisory ["Report a Vulnerability"](https://github.com/codemarie/codemarie/security/advisories/new) tab.
+Please provide a detailed description of the vulnerability and the steps required to reproduce it. We will acknowledge receipt of your report and work to address the vulnerability as quickly as possible.
 
-The team will send a response indicating the next steps in handling your report. After the initial reply, the security team will keep you informed of the progress towards a fix and full announcement, and may ask for additional information or guidance.
-
-When reporting, please include:
-
-- A short summary of the issue
-- Steps to reproduce or a proof of concept
-- Any logs, stack traces, or screenshots that might help us understand the problem
-
-We acknowledge reports within 48 hours and aim to release a fix or mitigation within 30 days. While we work on a resolution, please keep the details private.
+We ask that you do not disclose the vulnerability publicly until we have had a chance to investigate and address it.
 
 ## Escalation
 
-If you do not receive an acknowledgement of your report within 5 business days, you may send an email to security@cline.bot.
+If you do not receive an acknowledgement of your report within 5 business days, you may send an email to security@codemarie.bot.
 
-Thank you for helping us keep Cline users safe.
+Thank you for helping us keep CodeMarie users safe.

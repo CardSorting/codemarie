@@ -435,7 +435,7 @@ enum ApiProvider {
   DOUBAO = 13;
   MISTRAL = 14;
   VSCODE_LM = 15;
-  CLINE = 16;
+  CODEMARIE = 16;
   LITELLM = 17;
   NEBIUS = 18;
   FIREWORKS = 19;
