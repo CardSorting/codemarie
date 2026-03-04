@@ -13,7 +13,7 @@ export interface CodemarieRecommendedModelsData {
 /**
  * Hardcoded fallback shown when upstream recommended models are not enabled or unavailable.
  */
-export const CLINE_RECOMMENDED_MODELS_FALLBACK: CodemarieRecommendedModelsData = {
+export const CODEMARIE_RECOMMENDED_MODELS_FALLBACK: CodemarieRecommendedModelsData = {
 	recommended: [
 		{
 			id: "google/gemini-3.1-pro-preview",
@@ -55,3 +55,5 @@ export const CLINE_RECOMMENDED_MODELS_FALLBACK: CodemarieRecommendedModelsData =
 		},
 	],
 }
+
+export const CLINE_RECOMMENDED_MODELS_FALLBACK = CODEMARIE_RECOMMENDED_MODELS_FALLBACK

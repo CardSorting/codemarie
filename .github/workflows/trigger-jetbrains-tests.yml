@@ -1,4 +1,4 @@
-name: Trigger Jetbrains Plugin <-> Cline Tests
+name: Trigger Jetbrains Plugin <-> Codemarie Tests
 on:
   pull_request_target:
     types: [opened, reopened]
@@ -28,7 +28,7 @@ jobs:
         with:
           app-id: 1998650
           private-key: ${{ secrets.CLINE_JETBRAINS_WORKFLOW_KEY }}
-          owner: cline
+          owner: codemarie
           repositories: intellij-plugin
 
       - name: Get PR details (for issue_comment trigger)
@@ -68,12 +68,12 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -H "User-Agent: cline-pr-trigger" \
+            -H "User-Agent: codemarie-pr-trigger" \
             -H "Content-Type: application/json" \
-            https://api.github.com/repos/cline/intellij-plugin/dispatches \
+            https://api.github.com/repos/codemarie/intellij-plugin/dispatches \
             -d @- <<EOF
           {
-            "event_type": "cline-pr-check",
+            "event_type": "codemarie-pr-check",
             "client_payload": {
               "pr_number": "$PR_NUMBER",
               "branch_name": $BRANCH_NAME,

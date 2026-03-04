@@ -101,7 +101,7 @@ async function fetchRawCodemarieModels(): Promise<CodemarieRawModelInfo[]> {
  */
 export async function refreshCodemarieModels(controller: Controller): Promise<Record<string, ModelInfo>> {
 	const shouldUseCodemarieEndpointSource = featureFlagsService.getBooleanFlagEnabled(
-		FeatureFlag.EXTENSION_CLINE_MODELS_ENDPOINT,
+		FeatureFlag.EXTENSION_CODEMARIE_MODELS_ENDPOINT,
 	)
 	if (!shouldUseCodemarieEndpointSource) {
 		return refreshOpenRouterModels(controller)

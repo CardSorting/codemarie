@@ -29,7 +29,8 @@ export interface PermissionValidationResult {
 /**
  * Environment variable name for command permissions
  */
-export const COMMAND_PERMISSIONS_ENV_VAR = "CLINE_COMMAND_PERMISSIONS"
+export const COMMAND_PERMISSIONS_ENV_VAR = "CODEMARIE_COMMAND_PERMISSIONS"
+export const CLINE_COMMAND_PERMISSIONS_ENV_VAR = "CLINE_COMMAND_PERMISSIONS"
 
 /**
  * Shell operators that indicate command chaining, piping, substitution, or redirection.

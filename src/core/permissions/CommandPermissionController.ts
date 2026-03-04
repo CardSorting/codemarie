@@ -1,6 +1,12 @@
 import { ParseEntry, parse } from "shell-quote"
 import { Logger } from "@/shared/services/Logger"
-import { COMMAND_PERMISSIONS_ENV_VAR, CommandPermissionConfig, PermissionValidationResult, ShellOperatorMatch } from "./types"
+import {
+	CLINE_COMMAND_PERMISSIONS_ENV_VAR,
+	COMMAND_PERMISSIONS_ENV_VAR,
+	CommandPermissionConfig,
+	PermissionValidationResult,
+	ShellOperatorMatch,
+} from "./types"
 
 const REDIRECT_OPERATORS = new Set([">", ">>", "<", ">&", "<&", "|&", "<(", ">("])
 const COMMAND_SEPARATOR_OPERATORS = new Set(["&&", "||", "|", ";"])
@@ -27,7 +33,7 @@ interface ParsedCommand {
  * Controls command execution permissions based on environment variable configuration.
  * Uses glob pattern matching to allow/deny specific commands.
  *
- * Configuration is read from the CLINE_COMMAND_PERMISSIONS environment variable.
+ * Configuration is read from the CODEMARIE_COMMAND_PERMISSIONS or CLINE_COMMAND_PERMISSIONS environment variable.
  * Format: {"allow": ["pattern1", "pattern2"], "deny": ["pattern3"], "allowRedirects": true}
  *
  * Rule evaluation for chained commands (e.g., "cd /tmp && npm test"):
@@ -46,11 +52,11 @@ export class CommandPermissionController {
 	}
 
 	/**
-	 * Parse the CLINE_COMMAND_PERMISSIONS environment variable
+	 * Parse the command permissions environment variable (CODEMARIE_ or CLINE_ prefix)
 	 * @returns Parsed configuration or null if not set or invalid
 	 */
 	private parseConfig(): CommandPermissionConfig | null {
-		const envValue = process.env[COMMAND_PERMISSIONS_ENV_VAR]
+		const envValue = process.env[COMMAND_PERMISSIONS_ENV_VAR] || process.env[CLINE_COMMAND_PERMISSIONS_ENV_VAR]
 		if (!envValue) {
 			return null
 		}

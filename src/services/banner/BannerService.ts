@@ -161,6 +161,7 @@ export class BannerService {
 		const isLocal =
 			process.env.IS_DEV === "true" ||
 			process.env.CODEMARIE_ENVIRONMENT === "local" ||
+			process.env.CODEMARIE_ENVIRONMENT === "local" ||
 			process.env.CLINE_ENVIRONMENT === "local"
 		const flagEnabled = isLocal || featureFlagsService.getBooleanFlagEnabled(FeatureFlag.REMOTE_WELCOME_BANNERS)
 
@@ -169,6 +170,7 @@ export class BannerService {
 		}
 		const bypassDismissals =
 			process.env.IS_DEV === "true" ||
+			process.env.CODEMARIE_ENVIRONMENT === "local" ||
 			process.env.CODEMARIE_ENVIRONMENT === "local" ||
 			process.env.CLINE_ENVIRONMENT === "local"
 

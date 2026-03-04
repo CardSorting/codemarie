@@ -31,7 +31,7 @@ function getHardcodedRecommendedModels(): CodemarieRecommendedModelsData {
 }
 
 function useUpstreamRecommendedModels(): boolean {
-	return featureFlagsService.getBooleanFlagEnabled(FeatureFlag.CLINE_RECOMMENDED_MODELS_UPSTREAM)
+	return featureFlagsService.getBooleanFlagEnabled(FeatureFlag.CODEMARIE_RECOMMENDED_MODELS_UPSTREAM)
 }
 
 function normalizeRecommendedModel(raw: unknown): CodemarieRecommendedModelData | null {

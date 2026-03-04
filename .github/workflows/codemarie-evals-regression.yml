@@ -8,14 +8,14 @@ on:
       - 'src/shared/**'
       - 'proto/**'
       - 'evals/**'
-      - '.github/workflows/cline-evals-regression.yml'
+      - '.github/workflows/codemarie-evals-regression.yml'
   pull_request:
     paths:
       - 'src/core/**'
       - 'src/shared/**'
       - 'proto/**'
       - 'evals/**'
-      - '.github/workflows/cline-evals-regression.yml'
+      - '.github/workflows/codemarie-evals-regression.yml'
   workflow_dispatch:
 
 permissions:
@@ -48,13 +48,13 @@ jobs:
           echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
       - name: Verify CLI
-        run: cline --version
+        run: codemarie --version
 
       - name: Run smoke tests
         env:
-          CLINE_API_KEY: ${{ secrets.CLINE_API_KEY }}
+          CODEMARIE_API_KEY: ${{ secrets.CLINE_API_KEY }}
         run: |
-          cline auth -p cline -k "$CLINE_API_KEY" -m "anthropic/claude-sonnet-4.5"
+          codemarie auth -p codemarie -k "$CODEMARIE_API_KEY" -m "anthropic/claude-sonnet-4.5"
           max_attempts=3
           for attempt in $(seq 1 $max_attempts); do
             echo "::group::Attempt $attempt of $max_attempts"
