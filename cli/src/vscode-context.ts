@@ -99,7 +99,8 @@ export interface CliContextResult {
  * expect the VSCode ExtensionContext shape.
  */
 export function initializeCliContext(config: CliContextConfig = {}): CliContextResult {
-	const CLINE_DIR = config.codemarieDir || process.env.CLINE_DIR || path.join(os.homedir(), ".codemarie")
+	const CLINE_DIR =
+		config.codemarieDir || process.env.CODEMARIE_DIR || process.env.CLINE_DIR || path.join(os.homedir(), ".codemarie")
 
 	// Create the shared StorageContext — this owns all CodemarieFileStorage instances.
 	// CLI, JetBrains, and VSCode all share this same file-backed implementation.

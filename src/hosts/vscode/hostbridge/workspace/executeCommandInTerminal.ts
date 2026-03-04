@@ -19,6 +19,7 @@ export async function executeCommandInTerminal(
 			name: "Codemarie",
 			iconPath,
 			env: {
+				CODEMARIE_ACTIVE: "true",
 				CLINE_ACTIVE: "true",
 			},
 		}

@@ -7,7 +7,7 @@ import { DIFF_VIEW_URI_SCHEME } from "../VscodeDiffViewProvider"
 /**
  * Codemarie's GitHub avatar URL
  */
-const CLINE_AVATAR_URL = "https://avatars.githubusercontent.com/u/184127137"
+const CODEMARIE_AVATAR_URL = "https://avatars.githubusercontent.com/u/184127137"
 
 /**
  * VS Code implementation of CommentReviewController.
@@ -25,7 +25,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 
 	/** The currently streaming comment thread */
 	private streamingThread: vscode.CommentThread | null = null
-	private streamingContent: string = ""
+	private streamingContent = ""
 
 	constructor() {
 		super()
@@ -106,7 +106,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 			mode: vscode.CommentMode.Preview,
 			author: {
 				name: "Codemarie",
-				iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+				iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 			},
 		}
 
@@ -134,7 +134,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 		endLine: number,
 		relativePath?: string,
 		fileContent?: string,
-		revealComment: boolean = false,
+		revealComment = false,
 	): void {
 		// Use virtual diff URI if relativePath and fileContent are provided
 		let uri: vscode.Uri
@@ -153,7 +153,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 			mode: vscode.CommentMode.Preview,
 			author: {
 				name: "Codemarie",
-				iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+				iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 			},
 		}
 
@@ -219,7 +219,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 			mode: vscode.CommentMode.Preview,
 			author: {
 				name: "Codemarie",
-				iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+				iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 			},
 		}
 		// Create a new array to ensure VS Code detects the change
@@ -241,7 +241,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 			mode: vscode.CommentMode.Preview,
 			author: {
 				name: "Codemarie",
-				iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+				iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 			},
 		}
 		this.streamingThread.comments = [commentObj]
@@ -332,7 +332,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 					mode: vscode.CommentMode.Preview,
 					author: {
 						name: "Codemarie",
-						iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+						iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 					},
 				}
 				thread.comments = [...thread.comments.slice(0, -1), streamingComment]
@@ -344,7 +344,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 				mode: vscode.CommentMode.Preview,
 				author: {
 					name: "Codemarie",
-					iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+					iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 				},
 			}
 			thread.comments = [...thread.comments, thinkingComment]
@@ -370,7 +370,7 @@ export class VscodeCommentReviewController extends CommentReviewController imple
 						mode: vscode.CommentMode.Preview,
 						author: {
 							name: "Codemarie",
-							iconPath: vscode.Uri.parse(CLINE_AVATAR_URL),
+							iconPath: vscode.Uri.parse(CODEMARIE_AVATAR_URL),
 						},
 					}
 					thread.comments = [...thread.comments.slice(0, -1), errorComment]

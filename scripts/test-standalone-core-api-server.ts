@@ -33,25 +33,25 @@ import { mkdtempSync, rmSync } from "node:fs"
 import * as os from "node:os"
 import { ChildProcess, execSync, spawn } from "child_process"
 import * as path from "path"
-import { ClineApiServerMock } from "../src/test/e2e/fixtures/server/index"
+import { CodemarieApiServerMock } from "../src/test/e2e/fixtures/server/index"
 
 const PROTOBUS_PORT = process.env.PROTOBUS_PORT || "26040"
 const HOSTBRIDGE_PORT = process.env.HOSTBRIDGE_PORT || "26041"
 const WORKSPACE_DIR = process.env.WORKSPACE_DIR || process.cwd()
 const E2E_TEST = process.env.E2E_TEST || "true"
-const CLINE_ENVIRONMENT = process.env.CLINE_ENVIRONMENT || "local"
+const CODEMARIE_ENVIRONMENT = process.env.CODEMARIE_ENVIRONMENT || process.env.CLINE_ENVIRONMENT || "local"
 const USE_C8 = process.env.USE_C8 === "true"
 
 // Locate the standalone build directory and core file with flexible path resolution
 const projectRoot = process.env.PROJECT_ROOT || path.resolve(__dirname, "..")
-const distDir = process.env.CLINE_DIST_DIR || path.join(projectRoot, "dist-standalone")
-const clineCoreFile = process.env.CLINE_CORE_FILE || "cline-core.js"
-const coreFile = path.join(distDir, clineCoreFile)
+const distDir = process.env.CODEMARIE_DIST_DIR || process.env.CLINE_DIST_DIR || path.join(projectRoot, "dist-standalone")
+const codemarieCoreFile = process.env.CODEMARIE_CORE_FILE || process.env.CLINE_CORE_FILE || "codemarie-core.js"
+const coreFile = path.join(distDir, codemarieCoreFile)
 
 const childProcesses: ChildProcess[] = []
 
 async function main(): Promise<void> {
-	console.log("Starting Simple Cline gRPC Server...")
+	console.log("Starting Simple Codemarie gRPC Server...")
 	console.log(`Project Root: ${projectRoot}`)
 	console.log(`Workspace: ${WORKSPACE_DIR}`)
 	console.log(`ProtoBus Port: ${PROTOBUS_PORT}`)
@@ -63,31 +63,31 @@ async function main(): Promise<void> {
 		console.error(`Standalone build not found at: ${coreFile}`)
 		console.error("Available environment variables for customization:")
 		console.error("  PROJECT_ROOT - Override project root directory")
-		console.error("  CLINE_DIST_DIR - Override distribution directory")
-		console.error("  CLINE_CORE_FILE - Override core file name")
+		console.error("  CODEMARIE_DIST_DIR - Override distribution directory")
+		console.error("  CODEMARIE_CORE_FILE - Override core file name")
 		console.error("")
 		console.error("To build the standalone version, run: npm run compile-standalone")
 		process.exit(1)
 	}
 
 	try {
-		await ClineApiServerMock.startGlobalServer()
-		console.log("Cline API Server started in-process")
+		await CodemarieApiServerMock.startGlobalServer()
+		console.log("Codemarie API Server started in-process")
 	} catch (error) {
-		console.error("Failed to start Cline API Server:", error)
+		console.error("Failed to start Codemarie API Server:", error)
 		process.exit(1)
 	}
 
 	const extensionsDir = path.join(distDir, "vsce-extension")
 	const userDataDir = mkdtempSync(path.join(os.tmpdir(), "vsce"))
-	const clineTestWorkspace = mkdtempSync(path.join(os.tmpdir(), "cline-test-workspace-"))
+	const codemarieTestWorkspace = mkdtempSync(path.join(os.tmpdir(), "codemarie-test-workspace-"))
 
 	console.log("Starting HostBridge test server...")
 	const hostbridge: ChildProcess = spawn("npx", ["tsx", path.join(__dirname, "test-hostbridge-server.ts")], {
 		stdio: "pipe",
 		env: {
 			...process.env,
-			TEST_HOSTBRIDGE_WORKSPACE_DIR: clineTestWorkspace,
+			TEST_HOSTBRIDGE_WORKSPACE_DIR: codemarieTestWorkspace,
 			HOST_BRIDGE_ADDRESS: `127.0.0.1:${HOSTBRIDGE_PORT}`,
 		},
 	})
@@ -115,11 +115,11 @@ async function main(): Promise<void> {
 
 	const covDir = path.join(projectRoot, `coverage/coverage-core-${PROTOBUS_PORT}`)
 
-	const baseArgs = ["--enable-source-maps", path.join(distDir, "cline-core.js")]
+	const baseArgs = ["--enable-source-maps", path.join(distDir, codemarieCoreFile)]
 
 	const spawnArgs = USE_C8 ? ["c8", "--report-dir", covDir, "node", ...baseArgs] : ["node", ...baseArgs]
 
-	console.log(`Starting Cline Core Service... (useC8=${USE_C8})`)
+	console.log(`Starting Codemarie Core Service... (useC8=${USE_C8})`)
 
 	const coreService: ChildProcess = spawn("npx", spawnArgs, {
 		cwd: projectRoot,
@@ -130,7 +130,9 @@ async function main(): Promise<void> {
 			PROTOBUS_ADDRESS: `127.0.0.1:${PROTOBUS_PORT}`,
 			HOST_BRIDGE_ADDRESS: `localhost:${HOSTBRIDGE_PORT}`,
 			E2E_TEST,
-			CLINE_ENVIRONMENT,
+			CODEMARIE_ENVIRONMENT,
+			CLINE_ENVIRONMENT: CODEMARIE_ENVIRONMENT,
+			CODEMARIE_DIR: userDataDir,
 			CLINE_DIR: userDataDir,
 			INSTALL_DIR: extensionsDir,
 		},
@@ -146,11 +148,11 @@ async function main(): Promise<void> {
 			if (child && !child.killed) child.kill("SIGINT")
 		}
 
-		await ClineApiServerMock.stopGlobalServer()
+		await CodemarieApiServerMock.stopGlobalServer()
 
 		try {
 			rmSync(userDataDir, { recursive: true, force: true })
-			rmSync(clineTestWorkspace, { recursive: true, force: true })
+			rmSync(codemarieTestWorkspace, { recursive: true, force: true })
 			console.log("Cleaned up temporary directories")
 		} catch (err) {
 			console.warn("Failed to cleanup temp directories:", err)
