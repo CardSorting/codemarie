@@ -1,5 +1,7 @@
+import path from "node:path"
 import { ExecuteCommandInTerminalRequest, ExecuteCommandInTerminalResponse } from "@shared/proto/host/workspace"
 import * as vscode from "vscode"
+import { HostProvider } from "@/hosts/host-provider"
 import { Logger } from "@/shared/services/Logger"
 
 /**
@@ -12,9 +14,10 @@ export async function executeCommandInTerminal(
 ): Promise<ExecuteCommandInTerminalResponse> {
 	try {
 		// Create terminal with fixed options
+		const iconPath = vscode.Uri.file(path.join(HostProvider.get().extensionFsPath, "assets", "icons", "icon.svg"))
 		const terminalOptions: vscode.TerminalOptions = {
 			name: "Codemarie",
-			iconPath: new vscode.ThemeIcon("codemarie-icon"),
+			iconPath,
 			env: {
 				CLINE_ACTIVE: "true",
 			},
