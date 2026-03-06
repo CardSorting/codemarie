@@ -1,5 +1,14 @@
-import { CodemarieAsk as AppCodemarieAsk, CodemarieMessage as AppCodemarieMessage, CodemarieSay as AppCodemarieSay } from "@shared/ExtensionMessage"
-import { CodemarieAsk, CodemarieMessageType, CodemarieSay, CodemarieMessage as ProtoCodemarieMessage } from "@shared/proto/codemarie/ui"
+import {
+	CodemarieAsk as AppCodemarieAsk,
+	CodemarieMessage as AppCodemarieMessage,
+	CodemarieSay as AppCodemarieSay,
+} from "@shared/ExtensionMessage"
+import {
+	CodemarieAsk,
+	CodemarieMessageType,
+	CodemarieSay,
+	CodemarieMessage as ProtoCodemarieMessage,
+} from "@shared/proto/codemarie/ui"
 
 // Helper function to convert CodemarieAsk string to enum
 function convertCodemarieAskToProtoEnum(ask: AppCodemarieAsk | undefined): CodemarieAsk | undefined {
@@ -95,7 +104,7 @@ function convertCodemarieSayToProtoEnum(say: AppCodemarieSay | undefined): Codem
 		use_mcp_server: CodemarieSay.USE_MCP_SERVER_SAY,
 		diff_error: CodemarieSay.DIFF_ERROR,
 		deleted_api_reqs: CodemarieSay.DELETED_API_REQS,
-		codemarieignore_error: CodemarieSay.CLINEIGNORE_ERROR,
+		codemarieignore_error: CodemarieSay.CODEMARIEIGNORE_ERROR,
 		command_permission_denied: CodemarieSay.COMMAND_PERMISSION_DENIED,
 		checkpoint_created: CodemarieSay.CHECKPOINT_CREATED,
 		load_mcp_documentation: CodemarieSay.LOAD_MCP_DOCUMENTATION,
@@ -146,7 +155,7 @@ function convertProtoEnumToCodemarieSay(say: CodemarieSay): AppCodemarieSay | un
 		[CodemarieSay.USE_MCP_SERVER_SAY]: "use_mcp_server",
 		[CodemarieSay.DIFF_ERROR]: "diff_error",
 		[CodemarieSay.DELETED_API_REQS]: "deleted_api_reqs",
-		[CodemarieSay.CLINEIGNORE_ERROR]: "codemarieignore_error",
+		[CodemarieSay.CODEMARIEIGNORE_ERROR]: "codemarieignore_error",
 		[CodemarieSay.COMMAND_PERMISSION_DENIED]: "command_permission_denied",
 		[CodemarieSay.CHECKPOINT_CREATED]: "checkpoint_created",
 		[CodemarieSay.LOAD_MCP_DOCUMENTATION]: "load_mcp_documentation",
