@@ -16,16 +16,17 @@ export class TspPolicyPlugin {
 		filePath: string,
 		content: string,
 		resolveContent?: (path: string) => string | undefined,
-	): { success: boolean; errors: string[] } {
+	): { success: boolean; errors: string[]; warnings: string[] } {
 		const errors: string[] = []
+		const warnings: string[] = []
 		const currentLayer = getLayer(filePath)
 
 		// Create a source file from the content
 		const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true)
 
-		// 1. Rule: No 'any' types in Domain or Infrastructure (core is exempt)
+		// 1. Rule: 'any' types are discouraged but allowed (warning only)
 		if (currentLayer === "domain" || currentLayer === "infrastructure") {
-			this.findAnyTypes(sourceFile, currentLayer, errors)
+			this.findAnyTypes(sourceFile, currentLayer, warnings)
 		}
 
 		// 2. Rule: Single Class per file in Domain
@@ -42,20 +43,29 @@ export class TspPolicyPlugin {
 		return {
 			success: errors.length === 0,
 			errors,
+			warnings,
 		}
+	}
+
+	/**
+	 * Public API to detect cross-layer violations using AST.
+	 */
+	public findCrossLayerViolations(sourceFile: ts.SourceFile, filePath: string): string[] {
+		const violations: string[] = []
+		const currentLayer = getLayer(filePath)
+		this.validateLayering(sourceFile, filePath, currentLayer, violations)
+		return violations
 	}
 
 	/**
 	 * Recursively finds 'any' keyword usage.
 	 */
-	private findAnyTypes(node: ts.Node, layer: string, errors: string[]) {
+	private findAnyTypes(node: ts.Node, layer: string, warnings: string[]) {
 		if (node.kind === ts.SyntaxKind.AnyKeyword) {
 			const { line } = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart())
-			errors.push(
-				`'any' type in ${layer.toUpperCase()} layer (line ${line + 1}) — use a typed interface or generic instead.`,
-			)
+			warnings.push(`'any' type in ${layer.toUpperCase()} layer (line ${line + 1}).`)
 		}
-		ts.forEachChild(node, (child) => this.findAnyTypes(child, layer, errors))
+		ts.forEachChild(node, (child) => this.findAnyTypes(child, layer, warnings))
 	}
 
 	/**
@@ -87,28 +97,25 @@ export class TspPolicyPlugin {
 				if (ts.isStringLiteral(moduleSpecifier)) {
 					const moduleName = moduleSpecifier.text
 
-					// Resolve relative imports
+					// Resolve relative imports and aliases
 					let targetPath = moduleName
 					if (moduleName.startsWith(".")) {
 						targetPath = path.resolve(path.dirname(filePath), moduleName)
+					} else {
+						targetPath = this.resolveAlias(moduleName)
 					}
 
 					const targetLayer = getLayer(targetPath)
 
 					// Rule: Domain Constraints — strictest isolation
 					if (currentLayer === "domain") {
-						if (
-							targetLayer === "infrastructure" ||
-							targetLayer === "ui" ||
-							moduleName.includes("infrastructure") ||
-							moduleName.includes("ui")
-						) {
+						if (targetLayer === "infrastructure" || targetLayer === "ui") {
 							errors.push(
 								`Domain cannot import '${moduleName}' (${targetLayer} layer) — extract an interface instead.`,
 							)
 						}
 
-						if (["fs", "path", "os", "crypto", "http", "child_process"].includes(moduleName)) {
+						if (["fs", "path", "os", "crypto", "http", "https", "child_process", "url", "net"].includes(moduleName)) {
 							errors.push(`Domain cannot use Node.js module '${moduleName}' — wrap in an Infrastructure adapter.`)
 						}
 					}
@@ -169,11 +176,72 @@ export class TspPolicyPlugin {
 	}
 
 	/**
+	 * Helper for deep layering validation (extracted for public findCrossLayerViolations).
+	 */
+	private validateLayering(sourceFile: ts.SourceFile, filePath: string, currentLayer: Layer, violations: string[]) {
+		ts.forEachChild(sourceFile, (node) => {
+			if (ts.isImportDeclaration(node)) {
+				const moduleSpecifier = node.moduleSpecifier
+				if (ts.isStringLiteral(moduleSpecifier)) {
+					const moduleName = moduleSpecifier.text
+					let targetPath = moduleName
+					if (moduleName.startsWith(".")) {
+						targetPath = path.resolve(path.dirname(filePath), moduleName)
+					} else {
+						targetPath = this.resolveAlias(moduleName)
+					}
+					const targetLayer = getLayer(targetPath)
+
+					if (currentLayer === "domain") {
+						if (targetLayer === "infrastructure" || targetLayer === "ui") {
+							violations.push(`Domain layer cannot import from ${targetLayer}: '${moduleName}'.`)
+						}
+						if (["fs", "path", "os", "crypto", "http", "https", "child_process", "url", "net"].includes(moduleName)) {
+							violations.push(`Domain layer must not use platform module '${moduleName}'.`)
+						}
+					}
+					if (currentLayer === "plumbing" && ["domain", "core", "infrastructure", "ui"].includes(targetLayer)) {
+						violations.push(`Plumbing cannot depend on ${targetLayer} layer: '${moduleName}'.`)
+					}
+				}
+			}
+		})
+	}
+
+	/**
+	 * Resolves project-specific path aliases to absolute paths.
+	 */
+	private resolveAlias(moduleName: string): string {
+		// Based on tsconfig.json paths
+		const aliases: Record<string, string> = {
+			"@/": "src/",
+			"@api/": "src/core/api/",
+			"@core/": "src/core/",
+			"@generated/": "src/generated/",
+			"@hosts/": "src/hosts/",
+			"@integrations/": "src/integrations/",
+			"@packages/": "src/packages/",
+			"@services/": "src/services/",
+			"@shared/": "src/shared/",
+			"@utils/": "src/utils/",
+		}
+
+		for (const [alias, replacement] of Object.entries(aliases)) {
+			if (moduleName.startsWith(alias)) {
+				// We assume cwd is the root (cline-main)
+				// TspPolicyPlugin doesn't have cwd access, so we use a relative-to-root assumption or just return enough for getLayer to parse
+				return path.join(replacement, moduleName.substring(alias.length))
+			}
+		}
+		return moduleName
+	}
+
+	/**
 	 * Creates a TypeScript Transformer factory for Joy-Zoning.
 	 * Can be used in a real 'tsc' plugin or build pipeline.
 	 */
 	public createTransformer(): ts.TransformerFactory<ts.SourceFile> {
-		return (context: ts.TransformationContext) => {
+		return (_context: ts.TransformationContext) => {
 			return (sourceFile: ts.SourceFile) => {
 				const filePath = sourceFile.fileName
 				const validation = this.validateSource(filePath, sourceFile.getText())

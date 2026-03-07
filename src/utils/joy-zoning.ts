@@ -39,10 +39,11 @@ export function validateSmells(filePath: string, content: string): string[] {
 		}
 	}
 
-	// Forbidden 'any' type — domain and infrastructure only (core is exempt)
+	// Discouraged 'any' type — domain and infrastructure only (core is exempt)
 	if (layer === "domain" || layer === "infrastructure") {
 		if (content.includes(": any") || content.includes("<any>")) {
-			errors.push(`${path.basename(filePath)}: 'any' type detected — use a typed interface or generic.`)
+			// Surface as an architectural smell rather than a strict error
+			errors.push(`${path.basename(filePath)}: Architectural smell — 'any' type detected.`)
 		}
 	}
 

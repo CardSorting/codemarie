@@ -91,6 +91,8 @@ const GLOBAL_STATE_FIELDS = {
 	dismissedBanners: { default: [] as Array<{ bannerId: string; dismissedAt: number }> },
 	// Path to worktree that should auto-open Codemarie sidebar when launched
 	worktreeAutoOpenPath: { default: undefined as string | undefined },
+	// Tracks architectural violations (Strikes) per file to enable progressive enforcement
+	architecturalStrikes: { default: {} as Record<string, number> },
 } satisfies FieldDefinitions
 
 // Fields that map directly to ApiHandlerOptions in @shared/api.ts

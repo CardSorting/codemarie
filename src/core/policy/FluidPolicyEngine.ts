@@ -4,6 +4,7 @@ import { createHash } from "crypto"
 import fs from "fs/promises"
 import * as path from "path"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
+import { StateManager } from "../storage/StateManager"
 import { TspPolicyPlugin } from "./TspPolicyPlugin"
 
 export interface PolicyResult {
@@ -28,17 +29,38 @@ export interface PolicyResult {
  */
 export class FluidPolicyEngine {
 	private readonly tspPlugin = new TspPolicyPlugin()
-	/** Tracks how many times a file has been blocked for architectural violations */
-	private readonly strikeMap = new Map<string, number>()
 	private mode: "plan" | "act" = "act"
 	private commitSeal: string | null = null
 	private sealReason: string | null = null
 
 	constructor(
 		private cwd: string,
-		private streamId?: string,
+		private streamId: string | undefined,
+		private stateManager: StateManager,
 		private virtualResolver?: (path: string) => string | undefined,
 	) {}
+
+	/**
+	 * Increments and persists the strike count for a file.
+	 */
+	private incrementStrikes(filePath: string): number {
+		const strikes = { ...(this.stateManager.getGlobalStateKey("architecturalStrikes") || {}) }
+		const newCount = (strikes[filePath] || 0) + 1
+		strikes[filePath] = newCount
+		this.stateManager.setGlobalState("architecturalStrikes", strikes)
+		return newCount
+	}
+
+	/**
+	 * Resets strikes for a file once it's clean.
+	 */
+	private resetStrikes(filePath: string): void {
+		const strikes = { ...(this.stateManager.getGlobalStateKey("architecturalStrikes") || {}) }
+		if (strikes[filePath]) {
+			delete strikes[filePath]
+			this.stateManager.setGlobalState("architecturalStrikes", strikes)
+		}
+	}
 
 	public setMode(mode: "plan" | "act") {
 		this.mode = mode
@@ -84,7 +106,6 @@ export class FluidPolicyEngine {
 		const fixes: string[] = []
 		for (const err of errors) {
 			if (err.includes("import")) fixes.push("Move the import to the appropriate layer, or extract an interface in Domain.")
-			else if (err.includes("any")) fixes.push("Replace 'any' with a typed interface or generic.")
 			else if (err.includes("class")) fixes.push("Split into separate files — one class per file in Domain.")
 			else if (err.includes("circular")) fixes.push("Extract shared logic into a Plumbing utility.")
 			else fixes.push("Review the violation and restructure accordingly.")
@@ -131,25 +152,26 @@ export class FluidPolicyEngine {
 			if (!validation.success) {
 				const { getLayer } = require("@/utils/joy-zoning")
 				const layer = getLayer(filePath)
-				const strikes = (this.strikeMap.get(filePath) || 0) + 1
-				this.strikeMap.set(filePath, strikes)
+				const strikes = this.incrementStrikes(filePath)
 
-				const violationSummary = validation.errors.map((e) => `  - ${e}`).join("\n")
+				// Rule: 'any' warnings and strike-degraded violations
+				const allWarnings = [...(validation.warnings || []), ...validation.errors]
+				const violationSummary = allWarnings.map((e) => `  - ${e}`).join("\n")
 
-				// Strict domain (src/domain/): Block on first strike, degrade on subsequent
-				if (layer === "domain" && strikes === 1) {
+				// Strike 1 (domain only): Instruction-based hard block for non-'any' violations
+				if (layer === "domain" && strikes === 1 && validation.errors.length > 0) {
+					const violationSummaryRejection = validation.errors.map((e) => `  - ${e}`).join("\n")
 					return {
 						success: false,
-						error: `🛑 PRE-FLIGHT ARCHITECTURAL REJECTION (Strike ${strikes}): Domain layer file \`${path.basename(filePath)}\` has ${validation.errors.length} violation(s):\n${violationSummary}\n\n${this.getCorrectionHint(validation.errors)}\n\n💡 If you cannot resolve these violations, the next attempt will be allowed through with a warning.`,
+						error: `🏗️ ARCHITECTURAL CORRECTION REQUIRED (Strike ${strikes})\nDomain layer file \`${path.basename(filePath)}\` has ${validation.errors.length} violation(s):\n${violationSummaryRejection}\n\n${this.getCorrectionHint(validation.errors)}\n\n💡 Your write was NOT executed. Please address these violations and try again.`,
 						violations: validation.errors,
 					}
 				}
 
-				// Domain strike 2+ or core/other layers: Allow through with a strong warning
-				// This prevents infinite deadlock while still surfacing the violations
+				// Strike 2+ or other layers: Graceful degradation to warning
 				const degradeNotice =
 					layer === "domain"
-						? `⚠️ ARCHITECTURAL WARNING (Strike ${strikes} — enforcement degraded): Domain layer file \`${path.basename(filePath)}\` has ${validation.errors.length} unresolved violation(s):\n${violationSummary}\n\nThe write is ALLOWED to prevent deadlock. You MUST address these violations in a follow-up change.`
+						? `⚠️ ARCHITECTURAL WARNING (Strike ${strikes} — enforcement degraded): Domain layer file \`${path.basename(filePath)}\` has ${validation.errors.length} unresolved violation(s):\n${violationSummary}\n\nThe write is ALLOWED to prevent deadlock. You MUST address these in a follow-up change.`
 						: `⚠️ ARCHITECTURAL WARNING: ${layer.toUpperCase()} layer file \`${path.basename(filePath)}\` has ${validation.errors.length} violation(s):\n${violationSummary}\n\nProceed, but address these in a follow-up change.`
 
 				return {
@@ -159,8 +181,16 @@ export class FluidPolicyEngine {
 					correctionHint: this.getCorrectionHint(validation.errors),
 				}
 			}
+
+			// Surface 'any' warnings even on successful validation
+			if (validation.warnings && validation.warnings.length > 0) {
+				return {
+					success: true,
+					warning: `⚠️ DISCERNMENT WARNING: Architectural smell(s) detected:\n${validation.warnings.map((w) => `  - ${w}`).join("\n")}`,
+				}
+			}
 			// Clean file — reset strikes for this path
-			this.strikeMap.delete(filePath)
+			this.resetStrikes(filePath)
 
 			// For new files: proactively suggest the best layer if content doesn't match location
 			if (block.name === CodemarieDefaultTool.FILE_NEW && block.params.content) {
@@ -217,8 +247,14 @@ export class FluidPolicyEngine {
 			header += `⚠️ Existing issues in this file:\n${validation.errors.map((v) => `  - ${v}`).join("\n")}\nKeep these in mind — avoid propagating these patterns.\n`
 		}
 
-		// Proactive Dependency Detection
-		const crossLayerViolations = this.detectCrossLayerImports(content, layer)
+		// Proactive Dependency Detection (AST-based)
+		const sourceFile = require("typescript").createSourceFile(
+			absolutePath,
+			content,
+			require("typescript").ScriptTarget.Latest,
+			true,
+		)
+		const crossLayerViolations = this.tspPlugin.findCrossLayerViolations(sourceFile, absolutePath)
 		if (crossLayerViolations.length > 0) {
 			header += `⚠️ ARCHITECTURAL SMELL DETECTED (Cross-Layer Dependency):\n${crossLayerViolations.map((v) => `  - ${v}`).join("\n")}\n`
 		}
@@ -283,9 +319,10 @@ export class FluidPolicyEngine {
 				try {
 					const content = await fs.readFile(filePath, "utf-8")
 					const validation = this.tspPlugin.validateSource(filePath, content, this.virtualResolver)
-					if (!validation.success) {
+					if (!validation.success || (validation.warnings && validation.warnings.length > 0)) {
+						const allIssues = [...(validation.warnings || []), ...validation.errors]
 						result.violations = validation.errors
-						result.warning = `⚠️ ${path.basename(filePath)}:\n${validation.errors.map((v) => `  - ${v}`).join("\n")}`
+						result.warning = `⚠️ ${path.basename(filePath)}:\n${allIssues.map((v) => `  - ${v}`).join("\n")}`
 						result.correctionHint = this.getCorrectionHint(validation.errors)
 					}
 				} catch {
@@ -300,7 +337,10 @@ export class FluidPolicyEngine {
 			const currentHash = createHash("sha256").update(resultStr).digest("hex")
 
 			if (currentHash !== prevResultHash) {
-				// Divergence detected
+				result.warning =
+					(result.warning ? result.warning + "\n" : "") +
+					"⚠️ ENTROPY WARNING: Tool output has diverged from expected hash. Structural stability may be compromised."
+				result.entropyScore = 1.0 // Simple toggle for now
 			}
 		}
 
@@ -323,16 +363,23 @@ export class FluidPolicyEngine {
 			try {
 				const content = await fs.readFile(filePath, "utf-8")
 				const validation = this.tspPlugin.validateSource(filePath, content, this.virtualResolver)
-				if (!validation.success) {
+				if (!validation.success || (validation.warnings && validation.warnings.length > 0)) {
+					const allIssues = [...(validation.warnings || []), ...validation.errors]
 					const layer = getLayer(filePath)
 					const layerPrefix = `[${layer.toUpperCase()}] ${path.basename(filePath)}`
-					allErrors.push(...validation.errors.map((e) => `${layerPrefix}: ${e}`))
+					allErrors.push(...allIssues.map((e) => `${layerPrefix}: ${e}`))
 				}
 
-				// Dependency Detection for commit validation
-				const layer = getLayer(filePath)
-				const crossLayerViolations = this.detectCrossLayerImports(content, layer)
+				// Dependency Detection for commit validation (AST-based)
+				const sourceFile = require("typescript").createSourceFile(
+					filePath,
+					content,
+					require("typescript").ScriptTarget.Latest,
+					true,
+				)
+				const crossLayerViolations = this.tspPlugin.findCrossLayerViolations(sourceFile, filePath)
 				if (crossLayerViolations.length > 0) {
+					const layer = getLayer(filePath)
 					const layerPrefix = `[${layer.toUpperCase()}] ${path.basename(filePath)}`
 					allErrors.push(
 						...crossLayerViolations.map((e) => `${layerPrefix}: ARCHITECTURAL SMELL (Cross-Layer Dependency): ${e}`),
@@ -344,45 +391,28 @@ export class FluidPolicyEngine {
 		}
 
 		if (isDomainChange && allErrors.length > 0) {
-			// If we have an active seal, allow the commit but record it as a 'degraded' success
-			if (this.commitSeal) {
-				return { success: true, errors: allErrors.map((e) => `[SEALED: ${this.commitSeal}] ${e}`) }
+			// Restore blocking for domain violations on commit, unless it's just warnings
+			let hasHardErrors = false
+			for (const filePath of affectedFiles) {
+				try {
+					const content = require("fs").readFileSync(filePath, "utf-8")
+					const validation = this.tspPlugin.validateSource(filePath, content)
+					if (validation.errors.length > 0) {
+						hasHardErrors = true
+						break
+					}
+				} catch {
+					// File might not exist
+				}
 			}
-			return { success: false, errors: allErrors }
+
+			if (hasHardErrors && !this.commitSeal) {
+				return { success: false, errors: allErrors }
+			}
+
+			return { success: true, errors: allErrors.map((e) => `[DOMAIN WARNING] ${e}`) }
 		}
 
 		return { success: true, errors: allErrors }
-	}
-
-	/**
-	 * Detects cross-layer violations in source content.
-	 * e.g., Domain layer should not import from Infrastructure.
-	 */
-	private detectCrossLayerImports(content: string, layer: string): string[] {
-		const violations: string[] = []
-		if (layer === "domain") {
-			if (
-				content.match(
-					/import.*from.*['"](@infrastructure|@services|@integrations|\.\.\/infrastructure|\.\.\/services|\.\.\/integrations).*['"]/,
-				)
-			) {
-				violations.push("Domain layer is importing from Infrastructure/Services. Use dependency inversion.")
-			}
-			// Platform Leakage Detection
-			if (content.match(/import.*from.*['"](fs|path|os|child_process|http|https|axios|net).*['"]/)) {
-				violations.push(
-					"PLATFORM LEAKAGE: Domain layer must not depend on platform-specific modules or side-effect heavy libraries.",
-				)
-			}
-			if (content.match(/import.*from.*['"](webview-ui).*['"]/)) {
-				violations.push("Domain layer is importing from UI. Domain must be platform-agnostic.")
-			}
-		}
-		if (layer === "plumbing") {
-			if (content.match(/import.*from.*['"](@domain|@core|@infrastructure|webview-ui).*['"]/)) {
-				violations.push("Plumbing/Utils should have zero dependencies on application layers.")
-			}
-		}
-		return violations
 	}
 }

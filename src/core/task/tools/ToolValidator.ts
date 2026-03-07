@@ -100,7 +100,7 @@ export class ToolValidator {
 		if (!result.success) {
 			return {
 				ok: false,
-				error: `🏗️ ARCHITECTURAL REJECTION\n${layerContext}\n\n${result.error}`,
+				error: `🏗️ ARCHITECTURAL CORRECTION REQUIRED\n${layerContext}\n\n${result.error}`,
 				hint: result.correctionHint,
 			}
 		}

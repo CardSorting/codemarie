@@ -126,7 +126,7 @@ export class ToolExecutor {
 	) {
 		this.autoApprover = new AutoApprove(this.stateManager)
 		const controller = getOrchestrationController()
-		this.guard = new UniversalGuard(cwd, taskId, controller)
+		this.guard = new UniversalGuard(cwd, taskId, this.stateManager, controller)
 		this.policyObserver = new ReactivePolicyObserver(this.guard as any) // Guard wraps engine
 		this.coordinator = new ToolExecutorCoordinator()
 		this.registerToolHandlers()
@@ -623,8 +623,9 @@ export class ToolExecutor {
 			// Policy Enforcement: Pre-Execution
 			const preExecResult = await this.guard.guardPreExecution(block)
 			if (!preExecResult.success) {
-				await this.say("error", preExecResult.error!)
-				this.pushToolResult(formatResponse.toolError(preExecResult.error!), block)
+				await this.say("error_retry" as any, preExecResult.error!)
+				// Use specialized architectural correction response to encourage repair/retry
+				this.pushToolResult((formatResponse as any).architecturalCorrection(preExecResult.error!), block)
 				return
 			}
 			// Surface pre-execution architectural guidance (e.g. degraded enforcement warnings)

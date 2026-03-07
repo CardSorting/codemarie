@@ -1,5 +1,6 @@
 import { ToolUse } from "../assistant-message"
 import { OrchestrationController } from "../orchestration/OrchestrationController"
+import { StateManager } from "../storage/StateManager"
 import { FluidPolicyEngine, PolicyResult } from "./FluidPolicyEngine"
 
 /**
@@ -11,10 +12,11 @@ export class UniversalGuard {
 	private readonly engine: FluidPolicyEngine
 	private currentMode: "plan" | "act" = "act"
 
-	constructor(cwd: string, streamId?: string, controller?: OrchestrationController) {
+	constructor(cwd: string, taskId: string, stateManager: StateManager, controller?: OrchestrationController) {
 		this.engine = new FluidPolicyEngine(
 			cwd,
-			streamId,
+			taskId,
+			stateManager,
 			controller ? (p: string) => controller.resolveVirtualContent(p) : undefined,
 		)
 	}
