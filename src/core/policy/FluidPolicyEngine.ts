@@ -35,8 +35,8 @@ export class FluidPolicyEngine {
 
 	constructor(
 		private cwd: string,
-		private streamId: string | undefined,
-		private stateManager: StateManager,
+		private streamId?: string,
+		private stateManager?: StateManager,
 		private virtualResolver?: (path: string) => string | undefined,
 	) {}
 
@@ -44,6 +44,7 @@ export class FluidPolicyEngine {
 	 * Increments and persists the strike count for a file.
 	 */
 	private incrementStrikes(filePath: string): number {
+		if (!this.stateManager) return 0
 		const strikes = { ...(this.stateManager.getGlobalStateKey("architecturalStrikes") || {}) }
 		const newCount = (strikes[filePath] || 0) + 1
 		strikes[filePath] = newCount
@@ -55,6 +56,7 @@ export class FluidPolicyEngine {
 	 * Resets strikes for a file once it's clean.
 	 */
 	private resetStrikes(filePath: string): void {
+		if (!this.stateManager) return
 		const strikes = { ...(this.stateManager.getGlobalStateKey("architecturalStrikes") || {}) }
 		if (strikes[filePath]) {
 			delete strikes[filePath]

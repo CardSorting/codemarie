@@ -294,7 +294,7 @@ export class Task {
 
 		this.taskInitializationStartTime = performance.now()
 		this.taskState = new TaskState()
-		this.policyEngine = new FluidPolicyEngine(cwd)
+		this.policyEngine = new FluidPolicyEngine(cwd, undefined, stateManager)
 		this.controller = controller
 		this.mcpHub = mcpHub
 		this.updateTaskHistory = updateTaskHistory
