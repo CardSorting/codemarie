@@ -1390,6 +1390,10 @@ export class Task {
 		let nextUserContent = userContent
 		let includeFileDetails = true
 		while (!this.taskState.abort) {
+			this.taskState.currentTurnReadHistory.clear() // Reset read history for the new turn
+			this.taskState.currentTurnTotalReadCount = 0 // Reset total read counter for the new turn
+			this.taskState.currentTurnUniqueReadCount = 0 // Reset unique read counter for the new turn
+			this.taskState.currentTurnExplorationCount = 0 // Reset exploration counter for the new turn
 			const didEndLoop = await this.recursivelyMakeCodemarieRequests(nextUserContent, includeFileDetails)
 			includeFileDetails = false // we only need file details the first time
 

@@ -236,7 +236,7 @@ export class FluidPolicyEngine {
 	 * Always injects the file's layer context so the agent knows the rules before editing.
 	 * Additionally warns about existing violations if any are found.
 	 */
-	public async onRead(filePath: string, content: string): Promise<string> {
+	public async onRead(filePath: string, content: string, totalReadCount = 0, perFileReadCount = 0): Promise<string> {
 		const absolutePath = path.resolve(this.cwd, filePath)
 		const layerContext = this.getFileLayerContext(absolutePath)
 		const validation = this.tspPlugin.validateSource(absolutePath, content, this.virtualResolver)
@@ -262,28 +262,40 @@ export class FluidPolicyEngine {
 		}
 
 		if (this.mode === "plan") {
-			const isInterface = content.includes("interface ") || content.includes("type ")
-			header += `🔍 Architecture Probing (PLAN mode):\n`
-			switch (layer) {
-				case "domain":
-					if (isInterface) {
-						header += `  - Is this Domain contract stable enough for Core consumption?\n  - Does it avoid leaking implementation details?`
-					} else {
-						header += `  - Does this logic belong in a Core Service instead?\n  - Are all Infrastructure side effects abstracted?`
-					}
-					break
-				case "core":
-					header += isInterface
-						? `  - Is this Core interface consumed by UI or Infrastructure components?`
-						: `  - Which Domain models are being coordinated here?\n  - Are Infrastructure dependencies properly abstracted via interfaces?`
-					break
-				case "infrastructure":
-					header += `  - Does this adapter strictly implement a Domain or Core contract?\n  - Is any business logic leaking into this I/O-heavy layer?`
-					break
-				default:
-					header += `  - How does this file fit into the overall JoyZoning topology?`
+			if (perFileReadCount >= 3) {
+				header += `🔍 Architecture Analysis (PLAN mode):\n`
+				header += `  ⚠️ RECURSIVE STALLING DETECTED: You have read this specific file (${path.basename(filePath)}) ${perFileReadCount} times in this turn without making progress. To avoid an infinite loop, you MUST NOW stop reading this file and either synthesize your findings into a plan or use \`ask_followup_question\`.\n`
+			} else if (totalReadCount >= 10) {
+				header += `🔍 Architecture Analysis (PLAN mode):\n`
+				header += `  ⚠️ SYSTEMATIC SCANNING LIMIT: You have read ${totalReadCount} unique files in this interaction turn. To avoid context bloat, you MUST NOW synthesize your current findings into an architectural plan using \`plan_mode_respond\`.\n`
+			} else if (totalReadCount >= 5) {
+				// Adaptive Guidance: Omit probing questions after 5 reads to reduce turn-overhead and "nagging"
+				header += `🔍 Architecture Context (PLAN mode):\n`
+				header += `  (Probing questions disabled for turn-efficiency. Focus on your planning objective.)\n`
+			} else {
+				const isInterface = content.includes("interface ") || content.includes("type ")
+				header += `🔍 Architecture Probing (PLAN mode):\n`
+				switch (layer) {
+					case "domain":
+						if (isInterface) {
+							header += `  - Is this Domain contract stable enough for Core consumption?\n  - Does it avoid leaking implementation details?`
+						} else {
+							header += `  - Does this logic belong in a Core Service instead?\n  - Are all Infrastructure side effects abstracted?`
+						}
+						break
+					case "core":
+						header += isInterface
+							? `  - Is this Core interface consumed by UI or Infrastructure components?`
+							: `  - Which Domain models are being coordinated here?\n  - Are Infrastructure dependencies properly abstracted via interfaces?`
+						break
+					case "infrastructure":
+						header += `  - Does this adapter strictly implement a Domain or Core contract?\n  - Is any business logic leaking into this I/O-heavy layer?`
+						break
+					default:
+						header += `  - How does this file fit into the overall JoyZoning topology?`
+				}
+				header += `\n`
 			}
-			header += `\n`
 		} else if (this.mode === "act") {
 			header += `🛠️ Layer Toolkit (ACT mode):\n`
 			switch (layer) {

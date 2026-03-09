@@ -48,6 +48,14 @@ export class PlanModeRespondHandler implements IToolHandler, IPartialBlockHandle
 
 		// The plan_mode_respond tool tends to run into this issue where the model realizes mid-tool call that it should have called another tool before calling plan_mode_respond. And it ends the plan_mode_respond tool call with 'Proceeding to reading files...' which doesn't do anything because we restrict to 1 tool call per message. As an escape hatch for the model, we provide it the optionality to tack on a parameter at the end of its response `needs_more_exploration`, which will allow the loop to continue.
 		if (needsMoreExploration) {
+			config.taskState.currentTurnExplorationCount++
+
+			if (config.taskState.currentTurnExplorationCount > 3) {
+				return formatResponse.toolResult(
+					`⚠️ RECURSIVE EXPLORATION DETECTED: You have requested "more exploration" multiple times in this turn. To avoid an infinite scanning loop, you MUST now synthesize your current findings and present a plan, or use ask_followup_question if you are truly blocked.`,
+				)
+			}
+
 			return formatResponse.toolResult(
 				`[You have indicated that you need more exploration. Proceed with calling tools to continue the planning process.]`,
 			)

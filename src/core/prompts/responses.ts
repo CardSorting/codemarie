@@ -25,7 +25,7 @@ export const formatResponse = {
 	toolError: (error?: string) => `The tool execution failed with the following error:\n<error>\n${error}\n</error>`,
 
 	architecturalCorrection: (error: string) =>
-		`🏗️ ARCHITECTURAL CORRECTION REQUIRED\n\n<error>\n${error}\n</error>\n\nYour previous tool execution was REJECTED because it violated JoyZoning architectural policies. To proceed, you MUST repair the code to comply with these rules and then RETRY the operation.\n\nInstructions:\n1. Analyze the violations provided in the error block.\n2. Apply the correction hints provided.\n3. Resubmit the tool call with the fixed content.\n\n(This is an automated enforcement to maintain system integrity. Please address the issues to continue.)`,
+		`🏗️ ARCHITECTURAL CORRECTION REQUIRED\n\n<error>\n${error}\n</error>\n\nYour previous tool execution was REJECTED and was NOT applied because it violated JoyZoning architectural policies. You MUST now repair the code to comply with these rules and then RETRY the operation.\n\nInstructions:\n1. Analyze the violations provided in the error block.\n2. Apply the correction hints provided.\n3. Resubmit the tool call with the fixed content.\n\n(This is an automated enforcement to maintain system integrity. You cannot proceed with this change until the violations are resolved.)`,
 
 	codemarieIgnoreError: (path: string) =>
 		`Access to ${path} is blocked by the .codemarieignore file settings. You must try to continue in the task without using this file, or ask the user to update the .codemarieignore file.`,

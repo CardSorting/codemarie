@@ -1,0 +1,43 @@
+import { expect } from "chai"
+import * as path from "path"
+import { FluidPolicyEngine } from "../FluidPolicyEngine"
+
+describe("FluidPolicyEngine - Adaptive Architectural Guidance", () => {
+	let engine: FluidPolicyEngine
+	const cwd = process.cwd()
+
+	beforeEach(() => {
+		engine = new FluidPolicyEngine(cwd)
+		engine.setMode("plan")
+	})
+
+	it("should show full probing questions when readCount is low (e.g., 0)", async () => {
+		const filePath = path.join(cwd, "src/domain/test.ts")
+		const content = "export class Test {}"
+		const result = await engine.onRead(filePath, content, 0)
+
+		expect(result).to.contain("🔍 Architecture Probing (PLAN mode):")
+		expect(result).to.contain("- Does this logic belong in a Core Service instead?")
+	})
+
+	it("should show quiet mode when readCount is moderate (e.g., 5)", async () => {
+		const filePath = path.join(cwd, "src/domain/test.ts")
+		const content = "export class Test {}"
+		const result = await engine.onRead(filePath, content, 5)
+
+		expect(result).to.contain("🔍 Architecture Context (PLAN mode):")
+		expect(result).to.contain("(Probing questions disabled for turn-efficiency. Focus on your planning objective.)")
+		expect(result).to.not.contain("Architecture Probing")
+	})
+
+	it("should show nudge mode with loop detection when readCount is high (e.g., 10)", async () => {
+		const filePath = path.join(cwd, "src/domain/test.ts")
+		const content = "export class Test {}"
+		const result = await engine.onRead(filePath, content, 10)
+
+		expect(result).to.contain("🔍 Architecture Analysis (PLAN mode):")
+		expect(result).to.contain("⚠️ POTENTIAL LOOP DETECTED")
+		expect(result).to.contain("you MUST NOW synthesize your current findings")
+		expect(result).to.not.contain("Architecture Probing")
+	})
+})

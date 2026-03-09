@@ -81,10 +81,16 @@ export class TaskState {
 	// Auto-context summarization
 	currentlySummarizing = false
 	lastAutoCompactTriggerIndex?: number
+
+	// Adaptive architectural guidance
+	currentTurnReadHistory = new Map<string, number>()
+	currentTurnTotalReadCount = 0
+	currentTurnUniqueReadCount = 0
+	currentTurnExplorationCount = 0
 }
 
 export enum PolicyHealth {
 	STABLE = "stable",
 	WARNING = "warning",
-	FAILING = "failing"
+	FAILING = "failing",
 }

@@ -625,6 +625,7 @@ export class ToolExecutor {
 			if (!preExecResult.success) {
 				await this.say("error_retry" as any, preExecResult.error!)
 				// Use specialized architectural correction response to encourage repair/retry
+				this.taskState.consecutiveMistakeCount++
 				this.pushToolResult((formatResponse as any).architecturalCorrection(preExecResult.error!), block)
 				return
 			}
@@ -648,7 +649,21 @@ export class ToolExecutor {
 				block.params.path &&
 				typeof toolResult === "string"
 			) {
-				toolResult = await this.guard.onRead(block.params.path, toolResult)
+				const pathKey = block.params.path
+				const currentCount = this.taskState.currentTurnReadHistory.get(pathKey) || 0
+				if (currentCount === 0) {
+					this.taskState.currentTurnUniqueReadCount++
+				}
+				const newCount = currentCount + 1
+				this.taskState.currentTurnReadHistory.set(pathKey, newCount)
+				this.taskState.currentTurnTotalReadCount++
+
+				toolResult = await this.guard.onRead(
+					block.params.path,
+					toolResult,
+					this.taskState.currentTurnUniqueReadCount,
+					newCount,
+				)
 			}
 
 			this.pushToolResult(toolResult, block)
