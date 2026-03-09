@@ -30,14 +30,34 @@ describe("FluidPolicyEngine - Adaptive Architectural Guidance", () => {
 		expect(result).to.not.contain("Architecture Probing")
 	})
 
-	it("should show nudge mode with loop detection when readCount is high (e.g., 10)", async () => {
+	it("should show systematic scanning limit when totalReadCount is high (e.g., 10)", async () => {
 		const filePath = path.join(cwd, "src/domain/test.ts")
 		const content = "export class Test {}"
 		const result = await engine.onRead(filePath, content, 10)
 
 		expect(result).to.contain("🔍 Architecture Analysis (PLAN mode):")
-		expect(result).to.contain("⚠️ POTENTIAL LOOP DETECTED")
+		expect(result).to.contain("⚠️ SYSTEMATIC SCANNING LIMIT")
 		expect(result).to.contain("you MUST NOW synthesize your current findings")
 		expect(result).to.not.contain("Architecture Probing")
+	})
+
+	it("should show recursive stalling detected when perFileReadCount is high (e.g., 3)", async () => {
+		const filePath = path.join(cwd, "src/domain/test.ts")
+		const content = "export class Test {}"
+		const result = await engine.onRead(filePath, content, 0, 3)
+
+		expect(result).to.contain("🔍 Architecture Analysis (PLAN mode):")
+		expect(result).to.contain("⚠️ RECURSIVE STALLING DETECTED")
+		expect(result).to.contain("You have read this specific file")
+	})
+
+	it("should show cross-turn recursion detected when globalFileReadCount is high (e.g., 5)", async () => {
+		const filePath = path.join(cwd, "src/domain/test.ts")
+		const content = "export class Test {}"
+		const result = await engine.onRead(filePath, content, 0, 1, 5)
+
+		expect(result).to.contain("🔍 Architecture Analysis (PLAN mode):")
+		expect(result).to.contain("⚠️ CROSS-TURN RECURSION DETECTED")
+		expect(result).to.contain("across multiple turns")
 	})
 })

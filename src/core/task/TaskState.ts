@@ -87,6 +87,7 @@ export class TaskState {
 	currentTurnTotalReadCount = 0
 	currentTurnUniqueReadCount = 0
 	currentTurnExplorationCount = 0
+	taskReadHistory = new Map<string, number>()
 }
 
 export enum PolicyHealth {

@@ -658,11 +658,16 @@ export class ToolExecutor {
 				this.taskState.currentTurnReadHistory.set(pathKey, newCount)
 				this.taskState.currentTurnTotalReadCount++
 
+				// Track global read history across turns
+				const globalCount = (this.taskState.taskReadHistory.get(pathKey) || 0) + 1
+				this.taskState.taskReadHistory.set(pathKey, globalCount)
+
 				toolResult = await this.guard.onRead(
 					block.params.path,
 					toolResult,
 					this.taskState.currentTurnUniqueReadCount,
 					newCount,
+					globalCount,
 				)
 			}
 

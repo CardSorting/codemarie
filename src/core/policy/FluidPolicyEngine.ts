@@ -236,7 +236,13 @@ export class FluidPolicyEngine {
 	 * Always injects the file's layer context so the agent knows the rules before editing.
 	 * Additionally warns about existing violations if any are found.
 	 */
-	public async onRead(filePath: string, content: string, totalReadCount = 0, perFileReadCount = 0): Promise<string> {
+	public async onRead(
+		filePath: string,
+		content: string,
+		totalReadCount = 0,
+		perFileReadCount = 0,
+		globalFileReadCount = 0,
+	): Promise<string> {
 		const absolutePath = path.resolve(this.cwd, filePath)
 		const layerContext = this.getFileLayerContext(absolutePath)
 		const validation = this.tspPlugin.validateSource(absolutePath, content, this.virtualResolver)
@@ -265,6 +271,9 @@ export class FluidPolicyEngine {
 			if (perFileReadCount >= 3) {
 				header += `🔍 Architecture Analysis (PLAN mode):\n`
 				header += `  ⚠️ RECURSIVE STALLING DETECTED: You have read this specific file (${path.basename(filePath)}) ${perFileReadCount} times in this turn without making progress. To avoid an infinite loop, you MUST NOW stop reading this file and either synthesize your findings into a plan or use \`ask_followup_question\`.\n`
+			} else if (globalFileReadCount >= 5) {
+				header += `🔍 Architecture Analysis (PLAN mode):\n`
+				header += `  ⚠️ CROSS-TURN RECURSION DETECTED: You have read this specific file (${path.basename(filePath)}) ${globalFileReadCount} times across multiple turns without progress. To avoid an infinite loop, you MUST NOW stop reading this file and synthesize your findings or use \`ask_followup_question\`.\n`
 			} else if (totalReadCount >= 10) {
 				header += `🔍 Architecture Analysis (PLAN mode):\n`
 				header += `  ⚠️ SYSTEMATIC SCANNING LIMIT: You have read ${totalReadCount} unique files in this interaction turn. To avoid context bloat, you MUST NOW synthesize your current findings into an architectural plan using \`plan_mode_respond\`.\n`

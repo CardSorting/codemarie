@@ -59,8 +59,14 @@ export class UniversalGuard {
 	/**
 	 * Performs read-time AST auditing.
 	 */
-	public async onRead(filePath: string, content: string, totalReadCount = 0, perFileReadCount = 0): Promise<string> {
-		return this.engine.onRead(filePath, content, totalReadCount, perFileReadCount)
+	public async onRead(
+		filePath: string,
+		content: string,
+		totalReadCount = 0,
+		perFileReadCount = 0,
+		globalFileReadCount = 0,
+	): Promise<string> {
+		return this.engine.onRead(filePath, content, totalReadCount, perFileReadCount, globalFileReadCount)
 	}
 
 	/**
