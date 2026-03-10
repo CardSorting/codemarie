@@ -5,19 +5,20 @@ import { PlanActMode, TogglePlanActModeRequest } from "@shared/proto/codemarie/s
 import { type SlashCommand } from "@shared/slashCommands"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
-import { AtSignIcon, PlusIcon } from "lucide-react"
+import { AtSignIcon, MicIcon, PlusIcon } from "lucide-react"
 import type React from "react"
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import DynamicTextArea from "react-textarea-autosize"
 import styled from "styled-components"
 import ContextMenu from "@/components/chat/ContextMenu"
-import { CHAT_CONSTANTS } from "@/components/chat/chat-view/constants"
+import { CHAT_CONSTANTS } from "@/components/chat/chat-view"
 import SlashCommandMenu from "@/components/chat/SlashCommandMenu"
 import Thumbnails from "@/components/common/Thumbnails"
 import { getModeSpecificFields, normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { usePlatform } from "@/context/PlatformContext"
+import { useSpeechToText } from "@/hooks/useSpeechToText"
 import { cn } from "@/lib/utils"
 import { FileServiceClient, StateServiceClient } from "@/services/grpc-client"
 import {
@@ -70,7 +71,7 @@ const DEFAULT_CONTEXT_MENU_OPTION = getContextMenuOptionIndex(ContextMenuOptionT
 interface ChatTextAreaProps {
 	inputValue: string
 	activeQuote: string | null
-	setInputValue: (value: string) => void
+	setInputValue: (value: string | ((prev: string) => string)) => void
 	sendingDisabled: boolean
 	placeholderText: string
 	selectedFiles: string[]
@@ -215,7 +216,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 		const {
 			mode,
 			apiConfiguration,
-			openRouterModels,
 			platform,
 			localWorkflowToggles,
 			globalWorkflowToggles,
@@ -258,6 +258,77 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 		const [fileSearchResults, setFileSearchResults] = useState<SearchResult[]>([])
 		const [searchLoading, setSearchLoading] = useState(false)
 		const [, metaKeyChar] = useMetaKeyDetection(platform)
+
+		const [showSpeechError, setShowSpeechError] = useState(false)
+		const [speechErrorMessage, setSpeechErrorMessage] = useState("")
+		const speechErrorTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+		const {
+			isListening,
+			startListening,
+			stopListening,
+			interimTranscript,
+			volume,
+			error: speechError,
+		} = useSpeechToText(
+			useCallback(
+				(transcript: string) => {
+					// Voice Commands logic
+					const normalizedTranscript = transcript.toLowerCase().trim()
+					if (normalizedTranscript === "send message" || normalizedTranscript === "send") {
+						if (!sendingDisabled) {
+							onSend()
+						}
+						return
+					}
+					if (normalizedTranscript === "clear input" || normalizedTranscript === "clear") {
+						setInputValue("")
+						return
+					}
+
+					setInputValue((prev) => (prev ? `${prev.trim()} ${transcript}` : transcript))
+				},
+				[setInputValue, onSend, sendingDisabled],
+			),
+		)
+
+		useEffect(() => {
+			if (speechError) {
+				let message = "An error occurred with voice input."
+				switch (speechError) {
+					case "not-allowed":
+						message = "Microphone access denied. Please check your browser permissions."
+						break
+					case "no-speech":
+						message = "No speech was detected. Please try again."
+						break
+					case "network":
+						message = "Network error occurred during speech recognition."
+						break
+					case "aborted":
+						return // Silent for manual stop
+				}
+
+				setSpeechErrorMessage(message)
+				setShowSpeechError(true)
+
+				if (speechErrorTimerRef.current) {
+					clearTimeout(speechErrorTimerRef.current)
+				}
+				speechErrorTimerRef.current = setTimeout(() => {
+					setShowSpeechError(false)
+					speechErrorTimerRef.current = null
+				}, 4000)
+			}
+		}, [speechError])
+
+		const toggleListening = useCallback(() => {
+			if (isListening) {
+				stopListening()
+			} else {
+				startListening()
+			}
+		}, [isListening, startListening, stopListening])
 
 		// Fetch git commits when Git is selected or when typing a hash
 		useEffect(() => {
@@ -304,7 +375,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			return () => {
 				document.removeEventListener("mousedown", handleClickOutside)
 			}
-		}, [showContextMenu, setShowContextMenu])
+		}, [showContextMenu])
 
 		useEffect(() => {
 			const handleClickOutsideSlashMenu = (event: MouseEvent) => {
@@ -655,6 +726,15 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				inputValue,
 				cursorPosition,
 				setInputValue,
+				onSend,
+				showContextMenu,
+				searchQuery,
+				selectedMenuIndex,
+				handleMentionSelect,
+				selectedType,
+				inputValue,
+				cursorPosition,
+				setInputValue,
 				justDeletedSpaceAfterMention,
 				queryItems,
 				fileSearchResults,
@@ -663,6 +743,12 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				slashCommandsQuery,
 				handleSlashCommandsSelect,
 				sendingDisabled,
+				globalWorkflowToggles,
+				localWorkflowToggles,
+				remoteWorkflowToggles,
+				remoteConfigSettings?.remoteGlobalWorkflows,
+				mcpServers,
+				justDeletedSpaceAfterSlashCommand,
 			],
 		)
 
@@ -672,7 +758,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				textAreaRef.current.setSelectionRange(intendedCursorPosition, intendedCursorPosition)
 				setIntendedCursorPosition(null) // Reset the state after applying
 			}
-		}, [inputValue, intendedCursorPosition])
+		}, [intendedCursorPosition])
 
 		useEffect(() => {
 			if (pendingInsertions.length === 0 || !textAreaRef.current) {
@@ -694,7 +780,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			setIntendedCursorPosition(newCursorPosition)
 
 			setPendingInsertions((prev) => prev.slice(1))
-		}, [pendingInsertions, setInputValue])
+		}, [pendingInsertions, setInputValue, intendedCursorPosition])
 
 		const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -791,7 +877,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					setFileSearchResults([])
 				}
 			},
-			[setInputValue, setFileSearchResults, selectedType],
+			[setInputValue, selectedType],
 		)
 
 		useEffect(() => {
@@ -831,7 +917,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				if (urlRegex.test(pastedText.trim())) {
 					e.preventDefault()
 					const trimmedUrl = pastedText.trim()
-					const newValue = inputValue.slice(0, cursorPosition) + trimmedUrl + " " + inputValue.slice(cursorPosition)
+					const newValue = `${inputValue.slice(0, cursorPosition)}${trimmedUrl} ${inputValue.slice(cursorPosition)}`
 					setInputValue(newValue)
 					const newCursorPosition = cursorPosition + trimmedUrl.length + 1
 					setCursorPosition(newCursorPosition)
@@ -1017,7 +1103,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					textAreaRef.current?.focus()
 				}, 100)
 			})()
-		}, [mode, inputValue, selectedImages, selectedFiles, setInputValue])
+		}, [mode, selectedImages, selectedFiles, setInputValue])
 
 		useShortcut(usePlatform().togglePlanActKeys, onModeToggle, { disableTextInputs: false }) // important that we don't disable the text input here
 
@@ -1042,7 +1128,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			if (inputValue.endsWith(" ")) {
 				const event = {
 					target: {
-						value: inputValue + "@",
+						value: `${inputValue}@`,
 						selectionStart: inputValue.length + 1,
 					},
 				} as React.ChangeEvent<HTMLTextAreaElement>
@@ -1054,7 +1140,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			// Otherwise add space then @
 			const event = {
 				target: {
-					value: inputValue + " @",
+					value: `${inputValue} @`,
 					selectionStart: inputValue.length + 2,
 				},
 			} as React.ChangeEvent<HTMLTextAreaElement>
@@ -1360,6 +1446,11 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							<span className="text-error font-bold text-xs">Files other than images are currently disabled</span>
 						</div>
 					)}
+					{showSpeechError && (
+						<div className="absolute inset-2.5 bg-[rgba(var(--vscode-errorForeground-rgb),0.1)] border-2 border-error rounded-xs flex items-center justify-center z-10 pointer-events-none">
+							<span className="text-error font-bold text-xs text-center px-4">{speechErrorMessage}</span>
+						</div>
+					)}
 					{showSlashCommandsMenu && (
 						<div ref={slashCommandsMenuContainerRef}>
 							<SlashCommandMenu
@@ -1414,8 +1505,14 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							borderTop: isTextAreaFocused ? 0 : undefined,
 							borderBottom: isTextAreaFocused ? 0 : undefined,
 							padding: `9px 28px ${9 + thumbnailsHeight}px 9px`,
-						}}
-					/>
+						}}>
+						{interimTranscript && (
+							<span style={{ color: "var(--vscode-descriptionForeground)", opacity: 0.6, fontStyle: "italic" }}>
+								{inputValue ? " " : ""}
+								{interimTranscript}
+							</span>
+						)}
+					</div>
 					<DynamicTextArea
 						autoFocus={true}
 						data-testid="chat-input"
@@ -1525,6 +1622,16 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 										onSend()
 									}
 								}}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										if (!sendingDisabled) {
+											setIsTextAreaFocused(false)
+											onSend()
+										}
+									}
+								}}
+								role="button"
+								tabIndex={sendingDisabled ? -1 : 0}
 							/>
 						</div>
 					</div>
@@ -1545,6 +1652,42 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 										onClick={handleContextButtonClick}>
 										<ButtonContainer>
 											<AtSignIcon size={12} />
+										</ButtonContainer>
+									</VSCodeButton>
+								</TooltipTrigger>
+							</Tooltip>
+
+							<Tooltip>
+								<TooltipContent>{isListening ? "Stop Recording" : "Voice to Text"}</TooltipContent>
+								<TooltipTrigger>
+									<VSCodeButton
+										appearance="icon"
+										aria-label={isListening ? "Stop Recording" : "Voice to Text"}
+										className={cn(
+											"p-0 m-0 flex items-center",
+											isListening &&
+												"text-error animate-pulse motion-reduce:animate-none motion-reduce:scale-110",
+										)}
+										data-testid="voice-button"
+										onClick={toggleListening}>
+										<ButtonContainer className="relative">
+											<MicIcon
+												size={13}
+												style={
+													isListening
+														? {
+																filter: `drop-shadow(0 0 ${volume / 10}px var(--vscode-errorForeground))`,
+																transform: `scale(${1 + volume / 200})`,
+															}
+														: undefined
+												}
+											/>
+											{isListening && (
+												<div
+													className="absolute -bottom-1 left-0 right-0 h-0.5 bg-error transition-all duration-75"
+													style={{ width: `${volume}%`, opacity: 0.5 }}
+												/>
+											)}
 										</ButtonContainer>
 									</VSCodeButton>
 								</TooltipTrigger>
@@ -1588,6 +1731,10 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 								</ModelButtonWrapper>
 							</ModelContainer>
 						</ButtonGroup>
+						<div aria-live="polite" className="sr-only">
+							{isListening ? "Voice recognition active" : "Voice recognition stopped"}
+							{showSpeechError && speechErrorMessage}
+						</div>
 					</div>
 					{/* Tooltip for Plan/Act toggle remains outside the conditional rendering */}
 					<Tooltip>
@@ -1601,7 +1748,20 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							</p>
 						</TooltipContent>
 						<TooltipTrigger>
-							<SwitchContainer data-testid="mode-switch" disabled={false} onClick={onModeToggle}>
+							<SwitchContainer
+								data-testid="mode-switch"
+								disabled={false}
+								onClick={onModeToggle}
+								onFocus={() => {
+									// Tooltip will show on focus
+								}}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										onModeToggle()
+									}
+								}}
+								role="button"
+								tabIndex={0}>
 								<Slider isAct={mode === "act"} isPlan={mode === "plan"} />
 								{["Plan", "Act"].map((m) => (
 									<div
@@ -1610,9 +1770,13 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 											"pt-0.5 pb-px px-2 z-10 text-xs w-1/2 text-center bg-transparent",
 											mode === m.toLowerCase() ? "text-white" : "text-input-foreground",
 										)}
+										key={m}
+										onBlur={() => setShownTooltipMode(null)}
+										onFocus={() => setShownTooltipMode(m.toLowerCase() === "plan" ? "plan" : "act")}
 										onMouseLeave={() => setShownTooltipMode(null)}
 										onMouseOver={() => setShownTooltipMode(m.toLowerCase() === "plan" ? "plan" : "act")}
-										role="switch">
+										role="switch"
+										tabIndex={0}>
 										{m}
 									</div>
 								))}
