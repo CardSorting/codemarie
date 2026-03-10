@@ -43,6 +43,7 @@ export type ApiProvider =
 	| "minimax"
 	| "hicap"
 	| "nousResearch"
+	| "cloudflare"
 
 export const DEFAULT_API_PROVIDER = "openrouter" as ApiProvider
 
@@ -4305,87 +4306,40 @@ export const mainlandZAiModels = {
 		inputPrice: 1.0,
 		outputPrice: 3.2,
 	},
-	"glm-4.7": {
-		maxTokens: 131_000,
-		contextWindow: 200_000,
-		supportsImages: false,
-		supportsPromptCache: true,
-		cacheReadsPrice: 0.11,
-		inputPrice: 0.6,
-		outputPrice: 2.2,
-	},
-	"glm-4.6": {
-		maxTokens: 128_000,
-		contextWindow: 200_000,
-		supportsImages: false,
-		supportsPromptCache: true,
-		cacheReadsPrice: 0.11,
-		inputPrice: 0.6,
-		outputPrice: 2.2,
-	},
-	"glm-4.5": {
-		maxTokens: 98_304,
+} as const satisfies Record<string, ModelInfo>
+
+// Cloudflare
+// https://developers.cloudflare.com/workers-ai/models/
+export type CloudflareModelId = keyof typeof cloudflareModels
+export const cloudflareDefaultModelId: CloudflareModelId = "@cf/zai-org/glm-4.7-flash"
+export const cloudflareModels = {
+	"@cf/zai-org/glm-4.7-flash": {
+		maxTokens: 131_072,
 		contextWindow: 131_072,
 		supportsImages: false,
-		supportsPromptCache: true,
-		inputPrice: 0.29,
-		outputPrice: 1.14,
-		cacheWritesPrice: 0,
-		cacheReadsPrice: 0.057,
+		supportsPromptCache: false,
+		inputPrice: 0.06,
+		outputPrice: 0.4,
 		description:
-			"GLM-4.5 is Zhipu's latest featured model. Its comprehensive capabilities in reasoning, coding, and agent reach the state-of-the-art (SOTA) level among open-source models, with a context length of up to 128k.",
-		tiers: [
-			{
-				contextWindow: 32_000,
-				inputPrice: 0.21,
-				outputPrice: 1.0,
-				cacheReadsPrice: 0.043,
-			},
-			{
-				contextWindow: 128_000,
-				inputPrice: 0.29,
-				outputPrice: 1.14,
-				cacheReadsPrice: 0.057,
-			},
-			{
-				contextWindow: Number.POSITIVE_INFINITY,
-				inputPrice: 0.29,
-				outputPrice: 1.14,
-				cacheReadsPrice: 0.057,
-			},
-		],
+			"GLM-4.7-Flash is a fast and efficient multilingual text generation model with a 131,072 token context window.",
 	},
-	"glm-4.5-air": {
-		maxTokens: 98304, // Quantization: fp8
-		contextWindow: 128_000,
+	"@cf/meta/llama-3.3-70b-instruct-fp8-v2": {
+		maxTokens: 8192,
+		contextWindow: 131_072,
 		supportsImages: false,
-		supportsPromptCache: true,
-		inputPrice: 0.086,
-		outputPrice: 0.57,
-		cacheWritesPrice: 0,
-		cacheReadsPrice: 0.017,
-		description:
-			"GLM-4.5-Air is the lightweight version of GLM-4.5. It balances performance and cost-effectiveness, and can flexibly switch to hybrid thinking models.",
-		tiers: [
-			{
-				contextWindow: 32_000,
-				inputPrice: 0.057,
-				outputPrice: 0.43,
-				cacheReadsPrice: 0.011,
-			},
-			{
-				contextWindow: 128_000,
-				inputPrice: 0.086,
-				outputPrice: 0.57,
-				cacheReadsPrice: 0.017,
-			},
-			{
-				contextWindow: Number.POSITIVE_INFINITY,
-				inputPrice: 0.086,
-				outputPrice: 0.57,
-				cacheReadsPrice: 0.017,
-			},
-		],
+		supportsPromptCache: false,
+		inputPrice: 0.6,
+		outputPrice: 0.8,
+		description: "Llama 3.3 70B is a powerful, high-performance model for complex reasoning and general-purpose tasks.",
+	},
+	"@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
+		maxTokens: 8192,
+		contextWindow: 131_072,
+		supportsImages: false,
+		supportsPromptCache: false,
+		inputPrice: 0.3,
+		outputPrice: 0.5,
+		description: "DeepSeek R1 Distill Qwen 32B model, optimized for reasoning and efficiency.",
 	},
 } as const satisfies Record<string, ModelInfo>
 

@@ -141,6 +141,8 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	ocaMode: { default: "internal" as string },
 	aihubmixBaseUrl: { default: undefined as string | undefined },
 	aihubmixAppCode: { default: undefined as string | undefined },
+	cloudflareAccountId: { default: undefined as string | undefined },
+	cloudflareApiToken: { default: undefined as string | undefined },
 
 	// Plan mode configurations
 	planModeApiModelId: { default: undefined as string | undefined },
@@ -342,6 +344,7 @@ const SECRETS_KEYS = [
 	"aihubmixApiKey",
 	"nousResearchApiKey",
 	"remoteLiteLlmApiKey",
+	"cloudflareApiToken",
 	"ocaApiKey",
 	"ocaRefreshToken",
 	"mcpOAuthSecrets",

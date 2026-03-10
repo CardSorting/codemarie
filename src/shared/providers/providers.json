@@ -163,6 +163,10 @@
 		{
 			"value": "nousResearch",
 			"label": "NousResearch"
+		},
+		{
+			"value": "cloudflare",
+			"label": "Cloudflare Workers AI"
 		}
 	]
 }

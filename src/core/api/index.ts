@@ -10,6 +10,7 @@ import { BasetenHandler } from "./providers/baseten"
 import { AwsBedrockHandler } from "./providers/bedrock"
 import { CerebrasHandler } from "./providers/cerebras"
 import { ClaudeCodeHandler } from "./providers/claude-code"
+import { CloudflareHandler } from "./providers/cloudflare"
 import { CodemarieHandler } from "./providers/codemarie"
 import { DeepSeekHandler } from "./providers/deepseek"
 import { DifyHandler } from "./providers/dify"
@@ -50,7 +51,12 @@ export type CommonApiHandlerOptions = {
 	onRetryAttempt?: ApiConfiguration["onRetryAttempt"]
 }
 export interface ApiHandler {
-	createMessage(systemPrompt: string, messages: CodemarieStorageMessage[], tools?: CodemarieTool[], useResponseApi?: boolean): ApiStream
+	createMessage(
+		systemPrompt: string,
+		messages: CodemarieStorageMessage[],
+		tools?: CodemarieTool[],
+		useResponseApi?: boolean,
+	): ApiStream
 	getModel(): ApiHandlerModel
 	getApiStreamUsage?(): Promise<ApiStreamUsageChunk | undefined>
 	abort?(): void
@@ -396,6 +402,13 @@ function createHandlerForProvider(
 				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
 				thinkingBudgetTokens:
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
+			})
+		case "cloudflare":
+			return new CloudflareHandler({
+				onRetryAttempt: options.onRetryAttempt,
+				cloudflareAccountId: options.cloudflareAccountId,
+				cloudflareApiToken: options.cloudflareApiToken,
+				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 			})
 		case "zai":
 			return new ZAiHandler({
