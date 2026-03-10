@@ -194,36 +194,6 @@ const ModelButtonContent = styled.div`
 	white-space: nowrap;
 `
 
-// Isolated components for high-frequency updates to prevent ChatTextArea from re-rendering
-const InterimTranscriptView = React.memo(({ transcript, hasValue }: { transcript: string; hasValue: boolean }) => {
-	if (!transcript) return null
-	return (
-		<span style={{ color: "var(--vscode-descriptionForeground)", opacity: 0.6, fontStyle: "italic" }}>
-			{hasValue ? " " : ""}
-			{transcript}
-		</span>
-	)
-})
-
-const VoiceIndicator = React.memo(({ isListening, volume }: { isListening: boolean; volume: number }) => {
-	if (!isListening) return <MicIcon size={13} />
-	return (
-		<ButtonContainer className="relative">
-			<MicIcon
-				size={13}
-				style={{
-					filter: `drop-shadow(0 0 ${volume / 10}px var(--vscode-errorForeground))`,
-					transform: `scale(${1 + volume / 200})`,
-				}}
-			/>
-			<div
-				className="absolute -bottom-1 left-0 right-0 h-0.5 bg-error transition-all duration-75"
-				style={{ width: `${volume}%`, opacity: 0.5 }}
-			/>
-		</ButtonContainer>
-	)
-})
-
 const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 	(
 		{
@@ -1536,7 +1506,12 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							borderBottom: isTextAreaFocused ? 0 : undefined,
 							padding: `9px 28px ${9 + thumbnailsHeight}px 9px`,
 						}}>
-						<InterimTranscriptView hasValue={!!inputValue} transcript={interimTranscript} />
+						{interimTranscript && (
+							<span style={{ color: "var(--vscode-descriptionForeground)", opacity: 0.6, fontStyle: "italic" }}>
+								{inputValue ? " " : ""}
+								{interimTranscript}
+							</span>
+						)}
 					</div>
 					<DynamicTextArea
 						autoFocus={true}
@@ -1695,7 +1670,25 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 										)}
 										data-testid="voice-button"
 										onClick={toggleListening}>
-										<VoiceIndicator isListening={isListening} volume={volume} />
+										<ButtonContainer className="relative">
+											<MicIcon
+												size={13}
+												style={
+													isListening
+														? {
+																filter: `drop-shadow(0 0 ${volume / 10}px var(--vscode-errorForeground))`,
+																transform: `scale(${1 + volume / 200})`,
+															}
+														: undefined
+												}
+											/>
+											{isListening && (
+												<div
+													className="absolute -bottom-1 left-0 right-0 h-0.5 bg-error transition-all duration-75"
+													style={{ width: `${volume}%`, opacity: 0.5 }}
+												/>
+											)}
+										</ButtonContainer>
 									</VSCodeButton>
 								</TooltipTrigger>
 							</Tooltip>

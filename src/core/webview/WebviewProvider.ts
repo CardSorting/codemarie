@@ -111,23 +111,24 @@ export abstract class WebviewProvider {
 				<link rel="stylesheet" type="text/css" href="${stylesUrl}">
 				<link href="${codiconsUrl}" rel="stylesheet" />
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none';
-					connect-src https://* http://localhost:* http://127.0.0.1:*; 
-					font-src ${this.getCspSource()} https: data:; 
-					style-src ${this.getCspSource()} 'unsafe-inline' https:; 
-					img-src ${this.getCspSource()} https: data:; 
-					script-src 'self' ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval' https:;">
+					connect-src *; 
+					font-src * data:; 
+					style-src * 'unsafe-inline'; 
+					img-src * data:; 
+					script-src 'self' ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval' 'unsafe-inline' https: http:;">
 				<title>Codemarie</title>
 			</head>
 			<body>
 				<noscript>You need to enable JavaScript to run this app.</noscript>
 				<div id="root"></div>
 				<script nonce="${nonce}">
-					console.log('[Webview] HTML loaded, attempting to load script...');
+					console.log('[Webview] HTML loaded, nonce: ${nonce}');
 					window.addEventListener('error', (e) => {
-						console.error('[Webview Error]', e.message, e.filename, e.lineno);
+						console.error('[Webview Error]', e.message, e.filename, e.lineno, e.error);
 					});
+					console.log('[Webview] Attempting to load script: ${scriptUrl}');
 				</script>
-				<script type="module" nonce="${nonce}" src="${scriptUrl}"></script>
+				<script type="module" nonce="${nonce}" src="${scriptUrl}" onload="console.log('[Webview] Script loaded successfully')" onerror="console.error('[Webview] Script failed to load')"></script>
 			</body>
 		</html>
 		`
@@ -204,18 +205,17 @@ export abstract class WebviewProvider {
 
 		const csp = [
 			"default-src 'none'",
-			`font-src ${this.getCspSource()}`,
-			`style-src ${this.getCspSource()} 'unsafe-inline' https://* http://${localServerUrl} http://0.0.0.0:${localPort}`,
-			`img-src ${this.getCspSource()} https: data:`,
-			`script-src 'unsafe-eval' https://* http://${localServerUrl} http://0.0.0.0:${localPort} 'nonce-${nonce}'`,
-			`connect-src https://* ws://${localServerUrl} ws://0.0.0.0:${localPort} http://${localServerUrl} http://0.0.0.0:${localPort}`,
+			"connect-src *",
+			"font-src * data:",
+			"style-src * 'unsafe-inline'",
+			"img-src * data:",
+			`script-src 'self' ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval' 'unsafe-inline' https: http:`,
 		]
 
 		return /*html*/ `
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
-					${process.env.IS_DEV ? '<script src="http://localhost:8097"></script>' : ""}
 					<meta charset="utf-8">
 					<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
 					<meta http-equiv="Content-Security-Policy" content="${csp.join("; ")}">
