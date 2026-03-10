@@ -1,92 +1,105 @@
-<div align="center">
-  <img src="https://media.githubusercontent.com/media/codemarie/codemarie/main/assets/docs/hero.png" width="100%" alt="CodeMarie Hero" />
-  <h1>CodeMarie</h1>
-  <p><strong>The Layer-Aware AI Coding Partner. Engineered for Architectural Integrity.</strong></p>
+# CodeMarie: The Architectural Guardian
 
-  <p>
-    <a href="https://marketplace.visualstudio.com/items?itemName=DreamBeesAI.marie-coder"><strong>Download on VS Marketplace</strong></a> |
-  </p>
-</div>
+![CodeMarie Banner](https://raw.githubusercontent.com/saoudrizwan/cline/main/assets/banner.png)
+
+**CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing distributed agentic workflows, and ensuring transactional stability across your workspace.
 
 ---
 
-## 🏛️ Engineered for Integrity: Joy-Zoning
+## 🏗️ Core Pillars of Intelligence
 
-CodeMarie isn't just an LLM wrapper; it's an **architectural guardian**. At its core is **Joy-Zoning**, a sophisticated layering system that ensures your codebase remains clean, testable, and maintainable.
+### 🧬 Joy-Zoning Framework
+CodeMarie enforces a rigorous architectural pattern known as **Joy-Zoning**. It automatically categorizes every file into one of five distinct layers and enforces "Outside-In" dependency rules:
 
-- **Domain**: Pure business logic, models, and rules. Zero side effects.
-- **Core**: Task orchestration, prompt assembly, and tool coordination.
-- **Infrastructure**: Adapters for the outside world (API clients, DB, File System).
-- **UI**: Pure presentation logic following strict "render state, dispatch intention" patterns.
-- **Plumbing**: Independent, stateless utilities used across all layers.
+| Layer | Responsibility | Dependency Rule |
+| :--- | :--- | :--- |
+| **Domain** | Core business logic and entities. | No external dependencies. |
+| **Core** | Orchestration and application services. | Depends only on Domain. |
+| **Infrastructure** | Database, API clients, external services. | Depends on Core/Domain. |
+| **UI** | Views, components, and presentation logic. | Depends on Core/Infrastructure. |
+| **Plumbing** | Glue code, configuration, and entry points. | Can depend on any layer. |
 
 > [!IMPORTANT]
-> **Fluid Policy Enforcement**: Our engine proactively monitors cross-layer imports and architectural smells, providing real-time "Strikes" and correction hints to keep the agent—and your team—aligned with best practices.
+> The **Fluid Policy Engine** monitors every file operation. If a change violates layer purity (e.g., an Infrastructure leak into the Domain), CodeMarie will proactively reject the change and suggest a refactor.
+
+### 🧠 Distributed Agentic Intelligence
+CodeMarie utilizes a hierarchical **Parent-Stream & Subagent** model to handle massive complexity:
+
+*   **Subagent Orchestration**: Spawn specialized workers to research or implement sub-tasks in parallel.
+*   **Shared Persistent Memory**: Subagents coordinate through a centralized memory layer, ensuring context consistency across distributed streams.
+*   **Dynamic Skill Injection**: On-demand activation of specialized instruction sets ("Skills") that ground the agent in project-specific expertise.
+
+### 🛡️ Transactional Stability & Persistence
+*   **DB Shadowing**: Every workspace modification is staged in a transactional buffer (shadowing). Changes are only committed after a successful "Architectural Suitability" pass.
+*   **SQLite Persistence**: All agentic state, focus chains, and policy health metrics are persisted in a local-first SQLite database.
+*   **Atomic Workspaces**: Complete restoration of any previous workspace state via a git-backed checkpointing system.
 
 ---
 
-## 🧠 Advanced Agentic Intelligence
+## 🛠️ Industrial Infrastructure
 
-### 📍 Intent Grounding
-Before taking action, CodeMarie performs an autonomous **Semantic Discovery** pass. It cross-references your intent with workspace reality, verifying file entities and project-specific rules (`.codemarierules`) to eliminate hallucinations and maximize precision.
+### 🔗 Advanced MCP Hub
+Full integration with the **Model Context Protocol (MCP)**:
+- **SSE & Stdio Transports**: Multi-protocol support for local and remote tool servers.
+- **Native OAuth**: Integrated authentication for enterprise-grade tool integrations.
+- **Dynamic Env Expansion**: Intelligent environment variable resolution for sensitive configurations.
 
-### ⚡ Fluid Policy Engine
-Experience unmatched stability with our safety-first runtime.
-- **Recursion Detection**: Prevents infinite loops by monitoring per-file and cross-turn read counts.
-- **Entropy Monitoring**: Safely detects when tool outputs diverge from expected states.
-- **Collision Protection**: Manages locks between parallel subagents to prevent data corruption.
-
----
-
-## 🛠️ The Ultimate Tool Suite (30+)
-
-CodeMarie comes equipped with an extensive directory of built-in tools, categorized for maximum efficiency:
-
-- **📂 File & Workspace**: Advanced regex search (`search_files`), AST-based code exploration (`list_code_definition_names`), and precise diff-aware editing.
-- **💻 Terminal**: Full CLI integration with real-time output monitoring and error reaction.
-- **🌐 Browser Use**: Headless Puppeteer control for E2E testing, visual debugging, and screenshot-aided UI fixes.
-- **🧩 MCP Integration**: Connect to Jira, AWS, PagerDuty, or **create and install your own tools** on the fly.
-- **🤖 Orchestration**: Spawn specialized **Subagents** or utilize **Skills** to handle hyper-specific domains.
+### 📊 OpenTelemetry Observability
+High-fidelity telemetry for audit trails and performance tuning:
+- **TTFT & Latency Tracking**: Real-time monitoring of Time to First Token.
+- **Token Economics**: Precise cost tracking per task, turn, and subagent.
+- **Stability Metrics**: Monitoring "Architectural Entropy" and policy violation trends.
 
 ---
 
-## 🚀 Proactive Context Management
-
-Working on a massive monolith? No problem.
-- **Duplicate Suppression**: Automatically filters redundant file reads to maximize token budget.
-- **Intelligent Truncation**: Maintains task continuity by preserving core objectives while sliding the conversation window.
-- **Token Awareness**: Proactively warns and shifts strategies as you approach model context limits.
-
----
-
-## 🛡️ Human-in-the-Loop Safety
-
-Efficiency shouldn't come at the cost of control.
-1. **Plan Mode**: Architect your solution alongside CodeMarie. Discuss, refine, and approve the blueprint before a single line of code is written.
-2. **Act Mode**: Watch as CodeMarie executes with precision. You approve every file write and terminal command.
-3. **Checkpoints**: Every step is snapshotted. Compare diffs or restore your entire workspace with a single click.
+## 🚀 Model-Specific Optimization
+CodeMarie provides custom-tuned **Prompt Variants** to extract maximum performance from frontier models:
+- **Gemini 3.0 & GPT-5**: Native tool-calling optimizations and high-token window handling.
+- **Trinity & Native Next-Gen**: Advanced reasoning prompts for complex system design.
+- **Crossover/Search Models**: Specialized grounding for web-assisted research.
 
 ---
 
-## 🏗️ Getting Started
+## 📐 System Architecture
 
-### Installation
-1. Install **CodeMarie** via the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=DreamBeesAI.marie-coder).
-2. Configure your provider (Anthropic, OpenAI, Gemini, Bedrock, OpenRouter).
-3. Type your first goal and watch CodeMarie plan.
-
-### For Contributors (CLI & SDK)
-```bash
-# Clone and Build
-git clone https://github.com/CardSorting/codemarie.git
-npm install && npm run build
-
-# Link the CLI
-cd cli && npm link
+```mermaid
+graph TD
+    User((User)) --> Webview[VS Code Webview]
+    Webview --> Controller[Core Controller]
+    
+    subgraph "Fluid Policy Engine"
+        Controller --> JoyZoning[Joy-Zoning Guard]
+        JoyZoning --> SQLite[(Persistence Layer)]
+        JoyZoning --> ShadowBuffer[Transactional Shadow]
+    end
+    
+    subgraph "Agentic Orchestrator"
+        Controller --> ParentStream[Parent Agent]
+        ParentStream --> Subagent1[Subagent A]
+        ParentStream --> Subagent2[Subagent B]
+        Subagent1 & Subagent2 --> SharedMemory[Shared Memory]
+    end
+    
+    Controller --> MCP[MCP Hub]
+    MCP --> Tools[30+ Specialized Tools]
 ```
 
 ---
 
-## 📜 License
+## ⚡ Quick Start
 
-[Apache 2.0 © 2026 CodeMarie Bot Inc.](./LICENSE)
+1.  **Install**: Search for "CodeMarie" in the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=codemarie.codemarie).
+2.  **Configure**: Add your API keys for [OpenRouter](https://openrouter.ai/), [Anthropic](https://www.anthropic.com/), [Google](https://ai.google.dev/), or [AWS Bedrock](https://aws.amazon.com/bedrock/).
+3.  **Activate**: Click the CodeMarie icon in the sidebar and start your first "Architectural Intent" grounded task.
+
+---
+
+## 🤝 Contributing
+Join us in building the world's most robust agentic assistant. Please read our [Contribution Guidelines](CONTRIBUTING.md) and [Security Policy](SECURITY.md).
+
+---
+## 🕰️ History & Origins
+**CodeMarie** is a completely transformed, industrial-grade evolution of the original [Cline](https://github.com/cline/cline) repository. While it shares foundational DNA, the architecture, orchestration, and policy safeguarding have been reconstructed from the ground up to support enterprise-scale agentic coding.
+
+---
+*Built with ❤️ by the CodeMarie Team. Architectural Integrity is not an option; it's the core.*
