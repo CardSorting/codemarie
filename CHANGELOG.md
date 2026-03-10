@@ -1,6 +1,12 @@
 # Changelog
 
-## [3.68.0]
+## [3.68.2]
+
+### Fixed
+
+- Perform deep audit and production hardening of Intent Grounding feature (Zod validation, context awareness, centralized prompts)
+
+## [3.68.1]
 
 ### Added
 

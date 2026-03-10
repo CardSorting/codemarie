@@ -4,7 +4,7 @@ import { PromptVariant, SystemPromptContext } from "../types"
  * Generates the GROUNDED_SPEC_SECTION for the system prompt.
  * This section provides the model with the grounded specification derived from the user's intent.
  */
-export function getGroundedSpecSection(context: SystemPromptContext, _variant: PromptVariant): string {
+export async function getGroundedSpecSection(_variant: PromptVariant, context: SystemPromptContext): Promise<string> {
 	if (!context.groundedSpec) {
 		return ""
 	}
