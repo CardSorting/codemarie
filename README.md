@@ -1,151 +1,92 @@
-<div align="center"><sub>
-English | <a href="https://github.com/codemarie/codemarie/blob/main/locales/es/README.md" target="_blank">Español</a> | <a href="https://github.com/codemarie/codemarie/blob/main/locales/de/README.md" target="_blank">Deutsch</a> | <a href="https://github.com/codemarie/codemarie/blob/main/locales/ja/README.md" target="_blank">日本語</a> | <a href="https://github.com/codemarie/codemarie/blob/main/locales/zh-cn/README.md" target="_blank">简体中文</a> | <a href="https://github.com/codemarie/codemarie/blob/main/locales/zh-tw/README.md" target="_blank">繁體中文</a> | <a href="https://github.com/codemarie/codemarie/blob/main/locales/ko/README.md" target="_blank">한국어</a>
-</sub></div>
-
-# CodeMarie
-
-<p align="center">
-  <img src="https://media.githubusercontent.com/media/codemarie/codemarie/main/assets/docs/demo.gif" width="100%" />
-</p>
-
 <div align="center">
-<table>
-<tbody>
-<td align="center">
-<a href="https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev" target="_blank"><strong>Download on VS Marketplace</strong></a>
-</td>
-<td align="center">
-<a href="https://discord.gg/codemarie" target="_blank"><strong>Discord</strong></a>
-</td>
-<td align="center">
-<a href="https://www.reddit.com/r/codemarie/" target="_blank"><strong>r/codemarie</strong></a>
-</td>
-<td align="center">
-<a href="https://github.com/codemarie/codemarie/discussions/categories/feature-requests?discussions_q=is%3Aopen+category%3A%22Feature+Requests%22+sort%3Atop" target="_blank"><strong>Feature Requests</strong></a>
-</td>
-<td align="center">
-<a href="https://docs.codemarie.bot/getting-started/for-new-coders" target="_blank"><strong>Getting Started</strong></a>
-</td>
-</tbody>
-</table>
+  <img src="https://media.githubusercontent.com/media/codemarie/codemarie/main/assets/docs/hero.png" width="100%" alt="CodeMarie Hero" />
+  <h1>CodeMarie</h1>
+  <p><strong>The Layer-Aware AI Coding Partner. Engineered for Architectural Integrity.</strong></p>
+
+  <p>
+    <a href="https://marketplace.visualstudio.com/items?itemName=DreamBeesAI.marie-coder"><strong>Download on VS Marketplace</strong></a> |
+  </p>
 </div>
-
-Meet CodeMarie, an AI assistant that can use your **CLI** a**N**d **E**ditor.
-
-Thanks to [Claude Sonnet's agentic coding capabilities](https://www.anthropic.com/claude/sonnet), CodeMarie can handle complex software development tasks step-by-step. With tools that let him create & edit files, explore large projects, use the browser, and execute terminal commands (after you grant permission), he can assist you in ways that go beyond code completion or tech support. CodeMarie can even use the Model Context Protocol (MCP) to create new tools and extend his own capabilities. While autonomous AI scripts traditionally run in sandboxed environments, this extension provides a human-in-the-loop GUI to approve every file change and terminal command, providing a safe and accessible way to explore the potential of agentic AI.
-
-1. Enter your task and add images to convert mockups into functional apps or fix bugs with screenshots.
-2. CodeMarie starts by analyzing your file structure & source code ASTs, running regex searches, and reading relevant files to get up to speed in existing projects. By carefully managing what information is added to context, CodeMarie can provide valuable assistance even for large, complex projects without overwhelming the context window.
-3. Once CodeMarie has the information he needs, he can:
-    - Create and edit files + monitor linter/compiler errors along the way, letting him proactively fix issues like missing imports and syntax errors on his own.
-    - Execute commands directly in your terminal and monitor their output as he works, letting him e.g., react to dev server issues after editing a file.
-    - For web development tasks, CodeMarie can launch the site in a headless browser, click, type, scroll, and capture screenshots + console logs, allowing him to fix runtime errors and visual bugs.
-4. When a task is completed, CodeMarie will present the result to you with a terminal command like `open -a "Google Chrome" index.html`, which you run with a click of a button.
-
-> [!TIP]
-> Follow [this guide](https://docs.codemarie.bot/features/customization/opening-codemarie-in-sidebar) to open CodeMarie on the right side of your editor. This lets you use CodeMarie side-by-side with your file explorer, and see how he changes your workspace more clearly.
 
 ---
 
-<img align="right" width="340" src="https://github.com/user-attachments/assets/3cf21e04-7ce9-4d22-a7b9-ba2c595e88a4">
+## 🏛️ Engineered for Integrity: Joy-Zoning
 
-### Use any API and Model
+CodeMarie isn't just an LLM wrapper; it's an **architectural guardian**. At its core is **Joy-Zoning**, a sophisticated layering system that ensures your codebase remains clean, testable, and maintainable.
 
-CodeMarie supports API providers like OpenRouter, Anthropic, OpenAI, Google Gemini, AWS Bedrock, Azure, GCP Vertex, Cerebras and Groq. You can also configure any OpenAI compatible API, or use a local model through LM Studio/Ollama. If you're using OpenRouter, the extension fetches their latest model list, allowing you to use the newest models as soon as they're available.
+- **Domain**: Pure business logic, models, and rules. Zero side effects.
+- **Core**: Task orchestration, prompt assembly, and tool coordination.
+- **Infrastructure**: Adapters for the outside world (API clients, DB, File System).
+- **UI**: Pure presentation logic following strict "render state, dispatch intention" patterns.
+- **Plumbing**: Independent, stateless utilities used across all layers.
 
-The extension also keeps track of total tokens and API usage cost for the entire task loop and individual requests, keeping you informed of spend every step of the way.
+> [!IMPORTANT]
+> **Fluid Policy Enforcement**: Our engine proactively monitors cross-layer imports and architectural smells, providing real-time "Strikes" and correction hints to keep the agent—and your team—aligned with best practices.
 
-<!-- Transparent pixel to create line break after floating image -->
+---
 
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
+## 🧠 Advanced Agentic Intelligence
 
-<img align="left" width="370" src="https://github.com/user-attachments/assets/81be79a8-1fdb-4028-9129-5fe055e01e76">
+### 📍 Intent Grounding
+Before taking action, CodeMarie performs an autonomous **Semantic Discovery** pass. It cross-references your intent with workspace reality, verifying file entities and project-specific rules (`.codemarierules`) to eliminate hallucinations and maximize precision.
 
-### Run Commands in Terminal
+### ⚡ Fluid Policy Engine
+Experience unmatched stability with our safety-first runtime.
+- **Recursion Detection**: Prevents infinite loops by monitoring per-file and cross-turn read counts.
+- **Entropy Monitoring**: Safely detects when tool outputs diverge from expected states.
+- **Collision Protection**: Manages locks between parallel subagents to prevent data corruption.
 
-Thanks to the new [shell integration updates in VSCode v1.93](https://code.visualstudio.com/updates/v1_93#_terminal-shell-integration-api), CodeMarie can execute commands directly in your terminal and receive the output. This allows him to perform a wide range of tasks, from installing packages and running build scripts to deploying applications, managing databases, and executing tests, all while adapting to your dev environment & toolchain to get the job done right.
+---
 
-For long running processes like dev servers, use the "Proceed While Running" button to let CodeMarie continue in the task while the command runs in the background. As CodeMarie works he’ll be notified of any new terminal output along the way, letting him react to issues that may come up, such as compile-time errors when editing files.
+## 🛠️ The Ultimate Tool Suite (30+)
 
-<!-- Transparent pixel to create line break after floating image -->
+CodeMarie comes equipped with an extensive directory of built-in tools, categorized for maximum efficiency:
 
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
+- **📂 File & Workspace**: Advanced regex search (`search_files`), AST-based code exploration (`list_code_definition_names`), and precise diff-aware editing.
+- **💻 Terminal**: Full CLI integration with real-time output monitoring and error reaction.
+- **🌐 Browser Use**: Headless Puppeteer control for E2E testing, visual debugging, and screenshot-aided UI fixes.
+- **🧩 MCP Integration**: Connect to Jira, AWS, PagerDuty, or **create and install your own tools** on the fly.
+- **🤖 Orchestration**: Spawn specialized **Subagents** or utilize **Skills** to handle hyper-specific domains.
 
-<img align="right" width="400" src="https://github.com/user-attachments/assets/c5977833-d9b8-491e-90f9-05f9cd38c588">
+---
 
-### Create and Edit Files
+## 🚀 Proactive Context Management
 
-CodeMarie can create and edit files directly in your editor, presenting you a diff view of the changes. You can edit or revert CodeMarie's changes directly in the diff view editor, or provide feedback in chat until you're satisfied with the result. CodeMarie also monitors linter/compiler errors (missing imports, syntax errors, etc.) so he can fix issues that come up along the way on his own.
+Working on a massive monolith? No problem.
+- **Duplicate Suppression**: Automatically filters redundant file reads to maximize token budget.
+- **Intelligent Truncation**: Maintains task continuity by preserving core objectives while sliding the conversation window.
+- **Token Awareness**: Proactively warns and shifts strategies as you approach model context limits.
 
-All changes made by CodeMarie are recorded in your file's Timeline, providing an easy way to track and revert modifications if needed.
+---
 
-<!-- Transparent pixel to create line break after floating image -->
+## 🛡️ Human-in-the-Loop Safety
 
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
+Efficiency shouldn't come at the cost of control.
+1. **Plan Mode**: Architect your solution alongside CodeMarie. Discuss, refine, and approve the blueprint before a single line of code is written.
+2. **Act Mode**: Watch as CodeMarie executes with precision. You approve every file write and terminal command.
+3. **Checkpoints**: Every step is snapshotted. Compare diffs or restore your entire workspace with a single click.
 
-<img align="left" width="370" src="https://github.com/user-attachments/assets/bc2e85ba-dfeb-4fe6-9942-7cfc4703cbe5">
+---
 
-### Use the Browser
+## 🏗️ Getting Started
 
-With Claude Sonnet's new [Computer Use](https://www.anthropic.com/news/3-5-models-and-computer-use) capability, CodeMarie can launch a browser, click elements, type text, and scroll, capturing screenshots and console logs at each step. This allows for interactive debugging, end-to-end testing, and even general web use! This gives him autonomy to fixing visual bugs and runtime issues without you needing to handhold and copy-pasting error logs yourself.
+### Installation
+1. Install **CodeMarie** via the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=DreamBeesAI.marie-coder).
+2. Configure your provider (Anthropic, OpenAI, Gemini, Bedrock, OpenRouter).
+3. Type your first goal and watch CodeMarie plan.
 
-Try asking CodeMarie to "test the app", and watch as he runs a command like `npm run dev`, launches your locally running dev server in a browser, and performs a series of tests to confirm that everything works. [See a demo here.](https://x.com/sdrzn/status/1850880547825823989)
+### For Contributors (CLI & SDK)
+```bash
+# Clone and Build
+git clone https://github.com/CardSorting/codemarie.git
+npm install && npm run build
 
-<!-- Transparent pixel to create line break after floating image -->
+# Link the CLI
+cd cli && npm link
+```
 
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
+---
 
-<img align="right" width="350" src="https://github.com/user-attachments/assets/ac0efa14-5c1f-4c26-a42d-9d7c56f5fadd">
-
-### "add a tool that..."
-
-Thanks to the [Model Context Protocol](https://github.com/modelcontextprotocol), CodeMarie can extend his capabilities through custom tools. While you can use [community-made servers](https://github.com/modelcontextprotocol/servers), CodeMarie can instead create and install tools tailored to your specific workflow. Just ask CodeMarie to "add a tool" and he will handle everything, from creating a new MCP server to installing it into the extension. These custom tools then become part of CodeMarie's toolkit, ready to use in future tasks.
-
--   "add a tool that fetches Jira tickets": Retrieve ticket ACs and put CodeMarie to work
--   "add a tool that manages AWS EC2s": Check server metrics and scale instances up or down
--   "add a tool that pulls the latest PagerDuty incidents": Fetch details and ask CodeMarie to fix bugs
-
-<!-- Transparent pixel to create line break after floating image -->
-
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
-
-<img align="left" width="360" src="https://github.com/user-attachments/assets/7fdf41e6-281a-4b4b-ac19-020b838b6970">
-
-### Add Context
-
-**`@url`:** Paste in a URL for the extension to fetch and convert to markdown, useful when you want to give CodeMarie the latest docs
-
-**`@problems`:** Add workspace errors and warnings ('Problems' panel) for CodeMarie to fix
-
-**`@file`:** Adds a file's contents so you don't have to waste API requests approving read file (+ type to search files)
-
-**`@folder`:** Adds folder's files all at once to speed up your workflow even more
-
-<!-- Transparent pixel to create line break after floating image -->
-
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
-
-<img align="right" width="350" src="https://github.com/user-attachments/assets/140c8606-d3bf-41b9-9a1f-4dbf0d4c90cb">
-
-### Checkpoints: Compare and Restore
-
-As CodeMarie works through a task, the extension takes a snapshot of your workspace at each step. You can use the 'Compare' button to see a diff between the snapshot and your current workspace, and the 'Restore' button to roll back to that point.
-
-For example, when working with a local web server, you can use 'Restore Workspace Only' to quickly test different versions of your app, then use 'Restore Task and Workspace' when you find the version you want to continue building from. This lets you safely explore different approaches without losing progress.
-
-<!-- Transparent pixel to create line break after floating image -->
-
-<img width="2000" height="0" src="https://github.com/user-attachments/assets/ee14e6f7-20b8-4391-9091-8e8e25561929"><br>
-
-## Contributing
-
-To contribute to the project, start with our [Contributing Guide](CONTRIBUTING.md) to learn the basics. You can also join our [Discord](https://discord.gg/codemarie) to chat with other contributors in the `#contributors` channel. If you're looking for full-time work, check out our open positions on our [careers page](https://codemarie.bot/join-us)!
-
-## Enterprise
-
-Get the same CodeMarie experience with enterprise-grade controls: SSO (SAML/OIDC), global policies and configuration, observability with audit trails, private networking (VPC/private link), and self-hosted or on-prem deployments, and enterprise support. Learn more at our [enterprise page](https://codemarie.bot/enterprise) or [talk to us](https://codemarie.bot/contact-sales).
-
-
-## License
+## 📜 License
 
 [Apache 2.0 © 2026 CodeMarie Bot Inc.](./LICENSE)

@@ -1,150 +1,127 @@
-# Smoke Tests
+# CodeMarie Smoke Tests
 
-Curated smoke tests that verify Codemarie works correctly with LLM providers.
+> [!NOTE]
+> Smoke tests are a critical part of our CI/CD pipeline, ensuring that CodeMarie's agentic capabilities remain reliable across different LLM providers and model updates.
 
-## Purpose
+## Overview
 
-These tests catch regressions in:
-- Tool execution (read, write, edit files)
-- Provider response parsing
-- Tool chaining (multiple operations)
-- Basic code generation
+CodeMarie is an advanced AI coding assistant that can use the **CLI** and **Editor** to handle complex software development tasks. Unlike traditional AI scripts that run in sandboxed environments, CodeMarie provides a human-in-the-loop GUI to approve file changes and terminal commands.
+
+The **Smoke Tests** are a suite of automated evaluations designed to verify the core functionality of the CodeMarie CLI. They focus on:
+- **Tool Execution**: Verifying `write_to_file`, `replace_in_file`, `read_file`, etc.
+- **Provider Reliability**: Ensuring consistent behavior across Anthropic, OpenAI, Gemini, and others.
+- **Reasoning & Planning**: Validating that the model can chain multiple tools to solve multi-step tasks.
+- **Regressions**: Catching breaking changes in prompt engineering or response parsing.
 
 ## Quick Start
 
+To run smoke tests locally, follow these steps:
+
+### 1. Build the CLI
+Ensure you have the latest version of the CLI built and linked:
 ```bash
-# One-time auth setup
-codemarie auth
-
-# Build CLI from source (after code changes)
 npm run eval:smoke:build
+```
 
-# Run tests (3 trials by default)
-npm run eval:smoke:run
+### 2. Configure Authentication
+If you haven't already, authenticate with your preferred provider:
+```bash
+codemarie auth
+```
+*Note: For CI or non-interactive use, see the [Authentication](#authentication) section.*
 
-# Or build + run in one command
+### 3. Run the Tests
+Run the full suite (3 trials per scenario by default):
+```bash
 npm run eval:smoke
 ```
 
-## Commands
+## Command Reference
 
-| Command | What it does |
-|---------|--------------|
-| `npm run eval:smoke:build` | Build/install CLI from source |
-| `npm run eval:smoke:run` | Run tests (uses installed CLI) |
-| `npm run eval:smoke` | Build + run (3 trials) |
-| `npm run eval:smoke:ci` | Build + run (1 trial, for CI) |
+| Command | Description |
+|---------|-------------|
+| `npm run eval:smoke` | Build the CLI and run all tests (3 trials). |
+| `npm run eval:smoke:run` | Run tests using the already installed CLI. |
+| `npm run eval:smoke:build` | Rebuild and link the CLI from source. |
+| `npm run eval:smoke:ci` | Optimized for CI: 1 trial, parallel execution. |
 
-## Options
+### Options & Flags
+
+You can pass arguments to the test runner using `--`:
 
 ```bash
-# Run specific scenario
+# Run a specific scenario
 npm run eval:smoke:run -- --scenario 01-create-file
 
-# Run with fewer trials (faster)
-npm run eval:smoke:run -- --trials 1
+# Change the number of trials (default: 3)
+npm run eval:smoke:run -- --trials 5
 
-# Run with specific model (overrides any per-scenario models)
-npm run eval:smoke:run -- --model claude-sonnet-4-5-20250929
+# Override the model for all tests
+npm run eval:smoke:run -- --model openai/gpt-4o
+
+# Run tests in parallel (default limit: 4)
+npm run eval:smoke:run -- --parallel --parallelLimit 8
 ```
 
-## Authentication
+## Metrics & Reliability
 
-### Interactive (recommended for local dev)
+We use specific metrics to measure model performance and reliability:
 
-```bash
-codemarie auth
-```
+- **pass@k**: The probability that at least one of `k` trials succeeds. This measures the model's *potential* to solve the task.
+- **pass^k**: The probability that *all* `k` trials succeed. This measures the model's *consistency* and reliability.
+- **Flakiness Score**: Calculated based on the variance between trials in a single scenario.
 
-### With API key (for automation)
-
-```bash
-codemarie auth -p codemarie -k "$CODEMARIE_API_KEY" -m anthropic/claude-sonnet-4.5
-```
+The test runner will display `pass@1` for single-trial runs and `pass@3` for standard runs.
 
 ## Scenarios
 
-| ID | Name | What it tests |
-|----|------|---------------|
-| 01-create-file | Create a simple file | `write_to_file` |
-| 02-edit-file | Edit existing file | `replace_in_file` |
-| 03-read-summarize | Read and summarize | `read_file` |
-| 04-multi-file | Create multiple files | Multiple tool calls |
-| 05-typescript-function | Generate TypeScript | Code generation |
-| 06-apply-patch | Edit file (GPT-5) | `apply_patch` tool, native tool calling |
-| 07-edit-gemini | Edit file (Gemini) | Gemini model variant |
+Scenarios are defined in the `scenarios/` directory. Each scenario consists of:
+- `config.json`: Defines the prompt, expected outcomes, and timeouts.
+- `template/` (Optional): A directory containing initial files for the workspace.
 
-### Per-Scenario Models
+### Core Scenarios
 
-Scenarios can specify their own model(s) via the `models` field in `config.json`. This is useful for testing model-specific code paths like `apply_patch` (GPT-5 only).
-
-If you pass `--model`, it overrides any per-scenario `models` list.
-
-Examples:
-```bash
-# Run apply_patch scenario with its default model (GPT-5)
-npm run eval:smoke:run -- --scenario 06-apply-patch
-
-# Force that scenario to use a specific model
-npm run eval:smoke:run -- --scenario 06-apply-patch --model openai/gpt-4o
-```
-
-## Metrics
-
-- **pass@k**: Probability at least 1 of k trials succeeds
-- **pass^k**: Probability ALL k trials succeed (reliability)
-
-Shows `pass@1` when trials < 3, `pass@3` otherwise.
+| ID | Name | Focus |
+|----|------|-------|
+| `01-create-file` | Create File | Basic `write_to_file` usage. |
+| `02-edit-file` | Edit File | Complex edits with `replace_in_file`. |
+| `03-read-summarize`| Read & Context | Efficiently reading and synthesizing file content. |
+| `05-typescript` | Code Gen | Generating valid, lint-free TypeScript code. |
+| `06-apply-patch` | Native Tools | Testing native tool-calling capabilities (GPT-5/Claude 4). |
 
 ## Adding New Scenarios
 
-1. Create directory: `scenarios/<name>/`
-2. Add `config.json`:
-   ```json
-   {
-     "name": "Human-readable name",
-     "description": "What this tests",
-     "prompt": "The task prompt for Codemarie",
-     "expectedFiles": ["file1.txt"],
-     "expectedContent": [
-       { "file": "file1.txt", "contains": "expected text" }
-     ],
-     "timeout": 60
-   }
-   ```
-3. (Optional) Add `template/` directory with starting files
+To add a new smoke test:
 
-## CI Integration
-
-Smoke tests run automatically via `.github/workflows/codemarie-evals-regression.yml`.
-
-### Triggers
-
-- Push to `main` (when core code changes)
-- Pull requests
-- Manual dispatch
-
-### Architecture
-
+1. Create a new folder in `evals/smoke-tests/scenarios/`.
+2. Add a `config.json` file:
+```json
+{
+  "name": "Feature Description",
+  "description": "What is being tested",
+  "prompt": "The specific task for CodeMarie",
+  "expectedFiles": ["output.js"],
+  "expectedContent": [
+    { "file": "output.js", "contains": "export function" }
+  ],
+  "timeout": 120
+}
 ```
-Build Job (1x)          Test Jobs (5x parallel)       Summarize
-─────────────────       ─────────────────────────     ──────────
-compile-cli             Download artifact             Merge results
-compile-standalone  →   Install CLI               →   Post summary
-Upload artifact         Configure auth
-                        Run single scenario
+3. Run your new scenario:
+```bash
+npm run eval:smoke:run -- --scenario your-scenario-name
 ```
+
+## CI/CD Integration
+
+Smoke tests run automatically on every Pull Request and Push to `main`. Results are posted as a summary in the GitHub Action run.
 
 ### Required Secrets
+- `CODEMARIE_API_KEY`: Required for the default provider in CI.
+- `CLINE_API_KEY`: Fallback key used in legacy environments.
 
-- `CLINE_API_KEY` - Cline API key (Note: mapped to CODEMARIE_API_KEY in workflow)
+## Troubleshooting
 
-### Viewing Results
-
-- Actions tab → "Smoke Tests" workflow
-- View "Summary" for quick results
-- Download "smoke-test-results" artifact for details
-
-## TODO
-
-- [ ] **Native tool calling tests**: Add CLI support for `native_tool_call_enabled` setting, then create a scenario that tests Claude 4 with native tool calling enabled (currently only GPT-5 models automatically use native tools via the Responses API)
+- **CLI Not Found**: Ensure you ran `npm run eval:smoke:build` to link the binary.
+- **Authentication Failures**: Check that your API keys are set in `.env` or passed via `codemarie auth`.
+- **Timeouts**: Some complex scenarios might require more time. Increase the `timeout` in `config.json`.
