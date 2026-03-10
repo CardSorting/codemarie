@@ -40,7 +40,12 @@ export async function initialize(storageContext: StorageContext): Promise<Webvie
 	// This must be done before any other code that calls CodemarieEnv.config()
 	// Throws CodemarieConfigurationError if config file exists but is invalid
 	const { CodemarieEndpoint } = await import("./config")
-	await CodemarieEndpoint.initialize(HostProvider.get().extensionFsPath)
+	try {
+		await CodemarieEndpoint.initialize(HostProvider.get().extensionFsPath)
+	} catch (error) {
+		Logger.error(`[Codemarie] Failed to initialize configuration: ${error instanceof Error ? error.message : String(error)}`)
+		throw error
+	}
 
 	try {
 		await StateManager.initialize(storageContext)

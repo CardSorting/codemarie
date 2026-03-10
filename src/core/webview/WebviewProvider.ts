@@ -111,16 +111,22 @@ export abstract class WebviewProvider {
 				<link rel="stylesheet" type="text/css" href="${stylesUrl}">
 				<link href="${codiconsUrl}" rel="stylesheet" />
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none';
-					connect-src https://*.posthog.com https://*.codemarie.bot; 
-					font-src ${this.getCspSource()} data:; 
-					style-src ${this.getCspSource()} 'unsafe-inline'; 
+					connect-src https://* http://localhost:* http://127.0.0.1:*; 
+					font-src ${this.getCspSource()} https: data:; 
+					style-src ${this.getCspSource()} 'unsafe-inline' https:; 
 					img-src ${this.getCspSource()} https: data:; 
-					script-src ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval';">
+					script-src 'self' ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval' https:;">
 				<title>Codemarie</title>
 			</head>
 			<body>
 				<noscript>You need to enable JavaScript to run this app.</noscript>
 				<div id="root"></div>
+				<script nonce="${nonce}">
+					console.log('[Webview] HTML loaded, attempting to load script...');
+					window.addEventListener('error', (e) => {
+						console.error('[Webview Error]', e.message, e.filename, e.lineno);
+					});
+				</script>
 				<script type="module" nonce="${nonce}" src="${scriptUrl}"></script>
 			</body>
 		</html>
@@ -135,7 +141,7 @@ export abstract class WebviewProvider {
 	private getDevServerPort(): Promise<number> {
 		const DEFAULT_PORT = 25463
 
-		const portFilePath = path.join(__dirname, "..", "webview-ui", ".vite-port")
+		const portFilePath = path.join(HostProvider.get().extensionFsPath, "webview-ui", ".vite-port")
 
 		return readFile(portFilePath, "utf8")
 			.then((portFile) => {
@@ -163,9 +169,9 @@ export abstract class WebviewProvider {
 		const localPort = await this.getDevServerPort()
 		const localServerUrl = `localhost:${localPort}`
 
-		// Check if local dev server is running.
+		// Check if local dev server is running with a short timeout.
 		try {
-			await axios.get(`http://${localServerUrl}`)
+			await axios.get(`http://${localServerUrl}`, { timeout: 1000 })
 		} catch (_error) {
 			// Only show the error message when in development mode.
 			if (process.env.IS_DEV) {
