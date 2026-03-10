@@ -1,7 +1,7 @@
 import { name, publisher, version } from "../package.json"
 import { HostProvider } from "./hosts/host-provider"
 
-const prefix = name === "claude-dev" ? "codemarie" : name
+const prefix = name === "claude-dev" || name === "marie-coder" ? "codemarie" : name
 
 /**
  * List of commands with the name of the extension they are registered under.
@@ -37,7 +37,7 @@ const CodemarieCommands = {
  * These should match the name + view IDs defined in package.json.
  */
 const CodemarieViewIds = {
-	Sidebar: name + ".SidebarProvider",
+	Sidebar: prefix + ".SidebarProvider",
 }
 
 /**
