@@ -1,6 +1,6 @@
 # CodeMarie: The Architectural Guardian
 
-![CodeMarie Banner](https://raw.githubusercontent.com/saoudrizwan/cline/main/assets/banner.png)
+![CodeMarie Banner](assets/branding/banner.png)
 
 **CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing distributed agentic workflows, and ensuring transactional stability across your workspace.
 
