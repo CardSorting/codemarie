@@ -122,6 +122,7 @@
 					{
 						"group": "Features",
 						"pages": [
+							"features/intent-grounding",
 							"features/memory-bank",
 							"features/focus-chain",
 							"features/auto-approve",
