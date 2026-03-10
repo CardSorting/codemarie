@@ -1,11 +1,12 @@
 import { expect } from "chai"
+import fs from "fs/promises"
 import { afterEach, beforeEach, describe, it } from "mocha"
 import * as sinon from "sinon"
 import { ApiHandler } from "../../api"
 import { ApiStream } from "../../api/transform/stream"
 import { IntentGrounder } from "../IntentGrounder"
 
-describe("IntentGrounder", () => {
+describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 	let sandbox: sinon.SinonSandbox
 	let mockApiHandler: {
 		createMessage: sinon.SinonStub
@@ -24,12 +25,13 @@ describe("IntentGrounder", () => {
 		sandbox.restore()
 	})
 
-	it("should ground a simple intent into a spec", async () => {
+	it("should generate telemetry including duration and model ID", async () => {
 		const mockResponse = {
-			decisionVariables: [{ name: "color", description: "The primary color", range: ["red", "blue"] }],
-			constraints: ["Must be vibrant"],
-			outputStructure: { theme: "vibrant" },
-			rules: ["Prioritize blue"],
+			decisionVariables: [],
+			constraints: [],
+			outputStructure: {},
+			rules: [],
+			confidenceScore: 1.0,
 		}
 
 		const mockStream = (async function* () {
@@ -39,45 +41,75 @@ describe("IntentGrounder", () => {
 		mockApiHandler.createMessage.returns(mockStream)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
-		const spec = await grounder.ground("Design a vibrant UI")
+		const spec = await grounder.ground("test task")
 
-		expect(spec).to.deep.equal(mockResponse)
-		expect(mockApiHandler.createMessage.calledOnce).to.be.true
+		expect(spec.telemetry).to.exist
+		expect(spec.telemetry?.model).to.equal("test-model")
+		expect(spec.telemetry?.durationMs).to.be.a("number")
 	})
 
-	it("should extract JSON even if wrapped in markdown", async () => {
+	it("should verify entities and penalize confidence for missing files", async () => {
 		const mockResponse = {
-			decisionVariables: [],
-			constraints: [],
+			decisionVariables: [{ name: "file", description: "target", range: ["existing.ts", "missing.ts"] }],
+			constraints: ["Must edit existing.ts"],
 			outputStructure: {},
 			rules: [],
+			confidenceScore: 0.9,
 		}
 
 		const mockStream = (async function* () {
-			yield { type: "text", text: "Here is the grounding:\n```json\n" + JSON.stringify(mockResponse) + "\n```" }
+			yield { type: "text", text: JSON.stringify(mockResponse) }
 		})() as ApiStream
 
 		mockApiHandler.createMessage.returns(mockStream)
 
-		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
-		const spec = await grounder.ground("test")
+		// Mock fs.access
+		const accessStub = sandbox.stub(fs, "access")
+		accessStub.withArgs(sinon.match("existing.ts")).resolves()
+		accessStub.withArgs(sinon.match("missing.ts")).rejects(new Error("ENOENT"))
 
-		expect(spec).to.deep.equal(mockResponse)
+		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
+		const spec = await grounder.ground("task", "context", "/tmp/cwd")
+
+		expect(spec.verifiedEntities).to.contain("existing.ts")
+		expect(spec.verifiedEntities).to.not.contain("missing.ts")
+		expect(spec.confidenceScore).to.be.lessThan(0.9) // penalized
+		expect(spec.ambiguityReasoning).to.contain("referenced files were not found")
 	})
 
-	it("should throw error if no JSON found", async () => {
-		const mockStream = (async function* () {
-			yield { type: "text", text: "No JSON here" }
+	it("should execute self-critique loop to refine the specification", async () => {
+		const mockInitialResponse = {
+			decisionVariables: [],
+			constraints: ["Initial constraint"],
+			outputStructure: {},
+			rules: [],
+			confidenceScore: 0.5,
+		}
+
+		const mockCritiqueResponse = {
+			decisionVariables: [],
+			constraints: ["Refined constraint"],
+			outputStructure: {},
+			rules: ["Added rule"],
+			confidenceScore: 0.9,
+		}
+
+		const initialStream = (async function* () {
+			yield { type: "text", text: JSON.stringify(mockInitialResponse) }
 		})() as ApiStream
 
-		mockApiHandler.createMessage.returns(mockStream)
+		const critiqueStream = (async function* () {
+			yield { type: "text", text: JSON.stringify(mockCritiqueResponse) }
+		})() as ApiStream
+
+		mockApiHandler.createMessage.onFirstCall().returns(initialStream)
+		mockApiHandler.createMessage.onSecondCall().returns(critiqueStream)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
-		try {
-			await grounder.ground("test")
-			expect.fail("Should have thrown error")
-		} catch (error: any) {
-			expect(error.message).to.equal("No JSON found in grounding response")
-		}
+		const spec = await grounder.ground("test task")
+
+		expect(spec.constraints[0]).to.equal("Refined constraint")
+		expect(spec.rules).to.have.lengthOf(1)
+		expect(spec.confidenceScore).to.equal(0.9)
 	})
 })

@@ -7,6 +7,7 @@ import type { HookExecution } from "./types/HookExecution"
 export class TaskState {
 	// Intent Grounding
 	groundedSpec?: GroundedSpec
+	groundedSpecHistory: GroundedSpec[] = []
 
 	// Task-level timing
 	taskStartTimeMs = Date.now()

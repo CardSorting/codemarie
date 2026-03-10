@@ -1401,22 +1401,55 @@ export class Task {
 				try {
 					await this.say("info", "Grounding user intent into a structured specification...")
 					const grounder = new IntentGrounder(this.api)
-					this.taskState.groundedSpec = await grounder.ground(taskIntent)
 
-					// Inject grounded spec into conversation
+					// Ensure orchestration stream is ready for memory persistence
+					await this.streamReadyPromise
+					const streamId = this.orchestrationController?.getStreamId()
+
+					// Provide high-level context for grounding
+					const [topLevelFiles] = await listFiles(this.cwd, false, 100)
+					const context = `Workspace Root: ${this.cwd}\nTop-level files:\n${topLevelFiles.join("\n")}`
+
+					this.taskState.groundedSpec = await grounder.ground(taskIntent, context, this.cwd, streamId)
+					this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
+
+					// Phase 3: Extreme Hardening - Clarification Loop
+					if (this.taskState.groundedSpec.confidenceScore < 0.7) {
+						const missingInfo = this.taskState.groundedSpec.missingInformation?.join("\n") || ""
+						const reasoning = this.taskState.groundedSpec.ambiguityReasoning || "Intent is somewhat ambiguous."
+
+						const clarificationPrompt =
+							`I've analyzed your intent but have some questions to ensure I get it right (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
+							`**Reasoning**: ${reasoning}\n\n` +
+							`**Questions**:\n${missingInfo || "- Could you provide more details about the task?"}\n\n` +
+							`Should I proceed with what I have, or would you like to provide more details?`
+
+						const choice = await this.ask("followup", clarificationPrompt)
+						if (choice.response === "messageResponse" && choice.text) {
+							// Phase 4: Ultimate Hardening - Adaptive Evolution
+							const richerIntent = `${taskIntent}\n\nUser Clarification: ${choice.text}`
+							await this.say("info", "Evolving grounded specification with your clarification...")
+							this.taskState.groundedSpec = await grounder.ground(richerIntent, context, this.cwd, streamId)
+							this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
+						}
+					}
+
+					// Inject grounded spec into conversation (User-facing summary)
+					const verifiedCount = this.taskState.groundedSpec.verifiedEntities?.length || 0
 					const groundedSpecText =
-						`\n\n# Grounded Specification\nThis task has been grounded into the following structured specification:\n\n` +
-						`## Decision Variables\n${this.taskState.groundedSpec.decisionVariables.map((v) => `- **${v.name}**: ${v.description}${v.range ? ` (Range: ${v.range.join(", ")})` : ""}`).join("\n")}\n\n` +
-						`## Constraints\n${this.taskState.groundedSpec.constraints.map((c) => `- ${c}`).join("\n")}\n\n` +
-						`## Rules\n${this.taskState.groundedSpec.rules.map((r) => `- ${r}`).join("\n")}\n\n` +
-						`## Output Structure\n\`\`\`json\n${JSON.stringify(this.taskState.groundedSpec.outputStructure, null, 2)}\n\`\`\``
+						`Task grounded into a structured specification (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
+						`**Variables**: ${this.taskState.groundedSpec.decisionVariables.map((v) => v.name).join(", ") || "None"}\n` +
+						`**Constraints**: ${this.taskState.groundedSpec.constraints.length} identified\n` +
+						`**Rules**: ${this.taskState.groundedSpec.rules.length} defined\n` +
+						`**Verified Entities**: ${verifiedCount} project files/symbols verified\n` +
+						`**Latent Performance**: ${this.taskState.groundedSpec.telemetry?.durationMs || 0}ms`
 
 					await this.say("text", groundedSpecText)
 
-					// Add to the history so the model sees it
+					// Add specific tag to the history for the model
 					this.taskState.userMessageContent.push({
 						type: "text",
-						text: `<grounded_specification>\n${groundedSpecText}\n</grounded_specification>`,
+						text: `<grounded_specification>\n${JSON.stringify(this.taskState.groundedSpec, null, 2)}\n</grounded_specification>`,
 					} as CodemarieTextContentBlock)
 				} catch (error) {
 					Logger.error("[Task] Intent grounding failed:", error)
