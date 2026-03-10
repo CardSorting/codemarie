@@ -117,6 +117,7 @@ import { ensureLocalCodemarieDirExists } from "../context/instructions/user-inst
 import { discoverSkills, getAvailableSkills } from "../context/instructions/user-instructions/skills"
 import { refreshWorkflowToggles } from "../context/instructions/user-instructions/workflows"
 import { Controller } from "../controller"
+import { IntentGrounder } from "../grounding/IntentGrounder"
 import { executeHook } from "../hooks/hook-executor"
 import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { FluidPolicyEngine } from "../policy/FluidPolicyEngine"
@@ -1389,6 +1390,41 @@ export class Task {
 	private async initiateTaskLoop(userContent: CodemarieContent[]): Promise<void> {
 		let nextUserContent = userContent
 		let includeFileDetails = true
+
+		// Phase 2: Intent Grounding
+		if (!this.taskState.groundedSpec && userContent.length > 0) {
+			const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
+			if (initialTaskBlock && initialTaskBlock.type === "text" && initialTaskBlock.text) {
+				const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)
+				const taskIntent = taskMatch ? taskMatch[1] : initialTaskBlock.text
+
+				try {
+					await this.say("info", "Grounding user intent into a structured specification...")
+					const grounder = new IntentGrounder(this.api)
+					this.taskState.groundedSpec = await grounder.ground(taskIntent)
+
+					// Inject grounded spec into conversation
+					const groundedSpecText =
+						`\n\n# Grounded Specification\nThis task has been grounded into the following structured specification:\n\n` +
+						`## Decision Variables\n${this.taskState.groundedSpec.decisionVariables.map((v) => `- **${v.name}**: ${v.description}${v.range ? ` (Range: ${v.range.join(", ")})` : ""}`).join("\n")}\n\n` +
+						`## Constraints\n${this.taskState.groundedSpec.constraints.map((c) => `- ${c}`).join("\n")}\n\n` +
+						`## Rules\n${this.taskState.groundedSpec.rules.map((r) => `- ${r}`).join("\n")}\n\n` +
+						`## Output Structure\n\`\`\`json\n${JSON.stringify(this.taskState.groundedSpec.outputStructure, null, 2)}\n\`\`\``
+
+					await this.say("text", groundedSpecText)
+
+					// Add to the history so the model sees it
+					this.taskState.userMessageContent.push({
+						type: "text",
+						text: `<grounded_specification>\n${groundedSpecText}\n</grounded_specification>`,
+					} as CodemarieTextContentBlock)
+				} catch (error) {
+					Logger.error("[Task] Intent grounding failed:", error)
+					await this.say("error", "Failed to ground intent. Proceeding with original task.")
+				}
+			}
+		}
+
 		while (!this.taskState.abort) {
 			this.taskState.currentTurnReadHistory.clear() // Reset read history for the new turn
 			this.taskState.currentTurnTotalReadCount = 0 // Reset total read counter for the new turn

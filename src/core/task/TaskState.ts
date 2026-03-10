@@ -1,9 +1,13 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { AssistantMessageContent } from "@core/assistant-message"
 import { CodemarieAskResponse } from "@shared/WebviewMessage"
+import { GroundedSpec } from "../grounding/IntentGrounder"
 import type { HookExecution } from "./types/HookExecution"
 
 export class TaskState {
+	// Intent Grounding
+	groundedSpec?: GroundedSpec
+
 	// Task-level timing
 	taskStartTimeMs = Date.now()
 	taskFirstTokenTimeMs?: number

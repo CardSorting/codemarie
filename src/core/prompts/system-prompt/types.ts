@@ -9,6 +9,7 @@ import type { FocusChainSettings } from "@/shared/FocusChainSettings"
 import { ModelFamily } from "@/shared/prompts"
 import type { SkillMetadata } from "@/shared/skills"
 import { CodemarieDefaultTool } from "@/shared/tools"
+import { GroundedSpec } from "../../grounding/IntentGrounder"
 import type { CodemarieToolSpec } from "./spec"
 import { SystemPromptSection } from "./templates/placeholders"
 
@@ -128,6 +129,7 @@ export interface SystemPromptContext {
 	readonly terminalExecutionMode?: "vscodeTerminal" | "backgroundExec"
 	readonly mode?: "plan" | "act"
 	readonly parentMode?: "plan" | "act"
+	readonly groundedSpec?: GroundedSpec
 }
 
 /**
