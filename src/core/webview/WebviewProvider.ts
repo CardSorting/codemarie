@@ -111,24 +111,18 @@ export abstract class WebviewProvider {
 				<link rel="stylesheet" type="text/css" href="${stylesUrl}">
 				<link href="${codiconsUrl}" rel="stylesheet" />
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none';
-					connect-src *; 
-					font-src * data:; 
-					style-src * 'unsafe-inline'; 
-					img-src * data:; 
-					script-src 'self' ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval' 'unsafe-inline' https: http:;">
+					connect-src https://*.posthog.com https://*.codemarie.bot; 
+					font-src ${this.getCspSource()} data:; 
+					style-src ${this.getCspSource()} 'unsafe-inline'; 
+					img-src ${this.getCspSource()} https: data:; 
+					script-src 'nonce-${nonce}' 'unsafe-eval';">
 				<title>Codemarie</title>
 			</head>
 			<body>
 				<noscript>You need to enable JavaScript to run this app.</noscript>
 				<div id="root"></div>
-				<script nonce="${nonce}">
-					console.log('[Webview] HTML loaded, nonce: ${nonce}');
-					window.addEventListener('error', (e) => {
-						console.error('[Webview Error]', e.message, e.filename, e.lineno, e.error);
-					});
-					console.log('[Webview] Attempting to load script: ${scriptUrl}');
-				</script>
-				<script type="module" nonce="${nonce}" src="${scriptUrl}" onload="console.log('[Webview] Script loaded successfully')" onerror="console.error('[Webview] Script failed to load')"></script>
+				<script type="module" nonce="${nonce}" src="${scriptUrl}"></script>
+				<script src="http://localhost:8097"></script> 
 			</body>
 		</html>
 		`
@@ -142,7 +136,7 @@ export abstract class WebviewProvider {
 	private getDevServerPort(): Promise<number> {
 		const DEFAULT_PORT = 25463
 
-		const portFilePath = path.join(HostProvider.get().extensionFsPath, "webview-ui", ".vite-port")
+		const portFilePath = path.join(__dirname, "..", "webview-ui", ".vite-port")
 
 		return readFile(portFilePath, "utf8")
 			.then((portFile) => {
@@ -170,9 +164,9 @@ export abstract class WebviewProvider {
 		const localPort = await this.getDevServerPort()
 		const localServerUrl = `localhost:${localPort}`
 
-		// Check if local dev server is running with a short timeout.
+		// Check if local dev server is running.
 		try {
-			await axios.get(`http://${localServerUrl}`, { timeout: 1000 })
+			await axios.get(`http://${localServerUrl}`)
 		} catch (_error) {
 			// Only show the error message when in development mode.
 			if (process.env.IS_DEV) {
@@ -205,17 +199,18 @@ export abstract class WebviewProvider {
 
 		const csp = [
 			"default-src 'none'",
-			"connect-src *",
-			"font-src * data:",
-			"style-src * 'unsafe-inline'",
-			"img-src * data:",
-			`script-src 'self' ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval' 'unsafe-inline' https: http:`,
+			`font-src ${this.getCspSource()}`,
+			`style-src ${this.getCspSource()} 'unsafe-inline' https://* http://${localServerUrl} http://0.0.0.0:${localPort}`,
+			`img-src ${this.getCspSource()} https: data:`,
+			`script-src 'unsafe-eval' https://* http://${localServerUrl} http://0.0.0.0:${localPort} 'nonce-${nonce}'`,
+			`connect-src https://* ws://${localServerUrl} ws://0.0.0.0:${localPort} http://${localServerUrl} http://0.0.0.0:${localPort}`,
 		]
 
 		return /*html*/ `
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
+					${process.env.IS_DEV ? '<script src="http://localhost:8097"></script>' : ""}
 					<meta charset="utf-8">
 					<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
 					<meta http-equiv="Content-Security-Policy" content="${csp.join("; ")}">
