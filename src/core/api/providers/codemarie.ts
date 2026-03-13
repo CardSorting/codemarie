@@ -150,7 +150,9 @@ export class CodemarieHandler implements ApiHandler {
 						Logger.error(`Codemarie Mid-Stream Error: ${error.code || error.type || "Unknown"} - ${error.message}`)
 						throw new Error(`Codemarie Mid-Stream Error: ${error.code || error.type || "Unknown"} - ${error.message}`)
 					}
-					throw new Error("Codemarie Mid-Stream Error: Stream terminated with error status but no error details provided")
+					throw new Error(
+						"Codemarie Mid-Stream Error: Stream terminated with error status but no error details provided",
+					)
 				}
 
 				const delta = choice?.delta
@@ -238,6 +240,34 @@ export class CodemarieHandler implements ApiHandler {
 		}
 	}
 
+	async embedText(text: string): Promise<number[] | null> {
+		try {
+			const client = await this.ensureClient()
+			const response = await client.embeddings.create({
+				model: "text-embedding-3-small", // Default embedding model for Codemarie
+				input: text,
+			})
+			return response.data[0].embedding
+		} catch (error) {
+			Logger.error("Codemarie embedText error:", error)
+			return null
+		}
+	}
+
+	async embedBatch(texts: string[]): Promise<(number[] | null)[]> {
+		try {
+			const client = await this.ensureClient()
+			const response = await client.embeddings.create({
+				model: "text-embedding-3-small",
+				input: texts,
+			})
+			return response.data.map((item) => item.embedding)
+		} catch (error) {
+			Logger.error("Codemarie embedBatch error:", error)
+			return texts.map(() => null)
+		}
+	}
+
 	async getApiStreamUsage(): Promise<ApiStreamUsageChunk | undefined> {
 		if (this.lastGenerationId) {
 			try {
@@ -251,11 +281,14 @@ export class CodemarieHandler implements ApiHandler {
 				}
 				Object.assign(headers, await buildCodemarieExtraHeaders())
 
-				const response = await axios.get(`${this.codemarieAccountService.baseUrl}/generation?id=${this.lastGenerationId}`, {
-					headers,
-					timeout: 15_000, // this request hangs sometimes
-					...getAxiosSettings(),
-				})
+				const response = await axios.get(
+					`${this.codemarieAccountService.baseUrl}/generation?id=${this.lastGenerationId}`,
+					{
+						headers,
+						timeout: 15_000, // this request hangs sometimes
+						...getAxiosSettings(),
+					},
+				)
 
 				const generation = response.data
 				let totalCost = generation?.total_cost || 0

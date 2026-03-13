@@ -3788,22 +3788,41 @@ export class Task {
 
 		// Use specifically configured embedding provider if available, otherwise fallback to primary provider if it supports embeddings
 		const provider = apiConfiguration.embeddingProvider as any
-		if (provider === "gemini" || (apiConfiguration.geminiApiKey && !provider)) {
+		const geminiKey = apiConfiguration.embeddingApiKey || apiConfiguration.geminiApiKey
+		const openAiKey = apiConfiguration.embeddingApiKey || apiConfiguration.openAiApiKey
+
+		if (provider === "gemini" && geminiKey) {
 			embeddingHandler = new GeminiHandler({
 				onRetryAttempt: apiConfiguration.onRetryAttempt,
-				geminiApiKey: apiConfiguration.embeddingApiKey || apiConfiguration.geminiApiKey,
+				geminiApiKey: geminiKey,
 				geminiBaseUrl: apiConfiguration.geminiBaseUrl,
 				apiModelId: apiConfiguration.embeddingModelId || "gemini-embedding-2-preview",
 			})
-		} else if (provider === "openai" || (apiConfiguration.openAiApiKey && provider === "openai")) {
+		} else if (provider === "openai" && openAiKey) {
 			embeddingHandler = new OpenAiHandler({
 				onRetryAttempt: apiConfiguration.onRetryAttempt,
-				openAiApiKey: apiConfiguration.embeddingApiKey || apiConfiguration.openAiApiKey,
+				openAiApiKey: openAiKey,
 				openAiBaseUrl: apiConfiguration.embeddingOpenAiBaseUrl || apiConfiguration.openAiBaseUrl,
 				openAiModelId: apiConfiguration.embeddingModelId || "text-embedding-3-small",
 			})
 		} else if (this.api && typeof (this.api as any).embedText === "function") {
 			embeddingHandler = this.api
+		} else if (geminiKey) {
+			// Fallback to gemini if we have a key even if it wasn't the explicitly selected provider
+			embeddingHandler = new GeminiHandler({
+				onRetryAttempt: apiConfiguration.onRetryAttempt,
+				geminiApiKey: geminiKey,
+				geminiBaseUrl: apiConfiguration.geminiBaseUrl,
+				apiModelId: apiConfiguration.embeddingModelId || "gemini-embedding-2-preview",
+			})
+		} else if (openAiKey) {
+			// Fallback to openai if we have a key
+			embeddingHandler = new OpenAiHandler({
+				onRetryAttempt: apiConfiguration.onRetryAttempt,
+				openAiApiKey: openAiKey,
+				openAiBaseUrl: apiConfiguration.embeddingOpenAiBaseUrl || apiConfiguration.openAiBaseUrl,
+				openAiModelId: apiConfiguration.embeddingModelId || "text-embedding-3-small",
+			})
 		}
 
 		if (embeddingHandler) {
