@@ -3825,11 +3825,15 @@ export class Task {
 			})
 		}
 
-		if (embeddingHandler) {
-			this.knowledgeGraphService = await KnowledgeGraphService.getInstance(embeddingHandler)
-			return this.knowledgeGraphService
+		// Always initialize KnowledgeGraphService, using a dummy handler if no keys are found
+		// This enables fallback keyword strategies in the graph service even when embeddings are unavailable.
+		if (!embeddingHandler) {
+			embeddingHandler = {
+				embedText: async () => null,
+			}
 		}
 
-		return undefined
+		this.knowledgeGraphService = await KnowledgeGraphService.getInstance(embeddingHandler)
+		return this.knowledgeGraphService
 	}
 }

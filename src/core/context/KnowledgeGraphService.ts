@@ -38,6 +38,7 @@ export class KnowledgeGraphService {
 	private static instance: KnowledgeGraphService | null = null
 	private embeddingHandler: EmbeddingHandler
 	private cleanupInterval: NodeJS.Timeout | null = null
+	private isEmbeddingDisabled = false
 
 	private constructor(embeddingHandler: EmbeddingHandler) {
 		this.embeddingHandler = embeddingHandler
@@ -129,8 +130,17 @@ export class KnowledgeGraphService {
 		const id = nanoid()
 		let embedding = options.embedding || null
 
-		if (!embedding && content.trim()) {
-			embedding = (await this.embeddingHandler.embedText(content)) || null
+		if (!embedding && content.trim() && !this.isEmbeddingDisabled) {
+			try {
+				embedding = await this.embeddingHandler.embedText(content)
+				if (!embedding) {
+					Logger.warn("[KnowledgeGraphService] Disabling embeddings due to null result in addKnowledge")
+					this.isEmbeddingDisabled = true
+				}
+			} catch (error) {
+				Logger.warn(`[KnowledgeGraphService] Disabling embeddings due to failure in addKnowledge: ${error}`)
+				this.isEmbeddingDisabled = true
+			}
 		}
 
 		await this._push({
@@ -382,8 +392,16 @@ export class KnowledgeGraphService {
 		} = {},
 	): Promise<(KnowledgeNode & { similarity: number })[]> {
 		const limit = options.limit || 5
-		const queryEmbedding = await this.embeddingHandler.embedText(query)
-		if (!queryEmbedding) return []
+		let queryEmbedding: number[] | null = null
+
+		if (!this.isEmbeddingDisabled) {
+			try {
+				queryEmbedding = await this.embeddingHandler.embedText(query)
+			} catch (error) {
+				Logger.warn(`[KnowledgeGraphService] Disabling embeddings due to error: ${error}`)
+				this.isEmbeddingDisabled = true
+			}
+		}
 
 		const db = await getDb()
 		let queryBuilder = db.selectFrom("agent_knowledge").selectAll().where("streamId", "=", streamId)
@@ -396,12 +414,33 @@ export class KnowledgeGraphService {
 			})
 		}
 
+		// If no embedding available, fall back to keyword search
+		if (!queryEmbedding) {
+			queryBuilder = queryBuilder.where((eb) =>
+				eb.or([eb("content", "like", `%${query}%`), eb("tags", "like", `%${query}%`)]),
+			)
+		}
+
 		const nodes = await queryBuilder.execute()
 
 		const ranked = nodes
 			.map((n) => {
 				const embedding = n.embedding ? (JSON.parse(n.embedding) as number[]) : null
 				const hubBoost = (Number(n.hubScore) || 0) * 0.01
+
+				let similarity = 0
+				if (queryEmbedding && embedding) {
+					similarity = this.cosineSimilarity(queryEmbedding, embedding)
+				} else {
+					// Fallback keyword similarity
+					const contentMatch = (n.content || "").toLowerCase().includes(query.toLowerCase())
+					const tagMatch = (n.tags || "").toLowerCase().includes(query.toLowerCase())
+					if (contentMatch || tagMatch) {
+						similarity = 0.5 // Base similarity for keyword match
+						if (tagMatch) similarity += 0.1
+					}
+				}
+
 				return {
 					...n,
 					userId: n.userId,
@@ -409,7 +448,7 @@ export class KnowledgeGraphService {
 					tags: JSON.parse(n.tags || "[]"),
 					embedding,
 					metadata: n.metadata ? JSON.parse(n.metadata) : null,
-					similarity: embedding ? this.cosineSimilarity(queryEmbedding, embedding) + hubBoost : 0,
+					similarity: similarity + hubBoost,
 					createdAt: Number(n.createdAt),
 					confidence: Number(n.confidence),
 					hubScore: Number(n.hubScore),
