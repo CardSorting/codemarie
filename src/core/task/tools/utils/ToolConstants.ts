@@ -46,6 +46,7 @@ export const TASK_SERVICES_KEYS = [
 	"commandPermissionController",
 	"contextManager",
 	"stateManager",
+	"knowledgeGraphService",
 ] as const
 
 /**

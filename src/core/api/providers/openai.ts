@@ -179,6 +179,17 @@ export class OpenAiHandler implements ApiHandler {
 		}
 	}
 
+	@withRetry()
+	async embedText(text: string): Promise<number[] | null> {
+		const client = this.ensureClient()
+		const modelId = this.options.openAiModelId ?? "text-embedding-3-small"
+		const response = await client.embeddings.create({
+			model: modelId,
+			input: text,
+		})
+		return response.data[0].embedding
+	}
+
 	getModel(): { id: string; info: ModelInfo } {
 		return {
 			id: this.options.openAiModelId ?? "",

@@ -37,6 +37,7 @@ type BuildArgs = {
 	taskState: TaskState
 	// multi-root deps
 	workspaceManager?: WorkspaceRootManager
+	getKnowledgeGraphService: () => Promise<any>
 
 	// callbacks for single-root TaskCheckpointManager
 	updateTaskHistory: (historyItem: any) => Promise<any[]>
@@ -64,6 +65,7 @@ export function buildCheckpointManager(args: BuildArgs): ICheckpointManager {
 		diffViewProvider,
 		taskState,
 		workspaceManager,
+		getKnowledgeGraphService,
 		updateTaskHistory,
 		say,
 		cancelTask,
@@ -90,6 +92,7 @@ export function buildCheckpointManager(args: BuildArgs): ICheckpointManager {
 			fileContextTracker,
 			taskState,
 			workspaceManager,
+			getKnowledgeGraphService,
 		},
 		{
 			updateTaskHistory,

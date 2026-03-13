@@ -4,6 +4,7 @@ import { CodemarieAsk, CodemarieAskUseMcpServer } from "@shared/ExtensionMessage
 import { telemetryService } from "@/services/telemetry"
 import { truncateContent } from "@/shared/content-limits"
 import { CodemarieDefaultTool } from "@/shared/tools"
+import { executor } from "../../ActionExecutor"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -71,7 +72,10 @@ export class UseMcpToolHandler implements IFullyManagedTool {
 				parsedArguments = JSON.parse(mcp_arguments)
 			} catch (_error) {
 				config.taskState.consecutiveMistakeCount++
-				await config.callbacks.say("error", `Codemarie tried to use ${tool_name} with an invalid JSON argument. Retrying...`)
+				await config.callbacks.say(
+					"error",
+					`Codemarie tried to use ${tool_name} with an invalid JSON argument. Retrying...`,
+				)
 				return formatResponse.toolError(formatResponse.invalidMcpToolArgumentError(server_name, tool_name))
 			}
 		}
@@ -128,18 +132,17 @@ export class UseMcpToolHandler implements IFullyManagedTool {
 					block.isNativeToolCall,
 				)
 				return formatResponse.toolDenied()
-			} else {
-				telemetryService.captureToolUsage(
-					config.ulid,
-					block.name,
-					config.api.getModel().id,
-					provider,
-					false,
-					true,
-					undefined,
-					block.isNativeToolCall,
-				)
 			}
+			telemetryService.captureToolUsage(
+				config.ulid,
+				block.name,
+				config.api.getModel().id,
+				provider,
+				false,
+				true,
+				undefined,
+				block.isNativeToolCall,
+			)
 		}
 
 		// Run PreToolUse hook after approval but before execution
@@ -164,8 +167,12 @@ export class UseMcpToolHandler implements IFullyManagedTool {
 				await config.callbacks.say("mcp_notification", `[${notification.serverName}] ${notification.message}`)
 			}
 
-			// Execute the MCP tool
-			const toolResult = await config.services.mcpHub.callTool(server_name, tool_name, parsedArguments, config.ulid)
+			// Execute the MCP tool with reliability wrapper
+			const toolResult = await executor.execute(
+				config.ulid,
+				() => config.services.mcpHub.callTool(server_name, tool_name, parsedArguments, config.ulid),
+				{ concurrencyGroup: "mcp" },
+			)
 
 			// Check for any pending notifications after the tool call
 			const notificationsAfter = config.services.mcpHub.getPendingNotifications()

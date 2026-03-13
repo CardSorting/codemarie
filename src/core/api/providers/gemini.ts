@@ -449,6 +449,78 @@ export class GeminiHandler implements ApiHandler {
 	}
 
 	/**
+	 * Generates embeddings for a single text string.
+	 */
+	async embedText(text: string): Promise<number[] | null> {
+		if (!text.trim()) return null
+		const client = this.ensureClient()
+		const modelId = "gemini-embedding-2-preview"
+
+		try {
+			const response = await client.models.embedContent({
+				model: modelId,
+				contents: [{ parts: [{ text }] }],
+			})
+
+			if (response.embeddings && response.embeddings.length > 0) {
+				return response.embeddings[0].values || null
+			}
+			return null
+		} catch (error) {
+			Logger.warn(`Gemini embedText error: ${error instanceof Error ? error.message : String(error)}`)
+			return null
+		}
+	}
+
+	/**
+	 * Summarizes a text string using the Gemini model.
+	 */
+	async summarizeText(text: string): Promise<string> {
+		if (!text.trim()) return ""
+		const client = this.ensureClient()
+		const { id } = this.getModel()
+
+		try {
+			const prompt = `Summarize the following cognitive memory history into a concise, high-value representation. Focus on key decisions, technical patterns, and progress milestones:
+\n\n${text}`
+
+			const result = await client.models.generateContent({
+				model: id,
+				contents: [{ role: "user", parts: [{ text: prompt }] }],
+			})
+
+			return result.candidates?.[0]?.content?.parts?.[0]?.text || ""
+		} catch (error) {
+			Logger.warn(`Gemini summarizeText error: ${error instanceof Error ? error.message : String(error)}`)
+			return text.substring(0, 1000) // Fallback to truncation
+		}
+	}
+
+	/**
+	 * Generates embeddings for multiple text strings in a batch.
+	 */
+	async embedBatch(texts: string[]): Promise<(number[] | null)[]> {
+		if (texts.length === 0) return []
+		const client = this.ensureClient()
+		const modelId = "gemini-embedding-2-preview"
+
+		try {
+			const response = await client.models.embedContent({
+				model: modelId,
+				contents: texts.map((text) => ({ parts: [{ text }] })),
+			})
+
+			if (response.embeddings) {
+				return response.embeddings.map((e) => e.values || null)
+			}
+			return texts.map(() => null)
+		} catch (error) {
+			Logger.warn(`Gemini embedBatch error: ${error instanceof Error ? error.message : String(error)}`)
+			return texts.map(() => null)
+		}
+	}
+
+	/**
 	 * Count tokens in content using the Gemini API
 	 */
 	async countTokens(content: Array<any>): Promise<number> {

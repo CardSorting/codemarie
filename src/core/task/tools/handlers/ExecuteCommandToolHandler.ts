@@ -7,6 +7,7 @@ import { CodemarieAsk } from "@shared/ExtensionMessage"
 import { arePathsEqual } from "@utils/path"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieDefaultTool } from "@/shared/tools"
+import { executor } from "../../ActionExecutor"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -307,7 +308,11 @@ export class ExecuteCommandToolHandler implements IFullyManagedTool {
 			finalCommand = `cd "${executionDir}" && ${actualCommand}`
 		}
 
-		const [userRejected, result] = await config.callbacks.executeCommandTool(finalCommand, timeoutSeconds)
+		const [userRejected, result] = await executor.execute(
+			config.ulid,
+			() => config.callbacks.executeCommandTool(finalCommand, timeoutSeconds),
+			{ concurrencyGroup: "shell" },
+		)
 
 		if (timeoutId) {
 			clearTimeout(timeoutId)

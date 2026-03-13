@@ -42,6 +42,7 @@ interface CheckpointManagerServices {
 	readonly messageStateHandler: MessageStateHandler
 	readonly taskState: TaskState
 	readonly workspaceManager?: WorkspaceRootManager
+	readonly getKnowledgeGraphService: () => Promise<any>
 }
 interface CheckpointManagerCallbacks {
 	readonly updateTaskHistory: UpdateTaskHistoryFunction
@@ -115,7 +116,7 @@ export class TaskCheckpointManager implements ICheckpointManager {
 	 * @param isAttemptCompletionMessage - Whether this checkpoint is for an attempt completion message
 	 * @param completionMessageTs - Optional timestamp of the completion message to update with checkpoint hash
 	 */
-	async saveCheckpoint(isAttemptCompletionMessage: boolean = false, completionMessageTs?: number): Promise<void> {
+	async saveCheckpoint(isAttemptCompletionMessage = false, completionMessageTs?: number): Promise<void> {
 		try {
 			// If checkpoints are disabled or previously encountered a timeout error, return early
 			if (
@@ -175,6 +176,21 @@ export class TaskCheckpointManager implements ICheckpointManager {
 								if (commitHash) {
 									targetMessage.lastCheckpointHash = commitHash
 									await this.services.messageStateHandler.saveCodemarieMessagesAndUpdateHistory()
+
+									// V6: Structural Mirroring
+									const kgService = await this.services.getKnowledgeGraphService()
+									if (kgService) {
+										const diff = await this.state.checkpointTracker?.getDiffCount(commitHash)
+										await kgService.addKnowledge(
+											this.task.taskId,
+											"snapshot:mirror",
+											`Git Checkpoint Created: ${commitHash}\nFiles Changed: ${diff || 0}`,
+											{
+												tags: ["git_checkpoint", "mirror"],
+												metadata: { commitHash, filesChanged: diff },
+											},
+										)
+									}
 								}
 							})
 							.catch((error) => {
@@ -199,6 +215,21 @@ export class TaskCheckpointManager implements ICheckpointManager {
 				// For attempt_completion, commit then update the completion_result message with the checkpoint hash
 				if (this.state.checkpointTracker) {
 					const commitHash = await this.state.checkpointTracker.commit()
+
+					// V6: Structural Mirroring
+					const kgService = await this.services.getKnowledgeGraphService()
+					if (commitHash && kgService) {
+						const diff = await this.state.checkpointTracker.getDiffCount(commitHash)
+						await kgService.addKnowledge(
+							this.task.taskId,
+							"snapshot:mirror",
+							`Final Checkpoint Created: ${commitHash}\nFiles Changed: ${diff || 0}`,
+							{
+								tags: ["git_checkpoint", "mirror", "completion"],
+								metadata: { commitHash, filesChanged: diff },
+							},
+						)
+					}
 
 					// If a completionMessageTs is provided, update that specific message with the checkpoint hash
 					if (completionMessageTs) {
@@ -244,7 +275,10 @@ export class TaskCheckpointManager implements ICheckpointManager {
 			const codemarieMessages = this.services.messageStateHandler.getCodemarieMessages()
 			const messageIndex = codemarieMessages.findIndex((m) => m.ts === messageTs) - (offset || 0)
 			// Find the last message before messageIndex that has a lastCheckpointHash
-			const lastHashIndex = findLastIndex(codemarieMessages.slice(0, messageIndex), (m) => m.lastCheckpointHash !== undefined)
+			const lastHashIndex = findLastIndex(
+				codemarieMessages.slice(0, messageIndex),
+				(m) => m.lastCheckpointHash !== undefined,
+			)
 			const message = codemarieMessages[messageIndex]
 			const lastMessageWithHash = codemarieMessages[lastHashIndex]
 
@@ -749,6 +783,29 @@ export class TaskCheckpointManager implements ICheckpointManager {
 	// ============================================================================
 	// State management - interfaces for updating internal state
 	// ============================================================================
+
+	/**
+	 * Creates an ephemeral 'Ghost Branch' for safe experimentation.
+	 * @param branchName - The name of the ghost branch
+	 * @param baseRef - Optional base reference (commit hash)
+	 */
+	async createGhostBranch(branchName: string, baseRef?: string): Promise<void> {
+		if (!this.state.checkpointTracker) {
+			await this.checkpointTrackerCheckAndInit()
+		}
+		if (this.state.checkpointTracker) {
+			await this.state.checkpointTracker.createBranch(branchName, baseRef)
+
+			// V8: Mirror the ghost branch creation in the graph
+			const kgService = await this.services.getKnowledgeGraphService()
+			if (kgService) {
+				await kgService.addKnowledge(this.task.taskId, "snapshot:ghost_branch", `Ghost Branch Created: ${branchName}`, {
+					tags: ["ghost_branch", "experiment"],
+					metadata: { branchName, baseRef },
+				})
+			}
+		}
+	}
 
 	/**
 	 * Checks for an active checkpoint tracker instance, creates if needed

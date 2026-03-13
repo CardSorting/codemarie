@@ -8,6 +8,26 @@ import { ApplyPatchHandler } from "./handlers/ApplyPatchHandler"
 import { AskFollowupQuestionToolHandler } from "./handlers/AskFollowupQuestionToolHandler"
 import { AttemptCompletionHandler } from "./handlers/AttemptCompletionHandler"
 import { BrowserToolHandler } from "./handlers/BrowserToolHandler"
+import { CognitiveMemoryAppendSharedHandler } from "./handlers/CognitiveMemoryAppendSharedHandler"
+import { CognitiveMemoryBlameHandler } from "./handlers/CognitiveMemoryBlameHandler"
+import { CognitiveMemoryBlastHandler } from "./handlers/CognitiveMemoryBlastHandler"
+import { CognitiveMemoryBundleHandler } from "./handlers/CognitiveMemoryBundleHandler"
+import { CognitiveMemoryCentralityHandler } from "./handlers/CognitiveMemoryCentralityHandler"
+import { CognitiveMemoryChangelogHandler } from "./handlers/CognitiveMemoryChangelogHandler"
+import { CognitiveMemoryChokeHandler } from "./handlers/CognitiveMemoryChokeHandler"
+import { CognitiveMemoryClaimHandler } from "./handlers/CognitiveMemoryClaimHandler"
+import { CognitiveMemoryContextHandler } from "./handlers/CognitiveMemoryContextHandler"
+import { CognitiveMemoryForecastHandler } from "./handlers/CognitiveMemoryForecastHandler"
+import { CognitiveMemoryGetSharedHandler } from "./handlers/CognitiveMemoryGetSharedHandler"
+import { CognitiveMemoryHealHandler } from "./handlers/CognitiveMemoryHealHandler"
+import { CognitiveMemoryHubsHandler } from "./handlers/CognitiveMemoryHubsHandler"
+import { CognitiveMemoryLinkHandler } from "./handlers/CognitiveMemoryLinkHandler"
+import { CognitiveMemoryMergeHandler } from "./handlers/CognitiveMemoryMergeHandler"
+import { CognitiveMemoryQueryHandler } from "./handlers/CognitiveMemoryQueryHandler"
+import { CognitiveMemoryRefreshHandler } from "./handlers/CognitiveMemoryRefreshHandler"
+import { CognitiveMemoryReleaseHandler } from "./handlers/CognitiveMemoryReleaseHandler"
+import { CognitiveMemorySnapshotHandler } from "./handlers/CognitiveMemorySnapshotHandler"
+import { CognitiveMemorySubgraphHandler } from "./handlers/CognitiveMemorySubgraphHandler"
 import { CondenseHandler } from "./handlers/CondenseHandler"
 import { ExecuteCommandToolHandler } from "./handlers/ExecuteCommandToolHandler"
 import { GenerateExplanationToolHandler } from "./handlers/GenerateExplanationToolHandler"
@@ -106,6 +126,26 @@ export class ToolExecutorCoordinator {
 		[CodemarieDefaultTool.GENERATE_EXPLANATION]: (_v: ToolValidator) => new GenerateExplanationToolHandler(),
 		[CodemarieDefaultTool.USE_SKILL]: (_v: ToolValidator) => new UseSkillToolHandler(),
 		[CodemarieDefaultTool.USE_SUBAGENTS]: (_v: ToolValidator) => new UseSubagentsToolHandler(),
+		[CodemarieDefaultTool.MEM_QUERY]: (_v: ToolValidator) => new CognitiveMemoryQueryHandler(),
+		[CodemarieDefaultTool.MEM_SNAPSHOT]: (_v: ToolValidator) => new CognitiveMemorySnapshotHandler(),
+		[CodemarieDefaultTool.MEM_LINK]: (_v: ToolValidator) => new CognitiveMemoryLinkHandler(),
+		[CodemarieDefaultTool.MEM_MERGE]: (_v: ToolValidator) => new CognitiveMemoryMergeHandler(),
+		[CodemarieDefaultTool.MEM_REFRESH]: (_v: ToolValidator) => new CognitiveMemoryRefreshHandler(),
+		[CodemarieDefaultTool.MEM_CONTEXT]: (_v: ToolValidator) => new CognitiveMemoryContextHandler(),
+		[CodemarieDefaultTool.MEM_BLAST]: (_v: ToolValidator) => new CognitiveMemoryBlastHandler(),
+		[CodemarieDefaultTool.MEM_CHOKE]: (_v: ToolValidator) => new CognitiveMemoryChokeHandler(),
+		[CodemarieDefaultTool.MEM_HEAL]: (_v: ToolValidator) => new CognitiveMemoryHealHandler(),
+		[CodemarieDefaultTool.MEM_FORECAST]: (_v: ToolValidator) => new CognitiveMemoryForecastHandler(),
+		[CodemarieDefaultTool.MEM_CENTRALITY]: (_v: ToolValidator) => new CognitiveMemoryCentralityHandler(),
+		[CodemarieDefaultTool.MEM_SUBGRAPH]: (_v: ToolValidator) => new CognitiveMemorySubgraphHandler(),
+		[CodemarieDefaultTool.MEM_APPEND_SHARED]: (_v: ToolValidator) => new CognitiveMemoryAppendSharedHandler(),
+		[CodemarieDefaultTool.MEM_GET_SHARED]: (_v: ToolValidator) => new CognitiveMemoryGetSharedHandler(),
+		[CodemarieDefaultTool.MEM_BUNDLE]: (_v: ToolValidator) => new CognitiveMemoryBundleHandler(),
+		[CodemarieDefaultTool.MEM_BLAME]: (_v: ToolValidator) => new CognitiveMemoryBlameHandler(),
+		[CodemarieDefaultTool.MEM_CHANGELOG]: (_v: ToolValidator) => new CognitiveMemoryChangelogHandler(),
+		[CodemarieDefaultTool.MEM_CLAIM]: (_v: ToolValidator) => new CognitiveMemoryClaimHandler(),
+		[CodemarieDefaultTool.MEM_RELEASE]: (_v: ToolValidator) => new CognitiveMemoryReleaseHandler(),
+		[CodemarieDefaultTool.MEM_HUBS]: (_v: ToolValidator) => new CognitiveMemoryHubsHandler(),
 	}
 
 	/**

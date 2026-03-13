@@ -199,6 +199,7 @@ message ModelsApiSecrets {
   optional string oca_refresh_token = 37;
   optional string minimax_api_key = 38;
   optional string aihubmix_api_key = 39;
+  optional string embedding_api_key = 40;
 }
 
 // API configuration options (non-secret settings)
@@ -248,6 +249,9 @@ message ModelsApiOptions {
   optional string aihubmix_base_url = 42;
   optional string aihubmix_app_code = 43;
   optional bool azure_identity = 44;
+  optional ApiProvider embedding_provider = 45;
+  optional string embedding_model_id = 46;
+  optional string embedding_open_ai_base_url = 47;
 
   // Plan mode configurations
   optional ApiProvider plan_mode_api_provider = 100;
@@ -598,6 +602,10 @@ message ModelsApiConfiguration {
   optional string aihubmix_app_code = 84;
   optional string nous_research_api_key = 85;
   optional bool azure_identity = 86;
+  optional ApiProvider embedding_provider = 87;
+  optional string embedding_model_id = 88;
+  optional string embedding_api_key = 89;
+  optional string embedding_open_ai_base_url = 90;
 
   // Plan mode configurations
   optional ApiProvider plan_mode_api_provider = 100;

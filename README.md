@@ -9,30 +9,24 @@
 ## 🏗️ Core Pillars of Intelligence
 
 ### 🧬 Joy-Zoning Framework
-CodeMarie enforces a rigorous architectural pattern known as **Joy-Zoning**. It automatically categorizes every file into one of five distinct layers and enforces "Outside-In" dependency rules:
+CodeMarie enforces a rigorous architectural pattern known as **Joy-Zoning**. It automatically categorizes every file into one of five distinct layers and enforces "Outside-In" dependency rules. The **Fluid Policy Engine** monitors every file operation to prevent layer leaks.
 
-| Layer | Responsibility | Dependency Rule |
-| :--- | :--- | :--- |
-| **Domain** | Core business logic and entities. | No external dependencies. |
-| **Core** | Orchestration and application services. | Depends only on Domain. |
-| **Infrastructure** | Database, API clients, external services. | Depends on Core/Domain. |
-| **UI** | Views, components, and presentation logic. | Depends on Core/Infrastructure. |
-| **Plumbing** | Glue code, configuration, and entry points. | Can depend on any layer. |
+### 🧠 Hyper-Cognition & Long-Term Memory
+CodeMarie moves beyond simple context windows via a persistent **Knowledge Graph** (BroccoliDB):
+*   **Semantic Compaction**: Automatically landmarks high-value architectural decisions to survive context prunings.
+*   **Recursive Blast Radius**: Dynamically calculates the multi-hop impact of a change using both historical churn and semantic dependencies (`MEM_BLAST`).
+*   **Speculative Forecasting**: Predicts semantic conflicts between parallel task streams before merge (`MEM_FORECAST`).
 
-> [!IMPORTANT]
-> The **Fluid Policy Engine** monitors every file operation. If a change violates layer purity (e.g., an Infrastructure leak into the Domain), CodeMarie will proactively reject the change and suggest a refactor.
+### 🐝 Swarm Coordination & Safety
+Industrial-grade orchestration for distributed workflows:
+*   **Persistent Swarm Mutexes**: DB-backed locking (`swarm_locks`) that survives process restarts and ensures cross-agent synchronization.
+*   **Hierarchical Orchestration**: Specialized sub-agents operate in a coordinated parent-stream model with a unified memory blackboard.
+*   **Shared Memory Layers**: GlobalGuidelines and environmental constraints are synchronized across the entire swarm.
 
-### 🧠 Distributed Agentic Intelligence
-CodeMarie utilizes a hierarchical **Parent-Stream & Subagent** model to handle massive complexity:
-
-*   **Subagent Orchestration**: Spawn specialized workers to research or implement sub-tasks in parallel.
-*   **Shared Persistent Memory**: Subagents coordinate through a centralized memory layer, ensuring context consistency across distributed streams.
-*   **Dynamic Skill Injection**: On-demand activation of specialized instruction sets ("Skills") that ground the agent in project-specific expertise.
-
-### 🛡️ Transactional Stability & Persistence
-*   **DB Shadowing**: Every workspace modification is staged in a transactional buffer (shadowing). Changes are only committed after a successful "Architectural Suitability" pass.
-*   **SQLite Persistence**: All agentic state, focus chains, and policy health metrics are persisted in a local-first SQLite database.
-*   **Atomic Workspaces**: Complete restoration of any previous workspace state via a git-backed checkpointing system.
+### 🛡️ Transactional Stability & Speculation
+*   **Ghost Branches**: Create ephemeral, Git-backed playgrounds for speculative refactors without polluting task history.
+*   **Atomic Workspaces**: Complete restoration of any previous state via a git-backed checkpointing system.
+*   **DB Shadowing**: Every workspace modification is staged in a transactional buffer before being committed.
 
 ---
 
@@ -70,7 +64,13 @@ graph TD
     subgraph "Fluid Policy Engine"
         Controller --> JoyZoning[Joy-Zoning Guard]
         JoyZoning --> SQLite[(Persistence Layer)]
-        JoyZoning --> ShadowBuffer[Transactional Shadow]
+        JoyZoning --> Mutex[Persistent Mutexes]
+    end
+    
+    subgraph "Hyper-Cognition"
+        Controller --> Graph[Knowledge Graph]
+        Graph --> Embeddings[Gemini Embeddings]
+        Graph --> Analysis[Blast/Forecast]
     end
     
     subgraph "Agentic Orchestrator"
@@ -81,7 +81,6 @@ graph TD
     end
     
     Controller --> MCP[MCP Hub]
-    MCP --> Tools[30+ Specialized Tools]
 ```
 
 ---

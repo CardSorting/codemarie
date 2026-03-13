@@ -509,6 +509,10 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		aihubmixAppCode: config.aihubmixAppCode,
 		hicapApiKey: config.hicapApiKey,
 		hicapModelId: config.hicapModelId,
+		embeddingProvider: config.embeddingProvider ? convertApiProviderToProto(config.embeddingProvider) : undefined,
+		embeddingModelId: config.embeddingModelId,
+		embeddingApiKey: config.embeddingApiKey,
+		embeddingOpenAiBaseUrl: config.embeddingOpenAiBaseUrl,
 
 		// Plan mode configurations
 		planModeApiProvider: config.planModeApiProvider ? convertApiProviderToProto(config.planModeApiProvider) : undefined,
@@ -688,6 +692,11 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		hicapModelId: protoConfig.hicapModelId,
 		nousResearchApiKey: protoConfig.nousResearchApiKey,
 		codemarieApiKey: protoConfig.codemarieApiKey,
+		embeddingProvider:
+			protoConfig.embeddingProvider !== undefined ? convertProtoToApiProvider(protoConfig.embeddingProvider) : undefined,
+		embeddingModelId: protoConfig.embeddingModelId,
+		embeddingApiKey: protoConfig.embeddingApiKey,
+		embeddingOpenAiBaseUrl: protoConfig.embeddingOpenAiBaseUrl,
 
 		// Plan mode configurations
 		planModeApiProvider:

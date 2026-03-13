@@ -1,5 +1,7 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { ApiHandler, ApiProviderInfo, buildApiHandler } from "@core/api"
+import { GeminiHandler } from "@core/api/providers/gemini"
+import { OpenAiHandler } from "@core/api/providers/openai"
 import { ApiStream } from "@core/api/transform/stream"
 import { AssistantMessageContent, parseAssistantMessageV2, ToolUse } from "@core/assistant-message"
 import { ContextManager } from "@core/context/context-management/ContextManager"
@@ -8,6 +10,7 @@ import { getContextWindowInfo } from "@core/context/context-management/context-w
 import { EnvironmentContextTracker } from "@core/context/context-tracking/EnvironmentContextTracker"
 import { FileContextTracker } from "@core/context/context-tracking/FileContextTracker"
 import { ModelContextTracker } from "@core/context/context-tracking/ModelContextTracker"
+import { EnvironmentTracker } from "@core/context/EnvironmentTracker"
 import {
 	getGlobalCodemarieRules,
 	getLocalCodemarieRules,
@@ -116,6 +119,7 @@ import { RuleContextBuilder } from "../context/instructions/user-instructions/Ru
 import { ensureLocalCodemarieDirExists } from "../context/instructions/user-instructions/rule-helpers"
 import { discoverSkills, getAvailableSkills } from "../context/instructions/user-instructions/skills"
 import { refreshWorkflowToggles } from "../context/instructions/user-instructions/workflows"
+import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { Controller } from "../controller"
 import { IntentGrounder } from "../grounding/IntentGrounder"
 import { executeHook } from "../hooks/hook-executor"
@@ -252,6 +256,9 @@ export class Task {
 
 	// Cache service
 	private stateManager: StateManager
+
+	// Knowledge Graph service
+	private knowledgeGraphService?: KnowledgeGraphService
 
 	// Message and conversation state
 	messageStateHandler: MessageStateHandler
@@ -429,6 +436,7 @@ export class Task {
 					diffViewProvider: this.diffViewProvider,
 					taskState: this.taskState,
 					workspaceManager: this.workspaceManager,
+					getKnowledgeGraphService: this.getKnowledgeGraphService.bind(this),
 					updateTaskHistory: this.updateTaskHistory,
 					say: this.say.bind(this),
 					cancelTask: this.cancelTask,
@@ -2038,6 +2046,36 @@ export class Task {
 			this.taskState.conversationHistoryDeletedRange = contextManagementMetadata.conversationHistoryDeletedRange
 			await this.messageStateHandler.saveCodemarieMessagesAndUpdateHistory()
 			// saves task history item which we use to keep track of conversation history deleted range
+
+			// Automatically create a cognitive snapshot of the truncated conversation in the Knowledge Graph
+			try {
+				const kgService = await this.getKnowledgeGraphService()
+				if (kgService && contextManagementMetadata.conversationHistoryDeletedRange) {
+					const [start, end] = contextManagementMetadata.conversationHistoryDeletedRange
+					const apiHistory = this.messageStateHandler.getApiConversationHistory()
+					const truncatedRange = apiHistory.slice(start, end + 1)
+
+					if (truncatedRange.length > 0) {
+						const snapshotContent = truncatedRange
+							.map((m) => {
+								const content = Array.isArray(m.content)
+									? m.content
+											.map((b) =>
+												"text" in b ? b.text : b.type === "tool_use" ? `[Tool Use: ${b.name}]` : "",
+											)
+											.join("\n")
+									: m.content
+								return `${m.role.toUpperCase()}:\n${content}`
+							})
+							.join("\n\n")
+
+						const snapshotId = await kgService.cognitiveSnapshot(this.taskId, snapshotContent, truncatedRange.length)
+						Logger.info(`[Task ${this.taskId}] Created cognitive snapshot ${snapshotId} for truncated messages`)
+					}
+				}
+			} catch (error) {
+				Logger.warn(`[Task ${this.taskId}] Failed to create auto cognitive graph node:`, error)
+			}
 		}
 
 		// Response API requires native tool calls to be enabled
@@ -2999,6 +3037,18 @@ export class Task {
 					}
 					this.abortTask() // if the stream failed, there's various states the task could be in (i.e. could have streamed some tools the user may have executed), so we just resort to replicating a cancel task
 
+					// V6: Record usage telemetry
+					await EnvironmentTracker.recordUsage(
+						this.cwd,
+						"cline-agent",
+						{
+							promptTokens: taskMetrics.inputTokens,
+							completionTokens: taskMetrics.outputTokens,
+							modelId: this.api.getModel().id,
+						},
+						this.taskId,
+					)
+
 					await abortStream("streaming_failed", errorMessage)
 					await this.reinitExistingTaskFromId(this.taskId)
 				}
@@ -3036,6 +3086,19 @@ export class Task {
 				totalCost: taskMetrics.totalCost,
 			})
 			await this.messageStateHandler.saveCodemarieMessagesAndUpdateHistory()
+
+			// V6: Record usage telemetry
+			await EnvironmentTracker.recordUsage(
+				this.cwd,
+				"cline-agent",
+				{
+					promptTokens: taskMetrics.inputTokens,
+					completionTokens: taskMetrics.outputTokens,
+					modelId: this.api.getModel().id,
+				},
+				this.taskId,
+			)
+
 			await this.postStateToWebview()
 
 			// need to call here in case the stream was aborted
@@ -3713,5 +3776,41 @@ export class Task {
 		}
 
 		return `<environment_details>\n${details.trim()}\n</environment_details>`
+	}
+
+	private async getKnowledgeGraphService(): Promise<KnowledgeGraphService | undefined> {
+		if (this.knowledgeGraphService) {
+			return this.knowledgeGraphService
+		}
+
+		const apiConfiguration = this.stateManager.getApiConfiguration()
+		let embeddingHandler: any | undefined
+
+		// Use specifically configured embedding provider if available, otherwise fallback to primary provider if it supports embeddings
+		const provider = apiConfiguration.embeddingProvider as any
+		if (provider === "gemini" || (apiConfiguration.geminiApiKey && !provider)) {
+			embeddingHandler = new GeminiHandler({
+				onRetryAttempt: apiConfiguration.onRetryAttempt,
+				geminiApiKey: apiConfiguration.embeddingApiKey || apiConfiguration.geminiApiKey,
+				geminiBaseUrl: apiConfiguration.geminiBaseUrl,
+				apiModelId: apiConfiguration.embeddingModelId || "gemini-embedding-2-preview",
+			})
+		} else if (provider === "openai" || (apiConfiguration.openAiApiKey && provider === "openai")) {
+			embeddingHandler = new OpenAiHandler({
+				onRetryAttempt: apiConfiguration.onRetryAttempt,
+				openAiApiKey: apiConfiguration.embeddingApiKey || apiConfiguration.openAiApiKey,
+				openAiBaseUrl: apiConfiguration.embeddingOpenAiBaseUrl || apiConfiguration.openAiBaseUrl,
+				openAiModelId: apiConfiguration.embeddingModelId || "text-embedding-3-small",
+			})
+		} else if (this.api && typeof (this.api as any).embedText === "function") {
+			embeddingHandler = this.api
+		}
+
+		if (embeddingHandler) {
+			this.knowledgeGraphService = await KnowledgeGraphService.getInstance(embeddingHandler)
+			return this.knowledgeGraphService
+		}
+
+		return undefined
 	}
 }

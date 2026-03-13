@@ -6,6 +6,7 @@ import { apply_patch_variants } from "./apply_patch"
 import { ask_followup_question_variants } from "./ask_followup_question"
 import { attempt_completion_variants } from "./attempt_completion"
 import { browser_action_variants } from "./browser_action"
+import { cognitive_memory_variants } from "./cognitive_memory"
 import { execute_command_variants } from "./execute_command"
 import { focus_chain_variants } from "./focus_chain"
 import { generate_explanation_variants } from "./generate_explanation"
@@ -37,6 +38,7 @@ export function registerCodemarieToolSets(): void {
 		...ask_followup_question_variants,
 		...attempt_completion_variants,
 		...browser_action_variants,
+		...cognitive_memory_variants,
 		...execute_command_variants,
 		...focus_chain_variants,
 		...generate_explanation_variants,

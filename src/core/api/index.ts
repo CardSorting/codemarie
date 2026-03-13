@@ -60,6 +60,8 @@ export interface ApiHandler {
 	getModel(): ApiHandlerModel
 	getApiStreamUsage?(): Promise<ApiStreamUsageChunk | undefined>
 	abort?(): void
+	embedText?(text: string): Promise<number[] | null>
+	embedBatch?(texts: string[]): Promise<(number[] | null)[]>
 }
 
 export interface ApiHandlerModel {

@@ -210,7 +210,7 @@ class CheckpointTracker {
 	 * - Stage or commit files
 	 */
 	public async commit(): Promise<string | undefined> {
-		let lockAcquired: boolean = false
+		let lockAcquired = false
 
 		try {
 			await this.sendCheckpointSubscriptionEvent("CHECKPOINT_COMMIT", true)
@@ -334,7 +334,7 @@ class CheckpointTracker {
 	 * - Reset to target commit
 	 */
 	public async resetHead(commitHash: string): Promise<void> {
-		let lockAcquired: boolean = false
+		let lockAcquired = false
 
 		try {
 			Logger.info(`Resetting to checkpoint: ${commitHash}`)
@@ -505,6 +505,44 @@ class CheckpointTracker {
 		telemetryService.captureCheckpointUsage(this.taskId, "diff_generated", durationMs)
 
 		return diffSummary.files.length
+	}
+
+	/**
+	 * Creates and switches to a new branch in the shadow git repository.
+	 * Used for Ghost Branches (ephemeral experimentation).
+	 */
+	public async createBranch(branchName: string, startRef?: string): Promise<void> {
+		const gitPath = await getShadowGitPath(this.cwdHash)
+		const git = simpleGit(path.dirname(gitPath))
+		const base = startRef ? this.cleanCommitHash(startRef) : "HEAD"
+
+		Logger.info(`Creating ghost branch '${branchName}' from ${base}`)
+		await git.checkoutBranch(branchName, base)
+	}
+	/**
+	 * Deletes ghost branches older than a certain age (default 24h).
+	 */
+	public async cleanupGhostBranches(maxAgeHours = 24): Promise<void> {
+		const gitPath = await getShadowGitPath(this.cwdHash)
+		const git = simpleGit(path.dirname(gitPath))
+		const branches = await git.branch()
+		const now = Date.now()
+
+		for (const branchName of Object.keys(branches.branches)) {
+			if (branchName.startsWith("ghost-") || branchName.includes("experiment")) {
+				try {
+					const lastCommit = await git.log({ from: branchName, n: 1 })
+					const commitDate = lastCommit.latest ? new Date(lastCommit.latest.date).getTime() : 0
+
+					if (now - commitDate > maxAgeHours * 60 * 60 * 1000) {
+						Logger.info(`Cleaning up stale ghost branch: ${branchName}`)
+						await git.deleteLocalBranch(branchName, true)
+					}
+				} catch (e) {
+					Logger.warn(`Failed to cleanup branch ${branchName}: ${e}`)
+				}
+			}
+		}
 	}
 }
 

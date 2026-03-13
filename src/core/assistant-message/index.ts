@@ -54,6 +54,15 @@ export const toolParamNames = [
 	"prompt_3",
 	"prompt_4",
 	"prompt_5",
+	"maxDepth",
+	"sourceStreamId",
+	"targetStreamId",
+	"limit",
+	"id",
+	"tags",
+	"weight",
+	"sourceId",
+	"targetId",
 ] as const
 
 export type ToolParamName = (typeof toolParamNames)[number]

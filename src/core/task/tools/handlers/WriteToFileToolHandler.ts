@@ -11,6 +11,7 @@ import { fileExistsAtPath } from "@utils/fs"
 import { arePathsEqual, getReadablePath, isLocatedInWorkspace } from "@utils/path"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieDefaultTool } from "@/shared/tools"
+import { executor } from "../../ActionExecutor"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
@@ -314,9 +315,12 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			// Mark the file as edited by Codemarie
 			config.services.fileContextTracker.markFileAsEditedByCodemarie(relPath)
 
-			// Save the changes and get the result
-			const { newProblemsMessage, userEdits, autoFormattingEdits, finalContent } =
-				await config.services.diffViewProvider.saveChanges()
+			// Save the changes and get the result with reliability wrapper
+			const { newProblemsMessage, userEdits, autoFormattingEdits, finalContent } = await executor.execute(
+				config.ulid,
+				() => config.services.diffViewProvider.saveChanges(),
+				{ concurrencyGroup: "fs" },
+			)
 
 			// Reset consecutive mistake counter on successful file operation
 			config.taskState.consecutiveMistakeCount = 0

@@ -33,6 +33,27 @@ export enum CodemarieDefaultTool {
 	GENERATE_EXPLANATION = "generate_explanation",
 	USE_SKILL = "use_skill",
 	USE_SUBAGENTS = "use_subagents",
+	MEM_QUERY = "query_cognitive_memory",
+	MEM_SNAPSHOT = "create_cognitive_snapshot",
+	MEM_LINK = "mem_link",
+	MEM_MERGE = "mem_merge",
+	MEM_REFRESH = "mem_refresh",
+	MEM_CONTEXT = "mem_context",
+	MEM_BLAST = "mem_blast",
+	MEM_CHOKE = "mem_choke",
+	MEM_HEAL = "mem_heal",
+	MEM_FORECAST = "mem_forecast",
+	MEM_CENTRALITY = "mem_centrality",
+	MEM_SUBGRAPH = "mem_subgraph",
+	MEM_APPEND_SHARED = "mem_append_shared",
+	MEM_GET_SHARED = "mem_get_shared",
+	MEM_BUNDLE = "mem_bundle",
+	MEM_BLAME = "mem_blame",
+	MEM_CHANGELOG = "mem_changelog",
+	/* V8 Swarm Tools */
+	MEM_CLAIM = "mem_claim",
+	MEM_RELEASE = "mem_release",
+	MEM_HUBS = "mem_hubs",
 }
 
 // Array of all tool names for compatibility

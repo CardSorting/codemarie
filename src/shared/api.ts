@@ -1491,6 +1491,14 @@ export const geminiModels = {
 			outputPrice: 3.5,
 		},
 	},
+	"gemini-embedding-2-preview": {
+		maxTokens: 3072, // Dimensions
+		contextWindow: 8192,
+		supportsImages: true, // Multimodal
+		supportsPromptCache: false,
+		inputPrice: 0, // Need to verify if there's a price, usually free during preview or very low
+		outputPrice: 0,
+	},
 	"gemini-2.0-flash-001": {
 		maxTokens: 8192,
 		contextWindow: 1_048_576,

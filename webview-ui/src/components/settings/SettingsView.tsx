@@ -27,6 +27,7 @@ import AboutSection from "./sections/AboutSection"
 import ApiConfigurationSection from "./sections/ApiConfigurationSection"
 import BrowserSettingsSection from "./sections/BrowserSettingsSection"
 import DebugSection from "./sections/DebugSection"
+import EmbeddingConfigurationSection from "./sections/EmbeddingConfigurationSection"
 import FeatureSettingsSection from "./sections/FeatureSettingsSection"
 import GeneralSettingsSection from "./sections/GeneralSettingsSection"
 import { RemoteConfigSection } from "./sections/RemoteConfigSection"
@@ -35,7 +36,16 @@ import TerminalSettingsSection from "./sections/TerminalSettingsSection"
 const IS_DEV = process.env.IS_DEV
 
 // Tab definitions
-type SettingsTabID = "api-config" | "features" | "browser" | "terminal" | "general" | "about" | "debug" | "remote-config"
+type SettingsTabID =
+	| "api-config"
+	| "embedding"
+	| "features"
+	| "browser"
+	| "terminal"
+	| "general"
+	| "about"
+	| "debug"
+	| "remote-config"
 interface SettingsTab {
 	id: SettingsTabID
 	name: string
@@ -52,6 +62,13 @@ export const SETTINGS_TABS: SettingsTab[] = [
 		tooltipText: "API Configuration",
 		headerText: "API Configuration",
 		icon: SlidersHorizontal,
+	},
+	{
+		id: "embedding",
+		name: "Embeddings",
+		tooltipText: "Embedding Configuration",
+		headerText: "Embedding Configuration",
+		icon: HardDriveDownload,
 	},
 	{
 		id: "features",
@@ -135,6 +152,7 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 	const TAB_CONTENT_MAP: Record<SettingsTabID, React.FC<any>> = useMemo(
 		() => ({
 			"api-config": ApiConfigurationSection,
+			embedding: EmbeddingConfigurationSection,
 			general: GeneralSettingsSection,
 			features: FeatureSettingsSection,
 			browser: BrowserSettingsSection,

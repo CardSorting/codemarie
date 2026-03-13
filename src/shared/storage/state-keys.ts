@@ -144,6 +144,11 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	cloudflareAccountId: { default: undefined as string | undefined },
 	cloudflareApiToken: { default: undefined as string | undefined },
 
+	// Embedding configuration
+	embeddingProvider: { default: DEFAULT_API_PROVIDER as ApiProvider },
+	embeddingModelId: { default: undefined as string | undefined },
+	embeddingOpenAiBaseUrl: { default: undefined as string | undefined },
+
 	// Plan mode configurations
 	planModeApiModelId: { default: undefined as string | undefined },
 	planModeThinkingBudgetTokens: { default: undefined as number | undefined },
@@ -349,6 +354,7 @@ const SECRETS_KEYS = [
 	"ocaRefreshToken",
 	"mcpOAuthSecrets",
 	"openai-codex-oauth-credentials", // JSON blob containing OAuth tokens for OpenAI Codex (ChatGPT subscription)
+	"embeddingApiKey",
 ] as const
 
 // WARNING, these are not ALL of the local state keys in practice. For example, FileContextTracker

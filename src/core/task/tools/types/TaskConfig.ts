@@ -1,5 +1,6 @@
 import type { ApiHandler } from "@core/api"
 import type { FileContextTracker } from "@core/context/context-tracking/FileContextTracker"
+import type { KnowledgeGraphService } from "@core/context/KnowledgeGraphService"
 import type { CodemarieIgnoreController } from "@core/ignore/CodemarieIgnoreController"
 import type { CommandPermissionController } from "@core/permissions"
 import type { DiffViewProvider } from "@integrations/editor/DiffViewProvider"
@@ -79,13 +80,20 @@ export interface TaskServices {
 	commandPermissionController: CommandPermissionController
 	contextManager: ContextManager
 	stateManager: StateManager
+	knowledgeGraphService: KnowledgeGraphService
 }
 
 /**
  * All callback functions available to tool handlers
  */
 export interface TaskCallbacks {
-	say: (type: CodemarieSay, text?: string, images?: string[], files?: string[], partial?: boolean) => Promise<number | undefined>
+	say: (
+		type: CodemarieSay,
+		text?: string,
+		images?: string[],
+		files?: string[],
+		partial?: boolean,
+	) => Promise<number | undefined>
 
 	ask: (
 		type: CodemarieAsk,
