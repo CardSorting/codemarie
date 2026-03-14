@@ -8,6 +8,7 @@ export class TaskState {
 	// Intent Grounding
 	groundedSpec?: GroundedSpec
 	groundedSpecHistory: GroundedSpec[] = []
+	didAttemptGrounding = false
 
 	// Task-level timing
 	taskStartTimeMs = Date.now()

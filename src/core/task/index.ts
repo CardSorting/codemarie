@@ -141,7 +141,7 @@ type TaskParams = {
 	mcpHub: McpHub
 	updateTaskHistory: (historyItem: HistoryItem) => Promise<HistoryItem[]>
 	postStateToWebview: () => Promise<void>
-	reinitExistingTaskFromId: (taskId: string) => Promise<void>
+	reinitExistingTaskFromId: (taskId: string, initialState?: Partial<TaskState>) => Promise<void>
 	cancelTask: () => Promise<void>
 	shellIntegrationTimeout: number
 	terminalReuseEnabled: boolean
@@ -157,6 +157,7 @@ type TaskParams = {
 	historyItem?: HistoryItem
 	taskId: string
 	taskLockAcquired: boolean
+	initialTaskState?: Partial<TaskState>
 }
 
 export class Task {
@@ -302,6 +303,9 @@ export class Task {
 
 		this.taskInitializationStartTime = performance.now()
 		this.taskState = new TaskState()
+		if (params.initialTaskState) {
+			Object.assign(this.taskState, params.initialTaskState)
+		}
 		this.policyEngine = new FluidPolicyEngine(cwd, undefined, stateManager)
 		this.controller = controller
 		this.mcpHub = mcpHub
@@ -1162,6 +1166,28 @@ export class Task {
 
 		this.messageStateHandler.setApiConversationHistory(savedApiConversationHistory)
 
+		// Hardened Resumption: Restore grounding state from history if present
+		try {
+			for (const message of savedApiConversationHistory) {
+				if (message.role === "user" && typeof message.content === "object" && Array.isArray(message.content)) {
+					const groundingBlock = message.content.find(
+						(c) => c.type === "text" && c.text?.includes("<grounded_specification>"),
+					)
+					if (groundingBlock && groundingBlock.type === "text" && groundingBlock.text) {
+						const match = groundingBlock.text.match(/<grounded_specification>\n([\s\S]*)\n<\/grounded_specification>/)
+						if (match) {
+							this.taskState.groundedSpec = JSON.parse(match[1])
+							this.taskState.didAttemptGrounding = true
+							Logger.info(`[Task ${this.taskId}] Restored grounded specification from history.`)
+							break
+						}
+					}
+				}
+			}
+		} catch (error) {
+			Logger.warn(`[Task ${this.taskId}] Failed to restore grounded spec from history:`, error)
+		}
+
 		// load the context history state
 		await ensureTaskDirectoryExists(this.taskId)
 		await this.contextManager.initializeContextHistory(await ensureTaskDirectoryExists(this.taskId))
@@ -1399,13 +1425,14 @@ export class Task {
 		let includeFileDetails = true
 
 		// Phase 2: Intent Grounding
-		if (!this.taskState.groundedSpec && userContent.length > 0) {
+		if (!this.taskState.groundedSpec && !this.taskState.didAttemptGrounding && userContent.length > 0) {
 			const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
 			if (initialTaskBlock && initialTaskBlock.type === "text" && initialTaskBlock.text) {
 				const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)
 				const taskIntent = taskMatch ? taskMatch[1] : initialTaskBlock.text
 
 				try {
+					this.taskState.didAttemptGrounding = true
 					await this.say("info", "Grounding user intent into a structured specification...")
 					const grounder = new IntentGrounder(this.api)
 
@@ -2999,57 +3026,23 @@ export class Task {
 							}),
 						)
 
+						// Pass grounding state to the new task instance immediately
+						const initialTaskState: Partial<TaskState> = {
+							autoRetryAttempts: this.taskState.autoRetryAttempts,
+							didAttemptGrounding: this.taskState.didAttemptGrounding,
+							groundedSpec: this.taskState.groundedSpec,
+						}
+
 						// Wait with exponential backoff before auto-resuming
 						setTimeoutPromise(delay).then(async () => {
 							// Programmatically click the resume button on the new task instance
 							if (this.controller.task) {
-								// Pass retry state to the new task instance
-								this.controller.task.taskState.autoRetryAttempts = this.taskState.autoRetryAttempts
 								await this.controller.task.handleWebviewAskResponse("yesButtonClicked", "", [])
 							}
 						})
-					} else if (this.taskState.autoRetryAttempts >= 3) {
-						// Show error_retry with failed flag to indicate all retries exhausted
-						await this.say(
-							"error_retry",
-							JSON.stringify({
-								attempt: 3,
-								maxAttempts: 3,
-								delaySeconds: 0,
-								failed: true, // Special flag to indicate retries exhausted
-								errorMessage,
-							}),
-						)
+
+						await this.reinitExistingTaskFromId(this.taskId, initialTaskState)
 					}
-
-					// needs to happen after the say, otherwise the say would fail
-					// Persist error context in agent memory for cross-session debugging
-					const streamId = this.orchestrationController?.getStreamId()
-					if (streamId) {
-						orchestrator
-							.storeMemory(
-								streamId,
-								`streaming_error:${Date.now()}`,
-								JSON.stringify({ errorMessage, retryAttempt: this.taskState.autoRetryAttempts }),
-							)
-							.catch(() => {})
-					}
-					this.abortTask() // if the stream failed, there's various states the task could be in (i.e. could have streamed some tools the user may have executed), so we just resort to replicating a cancel task
-
-					// V6: Record usage telemetry
-					await EnvironmentTracker.recordUsage(
-						this.cwd,
-						"cline-agent",
-						{
-							promptTokens: taskMetrics.inputTokens,
-							completionTokens: taskMetrics.outputTokens,
-							modelId: this.api.getModel().id,
-						},
-						this.taskId,
-					)
-
-					await abortStream("streaming_failed", errorMessage)
-					await this.reinitExistingTaskFromId(this.taskId)
 				}
 			} finally {
 				this.taskState.isStreaming = false

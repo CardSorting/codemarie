@@ -243,6 +243,7 @@ export class Controller {
 		files?: string[],
 		historyItem?: HistoryItem,
 		taskSettings?: Partial<Settings>,
+		initialTaskState?: Partial<TaskState>,
 	) {
 		// Fire-and-forget: We intentionally don't await fetchRemoteConfig here.
 		// Remote config is already fetched in startRemoteConfigTimer() which runs in the constructor,
@@ -318,7 +319,7 @@ export class Controller {
 			mcpHub: this.mcpHub,
 			updateTaskHistory: (historyItem) => this.updateTaskHistory(historyItem),
 			postStateToWebview: () => this.postStateToWebview(),
-			reinitExistingTaskFromId: (taskId) => this.reinitExistingTaskFromId(taskId),
+			reinitExistingTaskFromId: (taskId, initialState) => this.reinitExistingTaskFromId(taskId, initialState),
 			cancelTask: () => this.cancelTask(),
 			shellIntegrationTimeout,
 			terminalReuseEnabled: terminalReuseEnabled ?? true,
@@ -334,6 +335,7 @@ export class Controller {
 			historyItem,
 			taskId,
 			taskLockAcquired,
+			initialTaskState,
 		})
 
 		if (historyItem) {
@@ -345,10 +347,10 @@ export class Controller {
 		return this.task.taskId
 	}
 
-	async reinitExistingTaskFromId(taskId: string) {
+	async reinitExistingTaskFromId(taskId: string, initialState?: Partial<TaskState>) {
 		const history = await this.getTaskWithId(taskId)
 		if (history) {
-			await this.initTask(undefined, undefined, undefined, history.historyItem)
+			await this.initTask(undefined, undefined, undefined, history.historyItem, undefined, initialState)
 		}
 	}
 

@@ -20,6 +20,7 @@ export const GroundedSpecSchema = z.object({
 			tokensIn: z.number().optional(),
 			tokensOut: z.number().optional(),
 			model: z.string().optional(),
+			isCacheHit: z.boolean().optional(),
 		})
 		.optional(),
 	verifiedEntities: z.array(z.string()).optional(),
@@ -62,18 +63,23 @@ Context: Multiple components in workspace
 `
 
 export const GROUNDING_SYSTEM_PROMPT = `You are an Intent Grounding expert. 
-Your task is to decompose a vague human intent into a structured, computable specification.
+Your task is to decompose a human intent into a structured, machine-actionable specification.
 Follow the methodology of Interpret -> Ground -> Build.
 You are in the GROUND phase.
 
 Decompose the intent into:
-1. Decision Variables: Parameters that can be tuned or determined during the task.
+1. Decision Variables: Parameters that can be determined during the task. MUST include specific file paths or symbols if they are identifiable from the context.
 2. Constraints: Hard limits, requirements, or boundaries that must be respected.
-3. Output Structure: A conceptual model of the final result.
-4. Rules: Logic, heuristics, or specific instructions to follow.
-5. Confidence Score: Quantitative measure of how well the intent is understood.
-6. Ambiguity Reasoning: Why a score might be low.
-7. Missing Information: Questions to clarify the intent.
+3. Output Structure: A conceptual model of the final result (e.g., modified files, new components).
+4. Rules: Logic, heuristics, or specific coding standards to follow.
+5. Confidence Score: 0.0 to 1.0. Penalize if the intent is vague or contradicts the provided environment context.
+6. Ambiguity Reasoning: Brief explanation of why the confidence score is not 1.0.
+7. Missing Information: Specific questions to ask the user to clear up ambiguity.
+
+### OPERATIONAL PRINCIPLES:
+- PRIORITIZE provided "Environment Context" and "Semantic Context". If a file is mentioned in the intent and exists in the context, use its exact path.
+- BE ACTIONABLE: The resulting spec should be enough for an autonomous agent to start work without further guessing.
+- AVOID HALLUCINATIONS: Do not invent file paths that are not supported by the context unless the intent explicitly asks to CREATE them.
 
 ### FEW-SHOT EXAMPLES:
 ${GROUNDING_FEW_SHOTS}
@@ -89,6 +95,4 @@ Return the result STRICTLY as a JSON object matching this structure:
   "confidenceScore": number (0.0 to 1.0),
   "ambiguityReasoning": string | undefined,
   "missingInformation": string[] | undefined
-}
-
-If context about the environment (files, workspace) is provided, use it to ground the intent to specific entities in the environment.`
+}`

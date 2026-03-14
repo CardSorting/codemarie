@@ -19,6 +19,7 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 			createMessage: sandbox.stub(),
 			getModel: sandbox.stub().returns({ id: "test-model", info: {} }),
 		}
+		IntentGrounder.clearCache()
 	})
 
 	afterEach(() => {
@@ -77,39 +78,32 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 		expect(spec.ambiguityReasoning).to.contain("referenced files were not found")
 	})
 
-	it("should execute self-critique loop to refine the specification", async () => {
-		const mockInitialResponse = {
+	it("should return a cached result on subsequent calls with the same intent", async () => {
+		const mockResponse = {
 			decisionVariables: [],
-			constraints: ["Initial constraint"],
+			constraints: ["Cached constraint"],
 			outputStructure: {},
 			rules: [],
-			confidenceScore: 0.5,
+			confidenceScore: 1.0,
 		}
 
-		const mockCritiqueResponse = {
-			decisionVariables: [],
-			constraints: ["Refined constraint"],
-			outputStructure: {},
-			rules: ["Added rule"],
-			confidenceScore: 0.9,
-		}
-
-		const initialStream = (async function* () {
-			yield { type: "text", text: JSON.stringify(mockInitialResponse) }
+		const mockStream = (async function* () {
+			yield { type: "text", text: JSON.stringify(mockResponse) }
 		})() as ApiStream
 
-		const critiqueStream = (async function* () {
-			yield { type: "text", text: JSON.stringify(mockCritiqueResponse) }
-		})() as ApiStream
-
-		mockApiHandler.createMessage.onFirstCall().returns(initialStream)
-		mockApiHandler.createMessage.onSecondCall().returns(critiqueStream)
+		mockApiHandler.createMessage.returns(mockStream)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
-		const spec = await grounder.ground("test task")
 
-		expect(spec.constraints[0]).to.equal("Refined constraint")
-		expect(spec.rules).to.have.lengthOf(1)
-		expect(spec.confidenceScore).to.equal(0.9)
+		// First call (cache miss)
+		const spec1 = await grounder.ground("cache test task")
+		expect(spec1.telemetry?.isCacheHit).to.be.false
+		expect(mockApiHandler.createMessage.calledOnce).to.be.true
+
+		// Second call (cache hit)
+		const spec2 = await grounder.ground("cache test task")
+		expect(spec2.telemetry?.isCacheHit).to.be.true
+		expect(spec2.constraints).to.deep.equal(["Cached constraint"])
+		expect(mockApiHandler.createMessage.calledOnce).to.be.true // No second API call
 	})
 })

@@ -14,6 +14,62 @@ import { getBinaryLocation } from "@/utils/fs"
 export type SpawnFunction = typeof childProcess.spawn
 export const getSpawnFunction = (): SpawnFunction => childProcess.spawn
 
+export async function searchFilesWithKeyword(keyword: string, workspacePath: string, limit = 100): Promise<string[]> {
+	const rgPath = await getBinaryLocation("rg")
+
+	return new Promise((resolve, reject) => {
+		// Arguments for ripgrep to list files containing the keyword
+		const args = [
+			"-l", // --files-with-matches
+			"-i", // case-insensitive
+			"--follow",
+			"--hidden",
+			"-g",
+			"!**/{node_modules,.git,.github,out,dist,__pycache__,.venv,.env,venv,env,.cache,tmp,temp}/**",
+			keyword,
+			workspacePath,
+		]
+
+		const rgProcess = getSpawnFunction()(rgPath, args)
+		const rl = readline.createInterface({ input: rgProcess.stdout })
+
+		const fileResults: string[] = []
+		let count = 0
+
+		rl.on("line", (line) => {
+			if (count >= limit) {
+				rl.close()
+				rgProcess.kill()
+				return
+			}
+
+			const relativePath = path.relative(workspacePath, line)
+			fileResults.push(relativePath)
+			count++
+		})
+
+		let errorOutput = ""
+		rgProcess.stderr.on("data", (data) => {
+			errorOutput += data.toString()
+		})
+
+		rl.on("close", () => {
+			if (errorOutput && fileResults.length === 0) {
+				// Exit code 1 means no matches found, which is expected behavior
+				if (!errorOutput.includes("No such file or directory")) {
+					resolve([])
+					return
+				}
+				reject(new Error(`ripgrep process error: ${errorOutput.trim()}`))
+				return
+			}
+			resolve(fileResults)
+		})
+
+		rgProcess.on("error", (error) => reject(new Error(`ripgrep process error: ${error.message}`)))
+	})
+}
+
 export async function executeRipgrepForFiles(
 	workspacePath: string,
 	limit = 5000,
