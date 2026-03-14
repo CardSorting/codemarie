@@ -21,6 +21,7 @@ class ImagePreview extends React.Component<
 	private imgRef = React.createRef<HTMLImageElement>()
 	private timeoutId: NodeJS.Timeout | null = null
 	private heartbeatId: NodeJS.Timeout | null = null
+	private aspectRatio = 1
 
 	constructor(props: ImagePreviewProps) {
 		super(props)

@@ -509,7 +509,11 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 			<DeleteWorktreeModal
 				branchName={deleteWorktree?.branch || ""}
 				onClose={() => setDeleteWorktree(null)}
-				onConfirm={(deleteBranch) => handleDeleteWorktree(deleteWorktree?.path, deleteBranch, deleteWorktree?.branch)}
+				onConfirm={async (deleteBranch) => {
+					if (deleteWorktree?.path && deleteWorktree?.branch) {
+						await handleDeleteWorktree(deleteWorktree.path, deleteBranch, deleteWorktree.branch)
+					}
+				}}
 				open={!!deleteWorktree}
 				worktreePath={deleteWorktree?.path || ""}
 			/>

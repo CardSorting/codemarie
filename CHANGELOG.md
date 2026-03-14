@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.68.3]
+
+### Added
+
+- BroccoliDB integration as reasoning substrate
+- Robust fallback strategy for missing embedding API keys
+- Configurable embedding settings for independent provider/model selection
+
+### Fixed
+
+- Resolved various linting issues
+
 ## [3.68.2]
 
 ### Fixed
