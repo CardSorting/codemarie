@@ -65,7 +65,12 @@ const AccountView = ({ onDone, codemarieUser, organizations, activeOrganization 
 	)
 }
 
-export const CodemarieAccountView = ({ codemarieUser, userOrganizations, activeOrganization, codemarieEnv }: CodemarieAccountViewProps) => {
+export const CodemarieAccountView = ({
+	codemarieUser,
+	userOrganizations,
+	activeOrganization,
+	codemarieEnv,
+}: CodemarieAccountViewProps) => {
 	const { email, displayName, appBaseUrl, uid } = codemarieUser
 	const { remoteConfigSettings, environment } = useExtensionState()
 
@@ -173,7 +178,13 @@ export const CodemarieAccountView = ({ codemarieUser, userOrganizations, activeO
 				setIsLoading(false)
 			}
 		},
-		[isLoading, uid, fetchUserCredit, loadCachedData],
+		[
+			isLoading,
+			uid,
+			fetchUserCredit,
+			loadCachedData, // Cache the updated data
+			cacheCurrentData,
+		],
 	)
 
 	const handleOrganizationChange = useCallback(
@@ -238,7 +249,7 @@ export const CodemarieAccountView = ({ codemarieUser, userOrganizations, activeO
 			initialFetchCompleteRef.current = true
 		}
 		initialFetch()
-	}, [])
+	}, [dropdownValue, fetchCreditBalance])
 
 	useEffect(() => {
 		// Handle organization changes with 500ms debounce
@@ -356,7 +367,10 @@ export const CodemarieAccountView = ({ codemarieUser, userOrganizations, activeO
 
 				<div className="w-full flex gap-2 flex-col min-[225px]:flex-row">
 					<div className="w-full min-[225px]:w-1/2">
-						<VSCodeButtonLink appearance="primary" className="w-full" href={getCodemarieUris(codemarieUrl, "dashboard").href}>
+						<VSCodeButtonLink
+							appearance="primary"
+							className="w-full"
+							href={getCodemarieUris(codemarieUrl, "dashboard").href}>
 							Dashboard
 						</VSCodeButtonLink>
 					</div>

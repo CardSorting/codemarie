@@ -102,7 +102,9 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 	const [codemarieFreeModels, setCodemarieFreeModels] = useState<FeaturedModelCardEntry[]>([])
 	const freeCodemarieModelIds = useMemo(() => {
 		const freeModelIds =
-			codemarieFreeModels.length > 0 ? codemarieFreeModels.map((model) => model.id) : FREE_MODELS_FALLBACK.map((model) => model.id)
+			codemarieFreeModels.length > 0
+				? codemarieFreeModels.map((model) => model.id)
+				: FREE_MODELS_FALLBACK.map((model) => model.id)
 		return [...new Set(freeModelIds)]
 	}, [codemarieFreeModels])
 	const freeCodemarieModelIdSet = useMemo(
@@ -114,7 +116,10 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 		() => (codemarieRecommendedModels.length > 0 ? codemarieRecommendedModels : RECOMMENDED_MODELS_FALLBACK),
 		[codemarieRecommendedModels],
 	)
-	const freeModels = useMemo(() => (codemarieFreeModels.length > 0 ? codemarieFreeModels : FREE_MODELS_FALLBACK), [codemarieFreeModels])
+	const freeModels = useMemo(
+		() => (codemarieFreeModels.length > 0 ? codemarieFreeModels : FREE_MODELS_FALLBACK),
+		[codemarieFreeModels],
+	)
 	const hasSuccessfulCodemarieRecommendedModelsFetchRef = useRef(false)
 	const isFetchingCodemarieRecommendedModelsRef = useRef(false)
 	const codemarieRecommendedModelsRetryTimeoutRef = useRef<number | null>(null)
@@ -335,7 +340,7 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 		if (dropdownListRef.current) {
 			dropdownListRef.current.scrollTop = 0
 		}
-	}, [searchTerm])
+	}, [])
 
 	useEffect(() => {
 		if (selectedIndex >= 0 && itemRefs.current[selectedIndex]) {
@@ -387,49 +392,47 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 					<span style={{ fontWeight: 500 }}>Model</span>
 				</label>
 
-				<>
-					{/* Tabs */}
-					<TabsContainer style={{ marginTop: 4 }}>
-						<Tab active={activeTab === "recommended"} onClick={() => setActiveTab("recommended")}>
-							Recommended
-						</Tab>
-						<Tab active={activeTab === "free"} onClick={() => setActiveTab("free")}>
-							Free
-						</Tab>
-					</TabsContainer>
+				{/* Tabs */}
+				<TabsContainer style={{ marginTop: 4 }}>
+					<Tab active={activeTab === "recommended"} onClick={() => setActiveTab("recommended")}>
+						Recommended
+					</Tab>
+					<Tab active={activeTab === "free"} onClick={() => setActiveTab("free")}>
+						Free
+					</Tab>
+				</TabsContainer>
 
-					{/* Model Cards */}
-					<div style={{ marginBottom: "6px" }}>
-						{activeTab === "recommended" &&
-							recommendedModels.map((model) => (
-								<FeaturedModelCard
-									description={model.description}
-									isSelected={selectedModelId === model.id}
-									key={model.id}
-									label={model.label}
-									modelId={model.id}
-									onClick={() => {
-										handleModelChange(model.id)
-										setIsDropdownVisible(false)
-									}}
-								/>
-							))}
-						{activeTab === "free" &&
-							freeModels.map((model) => (
-								<FeaturedModelCard
-									description={model.description}
-									isSelected={selectedModelId === model.id}
-									key={model.id}
-									label={model.label}
-									modelId={model.id}
-									onClick={() => {
-										handleModelChange(model.id)
-										setIsDropdownVisible(false)
-									}}
-								/>
-							))}
-					</div>
-				</>
+				{/* Model Cards */}
+				<div style={{ marginBottom: "6px" }}>
+					{activeTab === "recommended" &&
+						recommendedModels.map((model) => (
+							<FeaturedModelCard
+								description={model.description}
+								isSelected={selectedModelId === model.id}
+								key={model.id}
+								label={model.label}
+								modelId={model.id}
+								onClick={() => {
+									handleModelChange(model.id)
+									setIsDropdownVisible(false)
+								}}
+							/>
+						))}
+					{activeTab === "free" &&
+						freeModels.map((model) => (
+							<FeaturedModelCard
+								description={model.description}
+								isSelected={selectedModelId === model.id}
+								key={model.id}
+								label={model.label}
+								modelId={model.id}
+								onClick={() => {
+									handleModelChange(model.id)
+									setIsDropdownVisible(false)
+								}}
+							/>
+						))}
+				</div>
 
 				<DropdownWrapper ref={dropdownRef}>
 					<VSCodeTextField
@@ -559,8 +562,8 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 						marginTop: 0,
 						color: "var(--vscode-descriptionForeground)",
 					}}>
-					The extension automatically fetches the latest Codemarie model list. If you're unsure which model to choose, Codemarie
-					works best with <strong>anthropic/claude-sonnet-4.5</strong>.
+					The extension automatically fetches the latest Codemarie model list. If you're unsure which model to choose,
+					Codemarie works best with <strong>anthropic/claude-sonnet-4.5</strong>.
 				</p>
 			)}
 		</div>

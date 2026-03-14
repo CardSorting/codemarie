@@ -14,7 +14,7 @@ export class CognitiveMemorySubgraphHandler implements IToolHandler {
 	async execute(config: TaskConfig, block: ToolUse): Promise<any> {
 		const { id, rootId, maxDepth } = block.params as { id?: string; rootId?: string; maxDepth?: string }
 		const targetId = id || rootId
-		const depth = Number.parseInt(maxDepth || "2")
+		const depth = Number.parseInt(maxDepth || "2", 10)
 
 		if (!targetId) {
 			return config.callbacks.sayAndCreateMissingParamError(this.name, "id")

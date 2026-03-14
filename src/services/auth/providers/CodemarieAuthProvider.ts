@@ -438,7 +438,9 @@ export class CodemarieAuthProvider {
 		}
 	}
 
-	private async fetchRemoteUserInfo(tokenData: CodemarieAuthApiTokenExchangeResponse["data"]): Promise<CodemarieAccountUserInfo> {
+	private async fetchRemoteUserInfo(
+		tokenData: CodemarieAuthApiTokenExchangeResponse["data"],
+	): Promise<CodemarieAccountUserInfo> {
 		try {
 			const userResponse = await axios.get(`${CodemarieEnv.config().apiBaseUrl}/api/v1/users/me`, {
 				headers: {

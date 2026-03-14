@@ -1,5 +1,5 @@
-import { TspPolicyPlugin } from "../src/core/policy/TspPolicyPlugin"
 import * as path from "path"
+import { TspPolicyPlugin } from "../src/core/policy/TspPolicyPlugin"
 
 const plugin = new TspPolicyPlugin()
 
@@ -33,11 +33,11 @@ const mockFiles: Record<string, string> = {
 	`,
 	"src/domain/B.ts": `
 		import { A } from "./A"
-	`
+	`,
 }
 
 function resolveMock(filePath: string): string | undefined {
-	const relative = Object.keys(mockFiles).find(k => filePath.endsWith(k))
+	const relative = Object.keys(mockFiles).find((k) => filePath.endsWith(k))
 	return relative ? mockFiles[relative] : undefined
 }
 
@@ -46,13 +46,13 @@ console.log("🚀 Starting TspPolicyPlugin Verification...\n")
 for (const [file, content] of Object.entries(mockFiles)) {
 	const fullPath = path.resolve(process.cwd(), file)
 	const result = plugin.validateSource(fullPath, content, resolveMock)
-	
+
 	console.log(`--- File: ${file} ---`)
 	if (result.success) {
 		console.log("✅ PASSED")
 	} else {
 		console.log("❌ FAILED")
-		result.errors.forEach(e => console.log(`   ${e}`))
+		result.errors.forEach((e) => console.log(`   ${e}`))
 	}
 	console.log("")
 }

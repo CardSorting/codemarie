@@ -78,17 +78,20 @@ const ThinkingBudgetSlider = ({ currentMode, maxBudget, showEnableToggle = true 
 
 	const [isEnabled, setIsEnabled] = useState<boolean>((modeFields.thinkingBudgetTokens || 0) > 0)
 
-	const onToggle = useCallback((isChecked: boolean) => {
-		const newThinkingBudgetValue = isChecked ? ANTHROPIC_MIN_THINKING_BUDGET : 0
-		setIsEnabled(isChecked)
-		setLocalValue(newThinkingBudgetValue)
+	const onToggle = useCallback(
+		(isChecked: boolean) => {
+			const newThinkingBudgetValue = isChecked ? ANTHROPIC_MIN_THINKING_BUDGET : 0
+			setIsEnabled(isChecked)
+			setLocalValue(newThinkingBudgetValue)
 
-		handleModeFieldChange(
-			{ plan: "planModeThinkingBudgetTokens", act: "actModeThinkingBudgetTokens" },
-			newThinkingBudgetValue,
-			currentMode,
-		)
-	}, [])
+			handleModeFieldChange(
+				{ plan: "planModeThinkingBudgetTokens", act: "actModeThinkingBudgetTokens" },
+				newThinkingBudgetValue,
+				currentMode,
+			)
+		},
+		[currentMode, handleModeFieldChange],
+	)
 
 	useEffect(() => {
 		// Extremely hacky solution to handle the case where
@@ -98,7 +101,7 @@ const ThinkingBudgetSlider = ({ currentMode, maxBudget, showEnableToggle = true 
 		if (isToggleAlwaysOn && !hasThinkingConfig) {
 			onToggle(true)
 		}
-	}, [showEnableToggle, modeFields.thinkingBudgetTokens])
+	}, [showEnableToggle, modeFields.thinkingBudgetTokens, onToggle])
 
 	useEffect(() => {
 		const newThinkingBudgetValue = modeFields.thinkingBudgetTokens || 0
@@ -111,7 +114,7 @@ const ThinkingBudgetSlider = ({ currentMode, maxBudget, showEnableToggle = true 
 		if (newIsEnabled !== isEnabled) {
 			setIsEnabled(newIsEnabled)
 		}
-	}, [modeFields.thinkingBudgetTokens])
+	}, [modeFields.thinkingBudgetTokens, isEnabled, localValue])
 
 	const handleSliderChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
 		const value = Number.parseInt(event.target.value, 10)

@@ -23,7 +23,7 @@ export const getCodemarieUris = (base: string, type: "dashboard" | "credits", ro
 		return dashboard
 	}
 
-	const credits = new URL("/" + (route ?? "account"), dashboard)
+	const credits = new URL(`/${route ?? "account"}`, dashboard)
 	credits.searchParams.set("tab", "credits")
 	credits.searchParams.set("redirect", "true")
 	return credits

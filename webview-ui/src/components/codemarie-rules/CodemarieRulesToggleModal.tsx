@@ -114,6 +114,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 		setLocalCursorRulesToggles,
 		setLocalWindsurfRulesToggles,
 		setLocalWorkflowToggles,
+		setLocalAgentsRulesToggles,
 	])
 
 	// Refresh hooks when hooks tab becomes visible
@@ -429,7 +430,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 			setArrowPosition(rightPosition)
 			setMenuPosition(buttonRect.top + 1)
 		}
-	}, [isVisible, viewportWidth, viewportHeight])
+	}, [isVisible])
 
 	return (
 		<div className="inline-flex min-w-0 max-w-full items-center" ref={modalRef}>
@@ -498,8 +499,8 @@ const CodemarieRulesToggleModal: React.FC = () => {
 						<div className="text-xs text-description mb-4">
 							{currentView === "rules" ? (
 								<p>
-									Rules allow you to provide Codemarie with system-level guidance. Think of them as a persistent way
-									to include context and preferences for your projects or globally for every conversation.{" "}
+									Rules allow you to provide Codemarie with system-level guidance. Think of them as a persistent
+									way to include context and preferences for your projects or globally for every conversation.{" "}
 									<VSCodeLink
 										className="text-xs"
 										href="https://docs.codemarie.bot/features/codemarie-rules"
@@ -520,14 +521,14 @@ const CodemarieRulesToggleModal: React.FC = () => {
 								</p>
 							) : currentView === "skills" ? (
 								<p>
-									Skills are reusable instruction sets that Codemarie can activate on-demand. When a task matches a
-									skill's description, Codemarie uses the <span className="font-bold">use_skill</span> tool to load
-									the full instructions.
+									Skills are reusable instruction sets that Codemarie can activate on-demand. When a task
+									matches a skill's description, Codemarie uses the <span className="font-bold">use_skill</span>{" "}
+									tool to load the full instructions.
 								</p>
 							) : (
 								<p>
-									Hooks allow you to execute custom scripts at specific points in Codemarie's execution lifecycle,
-									enabling automation and integration with external tools.
+									Hooks allow you to execute custom scripts at specific points in Codemarie's execution
+									lifecycle, enabling automation and integration with external tools.
 								</p>
 							)}
 						</div>
@@ -697,9 +698,9 @@ const CodemarieRulesToggleModal: React.FC = () => {
 									<div className="flex items-center gap-2 px-5 py-3 mb-4 bg-vscode-inputValidation-warningBackground border-l-[3px] border-vscode-inputValidation-warningBorder">
 										<i className="codicon codicon-warning text-sm" />
 										<span className="text-base">
-											Hook toggling is not yet supported on Windows in this foundation PR. Hooks can be created,
-											edited, and deleted, and execute whenever the hook file exists. Coming next: JSON-backed
-											hook enabled/disabled state across platforms.
+											Hook toggling is not yet supported on Windows in this foundation PR. Hooks can be
+											created, edited, and deleted, and execute whenever the hook file exists. Coming next:
+											JSON-backed hook enabled/disabled state across platforms.
 										</span>
 									</div>
 								)}

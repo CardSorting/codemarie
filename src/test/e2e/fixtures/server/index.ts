@@ -167,11 +167,11 @@ export class CodemarieApiServerMock {
 			// Authenticate the token and set current user
 			if (isAuthRequired && authToken) {
 				log(`Authenticating token: ${authToken}`)
-				const user = CodemarieApiServerMock.globalSharedServer!.API_USER.getUserByToken(authToken)
+				const user = CodemarieApiServerMock.globalSharedServer?.API_USER.getUserByToken(authToken)
 				if (!user) {
 					return sendApiError("Invalid token", 401)
 				}
-				CodemarieApiServerMock.globalSharedServer!.setCurrentUser(user)
+				CodemarieApiServerMock.globalSharedServer?.setCurrentUser(user)
 			}
 
 			log("=== MOCK SERVER REQUEST ===")
@@ -312,8 +312,8 @@ export class CodemarieApiServerMock {
 
 						// Return format matching CodemarieAuthProvider expectations
 						return sendApiResponse({
-							accessToken: code + "_access",
-							refreshToken: code + "_refresh",
+							accessToken: `${code}_access`,
+							refreshToken: `${code}_refresh`,
 							tokenType: "Bearer",
 							expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
 							userInfo: {
@@ -346,7 +346,7 @@ export class CodemarieApiServerMock {
 
 						// Return format matching CodemarieAuthProvider expectations
 						return sendApiResponse({
-							accessToken: originalToken + "_access_refreshed",
+							accessToken: `${originalToken}_access_refreshed`,
 							refreshToken: refreshToken, // Keep same refresh token
 							tokenType: "Bearer",
 							expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now

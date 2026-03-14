@@ -12,7 +12,13 @@ import type { TaskConfig } from "./TaskConfig"
  */
 export interface StronglyTypedUIHelpers {
 	// Core UI methods
-	say: (type: CodemarieSay, text?: string, images?: string[], files?: string[], partial?: boolean) => Promise<number | undefined>
+	say: (
+		type: CodemarieSay,
+		text?: string,
+		images?: string[],
+		files?: string[],
+		partial?: boolean,
+	) => Promise<number | undefined>
 
 	ask: (
 		type: CodemarieAsk,
@@ -35,7 +41,12 @@ export interface StronglyTypedUIHelpers {
 	askApproval: (messageType: CodemarieAsk, message: string) => Promise<boolean>
 
 	// Telemetry and notifications
-	captureTelemetry: (toolName: CodemarieDefaultTool, autoApproved: boolean, approved: boolean, isNativeToolCall?: boolean) => void
+	captureTelemetry: (
+		toolName: CodemarieDefaultTool,
+		autoApproved: boolean,
+		approved: boolean,
+		isNativeToolCall?: boolean,
+	) => void
 	showNotificationIfEnabled: (message: string) => void
 
 	// Config access - returns the proper typed config
@@ -57,7 +68,12 @@ export function createUIHelpers(config: TaskConfig): StronglyTypedUIHelpers {
 			const { response } = await config.callbacks.ask(messageType, message, false)
 			return response === "yesButtonClicked"
 		},
-		captureTelemetry: (toolName: CodemarieDefaultTool, autoApproved: boolean, approved: boolean, isNativeToolCall?: boolean) => {
+		captureTelemetry: (
+			toolName: CodemarieDefaultTool,
+			autoApproved: boolean,
+			approved: boolean,
+			isNativeToolCall?: boolean,
+		) => {
 			// Extract provider information for telemetry
 			const apiConfig = config.services.stateManager.getApiConfiguration()
 			const currentMode = config.services.stateManager.getGlobalSettingsKey("mode")

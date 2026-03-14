@@ -120,7 +120,7 @@ export class IntentGrounder {
 		spec.verifiedEntities = verifiedEntities
 		if (verifiedEntities.length < entitiesToVerify.length && spec.confidenceScore > 0.3) {
 			spec.confidenceScore *= 0.9 // Penalize confidence if entities are missing
-			spec.ambiguityReasoning = (spec.ambiguityReasoning || "") + " Some referenced files were not found in the workspace."
+			spec.ambiguityReasoning = `${spec.ambiguityReasoning || ""} Some referenced files were not found in the workspace.`
 		}
 
 		return spec

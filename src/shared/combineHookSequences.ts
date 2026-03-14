@@ -116,7 +116,7 @@ function combineHookWithOutputs(
 			// Append output if not empty
 			const output = messages[i].text || ""
 			if (output.length > 0) {
-				combinedText += "\n" + output
+				combinedText += `\n${output}`
 			}
 		}
 		i++
@@ -216,7 +216,10 @@ function findImmediateNextToolTimestamp(hookIndex: number, messages: CodemarieMe
  * @param originalMessages Original messages array (used to find tools)
  * @returns Map of tool timestamp -> array of PreToolUse hooks for that tool
  */
-function buildPreToolUseMap(processedMessages: CodemarieMessage[], originalMessages: CodemarieMessage[]): Map<number, CodemarieMessage[]> {
+function buildPreToolUseMap(
+	processedMessages: CodemarieMessage[],
+	originalMessages: CodemarieMessage[],
+): Map<number, CodemarieMessage[]> {
 	const map = new Map<number, CodemarieMessage[]>()
 
 	// Build timestamp-to-index map once to avoid O(n) findIndex calls
@@ -254,7 +257,7 @@ function buildPreToolUseMap(processedMessages: CodemarieMessage[], originalMessa
 			if (!map.has(toolTimestamp)) {
 				map.set(toolTimestamp, [])
 			}
-			map.get(toolTimestamp)!.push(msg)
+			map.get(toolTimestamp)?.push(msg)
 		}
 		// Otherwise, hook is already in correct chronological position - don't move it
 	}
@@ -277,7 +280,10 @@ function buildPreToolUseMap(processedMessages: CodemarieMessage[], originalMessa
  * @param preToolUseMap Map of tool timestamp -> PreToolUse hooks
  * @returns Reordered messages array
  */
-function reorderWithPreToolUseHooks(messages: CodemarieMessage[], preToolUseMap: Map<number, CodemarieMessage[]>): CodemarieMessage[] {
+function reorderWithPreToolUseHooks(
+	messages: CodemarieMessage[],
+	preToolUseMap: Map<number, CodemarieMessage[]>,
+): CodemarieMessage[] {
 	const result: CodemarieMessage[] = []
 	const addedHooks = new Set<number>()
 	const addedTools = new Set<number>()

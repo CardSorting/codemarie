@@ -66,7 +66,7 @@ export class ReadFileToolHandler implements IFullyManagedTool {
 			if (!config.isSubagentExecution && validation.error.includes("RESTRICTED")) {
 				await config.callbacks.say("codemarieignore_error", relPath)
 			}
-			
+
 			if (validation.error.includes("Missing required parameter")) {
 				config.taskState.consecutiveMistakeCount++
 				return await config.callbacks.sayAndCreateMissingParamError(this.name, "path")

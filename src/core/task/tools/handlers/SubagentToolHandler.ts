@@ -1,11 +1,12 @@
 import type { ToolUse } from "@core/assistant-message"
 import { formatResponse } from "@core/prompts/responses"
 import {
-    CodemarieAskUseSubagents,
-    CodemarieSaySubagentStatus,
-    CodemarieSubagentUsageInfo,
-    SubagentStatusItem,
+	CodemarieAskUseSubagents,
+	CodemarieSaySubagentStatus,
+	CodemarieSubagentUsageInfo,
+	SubagentStatusItem,
 } from "@shared/ExtensionMessage"
+import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
@@ -16,7 +17,6 @@ import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
-import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 
 const MAX_SUBAGENT_PROMPTS = 5
 const PROMPT_KEYS = ["prompt_1", "prompt_2", "prompt_3", "prompt_4", "prompt_5"] as const
@@ -234,7 +234,7 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 				} catch {
 					return null
 				}
-			})
+			}),
 		)
 
 		const execution = prompts.map((prompt, index) =>

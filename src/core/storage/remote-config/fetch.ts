@@ -146,7 +146,10 @@ async function fetchRemoteConfigForOrganization(organizationId: string): Promise
 async function fetchApiKeysForOrganization(organizationId: string): Promise<APIKeySettings> {
 	try {
 		// Fetch API keys string using helper
-		const response = await makeAuthenticatedRequest<{ providerApiKeys: string }>(CODEMARIE_API_ENDPOINT.API_KEYS, organizationId)
+		const response = await makeAuthenticatedRequest<{ providerApiKeys: string }>(
+			CODEMARIE_API_ENDPOINT.API_KEYS,
+			organizationId,
+		)
 
 		// Parse and return API keys
 		return parseApiKeys(response?.providerApiKeys)
@@ -225,7 +228,7 @@ async function ensureUserInOrgWithRemoteConfig(controller: Controller): Promise<
 			const apiKeys = await fetchApiKeysForOrganization(organizationId)
 			if (config.providerSettings?.LiteLLM) {
 				if (apiKeys.litellm) {
-					configuredApiKeys["litellm"] = true
+					configuredApiKeys.litellm = true
 					controller.stateManager.setSecret("remoteLiteLlmApiKey", apiKeys.litellm)
 				} else {
 					controller.stateManager.setSecret("remoteLiteLlmApiKey", undefined)

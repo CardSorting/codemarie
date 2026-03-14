@@ -74,7 +74,9 @@ describe("SharedUriHandler", () => {
 
 		describe("Auth callback handling", () => {
 			it("should successfully handle auth callback with idToken", async () => {
-				const result = await SharedUriHandler.handleUri("vscode://codemarie.codemarie/auth?idToken=jwt123&provider=google")
+				const result = await SharedUriHandler.handleUri(
+					"vscode://codemarie.codemarie/auth?idToken=jwt123&provider=google",
+				)
 
 				expect(result).to.be.true
 				sinon.assert.calledOnceWithExactly(handleAuthCallbackStub, "jwt123", "google")

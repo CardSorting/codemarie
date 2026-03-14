@@ -37,7 +37,7 @@ export const CodemarieAccountInfoCard = () => {
 						Sign Up with Codemarie
 						{isLoading && (
 							<span className="ml-1 animate-spin">
-								<span className="codicon codicon-refresh"></span>
+								<span className="codicon codicon-refresh" />
 							</span>
 						)}
 					</VSCodeButton>

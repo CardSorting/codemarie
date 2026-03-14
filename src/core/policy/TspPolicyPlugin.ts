@@ -147,7 +147,7 @@ export class TspPolicyPlugin {
 					// Rule: Direct Circular Dependency Detection
 					if (moduleName.startsWith(".") && resolveContent) {
 						// We append .ts because getLayer expects it for proper mapping in some cases
-						const resolvedTarget = targetPath.endsWith(".ts") ? targetPath : targetPath + ".ts"
+						const resolvedTarget = targetPath.endsWith(".ts") ? targetPath : `${targetPath}.ts`
 						const targetContent = resolveContent(resolvedTarget)
 
 						if (targetContent) {
@@ -157,8 +157,8 @@ export class TspPolicyPlugin {
 									const tSpec = tNode.moduleSpecifier
 									if (ts.isStringLiteral(tSpec) && tSpec.text.startsWith(".")) {
 										const tBackPath = path.resolve(path.dirname(resolvedTarget), tSpec.text)
-										const tBackResolved = tBackPath.endsWith(".ts") ? tBackPath : tBackPath + ".ts"
-										const currentResolved = filePath.endsWith(".ts") ? filePath : filePath + ".ts"
+										const tBackResolved = tBackPath.endsWith(".ts") ? tBackPath : `${tBackPath}.ts`
+										const currentResolved = filePath.endsWith(".ts") ? filePath : `${filePath}.ts`
 
 										if (tBackResolved === currentResolved) {
 											errors.push(

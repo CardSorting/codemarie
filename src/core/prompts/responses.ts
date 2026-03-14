@@ -147,7 +147,7 @@ Otherwise, if you have not completed the task and do not need additional informa
 				const relativePath = path.relative(absolutePath, file).toPosix()
 				const layer = getLayer(file)
 				const layerTag = layer ? `[${layer.toUpperCase()}] ` : ""
-				return file.endsWith("/") ? layerTag + relativePath + "/" : layerTag + relativePath
+				return file.endsWith("/") ? `${layerTag + relativePath}/` : layerTag + relativePath
 			})
 			// Sort so files are listed under their respective directories to make it clear what files are children of what directories. Since we build file list top down, even if file list is truncated it will show directories that codemarie can then explore further.
 			.sort((a, b) => {
@@ -181,7 +181,7 @@ Otherwise, if you have not completed the task and do not need additional informa
 					const absoluteFilePath = path.resolve(absolutePath, cleanPath)
 					const isIgnored = !codemarieIgnoreController.validateAccess(absoluteFilePath)
 					if (isIgnored) {
-						return LOCK_TEXT_SYMBOL + " " + displayPath
+						return `${LOCK_TEXT_SYMBOL} ${displayPath}`
 					}
 
 					return displayPath

@@ -500,7 +500,10 @@ export function isToolGroupInFlight(toolGroupMessages: CodemarieMessage[], allMe
  * - (Case A) Tools between a previous completed api_req and the current incomplete api_req
  * - (Case B) Tools after the most recent api_req overall (either because it's complete, or no loading state is active yet)
  */
-export function getToolsNotInCurrentActivities(toolGroupMessages: CodemarieMessage[], allMessages: CodemarieMessage[]): CodemarieMessage[] {
+export function getToolsNotInCurrentActivities(
+	toolGroupMessages: CodemarieMessage[],
+	allMessages: CodemarieMessage[],
+): CodemarieMessage[] {
 	// Build a Map of timestamp -> index for O(1) lookups instead of O(n) findIndex calls
 	const tsToIndex = new Map<number, number>()
 	for (let i = 0; i < allMessages.length; i++) {
@@ -726,7 +729,9 @@ function isApiReqFollowedOnlyByLowStakesTools(index: number, messages: (Codemari
  * Only creates tool groups when there's at least one actual tool - reasoning-only groups are dropped.
  * Should be called after groupMessages.
  */
-export function groupLowStakesTools(groupedMessages: (CodemarieMessage | CodemarieMessage[])[]): (CodemarieMessage | CodemarieMessage[])[] {
+export function groupLowStakesTools(
+	groupedMessages: (CodemarieMessage | CodemarieMessage[])[],
+): (CodemarieMessage | CodemarieMessage[])[] {
 	const result: (CodemarieMessage | CodemarieMessage[])[] = []
 	let toolGroup: CodemarieMessage[] = []
 	let pendingReasoning: CodemarieMessage[] = []

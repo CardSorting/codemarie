@@ -10,26 +10,26 @@ const prefix = name === "claude-dev" || name === "marie-coder" ? "codemarie" : n
  * In production, all commands are registered under "codemarie" for consistency.
  */
 const CodemarieCommands = {
-	PlusButton: prefix + ".plusButtonClicked",
-	McpButton: prefix + ".mcpButtonClicked",
-	SettingsButton: prefix + ".settingsButtonClicked",
-	HistoryButton: prefix + ".historyButtonClicked",
-	AccountButton: prefix + ".accountButtonClicked",
-	WorktreesButton: prefix + ".worktreesButtonClicked",
-	TerminalOutput: prefix + ".addTerminalOutputToChat",
-	AddToChat: prefix + ".addToChat",
-	FixWithCodemarie: prefix + ".fixWithCodemarie",
-	ExplainCode: prefix + ".explainCode",
-	ImproveCode: prefix + ".improveCode",
-	FocusChatInput: prefix + ".focusChatInput",
-	Walkthrough: prefix + ".openWalkthrough",
-	GenerateCommit: prefix + ".generateGitCommitMessage",
-	AbortCommit: prefix + ".abortGitCommitMessage",
-	ReconstructTaskHistory: prefix + ".reconstructTaskHistory",
+	PlusButton: `${prefix}.plusButtonClicked`,
+	McpButton: `${prefix}.mcpButtonClicked`,
+	SettingsButton: `${prefix}.settingsButtonClicked`,
+	HistoryButton: `${prefix}.historyButtonClicked`,
+	AccountButton: `${prefix}.accountButtonClicked`,
+	WorktreesButton: `${prefix}.worktreesButtonClicked`,
+	TerminalOutput: `${prefix}.addTerminalOutputToChat`,
+	AddToChat: `${prefix}.addToChat`,
+	FixWithCodemarie: `${prefix}.fixWithCodemarie`,
+	ExplainCode: `${prefix}.explainCode`,
+	ImproveCode: `${prefix}.improveCode`,
+	FocusChatInput: `${prefix}.focusChatInput`,
+	Walkthrough: `${prefix}.openWalkthrough`,
+	GenerateCommit: `${prefix}.generateGitCommitMessage`,
+	AbortCommit: `${prefix}.abortGitCommitMessage`,
+	ReconstructTaskHistory: `${prefix}.reconstructTaskHistory`,
 	// Jupyter Notebook commands
-	JupyterGenerateCell: prefix + ".jupyterGenerateCell",
-	JupyterExplainCell: prefix + ".jupyterExplainCell",
-	JupyterImproveCell: prefix + ".jupyterImproveCell",
+	JupyterGenerateCell: `${prefix}.jupyterGenerateCell`,
+	JupyterExplainCell: `${prefix}.jupyterExplainCell`,
+	JupyterImproveCell: `${prefix}.jupyterImproveCell`,
 }
 
 /**
@@ -37,7 +37,7 @@ const CodemarieCommands = {
  * These should match the name + view IDs defined in package.json.
  */
 const CodemarieViewIds = {
-	Sidebar: prefix + ".SidebarProvider",
+	Sidebar: `${prefix}.SidebarProvider`,
 }
 
 /**
@@ -45,7 +45,7 @@ const CodemarieViewIds = {
  * registered for the current host.
  */
 export const ExtensionRegistryInfo = {
-	id: publisher + "." + name,
+	id: `${publisher}.${name}`,
 	name,
 	version,
 	publisher,

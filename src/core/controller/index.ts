@@ -26,6 +26,8 @@ import * as path from "path"
 import { CodemarieEnv } from "@/config"
 import type { FolderLockWithRetryResult } from "@/core/locks/types"
 import { HostProvider } from "@/hosts/host-provider"
+import { dbPool } from "@/infrastructure/db/BufferedDbPool"
+import { getDb, setDbPath } from "@/infrastructure/db/Config"
 import { ExtensionRegistryInfo } from "@/registry"
 import { AuthService } from "@/services/auth/AuthService"
 import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
@@ -59,8 +61,6 @@ import { appendCodemarieStealthModels } from "./models/refreshOpenRouterModels"
 import { checkCliInstallation } from "./state/checkCliInstallation"
 import { sendStateUpdate } from "./state/subscribeToState"
 import { sendChatButtonClickedEvent } from "./ui/subscribeToChatButtonClicked"
-import { setDbPath, getDb } from "@/infrastructure/db/Config"
-import { dbPool } from "@/infrastructure/db/BufferedDbPool"
 
 /*
 https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
@@ -701,7 +701,7 @@ export class Controller {
 		let apiKey: string
 		try {
 			const response = await axios.post("https://openrouter.ai/api/v1/auth/keys", { code }, getAxiosSettings())
-			if (response.data && response.data.key) {
+			if (response.data?.key) {
 				apiKey = response.data.key
 			} else {
 				throw new Error("Invalid response from OpenRouter API")

@@ -54,9 +54,13 @@ export interface CodemarieAssistantThinkingBlock extends Anthropic.ThinkingBlock
 	summary?: unknown[] | CodemarieReasoningDetailParam[]
 }
 
-export interface CodemarieAssistantRedactedThinkingBlock extends Anthropic.RedactedThinkingBlockParam, CodemarieSharedMessageParam {}
+export interface CodemarieAssistantRedactedThinkingBlock
+	extends Anthropic.RedactedThinkingBlockParam,
+		CodemarieSharedMessageParam {}
 
-export type CodemarieToolResponseContent = CodemariePromptInputContent | Array<CodemarieTextContentBlock | CodemarieImageContentBlock>
+export type CodemarieToolResponseContent =
+	| CodemariePromptInputContent
+	| Array<CodemarieTextContentBlock | CodemarieImageContentBlock>
 
 export type CodemarieUserContent =
 	| CodemarieTextContentBlock

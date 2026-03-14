@@ -6,7 +6,7 @@ import "should"
 import { createDirectoriesForFile, fileExistsAtPath, isDirectory, readDirectory } from "./fs"
 
 describe("Filesystem Utilities", () => {
-	const tmpDir = path.join(os.tmpdir(), "codemarie-test-" + Math.random().toString(36).slice(2))
+	const tmpDir = path.join(os.tmpdir(), `codemarie-test-${Math.random().toString(36).slice(2)}`)
 
 	// Clean up after tests
 	after(async () => {
@@ -252,7 +252,10 @@ describe("Filesystem Utilities", () => {
 		// Verify both workflows and other directories are excluded
 		multiExcludeFiles.length.should.equal(2) // only the 2 files in root
 
-		const rootOnlyFiles = [path.resolve(codemarierulesDirPath, "config.json"), path.resolve(codemarierulesDirPath, "settings.js")]
+		const rootOnlyFiles = [
+			path.resolve(codemarierulesDirPath, "config.json"),
+			path.resolve(codemarierulesDirPath, "settings.js"),
+		]
 
 		multiExcludeFiles.sort().should.deepEqual(rootOnlyFiles.sort())
 	})
@@ -309,7 +312,10 @@ describe("Filesystem Utilities", () => {
 		// Verify both workflows and hooks directories are excluded
 		multiExcludeFiles.length.should.equal(2) // only the 2 files in root
 
-		const rootOnlyFiles = [path.resolve(codemarierulesDirPath, "config.json"), path.resolve(codemarierulesDirPath, "settings.js")]
+		const rootOnlyFiles = [
+			path.resolve(codemarierulesDirPath, "config.json"),
+			path.resolve(codemarierulesDirPath, "settings.js"),
+		]
 
 		multiExcludeFiles.sort().should.deepEqual(rootOnlyFiles.sort())
 	})

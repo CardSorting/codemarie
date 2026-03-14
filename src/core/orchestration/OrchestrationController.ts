@@ -1,12 +1,12 @@
-import { orchestrator, AgentTask, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
-import { Logger } from "@/shared/services/Logger"
-import { dbPool, WriteOp } from "@/infrastructure/db/BufferedDbPool"
 import * as path from "path"
+import { AgentTask, orchestrator, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
+import { dbPool, WriteOp } from "@/infrastructure/db/BufferedDbPool"
+import { Logger } from "@/shared/services/Logger"
 
 /**
  * OrchestrationController: Manages the lifecycle of an agent stream and its tasks.
  * It provides a clean interface for Task and ToolExecutor to report progress.
- * 
+ *
  * It moves "bolted-on" logic out of the core task loop and into a first-class orchestration layer.
  */
 export class OrchestrationController {
@@ -53,7 +53,11 @@ export class OrchestrationController {
 	/**
 	 * Updates the status and metadata of the current task.
 	 */
-	public async updateTaskProgress(status: AgentTask["status"], result: string | null = null, metadata?: TaskAuditMetadata): Promise<void> {
+	public async updateTaskProgress(
+		status: AgentTask["status"],
+		result: string | null = null,
+		metadata?: TaskAuditMetadata,
+	): Promise<void> {
 		if (!this.currentTaskId) return
 
 		try {
@@ -70,7 +74,10 @@ export class OrchestrationController {
 	 * Marks the current stream as completed and commits database changes.
 	 * Returns true if both the DB commit and the stream completion were successful.
 	 */
-	public async completeStream(summary: string, validator?: (affectedFiles: Set<string>, ops: WriteOp[]) => Promise<{ success: boolean; errors: string[] }>): Promise<boolean> {
+	public async completeStream(
+		summary: string,
+		validator?: (affectedFiles: Set<string>, ops: WriteOp[]) => Promise<{ success: boolean; errors: string[] }>,
+	): Promise<boolean> {
 		try {
 			await dbPool.commitWork(this.streamId, validator)
 			await orchestrator.completeStream(this.streamId, summary)
@@ -96,14 +103,14 @@ export class OrchestrationController {
 	/**
 	 * Returns a snapshot of the current policy health and recent violations.
 	 */
-	public async getCurrentPolicyState(): Promise<{ violations: string[], avgEntropy: number }> {
+	public async getCurrentPolicyState(): Promise<{ violations: string[]; avgEntropy: number }> {
 		try {
 			const digest = JSON.parse(await orchestrator.getCompressedContext(this.streamId))
 			return {
 				violations: digest.uniqueViolations || [],
-				avgEntropy: digest.avgEntropy || 0
+				avgEntropy: digest.avgEntropy || 0,
 			}
-		} catch (error) {
+		} catch (_error) {
 			return { violations: [], avgEntropy: 0 }
 		}
 	}
@@ -136,13 +143,13 @@ export class OrchestrationController {
 	 */
 	public resolveVirtualContent(filePath: string): string | undefined {
 		if (!this.streamId) return undefined
-		
+
 		const shadow = dbPool.getShadowOps(this.streamId)
 		// Find the latest write op for this file in the shadow
 		const latestOp = shadow
-			.filter(op => op.type === "insert" || op.type === "update")
+			.filter((op) => op.type === "insert" || op.type === "update")
 			.reverse()
-			.find(op => {
+			.find((op) => {
 				const values = op.values as any
 				const where = op.where as any
 				const opPath = values?.path || where?.path
@@ -170,11 +177,11 @@ export class OrchestrationController {
 					metadata: JSON.stringify({
 						violations: state.violations,
 						avgEntropy: state.avgEntropy,
-						timestamp: Date.now()
+						timestamp: Date.now(),
 					}),
-					createdAt: Date.now()
+					createdAt: Date.now(),
 				},
-				layer: "infrastructure"
+				layer: "infrastructure",
 			})
 			Logger.info(`[Orchestration] Published architectural telemetry for ${this.streamId}`)
 		} catch (error) {

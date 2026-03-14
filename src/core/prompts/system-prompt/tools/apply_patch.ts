@@ -1,6 +1,6 @@
 import { ModelFamily } from "@/shared/prompts"
 import { CodemarieDefaultTool } from "@/shared/tools"
-import { isGptOssModelFamily, isGPT5ModelFamily } from "@/utils/model-utils"
+import { isGPT5ModelFamily, isGptOssModelFamily } from "@/utils/model-utils"
 import type { CodemarieToolSpec } from "../spec"
 import { TASK_PROGRESS_PARAMETER } from "../types"
 

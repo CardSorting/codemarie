@@ -91,7 +91,7 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 										Sign in to Codemarie
 										{isLoginLoading && (
 											<span className="ml-1 animate-spin">
-												<span className="codicon codicon-refresh"></span>
+												<span className="codicon codicon-refresh" />
 											</span>
 										)}
 									</Button>
@@ -117,7 +117,8 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 				return (
 					<div className="flex flex-col p-2 rounded text-xs opacity-80 bg-quote text-foreground">
 						<div>
-							Codemarie tried to access <code>{message.text}</code> which is blocked by the <code>.codemarieignore</code>
+							Codemarie tried to access <code>{message.text}</code> which is blocked by the{" "}
+							<code>.codemarieignore</code>
 							file.
 						</div>
 					</div>

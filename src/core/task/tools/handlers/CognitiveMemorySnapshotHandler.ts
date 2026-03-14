@@ -23,12 +23,12 @@ export class CognitiveMemorySnapshotHandler implements IToolHandler {
 		}
 
 		try {
-			let parsedMetadata = {}
+			let _parsedMetadata = {}
 			if (metadata) {
 				try {
-					parsedMetadata = JSON.parse(metadata)
-				} catch (e) {
-					parsedMetadata = { raw: metadata }
+					_parsedMetadata = JSON.parse(metadata)
+				} catch (_e) {
+					_parsedMetadata = { raw: metadata }
 				}
 			}
 

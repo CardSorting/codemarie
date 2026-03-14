@@ -218,7 +218,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 			if (!config.isSubagentExecution && validation.error.includes("RESTRICTED")) {
 				await config.callbacks.say("codemarieignore_error", relDirPath!)
 			}
-			
+
 			if (validation.error.includes("Missing required parameter")) {
 				config.taskState.consecutiveMistakeCount++
 				const missingParam = validation.error.includes("'path'") ? "path" : "regex"

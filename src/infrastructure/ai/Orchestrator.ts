@@ -224,12 +224,12 @@ export class AgentOrchestrator {
 		const failedTasks = tasks.filter((t) => t.status === "failed").length
 		const violations = tasks
 			.filter((t) => t.metadata?.joy_zoning_violations)
-			.flatMap((t) => t.metadata!.joy_zoning_violations as string[])
+			.flatMap((t) => t.metadata?.joy_zoning_violations as string[])
 
 		const avgEntropy =
 			tasks
 				.filter((t) => t.metadata?.entropy_score !== undefined)
-				.reduce((acc, t) => acc + (t.metadata!.entropy_score || 0), 0) /
+				.reduce((acc, t) => acc + (t.metadata?.entropy_score || 0), 0) /
 			(tasks.filter((t) => t.metadata?.entropy_score !== undefined).length || 1)
 
 		const digest = {

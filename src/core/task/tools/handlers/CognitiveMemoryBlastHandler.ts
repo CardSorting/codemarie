@@ -14,7 +14,7 @@ export class CognitiveMemoryBlastHandler implements IToolHandler {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const path = block.params.path
-		const maxDepth = block.params.maxDepth ? Number.parseInt(block.params.maxDepth) : 2
+		const maxDepth = block.params.maxDepth ? Number.parseInt(block.params.maxDepth, 10) : 2
 
 		if (!path) {
 			return await config.callbacks.sayAndCreateMissingParamError(this.name, "path")

@@ -43,7 +43,7 @@ describe("commit-message-generator", () => {
 				error = e as Error
 			}
 			;(error !== undefined).should.be.true()
-			error!.message.should.equal("No changes in workspace for commit message")
+			error?.message.should.equal("No changes in workspace for commit message")
 		})
 	})
 })

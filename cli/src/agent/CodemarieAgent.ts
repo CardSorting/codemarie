@@ -555,11 +555,15 @@ export class CodemarieAgent implements acp.Agent {
 			// Subscribe to codemarieMessages changes after task is created
 			if (controller.task) {
 				const onCodemarieMessagesChanged = (change: CodemarieMessageChange) => {
-					this.handleCodemarieMessagesChanged(params.sessionId, sessionState, change, resolvePrompt, promptResolved).catch(
-						(error) => {
-							Logger.debug("[CodemarieAgent] Error handling codemarieMessagesChanged:", error)
-						},
-					)
+					this.handleCodemarieMessagesChanged(
+						params.sessionId,
+						sessionState,
+						change,
+						resolvePrompt,
+						promptResolved,
+					).catch((error) => {
+						Logger.debug("[CodemarieAgent] Error handling codemarieMessagesChanged:", error)
+					})
 				}
 
 				controller.task.messageStateHandler.on("codemarieMessagesChanged", onCodemarieMessagesChanged)

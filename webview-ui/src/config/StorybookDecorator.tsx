@@ -5,7 +5,12 @@ import "../../src/index.css"
 import { cn } from "@heroui/react"
 import type { Decorator } from "@storybook/react-vite"
 import React from "react"
-import { CodemarieAuthContext, CodemarieAuthContextType, CodemarieAuthProvider, useCodemarieAuth } from "@/context/CodemarieAuthContext"
+import {
+	CodemarieAuthContext,
+	CodemarieAuthContextType,
+	CodemarieAuthProvider,
+	useCodemarieAuth,
+} from "@/context/CodemarieAuthContext"
 import {
 	ExtensionStateContext,
 	ExtensionStateContextProvider,
@@ -72,7 +77,11 @@ const CodemarieAuthProviderWithOverrides: React.FC<{
 }
 
 export const createStorybookDecorator =
-	(overrideStates?: Partial<ExtensionStateContextType>, classNames?: string, authOverrides?: Partial<CodemarieAuthContextType>) =>
+	(
+		overrideStates?: Partial<ExtensionStateContextType>,
+		classNames?: string,
+		authOverrides?: Partial<CodemarieAuthContextType>,
+	) =>
 	(Story: any) => (
 		<ExtensionStateProviderWithOverrides overrides={overrideStates}>
 			<CodemarieAuthProviderWithOverrides overrides={authOverrides}>

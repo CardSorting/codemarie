@@ -9,11 +9,11 @@ import { createHook } from "../core/controller/file/createHook"
 import { deleteHook } from "../core/controller/file/deleteHook"
 import { refreshHooks } from "../core/controller/file/refreshHooks"
 import { toggleHook } from "../core/controller/file/toggleHook"
+import { hookFileName } from "../core/hooks/__tests__/test-utils"
 import { HookDiscoveryCache } from "../core/hooks/HookDiscoveryCache"
 import { StateManager } from "../core/storage/StateManager"
 import { HostProvider } from "../hosts/host-provider"
 import { CreateHookRequest, DeleteHookRequest, ToggleHookRequest } from "../shared/proto/codemarie/file"
-import { hookFileName } from "../core/hooks/__tests__/test-utils"
 
 /**
  * Integration tests for hook management
@@ -26,7 +26,7 @@ describe("Hook Management Integration", () => {
 	let globalHooksDir: string
 	let workspaceHooksDir: string
 	let mockController: Controller
-	let stateManagerStub: sinon.SinonStub
+	let _stateManagerStub: sinon.SinonStub
 	let getWorkspacePathsStub: sinon.SinonStub
 
 	beforeEach(async () => {
@@ -49,7 +49,7 @@ describe("Hook Management Integration", () => {
 		} as any
 
 		// Mock StateManager to return test workspace
-		stateManagerStub = sinon.stub(StateManager, "get").returns({
+		_stateManagerStub = sinon.stub(StateManager, "get").returns({
 			getGlobalStateKey: (key: string) => {
 				if (key === "workspaceRoots") {
 					return [{ path: path.join(tempDir, "workspace") }]
@@ -71,7 +71,7 @@ describe("Hook Management Integration", () => {
 		// Clean up temporary directory
 		try {
 			await fs.rm(tempDir, { recursive: true, force: true })
-		} catch (error) {
+		} catch (_error) {
 			// Ignore cleanup errors
 		}
 
@@ -97,12 +97,12 @@ describe("Hook Management Integration", () => {
 			const createResponse = await createHook(mockController, createRequest, globalHooksDir)
 
 			// Step 3: Verify hook was created and is disabled (644 permissions)
-			createResponse.hooksToggles!.globalHooks.should.have.length(1)
-			createResponse.hooksToggles!.globalHooks[0].name.should.equal(hookName)
+			createResponse.hooksToggles?.globalHooks.should.have.length(1)
+			createResponse.hooksToggles?.globalHooks[0].name.should.equal(hookName)
 			if (isWindows) {
-				createResponse.hooksToggles!.globalHooks[0].enabled.should.equal(true)
+				createResponse.hooksToggles?.globalHooks[0].enabled.should.equal(true)
 			} else {
-				createResponse.hooksToggles!.globalHooks[0].enabled.should.equal(false)
+				createResponse.hooksToggles?.globalHooks[0].enabled.should.equal(false)
 			}
 
 			const hookPath = path.join(globalHooksDir, hookFileName(hookName))
@@ -121,8 +121,8 @@ describe("Hook Management Integration", () => {
 			const enableResponse = await toggleHook(mockController, enableRequest, globalHooksDir)
 
 			// Step 5: Verify hook is now enabled (executable)
-			enableResponse.hooksToggles!.globalHooks.should.have.length(1)
-			enableResponse.hooksToggles!.globalHooks[0].enabled.should.equal(true)
+			enableResponse.hooksToggles?.globalHooks.should.have.length(1)
+			enableResponse.hooksToggles?.globalHooks[0].enabled.should.equal(true)
 
 			const enableStats = await fs.stat(hookPath)
 			const enableMode = enableStats.mode & 0o777
@@ -139,12 +139,12 @@ describe("Hook Management Integration", () => {
 			const disableResponse = await toggleHook(mockController, disableRequest, globalHooksDir)
 
 			// Step 7: Verify hook is now disabled again
-			disableResponse.hooksToggles!.globalHooks.should.have.length(1)
+			disableResponse.hooksToggles?.globalHooks.should.have.length(1)
 			if (isWindows) {
 				// On Windows, toggling is chmod-noop and enabled reflects file existence.
-				disableResponse.hooksToggles!.globalHooks[0].enabled.should.equal(true)
+				disableResponse.hooksToggles?.globalHooks[0].enabled.should.equal(true)
 			} else {
-				disableResponse.hooksToggles!.globalHooks[0].enabled.should.equal(false)
+				disableResponse.hooksToggles?.globalHooks[0].enabled.should.equal(false)
 
 				const disableStats = await fs.stat(hookPath)
 				const disableMode = disableStats.mode & 0o777
@@ -159,7 +159,7 @@ describe("Hook Management Integration", () => {
 			const deleteResponse = await deleteHook(mockController, deleteRequest, globalHooksDir)
 
 			// Step 9: Verify hook is gone
-			deleteResponse.hooksToggles!.globalHooks.should.have.length(0)
+			deleteResponse.hooksToggles?.globalHooks.should.have.length(0)
 
 			const hookExists = await fs
 				.access(hookPath)
@@ -252,15 +252,15 @@ describe("Hook Management Integration", () => {
 			const taskComplete = hooksAfterToggle.globalHooks.find((h) => h.name === "TaskComplete")
 
 			if (isWindows) {
-				taskStart!.enabled.should.equal(true)
-				taskResume!.enabled.should.equal(true)
-				userPrompt!.enabled.should.equal(true)
-				taskComplete!.enabled.should.equal(true)
+				taskStart?.enabled.should.equal(true)
+				taskResume?.enabled.should.equal(true)
+				userPrompt?.enabled.should.equal(true)
+				taskComplete?.enabled.should.equal(true)
 			} else {
-				taskStart!.enabled.should.equal(true)
-				taskResume!.enabled.should.equal(false)
-				userPrompt!.enabled.should.equal(true)
-				taskComplete!.enabled.should.equal(false)
+				taskStart?.enabled.should.equal(true)
+				taskResume?.enabled.should.equal(false)
+				userPrompt?.enabled.should.equal(true)
+				taskComplete?.enabled.should.equal(false)
 			}
 
 			// Clean up - delete all hooks

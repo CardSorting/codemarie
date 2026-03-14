@@ -325,7 +325,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 			setErrorMessage(error instanceof Error ? error.message : String(error))
 			setStep("error")
 		}
-	}, [])
+	}, [controller])
 
 	// Start Codemarie auth flow
 	const startCodemarieAuth = useCallback(async () => {
@@ -381,7 +381,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 				setStep("apikey")
 			}
 		},
-		[startOcaAuth, startOpenAiCodexAuth],
+		[startOpenAiCodexAuth],
 	)
 
 	const handleApiKeySubmit = useCallback(

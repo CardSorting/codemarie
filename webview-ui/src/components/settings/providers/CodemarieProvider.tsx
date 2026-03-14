@@ -24,14 +24,12 @@ export const CodemarieProvider = ({ showModelOptions, isPopup, currentMode, init
 			</div>
 
 			{showModelOptions && (
-				<>
-					<CodemarieModelPicker
-						currentMode={currentMode}
-						initialTab={initialModelTab}
-						isPopup={isPopup}
-						showProviderRouting={true}
-					/>
-				</>
+				<CodemarieModelPicker
+					currentMode={currentMode}
+					initialTab={initialModelTab}
+					isPopup={isPopup}
+					showProviderRouting={true}
+				/>
 			)}
 		</div>
 	)

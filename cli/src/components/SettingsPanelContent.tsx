@@ -239,7 +239,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			"not configured",
 	)
 	// Refresh trigger to force re-reading model IDs from state
-	const [modelRefreshKey, setModelRefreshKey] = useState(0)
+	const [_modelRefreshKey, setModelRefreshKey] = useState(0)
 	const refreshModelIds = useCallback(() => setModelRefreshKey((k) => k + 1), [])
 
 	// OCA auth hook
@@ -275,7 +275,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			actModelId: actKey ? (stateManager.getGlobalSettingsKey(actKey) as string) || "" : "",
 			planModelId: planKey ? (stateManager.getGlobalSettingsKey(planKey) as string) || "" : "",
 		}
-	}, [modelRefreshKey, stateManager])
+	}, [stateManager])
 
 	// Toggle a feature setting
 	const toggleFeature = useCallback(
@@ -435,7 +435,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		return () => {
 			cancelled = true
 		}
-	}, [isWaitingForCodemarieAuth, controller, fetchAccountInfo])
+	}, [isWaitingForCodemarieAuth, controller, fetchAccountInfo, refreshModelIds])
 
 	// Build items list based on current tab
 	const items: ListItem[] = useMemo(() => {
@@ -947,7 +947,10 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		actReasoningEffort,
 		planReasoningEffort,
 		rebuildTaskApi,
-		setReasoningEffortForMode,
+		setReasoningEffortForMode, // Update telemetry providers to respect the new setting
+		controller,
+		handleTabChange,
+		provider,
 	])
 
 	// Handle completion of the Bedrock custom ARN flow (ARN + base model selected)
@@ -1098,7 +1101,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			setCodexAuthError(error instanceof Error ? error.message : String(error))
 			setIsWaitingForCodexAuth(false)
 		}
-	}, [controller])
+	}, [controller, refreshModelIds])
 
 	const handleProviderSelect = useCallback(
 		async (providerId: string) => {
@@ -1170,7 +1173,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				setIsPickingProvider(false)
 			}
 		},
-		[stateManager, startCodexAuth, handleCodemarieLogin, startOcaAuth, isOcaAuthenticated, controller, refreshModelIds],
+		[stateManager, startCodexAuth, handleCodemarieLogin, isOcaAuthenticated, controller, refreshModelIds],
 	)
 
 	// Handle API key submission after provider selection

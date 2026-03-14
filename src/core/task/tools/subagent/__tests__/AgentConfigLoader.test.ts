@@ -34,7 +34,11 @@ You are a code reviewer.`
 		assert.equal(parsed.name, "code-reviewer")
 		assert.equal(parsed.description, "Reviews code for quality and best practices")
 		assert.equal(parsed.modelId, "sonnet")
-		assert.deepEqual(parsed.tools, [CodemarieDefaultTool.FILE_READ, CodemarieDefaultTool.LIST_FILES, CodemarieDefaultTool.SEARCH])
+		assert.deepEqual(parsed.tools, [
+			CodemarieDefaultTool.FILE_READ,
+			CodemarieDefaultTool.LIST_FILES,
+			CodemarieDefaultTool.SEARCH,
+		])
 		assert.equal(parsed.systemPrompt, "You are a code reviewer.")
 	})
 

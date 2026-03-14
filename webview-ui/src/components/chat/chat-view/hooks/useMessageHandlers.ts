@@ -143,6 +143,7 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 			setSelectedFiles,
 			setEnableButtons,
 			chatState,
+			messages,
 		],
 	)
 
@@ -296,9 +297,7 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 		[
 			codemarieAsk,
 			lastMessage,
-			messages,
 			clearInputState,
-			handleSendMessage,
 			startNewTask,
 			chatState,
 			backgroundCommandRunning,

@@ -326,7 +326,7 @@ export class FluidPolicyEngine {
 			}
 		}
 
-		return header + "\n" + content
+		return `${header}\n${content}`
 	}
 
 	/**
@@ -361,7 +361,7 @@ export class FluidPolicyEngine {
 
 			if (currentHash !== prevResultHash) {
 				result.warning =
-					(result.warning ? result.warning + "\n" : "") +
+					(result.warning ? `${result.warning}\n` : "") +
 					"⚠️ ENTROPY WARNING: Tool output has diverged from expected hash. Structural stability may be compromised."
 				result.entropyScore = 1.0 // Simple toggle for now
 			}

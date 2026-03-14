@@ -195,7 +195,9 @@ export const SubagentMessage: React.FC<SubagentMessageProps> = ({ message, mode,
 		return (
 			<Box flexDirection="column" marginBottom={1} width="100%">
 				<DotRow color={toolColor} flashing={partial === true && isStreaming}>
-					<Text color={toolColor}>{singular ? "Codemarie wants to run a subagent:" : "Codemarie wants to run subagents:"}</Text>
+					<Text color={toolColor}>
+						{singular ? "Codemarie wants to run a subagent:" : "Codemarie wants to run subagents:"}
+					</Text>
 				</DotRow>
 				<Box flexDirection="column" marginLeft={2} width="100%">
 					{prompts.map((prompt, index) => {

@@ -13,7 +13,7 @@ export class CognitiveMemoryChokeHandler implements IToolHandler {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const limit = block.params.limit ? Number.parseInt(block.params.limit) : 10
+		const limit = block.params.limit ? Number.parseInt(block.params.limit, 10) : 10
 
 		try {
 			const chokepoints = await config.services.knowledgeGraphService.detectChokepoints(config.taskId, limit)

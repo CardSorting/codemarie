@@ -41,7 +41,8 @@ export function transformToolCallMessages(
 
 	// Determine which conversion to apply
 	const hasApplyPatchNative = nativeToolSet.has(CodemarieDefaultTool.APPLY_PATCH)
-	const hasFileEditNative = nativeToolSet.has(CodemarieDefaultTool.FILE_EDIT) || nativeToolSet.has(CodemarieDefaultTool.FILE_NEW)
+	const hasFileEditNative =
+		nativeToolSet.has(CodemarieDefaultTool.FILE_EDIT) || nativeToolSet.has(CodemarieDefaultTool.FILE_NEW)
 
 	const hasApplyPatchUsed = usedToolSet.has(CodemarieDefaultTool.APPLY_PATCH)
 	const hasFileEditUsed = usedToolSet.has(CodemarieDefaultTool.FILE_EDIT) || usedToolSet.has(CodemarieDefaultTool.FILE_NEW)

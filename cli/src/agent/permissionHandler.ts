@@ -116,7 +116,10 @@ export function getPermissionOptionsForAskType(askType: CodemarieAsk): acp.Permi
  * @param askType - The original CodemarieAsk type that triggered the permission request
  * @returns The translated result for Codemarie's handleWebviewAskResponse
  */
-export function handlePermissionResponse(response: acp.RequestPermissionResponse, askType: CodemarieAsk): PermissionHandlerResult {
+export function handlePermissionResponse(
+	response: acp.RequestPermissionResponse,
+	_askType: CodemarieAsk,
+): PermissionHandlerResult {
 	// Check if cancelled
 	if (response.outcome.outcome === "cancelled") {
 		return {

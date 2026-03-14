@@ -154,7 +154,9 @@ class CodemarieTempManagerImpl {
 			}
 
 			if (deletedCount > 0) {
-				Logger.info(`Codemarie temp cleanup: deleted ${deletedCount} files, freed ${Math.round(freedBytes / 1024 / 1024)}MB`)
+				Logger.info(
+					`Codemarie temp cleanup: deleted ${deletedCount} files, freed ${Math.round(freedBytes / 1024 / 1024)}MB`,
+				)
 			}
 		} catch (error) {
 			Logger.error("Error during Codemarie temp cleanup", error)

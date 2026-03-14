@@ -37,7 +37,7 @@ export async function checkAnyProviderConfigured(): Promise<boolean> {
 	const config = stateManager.getApiConfiguration() as Record<string, unknown>
 
 	// Check Codemarie account (stored as "codemarie:codemarieAccountId" in secrets, loaded into config)
-	if (config["codemarieApiKey"] || config["codemarie:codemarieAccountId"]) return true
+	if (config.codemarieApiKey || config["codemarie:codemarieAccountId"]) return true
 
 	// Check OpenAI Codex OAuth (stored in SECRETS_KEYS, loaded into config)
 	if (config["openai-codex-oauth-credentials"]) return true

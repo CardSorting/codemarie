@@ -14,7 +14,7 @@ export class CognitiveMemoryContextHandler implements IToolHandler {
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
 		const path = block.params.path
-		const limit = block.params.limit ? Number.parseInt(block.params.limit) : 50
+		const limit = block.params.limit ? Number.parseInt(block.params.limit, 10) : 50
 
 		if (!path) {
 			return await config.callbacks.sayAndCreateMissingParamError(this.name, "path")

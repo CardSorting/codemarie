@@ -214,6 +214,9 @@ export class BufferedDbPool {
 						const sets: any = {}
 						for (const [k, v] of Object.entries(op.values)) {
 							if (v && typeof v === "object" && (v as any)._type === "increment") {
+								// Use raw SQL for increment
+								const db2 = trx as any // Access internal kysely for raw if needed, or but Kysely has sql template
+								const { sql } = db2
 								sets[k] = sql`${sql.ref(k)} + ${v.value}`
 							} else {
 								sets[k] = v

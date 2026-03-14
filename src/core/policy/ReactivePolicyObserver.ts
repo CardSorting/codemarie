@@ -64,7 +64,7 @@ export class ReactivePolicyObserver {
 	/**
 	 * Provides proactive layer awareness on tool outcomes.
 	 */
-	public async observeToolOutcome(toolName: string, output: any): Promise<{ hint?: string }> {
+	public async observeToolOutcome(_toolName: string, _output: any): Promise<{ hint?: string }> {
 		// Read-time layer context is already handled by FluidPolicyEngine.onRead()
 		// This hook is available for future enrichments (e.g., dependency graph suggestions)
 		return {}

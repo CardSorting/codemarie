@@ -3,10 +3,10 @@ import * as os from "os"
 import * as path from "path"
 import should from "should"
 import sinon from "sinon"
-import { StateManager } from "../../storage/StateManager"
-import * as diskModule from "../../storage/disk"
-import { HookDiscoveryCache } from "../HookDiscoveryCache"
 import { HookOutput } from "../../../shared/proto/codemarie/hooks"
+import * as diskModule from "../../storage/disk"
+import { StateManager } from "../../storage/StateManager"
+import { HookDiscoveryCache } from "../HookDiscoveryCache"
 import { Hooks, NamedHookInput } from "../hook-factory"
 
 // Define HookName locally since it's not exported from hook-factory

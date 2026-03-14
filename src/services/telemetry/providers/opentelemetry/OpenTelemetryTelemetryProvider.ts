@@ -171,7 +171,10 @@ export class OpenTelemetryTelemetryProvider implements ITelemetryProvider {
 	 * Build a flat record of user and organization attributes for use as
 	 * OpenTelemetry log/event attributes.
 	 */
-	private buildUserAttributes(userInfo: CodemarieAccountUserInfo, properties: TelemetryProperties = {}): Record<string, string> {
+	private buildUserAttributes(
+		userInfo: CodemarieAccountUserInfo,
+		properties: TelemetryProperties = {},
+	): Record<string, string> {
 		const activeOrg = userInfo.organizations?.find((org) => org.active)
 
 		return {
