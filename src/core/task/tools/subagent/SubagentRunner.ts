@@ -703,6 +703,7 @@ export class SubagentRunner {
 			coordinator,
 			taskState: state,
 			isSubagentExecution: true,
+			parentGroundedSpec: this.baseConfig.taskState.groundedSpec,
 			vscodeTerminalExecutionMode: "backgroundExec",
 			callbacks: {
 				...baseCallbacks,

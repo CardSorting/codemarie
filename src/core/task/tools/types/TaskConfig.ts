@@ -18,6 +18,7 @@ import type { CodemarieDefaultTool } from "@shared/tools"
 import type { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { WorkspaceRootManager } from "@/core/workspace"
 import type { ContextManager } from "../../../context/context-management/ContextManager"
+import { GroundedSpec } from "../../../grounding/types"
 import type { StateManager } from "../../../storage/StateManager"
 import type { MessageStateHandler } from "../../message-state"
 import type { TaskState } from "../../TaskState"
@@ -41,6 +42,7 @@ export interface TaskConfig {
 	vscodeTerminalExecutionMode: "vscodeTerminal" | "backgroundExec"
 	enableParallelToolCalling: boolean
 	isSubagentExecution: boolean
+	parentGroundedSpec?: GroundedSpec
 
 	// Multi-workspace support (optional for backward compatibility)
 	workspaceManager?: WorkspaceRootManager
