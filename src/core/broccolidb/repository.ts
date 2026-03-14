@@ -141,16 +141,16 @@ export class Repository {
 	private refCache: LRUCache<string, string>
 	public agentContext: any | null // AgentContext interface for reasoning audits
 	public strictReasoning = false // If true, commits with logical contradictions are blocked
-	private fileCache = new LRUCache<string, FileEntry>(500)
-	private rawTreeCache = new LRUCache<string, TreeSnapshot>(1000)
-	private treeCache = new LRUCache<string, Record<string, string>>(512)
+	private fileCache = new LRUCache<string, FileEntry>(500, 300000) // 5 min TTL
+	private rawTreeCache = new LRUCache<string, TreeSnapshot>(1000, 300000) // 5 min TTL
+	private treeCache = new LRUCache<string, Record<string, string>>(512, 300000) // 5 min TTL
 
 	private hooks: Record<string, ((data: any) => Promise<void>)[]> = {}
 
 	constructor(dbOrConnection: BufferedDbPool | Connection, basePathOrRepoId: string, agentContext?: any) {
 		this.agentContext = agentContext || null
-		this.nodeCache = new LRUCache<string, MemoryNode>(1000)
-		this.refCache = new LRUCache<string, string>(100)
+		this.nodeCache = new LRUCache<string, MemoryNode>(1000, 600000) // 10 min TTL
+		this.refCache = new LRUCache<string, string>(100, 60000) // 1 min TTL
 		if (dbOrConnection instanceof Connection) {
 			this.db = dbOrConnection.getPool()
 			this.basePath = `repos/${basePathOrRepoId}`

@@ -70,6 +70,115 @@ export async function searchFilesWithKeyword(keyword: string, workspacePath: str
 	})
 }
 
+export async function searchSymbolInFiles(symbol: string, targetFiles: string[], workspacePath: string): Promise<string[]> {
+	if (targetFiles.length === 0) return []
+
+	const rgPath = await getBinaryLocation("rg")
+
+	return new Promise((resolve) => {
+		// Build pattern for common symbol definitions (class, function, const, interface, type)
+		const pattern = `\\b(class|function|const|let|var|interface|type|enum)\\s+${symbol}\\b|\\b${symbol}\\s*[:=]`
+
+		// ripgrep can search specific files by passing them as arguments
+		const args = ["-l", "-i", "--word-regexp", pattern, ...targetFiles.map((f) => path.join(workspacePath, f))]
+
+		const rgProcess = getSpawnFunction()(rgPath, args)
+		const rl = readline.createInterface({ input: rgProcess.stdout })
+
+		const matchedFiles: string[] = []
+
+		rl.on("line", (line) => {
+			const relativePath = path.relative(workspacePath, line)
+			matchedFiles.push(relativePath)
+		})
+
+		rl.on("close", () => {
+			resolve(matchedFiles)
+		})
+
+		rgProcess.on("error", () => {
+			resolve([])
+		})
+	})
+}
+
+export interface FileSnippet {
+	path: string
+	snippets: string[]
+}
+
+export async function searchFilesWithSnippets(
+	keyword: string,
+	workspacePath: string,
+	fileLimit = 5,
+	snippetLimit = 3,
+): Promise<FileSnippet[]> {
+	const rgPath = await getBinaryLocation("rg")
+
+	return new Promise((resolve, reject) => {
+		// Arguments for ripgrep to get matches with context
+		const args = [
+			"-i", // case-insensitive
+			"--column",
+			"--line-number",
+			"--no-heading",
+			"--color",
+			"never",
+			"-C",
+			"2", // 2 lines of context
+			"--follow",
+			"--hidden",
+			"-g",
+			"!**/{node_modules,.git,.github,out,dist,__pycache__,.venv,.env,venv,env,.cache,tmp,temp}/**",
+			keyword,
+			workspacePath,
+		]
+
+		const rgProcess = getSpawnFunction()(rgPath, args)
+		const rl = readline.createInterface({ input: rgProcess.stdout })
+
+		const results: Map<string, string[]> = new Map()
+		let fileCount = 0
+
+		rl.on("line", (line) => {
+			// Example line: src/auth/service.ts:10:5: export class AuthService {
+			// Or context line: src/auth/service.ts-9-  ...
+			const match = line.match(/^([^:-]+)[:-]/)
+			if (!match) return
+
+			const absolutePath = match[1]
+			const relativePath = path.relative(workspacePath, absolutePath)
+
+			if (!results.has(relativePath)) {
+				if (fileCount >= fileLimit) return
+				results.set(relativePath, [])
+				fileCount++
+			}
+
+			const snippets = results.get(relativePath)!
+			if (snippets.length < snippetLimit * 5) {
+				// Each snippet has context lines, so we allow more lines per file
+				snippets.push(line)
+			}
+		})
+
+		let errorOutput = ""
+		rgProcess.stderr.on("data", (data) => {
+			errorOutput += data.toString()
+		})
+
+		rl.on("close", () => {
+			const finalResults: FileSnippet[] = Array.from(results.entries()).map(([path, snippets]) => ({
+				path,
+				snippets: snippets.slice(0, snippetLimit * 5),
+			}))
+			resolve(finalResults)
+		})
+
+		rgProcess.on("error", (error) => reject(new Error(`ripgrep process error: ${error.message}`)))
+	})
+}
+
 export async function executeRipgrepForFiles(
 	workspacePath: string,
 	limit = 5000,

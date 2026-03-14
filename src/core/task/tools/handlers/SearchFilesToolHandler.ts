@@ -259,13 +259,21 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 				: searchPaths.length > 1
 					? "cross_workspace_search"
 					: "fallback_to_primary"
+
+			const primarySearchPath = searchPaths[0]?.absolutePath
+			const primaryWorkspaceIndex = primarySearchPath
+				? config.workspaceManager
+						.getRoots()
+						.findIndex((r) => arePathsEqual(r.path, primarySearchPath) || primarySearchPath.startsWith(r.path))
+				: undefined
+
 			telemetryService.captureWorkspacePathResolved(
 				config.ulid,
 				"SearchFilesToolHandler",
 				resolutionType,
 				workspaceHint ? "workspace_name" : undefined,
 				searchPaths.length > 0, // resolution success = found paths to search
-				undefined, // TODO: could calculate primary workspace index
+				primaryWorkspaceIndex >= 0 ? primaryWorkspaceIndex : undefined,
 				true,
 			)
 		}

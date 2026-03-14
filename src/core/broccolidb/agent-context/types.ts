@@ -95,6 +95,7 @@ export interface ServiceContext {
 	workspace: Workspace
 	userId: string
 	push: (op: any, agentId?: string) => Promise<void>
+	searchKnowledge: (query: string, limit?: number) => Promise<KnowledgeBaseItem[]>
 }
 export interface AgentBundle {
 	profile: AgentProfile

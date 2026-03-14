@@ -120,9 +120,17 @@ export async function resetWorkspaceState() {
 	await stateManager.reInitialize()
 }
 
-export async function resetGlobalState() {
-	// TODO: Reset all workspace states?
+export async function resetGlobalState(shouldResetWorkspaces = true) {
 	const stateManager = StateManager.get()
+
+	if (shouldResetWorkspaces) {
+		try {
+			await stateManager.resetAllWorkspaces()
+		} catch (error) {
+			Logger.error("[StateHelpers] Failed to reset all workspaces during global reset:", error)
+		}
+	}
+
 	GlobalStateAndSettingKeys.map((key) => stateManager.setGlobalState(key, undefined))
 	SecretKeys.map((key) => stateManager.setSecret(key, undefined))
 	await stateManager.reInitialize()

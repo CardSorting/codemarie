@@ -75,6 +75,7 @@ export class AgentContext {
 			workspace: this.workspace,
 			userId: this.userId,
 			push: this._push.bind(this),
+			searchKnowledge: (query: string, limit?: number) => this.searchKnowledge(query, undefined, limit),
 		}
 
 		this.graphService = new GraphService(ctx)
@@ -105,10 +106,8 @@ export class AgentContext {
 		const ops = [...this.localBuffer]
 		this.localBuffer = []
 
-		// Process in atomic clusters if possible, but the DbPool already handles transactions.
-		for (const op of ops) {
-			await this.db.push(op, op.agentId)
-		}
+		// Efficiency: Use pushBatch to reduce lock acquisition overhead in BufferedDbPool
+		await this.db.pushBatch(ops)
 	}
 
 	/**

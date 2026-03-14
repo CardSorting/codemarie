@@ -684,7 +684,11 @@ export class StateManager {
 	 */
 	async reInitialize(currentTaskId?: string): Promise<void> {
 		if (this.persistenceTimeout) {
-			await this.persistPendingState()
+			try {
+				await this.persistPendingState()
+			} catch (error) {
+				Logger.error("[StateManager] Failed to persist pending state during reInitialize:", error)
+			}
 		}
 		// Clear all cached data and pending state
 		this.dispose()
@@ -695,6 +699,33 @@ export class StateManager {
 		// If there's an active task, reload its settings
 		if (currentTaskId) {
 			await this.loadTaskSettings(currentTaskId)
+		}
+	}
+
+	/**
+	 * Completely reset all workspace states by deleting the workspaces directory.
+	 * This is a destructive operation used for full factory resets.
+	 */
+	async resetAllWorkspaces(): Promise<void> {
+		if (!this.isInitialized) {
+			throw new Error(STATE_MANAGER_NOT_INITIALIZED)
+		}
+
+		const fs = await import("fs/promises")
+		const path = await import("path")
+		const workspacesDir = path.join(this.storage.dataDir, "workspaces")
+
+		try {
+			await fs.rm(workspacesDir, { recursive: true, force: true })
+			// Re-create the directory for the current workspace
+			await fs.mkdir(this.storage.workspaceStoragePath, { recursive: true })
+
+			// Clear in-memory workspace cache
+			this.workspaceStateCache = {} as LocalState
+			this.pendingWorkspaceState.clear()
+		} catch (error) {
+			Logger.error("[StateManager] Failed to reset all workspaces:", error)
+			throw error
 		}
 	}
 

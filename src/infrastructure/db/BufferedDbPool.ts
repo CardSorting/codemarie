@@ -107,16 +107,26 @@ export class BufferedDbPool {
 	}
 
 	public async push(op: WriteOp, agentId?: string, affectedFile?: string) {
+		return this.pushBatch([op], agentId, affectedFile ? [affectedFile] : undefined)
+	}
+
+	public async pushBatch(ops: WriteOp[], agentId?: string, affectedFiles?: string[]) {
 		let shouldFlush = false
 		const release = await this.stateMutex.acquire()
 		try {
 			if (agentId) {
 				const shadow = this.agentShadows.get(agentId) || { ops: [], affectedFiles: new Set() }
-				shadow.ops.push({ ...op, agentId })
-				if (affectedFile) shadow.affectedFiles.add(affectedFile)
+				for (const op of ops) {
+					shadow.ops.push({ ...op, agentId })
+				}
+				if (affectedFiles) {
+					for (const file of affectedFiles) {
+						shadow.affectedFiles.add(file)
+					}
+				}
 				this.agentShadows.set(agentId, shadow)
 			} else {
-				this.globalBuffer.push(op)
+				this.globalBuffer.push(...ops)
 			}
 			shouldFlush = this.globalBuffer.length > 50
 		} finally {

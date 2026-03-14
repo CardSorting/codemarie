@@ -64,10 +64,10 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 
 		mockApiHandler.createMessage.returns(mockStream)
 
-		// Mock fs.access
-		const accessStub = sandbox.stub(fs, "access")
-		accessStub.withArgs(sinon.match("existing.ts")).resolves()
-		accessStub.withArgs(sinon.match("missing.ts")).rejects(new Error("ENOENT"))
+		// Mock fs.stat
+		const statStub = sandbox.stub(fs, "stat")
+		statStub.withArgs(sinon.match("existing.ts")).resolves({ isDirectory: () => false, isFile: () => true } as any)
+		statStub.withArgs(sinon.match("missing.ts")).rejects(new Error("ENOENT"))
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 		const spec = await grounder.ground("task", "context", "/tmp/cwd")

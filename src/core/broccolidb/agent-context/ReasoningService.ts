@@ -1,4 +1,5 @@
 import * as crypto from "node:crypto"
+import { Logger } from "@/shared/services/Logger"
 import { GraphService } from "./GraphService.js"
 import type { ContradictionReport, KnowledgeBaseItem, Pedigree, ServiceContext } from "./types.js"
 
@@ -154,10 +155,20 @@ export class ReasoningService {
 		const nodesToPrune: string[] = []
 		let edgesPruned = 0
 
+		// Soundness Decay: Natural expiration of older reasoning to prioritize 'fresh' context
+		const DECAY_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7 // 1 week
+		const now = Date.now()
+
 		for (const node of allKnowledge) {
 			let shouldPrune = false
+			let confidence = node.confidence
 
-			if (node.confidence < 0.2) shouldPrune = true
+			// Apply decay to old nodes
+			if (now - node.createdAt > DECAY_THRESHOLD_MS) {
+				confidence *= 0.95 // 5% decay per check cycle after threshold
+			}
+
+			if (confidence < 0.2) shouldPrune = true
 
 			const contradictions = node.inboundEdges.filter((e) => e.type === "contradicts")
 			if (contradictions.length > 3) shouldPrune = true
@@ -171,22 +182,50 @@ export class ReasoningService {
 				nodesToPrune.push(node.itemId)
 				edgesPruned += node.edges.length + node.inboundEdges.length
 				await this.graph.deleteKnowledge(node.itemId)
+			} else if (confidence !== node.confidence) {
+				// Update decayed confidence
+				await this.graph.updateKnowledge(node.itemId, { confidence })
 			}
 		}
 
 		return { prunedNodes: nodesToPrune, prunedEdges: edgesPruned }
 	}
+
 	/**
 	 * Automatically discovers and adds relationships for a node based on semantic similarity.
+	 * Uses Gemini to evaluate the specific logical link.
 	 */
-	async autoDiscoverRelationships(nodeId: string, _limit = 5): Promise<{ discovered: number; suggestions: string[] }> {
-		const _item = await this.graph.getKnowledge(nodeId)
+	async autoDiscoverRelationships(nodeId: string, limit = 5): Promise<{ discovered: number; suggestions: string[] }> {
+		const item = await this.graph.getKnowledge(nodeId)
 		if (!this.ctx.aiService?.isAvailable()) return { discovered: 0, suggestions: [] }
 
-		// This requires a search - let's assume we can use a listAll/filter for now or pass search through ctx
-		// In a real scenario, this would call searchKnowledge
-		// For this refactoring, I'll use a simplified version that assumes we have access to candidates
-		return { discovered: 0, suggestions: ["Semantic discovery requires SearchService integration"] }
+		const candidates = await this.ctx.searchKnowledge(item.content, limit + 5)
+		const suggestions: string[] = []
+		let discovered = 0
+
+		const existingTargetIds = new Set(item.edges.map((e) => e.targetId))
+
+		for (const cand of candidates) {
+			if (cand.itemId === nodeId || existingTargetIds.has(cand.itemId)) continue
+
+			try {
+				const relationship = await this.ctx.aiService.evaluateLogicRelationship(item.content, cand.content)
+
+				if (relationship === "supports" || relationship === "contradicts") {
+					const newEdges = [...item.edges, { targetId: cand.itemId, type: relationship, weight: 0.8 }]
+					await this.graph.updateKnowledge(nodeId, { edges: newEdges })
+
+					suggestions.push(`Auto-linked ${nodeId} to ${cand.itemId} (${relationship})`)
+					discovered++
+				}
+
+				if (discovered >= limit) break
+			} catch (e) {
+				Logger.warn(`[ReasoningService] Auto-discovery failed for ${cand.itemId}:`, (e as Error).message)
+			}
+		}
+
+		return { discovered, suggestions }
 	}
 
 	/**
