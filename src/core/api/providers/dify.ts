@@ -74,9 +74,11 @@ interface DifyConversationResponse {
 }
 
 export class DifyHandler implements ApiHandler {
+	private options: DifyHandlerOptions
 	private baseUrl: string
 	private apiKey: string
 	private conversationId: string | null = null
+	private currentTaskId: string | null = null
 
 	constructor(options: DifyHandlerOptions) {
 		this.options = options

@@ -187,6 +187,14 @@ class ACPEnvServiceClient implements EnvServiceClientInterface {
  * Most operations are stubs that will be implemented using ACP extension methods.
  */
 class ACPWindowServiceClient implements WindowServiceClientInterface {
+	private readonly _clientCapabilities: acp.ClientCapabilities | undefined
+	private readonly _sessionIdResolver: SessionIdResolver
+
+	constructor(clientCapabilities: acp.ClientCapabilities | undefined, sessionIdResolver: SessionIdResolver) {
+		this._clientCapabilities = clientCapabilities
+		this._sessionIdResolver = sessionIdResolver
+	}
+
 	async showTextDocument(request: proto.host.ShowTextDocumentRequest): Promise<proto.host.TextEditorInfo> {
 		// Next phase: Send ACP extension request to open document in the editor.
 		// This would tell the ACP client to open the specified file.

@@ -4,7 +4,7 @@ export class Mutex {
 
 	public async acquire(timeoutMs = 30000): Promise<() => void> {
 		const previousTask = this.queue
-		let resolver: () => void
+		let resolver: (() => void) | undefined
 		this.queue = new Promise<void>((resolve) => {
 			resolver = resolve
 		})

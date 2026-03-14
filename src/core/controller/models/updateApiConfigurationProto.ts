@@ -41,6 +41,10 @@ export async function updateApiConfigurationProto(
 				protoApiConfiguration.actModeApiProvider !== undefined
 					? convertProtoToApiProvider(protoApiConfiguration.actModeApiProvider!)
 					: undefined,
+			embeddingProvider:
+				protoApiConfiguration.embeddingProvider !== undefined
+					? convertProtoToApiProvider(protoApiConfiguration.embeddingProvider!)
+					: undefined,
 
 			// Convert ModelInfo objects (empty arrays → undefined)
 			// Plan Mode

@@ -86,6 +86,26 @@ export class BufferedDbPool {
 		}
 	}
 
+	public getShadowOps(agentId: string): WriteOp[] {
+		const shadow = this.agentShadows.get(agentId)
+		return shadow ? [...shadow.ops] : []
+	}
+
+	public async getActiveAffectedFiles(): Promise<Map<string, string>> {
+		const release = await this.stateMutex.acquire()
+		try {
+			const activeFiles = new Map<string, string>()
+			for (const [agentId, shadow] of this.agentShadows.entries()) {
+				for (const file of shadow.affectedFiles) {
+					activeFiles.set(file, agentId)
+				}
+			}
+			return activeFiles
+		} finally {
+			release()
+		}
+	}
+
 	public async push(op: WriteOp, agentId?: string, affectedFile?: string) {
 		let shouldFlush = false
 		const release = await this.stateMutex.acquire()
@@ -108,12 +128,23 @@ export class BufferedDbPool {
 		}
 	}
 
-	public async commitWork(agentId: string) {
+	public async commitWork(
+		agentId: string,
+		_validator?: (affectedFiles: Set<string>, ops: WriteOp[]) => Promise<{ success: boolean; errors: string[] }>,
+	) {
 		const release = await this.stateMutex.acquire()
 		let shadow: { ops: WriteOp[]; affectedFiles: Set<string> } | undefined
 		try {
 			shadow = this.agentShadows.get(agentId)
 			if (!shadow || shadow.ops.length === 0) return
+
+			if (_validator) {
+				const { success, errors } = await _validator(shadow.affectedFiles, shadow.ops)
+				if (!success) {
+					throw new Error(`Commit validation failed: ${errors.join(", ")}`)
+				}
+			}
+
 			this.agentShadows.delete(agentId)
 		} finally {
 			release()
@@ -130,7 +161,7 @@ export class BufferedDbPool {
 		await this.flush()
 	}
 
-	public async rollbackWork(agentId: string) {
+	public async rollbackWork(agentId: string, _reason?: string) {
 		const release = await this.stateMutex.acquire()
 		try {
 			this.agentShadows.delete(agentId)
@@ -258,6 +289,10 @@ export class BufferedDbPool {
 				releaseFlush()
 			}
 		}
+	}
+
+	public async selectAllFrom<T extends keyof Schema>(table: T, agentId?: string): Promise<Schema[T][]> {
+		return this.selectWhere(table, [], agentId)
 	}
 
 	public async selectWhere<T extends keyof Schema>(

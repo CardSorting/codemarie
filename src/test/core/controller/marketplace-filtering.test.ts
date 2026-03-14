@@ -373,14 +373,14 @@ describe("Controller Marketplace Filtering", () => {
 			const catalog = await controller.refreshMcpMarketplace(false)
 
 			const item = catalog?.items[0]
-			item.mcpId.should.equal("github.com/test/database")
-			item.name.should.equal("Database")
-			item.author.should.equal("Test")
-			item.description.should.equal("Database operations")
-			item.githubStars.should.equal(200)
-			item.downloadCount.should.equal(1000)
-			item.tags.should.containEql("db")
-			item.githubUrl.should.equal("https://github.com/test/database")
+			item!.mcpId.should.equal("github.com/test/database")
+			item!.name.should.equal("Database")
+			item!.author.should.equal("Test")
+			item!.description.should.equal("Database operations")
+			item!.githubStars.should.equal(200)
+			item!.downloadCount.should.equal(1000)
+			item!.tags.should.containEql("db")
+			item!.githubUrl.should.equal("https://github.com/test/database")
 		})
 	})
 

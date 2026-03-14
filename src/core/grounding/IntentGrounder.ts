@@ -83,20 +83,45 @@ export class IntentGrounder {
 	): Promise<{ spec: any; tokens: { input: number; output: number } }> {
 		const stream = this.apiHandler.createMessage(systemPrompt, messages)
 		let fullResponse = ""
-		// In a real implementation, we'd get token counts from the final chunk or metadata.
-		// For this prototype implementation, we simulate/estimate or use what's available.
+		let reasoning = ""
+
 		for await (const chunk of stream) {
-			if (chunk.type === "text") {
-				fullResponse += chunk.text
+			switch (chunk.type) {
+				case "text":
+					fullResponse += chunk.text
+					break
+				case "reasoning":
+					reasoning += chunk.reasoning
+					break
+				case "usage":
+					// If usage is provided in the stream, we could capture it here
+					break
 			}
 		}
 
-		const jsonMatch = fullResponse.match(/\{[\s\S]*\}/)
-		if (!jsonMatch) throw new Error("No valid JSON found in grounding response")
+		if (reasoning) {
+			Logger.debug(`[IntentGrounder] Model reasoning: ${reasoning.substring(0, 200)}...`)
+		}
 
-		return {
-			spec: JSON.parse(jsonMatch[0]),
-			tokens: { input: 0, output: 0 }, // Simulator for now; ApiHandler doesn't expose usage directly in stream loop easily
+		// Robust JSON extraction: look for the first '{' and the last '}'
+		const firstOpen = fullResponse.indexOf("{")
+		const lastClose = fullResponse.lastIndexOf("}")
+
+		if (firstOpen === -1 || lastClose === -1 || firstOpen > lastClose) {
+			Logger.error("[IntentGrounder] No valid JSON found in response. Full response:", fullResponse)
+			throw new Error("No valid JSON found in grounding response")
+		}
+
+		const jsonCandidate = fullResponse.substring(firstOpen, lastClose + 1)
+
+		try {
+			return {
+				spec: JSON.parse(jsonCandidate),
+				tokens: { input: 0, output: 0 },
+			}
+		} catch (e) {
+			Logger.error("[IntentGrounder] Failed to parse JSON candidate:", jsonCandidate)
+			throw new Error(`Failed to parse grounding JSON: ${e instanceof Error ? e.message : String(e)}`)
 		}
 	}
 

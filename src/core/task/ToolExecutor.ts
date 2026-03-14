@@ -18,6 +18,7 @@ import { TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
 import { isParallelToolCallingEnabled, modelDoesntSupportWebp } from "@/utils/model-utils"
 import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
+import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
@@ -123,6 +124,7 @@ export class ToolExecutor {
 			context: "initial_task" | "resume" | "feedback",
 		) => Promise<{ cancel?: boolean; wasCancelled?: boolean; contextModification?: string; errorMessage?: string }>,
 		private getOrchestrationController: () => OrchestrationController | undefined,
+		private getKnowledgeGraphService: () => Promise<KnowledgeGraphService | undefined>,
 	) {
 		this.autoApprover = new AutoApprove(this.stateManager)
 		const controller = getOrchestrationController()
@@ -134,7 +136,12 @@ export class ToolExecutor {
 
 	// Create a properly typed TaskConfig object for handlers
 	// NOTE: modifying this object in the tool handlers is okay since these are all references to the singular ToolExecutor instance's variables. However, be careful modifying this object assuming it will update the ToolExecutor instance, e.g. config.browserSession = ... will not update the ToolExecutor.browserSession instance variable. Use applyLatestBrowserSettings() instead.
-	private asToolConfig(): TaskConfig {
+	private async asToolConfig(): Promise<TaskConfig> {
+		const kgService = await this.getKnowledgeGraphService()
+		if (!kgService) {
+			throw new Error("KnowledgeGraphService not initialized")
+		}
+
 		const config: TaskConfig = {
 			taskId: this.taskId,
 			ulid: this.ulid,
@@ -165,6 +172,7 @@ export class ToolExecutor {
 				commandPermissionController: this.commandPermissionController,
 				contextManager: this.contextManager,
 				stateManager: this.stateManager,
+				knowledgeGraphService: kgService,
 			},
 			callbacks: {
 				say: this.say,
@@ -323,7 +331,7 @@ export class ToolExecutor {
 		}
 		canonicalizeAttemptCompletionParams(block)
 
-		const config = this.asToolConfig()
+		const config = await this.asToolConfig()
 
 		try {
 			// Check if user rejected a previous tool

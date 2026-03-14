@@ -70,25 +70,27 @@ export class ClaudeCodeHandler implements ApiHandler {
 				if (message.stop_reason !== null) {
 					const content = "text" in message.content[0] ? message.content[0] : undefined
 
-					const isError = content?.text.startsWith(`API Error`)
-					if (isError) {
+					if (content && content.text.startsWith(`API Error`)) {
 						// Error messages are formatted as: `API Error: <<status code>> <<json>>`
 						const errorMessageStart = content.text.indexOf("{")
-						const errorMessage = content.text.slice(errorMessageStart)
+						if (errorMessageStart !== -1) {
+							const errorMessage = content.text.slice(errorMessageStart)
 
-						const error = this.attemptParse(errorMessage)
-						if (!error) {
-							throw new Error(content.text)
+							const error = this.attemptParse(errorMessage)
+							if (!error) {
+								throw new Error(content.text)
+							}
+
+							if (error.error.message.includes("Invalid model name")) {
+								throw new Error(
+									content.text +
+										`\n\nAPI keys and subscription plans allow different models. Make sure the selected model is included in your plan.`,
+								)
+							}
+
+							throw new Error(errorMessage)
 						}
-
-						if (error.error.message.includes("Invalid model name")) {
-							throw new Error(
-								content.text +
-									`\n\nAPI keys and subscription plans allow different models. Make sure the selected model is included in your plan.`,
-							)
-						}
-
-						throw new Error(errorMessage)
+						throw new Error(content.text)
 					}
 				}
 

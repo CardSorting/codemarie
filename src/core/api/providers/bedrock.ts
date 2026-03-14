@@ -284,7 +284,7 @@ export class AwsBedrockHandler implements ApiHandler {
 	/**
 	 * Creates a BedrockRuntimeClient with the appropriate credentials
 	 */
-	private async getBedrockClient(): Promise<BedrockRuntimeClient> {
+	public async getBedrockClient(): Promise<BedrockRuntimeClient> {
 		let auth: any
 
 		if (this.options.awsAuthentication === "apikey") {
@@ -342,7 +342,7 @@ export class AwsBedrockHandler implements ApiHandler {
 		return this.getModel().id
 	}
 
-	private static async withTempEnv<R>(updateEnv: () => void, fn: () => Promise<R>): Promise<R> {
+	public static async withTempEnv<R>(updateEnv: () => void, fn: () => Promise<R>): Promise<R> {
 		const previousEnv = Object.assign({}, process.env)
 
 		try {
@@ -568,7 +568,7 @@ export class AwsBedrockHandler implements ApiHandler {
 	 * Bedrock Converse API `ToolConfiguration` shape. Returns `undefined` when no tools
 	 * are provided so callers can conditionally spread into the command params.
 	 */
-	private mapCodemarieToolsToBedrockToolConfig(tools?: CodemarieTool[]): ToolConfiguration | undefined {
+	public mapCodemarieToolsToBedrockToolConfig(tools?: CodemarieTool[]): ToolConfiguration | undefined {
 		if (!tools || tools.length === 0) {
 			return undefined
 		}
@@ -603,7 +603,7 @@ export class AwsBedrockHandler implements ApiHandler {
 	 * Executes a Converse API stream command and handles the response
 	 * Common implementation for both Anthropic and Nova models
 	 */
-	private async *executeConverseStream(command: ConverseStreamCommand, modelInfo: ModelInfo): ApiStream {
+	public async *executeConverseStream(command: ConverseStreamCommand, modelInfo: ModelInfo): ApiStream {
 		const client = await this.getBedrockClient()
 		const response = await client.send(command)
 
@@ -862,7 +862,7 @@ export class AwsBedrockHandler implements ApiHandler {
 	 * Creates a message using Anthropic Claude models through AWS Bedrock Converse API
 	 * Implements support for Anthropic Claude models using the unified Converse API
 	 */
-	private async *createAnthropicMessage(
+	public async *createAnthropicMessage(
 		systemPrompt: string,
 		messages: CodemarieStorageMessage[],
 		modelId: string,
@@ -920,7 +920,7 @@ export class AwsBedrockHandler implements ApiHandler {
 	 * Formats messages for models using the Converse API specification
 	 * Used by both Anthropic and Nova models to avoid code duplication
 	 */
-	private formatMessagesForConverseAPI(messages: CodemarieStorageMessage[]): Message[] {
+	public formatMessagesForConverseAPI(messages: CodemarieStorageMessage[]): Message[] {
 		return messages.map((message) => {
 			// Determine role (user or assistant)
 			const role = message.role === "user" ? ConversationRole.USER : ConversationRole.ASSISTANT

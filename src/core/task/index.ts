@@ -614,6 +614,7 @@ export class Task {
 			this.getActiveHookExecution.bind(this),
 			this.runUserPromptSubmitHook.bind(this),
 			() => this.orchestrationController,
+			this.getKnowledgeGraphService.bind(this),
 		)
 	}
 
@@ -3511,8 +3512,7 @@ export class Task {
 	 */
 	private formatWorkspaceRootsSection(): string {
 		const multiRootEnabled = isMultiRootEnabled(this.stateManager)
-		const hasWorkspaceManager = !!this.workspaceManager
-		const roots = hasWorkspaceManager ? this.workspaceManager?.getRoots() : []
+		const roots = this.workspaceManager ? this.workspaceManager.getRoots() : []
 
 		// Only show workspace roots if multi-root is enabled and there are multiple roots
 		if (!multiRootEnabled || roots.length <= 1) {

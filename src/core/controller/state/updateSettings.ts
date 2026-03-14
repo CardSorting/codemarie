@@ -41,6 +41,9 @@ export async function updateSettings(controller: Controller, request: UpdateSett
 				actModeApiProvider: protoApiConfiguration.actModeApiProvider
 					? convertProtoToApiProvider(protoApiConfiguration.actModeApiProvider)
 					: undefined,
+				embeddingProvider: protoApiConfiguration.embeddingProvider
+					? convertProtoToApiProvider(protoApiConfiguration.embeddingProvider)
+					: undefined,
 				planModeReasoningEffort: protoApiConfiguration.planModeReasoningEffort as OpenaiReasoningEffort | undefined,
 				actModeReasoningEffort: protoApiConfiguration.actModeReasoningEffort as OpenaiReasoningEffort | undefined,
 			}

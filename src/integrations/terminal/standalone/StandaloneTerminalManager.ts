@@ -77,6 +77,9 @@ export class StandaloneTerminalManager implements ITerminalManager {
 	/** Default terminal profile */
 	private defaultTerminalProfile = "default"
 
+	/** Timeout for shell integration */
+	private shellIntegrationTimeout = 0
+
 	// =========================================================================
 	// Background Command Tracking
 	// =========================================================================

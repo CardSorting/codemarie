@@ -9,7 +9,7 @@ export const GroundedSpecSchema = z.object({
 		}),
 	),
 	constraints: z.array(z.string()),
-	outputStructure: z.record(z.any()),
+	outputStructure: z.record(z.string(), z.any()),
 	rules: z.array(z.string()),
 	confidenceScore: z.number().min(0).max(1),
 	ambiguityReasoning: z.string().optional(),

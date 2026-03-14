@@ -8,7 +8,7 @@ export class TaskMutex {
 	static async runExclusive<T>(key: string, fn: () => Promise<T>, timeoutMs = 60000): Promise<T> {
 		const previous = TaskMutex.locks.get(key) || Promise.resolve()
 
-		let release: () => void
+		let release: () => void = () => {}
 		const current = new Promise<void>((resolve) => {
 			release = resolve
 		})
@@ -30,7 +30,7 @@ export class TaskMutex {
 			if (TaskMutex.locks.get(key) === current) {
 				TaskMutex.locks.delete(key)
 			}
-			release?.()
+			release()
 		}
 	}
 }
