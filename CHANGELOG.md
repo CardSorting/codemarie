@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.70.0]
+
+### Added
+- **Hardened Intent Grounding Strategy**: Introduced `GroundingDiscovery` and `GroundingCache` (LRU) for enhanced resilience against malformed LLM outputs and improved grounding robustness.
+- **Speculative Semantic Discovery**: Optimized performance with parallelized Keyword Extraction and Knowledge Graph discovery, including cached ripgrep results with TTL.
+- **Adaptive Project Grounding**: Automatically detects blank or scaffolding-only projects to skip unnecessary grounding, reducing latency.
+- **Database Soundness**: Hardened `BufferedDbPool` with atomic shadow commits and optimized flushing to prevent process hangs and ensure data integrity.
+
+### Fixed
+- **VSIX Production Build**: Resolved TypeScript compilation errors in core controllers and task handlers that were blocking production builds.
+
 ## [3.69.0]
 
 ### Added
