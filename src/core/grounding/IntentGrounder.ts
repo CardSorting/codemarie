@@ -2,10 +2,12 @@ import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
+import { dbPool } from "@/infrastructure/db/BufferedDbPool"
 import { FileSnippet, searchFilesWithSnippets, searchSymbolInFiles } from "@/services/search/file-search"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
 import { ApiHandler } from "../api"
+import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { GROUNDING_SYSTEM_PROMPT, GroundedSpec, GroundedSpecSchema } from "./types"
 
 interface CacheEntry<V> {
@@ -139,7 +141,13 @@ export class IntentGrounder {
 		IntentGrounder.keywordCache.clear()
 	}
 
-	async ground(intent: string, context?: string, cwd?: string, streamId?: string): Promise<GroundedSpec> {
+	async ground(
+		intent: string,
+		context?: string,
+		cwd?: string,
+		streamId?: string,
+		knowledgeGraph?: KnowledgeGraphService,
+	): Promise<GroundedSpec> {
 		const startTime = Date.now()
 
 		// Attempt cache retrieval with hashed key
@@ -177,17 +185,37 @@ export class IntentGrounder {
 			cwd ? this.loadProjectRules(cwd) : Promise.resolve(""),
 			cwd
 				? Promise.race([
-						this.discoverRelevantContext(intent, cwd),
+						this.discoverRelevantContext(intent, cwd, streamId, knowledgeGraph),
 						new Promise<string>((resolve) => setTimeout(() => resolve(""), 15000)),
 					])
 				: Promise.resolve(""),
 		])
 
+		// Phase 4: Extreme Hardening - Prompt Shaving
+		// If the context is over 20k chars, we begin aggressive truncation of non-essential snippets
+		let finalContext = context || ""
+		let finalDiscovered = discoveredContext || ""
+		const finalRules = projectRules || ""
+
+		const CONTEXT_BUDGET = 25000
+		const totalLength = intent.length + finalContext.length + finalDiscovered.length + finalRules.length
+
+		if (totalLength > CONTEXT_BUDGET) {
+			Logger.info(`[IntentGrounder] Context budget exceeded (${totalLength} chars). Shaving prompt...`)
+			// 1. Shave Environment Context (keep only last few entries if it was large)
+			if (finalContext.length > 5000) finalContext = finalContext.substring(0, 5000) + "\n[... truncated ...]"
+			// 2. Shave Discovered Context (most expensive but already has top 8 ranking, so we just take top 4)
+			if (finalDiscovered.length > 10000) {
+				const sections = finalDiscovered.split("File: ")
+				finalDiscovered = sections.slice(0, 5).join("File: ") + "\n[... aggressive shaving internal ...]"
+			}
+		}
+
 		const userContent =
 			`Ground this intent: ${intent}` +
-			(context ? `\n\nEnvironment Context:\n${context}` : "") +
-			(discoveredContext ? `\n\nDiscovered Semantic Context (ripgrep snippets):\n${discoveredContext}` : "") +
-			(projectRules ? `\n\nProject Rules (.codemarierules):\n${projectRules}` : "")
+			(finalContext ? `\n\nEnvironment Context:\n${finalContext}` : "") +
+			(finalDiscovered ? `\n\nDiscovered Semantic Context (ripgrep snippets):\n${finalDiscovered}` : "") +
+			(finalRules ? `\n\nProject Rules (.codemarierules):\n${finalRules}` : "")
 
 		const messages: CodemarieStorageMessage[] = [
 			{
@@ -200,8 +228,14 @@ export class IntentGrounder {
 			Logger.info(`[IntentGrounder] Grounding intent: ${intent.substring(0, 100)}...`)
 			const { spec: rawSpec, tokens } = await this.executeGroundingRequest(systemPrompt, messages)
 
-			// Pass 5: Autonomous Validation & Verification
-			let validatedSpec = GroundedSpecSchema.parse(rawSpec)
+			// Phase 3: Autonomous Validation & Verification with Graceful Resilience
+			let validatedSpec: GroundedSpec
+			try {
+				validatedSpec = GroundedSpecSchema.parse(rawSpec)
+			} catch (validationError) {
+				Logger.warn("[IntentGrounder] Schema validation failed, attempting to heal spec", validationError)
+				validatedSpec = this.healSpec(rawSpec)
+			}
 
 			if (cwd) {
 				validatedSpec = await this.verifyEntities(validatedSpec, cwd)
@@ -212,9 +246,13 @@ export class IntentGrounder {
 			let critiqueTokens = { input: 0, output: 0 }
 			if (validatedSpec.confidenceScore < 0.7) {
 				Logger.info("[IntentGrounder] Confidence low, performing self-critique...")
-				const { spec: critiqued, tokens: t } = await this.selfCritique(validatedSpec, intent)
-				finalSpec = critiqued
-				critiqueTokens = t
+				try {
+					const { spec: critiqued, tokens: t } = await this.selfCritique(validatedSpec, intent)
+					finalSpec = critiqued
+					critiqueTokens = t
+				} catch (critiqueError) {
+					Logger.warn("[IntentGrounder] Self-critique failed, proceeding with validated spec", critiqueError)
+				}
 			}
 
 			// Finalize telemetry
@@ -240,8 +278,22 @@ export class IntentGrounder {
 			)
 			return finalSpec
 		} catch (error) {
-			Logger.error("[IntentGrounder] Grounding failed:", error)
-			throw error
+			Logger.error("[IntentGrounder] Grounding failed completely:", error)
+			// Last resort: return a minimal safe spec to avoid breaking the task loop
+			return {
+				decisionVariables: [],
+				constraints: [],
+				outputStructure: {},
+				rules: [],
+				confidenceScore: 0.1,
+				ambiguityReasoning: `Grounding failed: ${error instanceof Error ? error.message : String(error)}`,
+				missingInformation: ["The system failed to structure your intent. Please try rephrasing."],
+				telemetry: {
+					durationMs: Date.now() - startTime,
+					model: this.apiHandler.getModel().id,
+					isCacheHit: false,
+				},
+			}
 		}
 	}
 
@@ -257,6 +309,44 @@ export class IntentGrounder {
 		await orchestrator.storeMemory(streamId, "last_grounding_spec", JSON.stringify(spec))
 		await orchestrator.storeMemory(streamId, "last_intent", intent)
 		await orchestrator.storeMemory(streamId, "grounding_telemetry", JSON.stringify(spec.telemetry))
+		// Deep Hardening: Commit critical grounding metadata immediately to prevent loss in case of crash
+		try {
+			await dbPool.commitWork(streamId)
+		} catch (e) {
+			Logger.error("[IntentGrounder] Failed to commit grounding metadata:", e)
+		}
+	}
+
+	private healSpec(raw: any): GroundedSpec {
+		const healed: GroundedSpec = {
+			decisionVariables: Array.isArray(raw.decisionVariables) ? raw.decisionVariables : [],
+			constraints: Array.isArray(raw.constraints) ? raw.constraints : [],
+			outputStructure: typeof raw.outputStructure === "object" ? raw.outputStructure : {},
+			rules: Array.isArray(raw.rules) ? raw.rules : [],
+			confidenceScore: typeof raw.confidenceScore === "number" ? Math.min(1, Math.max(0, raw.confidenceScore)) : 0.5,
+			ambiguityReasoning: raw.ambiguityReasoning || "Spec was automatically healed after validation failure.",
+			missingInformation: Array.isArray(raw.missingInformation) ? raw.missingInformation : [],
+		}
+
+		// Intelligent Repair: If decisionVariables is missing but rules mention files, try to extract them
+		if (healed.decisionVariables.length === 0 && healed.rules.length > 0) {
+			const potentialFiles = new Set<string>()
+			healed.rules.forEach((r) => {
+				const matches = r.match(/[a-zA-Z0-9_\-./]+\.[a-z]{2,5}/g)
+				if (matches) matches.forEach((m) => potentialFiles.add(m))
+			})
+
+			if (potentialFiles.size > 0) {
+				healed.decisionVariables = Array.from(potentialFiles).map((f) => ({
+					name: path.basename(f),
+					description: `Healed path: ${f}`,
+					range: [f],
+				}))
+				healed.ambiguityReasoning += " Infused decision variables from rules."
+			}
+		}
+
+		return healed
 	}
 
 	private async executeGroundingRequest(
@@ -282,6 +372,25 @@ export class IntentGrounder {
 				switch (chunk.type) {
 					case "text":
 						fullResponse += chunk.text
+
+						// OPTIMISTIC EXTRACTION: Speed up by terminating early if we have a valid spec
+						// Check every 200 chars to avoid excessive parsing overhead
+						if (fullResponse.length > 500 && fullResponse.includes("}")) {
+							const lastChars = fullResponse.slice(-10).trim()
+							if (lastChars.endsWith("}") || lastChars.endsWith("```")) {
+								try {
+									// Attempt a quick parse of the current buffer
+									const spec = this.quickExtractJson(fullResponse)
+									if (spec && spec.decisionVariables && typeof spec.confidenceScore === "number") {
+										Logger.info("[IntentGrounder] Optimistic Extraction triggered: Spec complete.")
+										this.apiHandler.abort?.()
+										return
+									}
+								} catch {
+									/* Not a complete JSON object yet */
+								}
+							}
+						}
 						break
 					case "reasoning":
 						reasoning += chunk.reasoning
@@ -290,7 +399,11 @@ export class IntentGrounder {
 			}
 		}
 
-		await Promise.race([processStream(), timeoutPromise])
+		await Promise.race([processStream(), timeoutPromise]).catch((err) => {
+			// Ignore abort errors if we already have a response
+			if (err.name === "AbortError" && fullResponse.length > 0) return
+			throw err
+		})
 
 		let tokens = { input: 0, output: 0 }
 		if (this.apiHandler.getApiStreamUsage) {
@@ -304,42 +417,90 @@ export class IntentGrounder {
 			Logger.debug(`[IntentGrounder] Model reasoning: ${reasoning.substring(0, 200)}...`)
 		}
 
-		// Hardened JSON parsing to handle markdown blocks and extra text
+		// Robust extraction of JSON from response
 		let jsonCandidate = fullResponse.trim()
-		const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/
-		const match = fullResponse.match(codeBlockRegex)
-		if (match) {
-			jsonCandidate = match[1].trim()
+
+		// 1. Try to find JSON within markdown code blocks
+		const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/g
+		let match
+		let bestMatch = ""
+		while ((match = codeBlockRegex.exec(fullResponse)) !== null) {
+			// If multiple blocks, we prefer the one that looks like a spec (contains "decisionVariables")
+			const block = match[1].trim()
+			if (block.includes("decisionVariables") || block.length > bestMatch.length) {
+				bestMatch = block
+			}
 		}
 
+		if (bestMatch) {
+			jsonCandidate = bestMatch
+		}
+
+		// 2. Locate the outermost curly braces if we have a string candidate
 		const firstOpen = jsonCandidate.indexOf("{")
 		const lastClose = jsonCandidate.lastIndexOf("}")
 
-		if (firstOpen === -1 || lastClose === -1 || firstOpen > lastClose) {
-			Logger.error("[IntentGrounder] No valid JSON found in response")
-			throw new Error("No valid JSON found in grounding response")
+		if (firstOpen !== -1 && lastClose !== -1 && firstOpen < lastClose) {
+			jsonCandidate = jsonCandidate.substring(firstOpen, lastClose + 1)
+		} else {
+			// FALLBACK: If no clear braces in the whole block, search the entire fullResponse
+			const fOpenGlobal = fullResponse.indexOf("{")
+			const lCloseGlobal = fullResponse.lastIndexOf("}")
+			if (fOpenGlobal !== -1 && lCloseGlobal !== -1 && fOpenGlobal < lCloseGlobal) {
+				jsonCandidate = fullResponse.substring(fOpenGlobal, lCloseGlobal + 1)
+			} else {
+				Logger.error("[IntentGrounder] No valid JSON markers found in response", {
+					responseLength: fullResponse.length,
+					preview: fullResponse.substring(0, 500) + "...",
+				})
+				throw new Error("No valid JSON found in grounding response")
+			}
 		}
 
-		jsonCandidate = jsonCandidate.substring(firstOpen, lastClose + 1)
-
 		try {
+			// Try parsing the extracted string directly first
 			return {
 				spec: JSON.parse(jsonCandidate),
 				tokens,
 			}
 		} catch (e) {
-			Logger.info("[IntentGrounder] Initial JSON parse failed, attempting repair...")
+			Logger.info("[IntentGrounder] Initial JSON parse failed, attempting intensive repair...")
 			try {
 				const repaired = this.repairJson(jsonCandidate)
 				return {
 					spec: JSON.parse(repaired),
 					tokens,
 				}
-			} catch {
-				Logger.error("[IntentGrounder] JSON repair failed")
+			} catch (repairError) {
+				Logger.error("[IntentGrounder] JSON repair failed", {
+					error: repairError instanceof Error ? repairError.message : String(repairError),
+					jsonPreview: jsonCandidate.substring(0, 200) + "...",
+				})
 				throw new Error(`Failed to parse grounding JSON: ${e instanceof Error ? e.message : String(e)}`)
 			}
 		}
+	}
+
+	private quickExtractJson(fullResponse: string): any | null {
+		const codeBlockMatch = /```(?:json)?\s*([\s\S]*?)\s*```/g.exec(fullResponse)
+		let jsonCandidate = codeBlockMatch ? codeBlockMatch[1].trim() : fullResponse.trim()
+
+		const firstOpen = jsonCandidate.indexOf("{")
+		const lastClose = jsonCandidate.lastIndexOf("}")
+
+		if (firstOpen !== -1 && lastClose !== -1 && firstOpen < lastClose) {
+			jsonCandidate = jsonCandidate.substring(firstOpen, lastClose + 1)
+			try {
+				return JSON.parse(jsonCandidate)
+			} catch {
+				try {
+					return JSON.parse(this.repairJson(jsonCandidate))
+				} catch {
+					return null
+				}
+			}
+		}
+		return null
 	}
 
 	private repairJson(json: string): string {
@@ -364,7 +525,7 @@ export class IntentGrounder {
 
 		// Deep Hardening: Handle unescaped double quotes inside string values that cause parse errors
 		// We look for patterns like "key": "value "with" quotes",
-		repaired = repaired.replace(/":\s*"([\s\S]*?)"(?=\s*[,}])|":\s*"([\s\S]*?)"$/g, (match, p1, p2) => {
+		repaired = repaired.replace(/":\s*"([\s\S]*?)"(?=\s*[,}])|":\s*"([\s\S]*?)"$/g, (_, p1, p2) => {
 			const content = p1 || p2 || ""
 			// Escape any internal double quotes that aren't already escaped
 			const escapedContent = content.replace(/(?<!\\)"/g, '\\"')
@@ -511,25 +672,60 @@ STRICTLY return ONLY the JSON for the spec.`
 		}
 	}
 
-	private async extractKeywords(intent: string, cwd?: string): Promise<string[]> {
-		const cacheKey = crypto.createHash("sha256").update(intent).digest("hex")
-		const cachedKeywords = IntentGrounder.keywordCache.get(cacheKey)
-		if (cachedKeywords) {
-			return cachedKeywords
-		}
+	private async speculativeKgDiscovery(
+		intent: string,
+		streamId: string,
+		knowledgeGraph: KnowledgeGraphService,
+		naiveKeywords: string[],
+	): Promise<string> {
+		try {
+			// Get co-modification graph for naive keywords to start early
+			const fileKeywords = naiveKeywords.filter((k) => k.includes(".") || k.includes("/") || k.includes("\\"))
+			const correlatedFiles = new Set<string>()
 
-		let contextHint = ""
-		if (cwd) {
-			try {
-				const entries = await fs.readdir(cwd)
-				contextHint = `\nWorkspace Root Files: ${entries.slice(0, 30).join(", ")}`
-			} catch {
-				/* ignore */
+			// Parallelize KG lookups
+			await Promise.all(
+				fileKeywords.map(async (fk) => {
+					try {
+						const related = await knowledgeGraph.getContextGraph(streamId, fk, 3)
+						related.forEach((r) => correlatedFiles.add(r.path))
+
+						const blast = await knowledgeGraph.calculateBlastRadius(streamId, fk, 1)
+						blast.forEach((b) => correlatedFiles.add(b.path))
+					} catch {
+						/* ignore individual file failures */
+					}
+				}),
+			)
+
+			if (correlatedFiles.size > 0) {
+				let kgContext = `\n### Historical Semantic Affinities (Speculative Discovery):\n`
+				kgContext += `Based on past modifications, these files may also be relevant: ${Array.from(correlatedFiles).join(", ")}\n`
+				return kgContext
 			}
+		} catch (kgError) {
+			Logger.warn("[IntentGrounder] Speculative KG discovery failed:", kgError)
 		}
+		return ""
+	}
 
-		const prompt = `Extract 3-5 technical keywords for semantic search (ripgrep) from this intent: "${intent}"
-${contextHint}
+	private async extractKeywords(intent: string, _cwd: string): Promise<string[]> {
+		const cacheKey = `${_cwd}:${intent}`
+		const cached = IntentGrounder.keywordCache.get(cacheKey)
+		if (cached) return cached
+
+		const naiveKeywords = intent
+			.split(/\W+/)
+			.filter(
+				(w) =>
+					w.length > 5 &&
+					!["function", "variable", "refactor", "change", "module", "component"].includes(w.toLowerCase()),
+			)
+			.sort((a, b) => b.length - a.length)
+			.slice(0, 5)
+
+		const prompt = `Extract exactly 5 technical keywords or file paths from this intent to use for semantic search (ripgrep).
+Intent: "${intent}"
 
 Focus on:
 - Specific file names or extensions.
@@ -551,31 +747,42 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 				keywords = spec.keywords.slice(0, 5)
 			}
 
-			if (keywords.length > 0) {
-				IntentGrounder.keywordCache.set(cacheKey, keywords)
-				return keywords
+			// Merge naive and LLM keywords for maximum coverage
+			const merged = Array.from(new Set([...keywords, ...naiveKeywords])).slice(0, 7)
+			if (merged.length > 0) {
+				IntentGrounder.keywordCache.set(cacheKey, merged)
+				return merged
 			}
-			return []
+			return naiveKeywords
 		} catch (e) {
-			Logger.warn("[IntentGrounder] Keyword extraction failed, falling back to naive splitting", e)
-			return intent
-				.split(/\W+/)
-				.filter(
-					(w) =>
-						w.length > 5 &&
-						!["function", "variable", "refactor", "change", "module", "component"].includes(w.toLowerCase()),
-				)
-				.sort((a, b) => b.length - a.length)
-				.slice(0, 4)
+			Logger.warn("[IntentGrounder] Keyword extraction failed, falling back to naive", e)
+			return naiveKeywords
 		}
 	}
 
-	private async discoverRelevantContext(intent: string, cwd: string): Promise<string> {
+	private async discoverRelevantContext(
+		intent: string,
+		cwd: string,
+		streamId?: string,
+		knowledgeGraph?: KnowledgeGraphService,
+	): Promise<string> {
 		try {
-			const keywords = await this.extractKeywords(intent, cwd)
+			// Optimization: Naive keywords for speculative KG discovery
+			const naiveKeywords = intent.split(/\W+/).filter((w) => w.length > 4)
+
+			// Start KG discovery speculatively while waiting for LLM keywords
+			const kgPromise =
+				knowledgeGraph && streamId
+					? this.speculativeKgDiscovery(intent, streamId, knowledgeGraph, naiveKeywords)
+					: Promise.resolve("")
+
+			const keywordsPromise = this.extractKeywords(intent, cwd)
+
+			// Parallelize KG lookup and Keyword extraction
+			const [kgContext, keywords] = await Promise.all([kgPromise, keywordsPromise])
 
 			if (keywords.length === 0) {
-				return ""
+				return kgContext
 			}
 
 			// Optimization: Cache ripgrep results with TTL to avoid redundant heavy I/O
@@ -649,7 +856,7 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 				contextLines.push("```")
 			}
 
-			return contextLines.join("\n")
+			return kgContext + contextLines.join("\n")
 		} catch (error) {
 			Logger.error("[IntentGrounder] Semantic discovery failed:", error)
 			return ""

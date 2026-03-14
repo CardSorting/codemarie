@@ -106,4 +106,67 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 		expect(spec2.constraints).to.deep.equal(["Cached constraint"])
 		expect(mockApiHandler.createMessage.calledOnce).to.be.true // No second API call
 	})
+
+	it("should robustly extract JSON from conversational noise and markdown blocks", async () => {
+		const mockResponse = {
+			decisionVariables: [],
+			constraints: ["Noise test"],
+			outputStructure: {},
+			rules: [],
+			confidenceScore: 1.0,
+		}
+
+		const noisyText =
+			"Of course, I can help with that. Here is the structured specification you requested:\n\n" +
+			"```json\n" +
+			JSON.stringify(mockResponse) +
+			"\n```\n\n" +
+			"I hope this helps! Let me know if you have any questions."
+
+		const mockStream = (async function* () {
+			yield { type: "text", text: noisyText }
+		})() as ApiStream
+
+		mockApiHandler.createMessage.returns(mockStream)
+
+		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
+		const spec = await grounder.ground("noisy task")
+
+		expect(spec.constraints).to.deep.equal(["Noise test"])
+		expect(spec.confidenceScore).to.equal(1.0)
+	})
+
+	it("should salvage spec when schema validation fails due to missing fields", async () => {
+		// missing decisionVariables, constraints, etc.
+		const malformedResponse = {
+			confidenceScore: 0.8,
+			ambiguityReasoning: "Partial output",
+		}
+
+		const mockStream = (async function* () {
+			yield { type: "text", text: JSON.stringify(malformedResponse) }
+		})() as ApiStream
+
+		mockApiHandler.createMessage.returns(mockStream)
+
+		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
+		const spec = await grounder.ground("malformed task")
+
+		// Should have defaulted fields from Zod or salvage logic
+		expect(spec.decisionVariables).to.be.an("array")
+		expect(spec.rules).to.be.an("array")
+		expect(spec.confidenceScore).to.equal(0.8)
+		expect(spec.ambiguityReasoning).to.equal("Partial output")
+	})
+
+	it("should return a fallback spec when grounding fails critically", async () => {
+		mockApiHandler.createMessage.throws(new Error("API Down"))
+
+		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
+		const spec = await grounder.ground("failed task")
+
+		expect(spec.confidenceScore).to.equal(0.1)
+		expect(spec.ambiguityReasoning).to.contain("Grounding failed: API Down")
+		expect(spec.missingInformation).to.contain("The system failed to structure your intent. Please try rephrasing.")
+	})
 })

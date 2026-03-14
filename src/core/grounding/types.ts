@@ -1,17 +1,19 @@
 import { z } from "zod"
 
 export const GroundedSpecSchema = z.object({
-	decisionVariables: z.array(
-		z.object({
-			name: z.string(),
-			description: z.string(),
-			range: z.array(z.string()).optional(),
-		}),
-	),
-	constraints: z.array(z.string()),
-	outputStructure: z.record(z.string(), z.any()),
-	rules: z.array(z.string()),
-	confidenceScore: z.number().min(0).max(1),
+	decisionVariables: z
+		.array(
+			z.object({
+				name: z.string(),
+				description: z.string(),
+				range: z.array(z.string()).optional(),
+			}),
+		)
+		.default([]),
+	constraints: z.array(z.string()).default([]),
+	outputStructure: z.record(z.string(), z.any()).default({}),
+	rules: z.array(z.string()).default([]),
+	confidenceScore: z.number().min(0).max(1).default(0.5),
 	ambiguityReasoning: z.string().optional(),
 	missingInformation: z.array(z.string()).optional(),
 	telemetry: z
@@ -77,7 +79,8 @@ Decompose the intent into:
 7. Missing Information: Specific questions to ask the user to clear up ambiguity.
 
 ### OPERATIONAL PRINCIPLES:
-- **USE SEMANTIC CONTEXT**: You are provided with "Discovered Semantic Context" which contains ripgrep snippets. Use these snippets to verify file existence, understand existing patterns, and identify relevant symbols.
+- **USE SEMANTIC CONTEXT**: You are provided with "Discovered Semantic Context" (ripgrep) and "Historical Semantic Affinities" (Knowledge Graph). Use these to verify file existence, understand patterns, identify symbols, and discover "hidden" dependencies that often change together.
+- **BLAST RADIUS AWARENESS**: Pay attention to the Blast Radius hints. If an intent modifies a "chokepoint" file (high dependency), include constraints or rules for extensive regression testing.
 - **DETERMINISTIC PATHS**: Use exact file paths found in the context. Do not guess directory structures.
 - **NEW FILE HANDLING**: If you intend to create a new file, you MUST add a rule starting with "Create [path]" so the verification layer can recognize it as a "Planned" entity rather than a missing one.
 - **BE ACTIONABLE**: The resulting spec should be enough for an autonomous agent to start work without further guessing.

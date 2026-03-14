@@ -1433,61 +1433,81 @@ export class Task {
 
 				try {
 					this.taskState.didAttemptGrounding = true
-					await this.say("info", "Grounding user intent into a structured specification...")
-					const grounder = new IntentGrounder(this.api)
 
-					// Ensure orchestration stream is ready for memory persistence
-					await this.streamReadyPromise
-					const streamId = this.orchestrationController?.getStreamId()
+					// Skip grounding if the project is "blank" (empty or scaffolding-only)
+					const [topLevelFiles] = await listFiles(this.cwd, false, 50)
+					if (this.isProjectBlank(topLevelFiles)) {
+						Logger.info("[Task] Skipping grounding: Project is blank or scaffolding-only.")
+					} else {
+						await this.say("info", "Grounding user intent into a structured specification...")
+						const grounder = new IntentGrounder(this.api)
 
-					// Provide high-level context for grounding
-					const [topLevelFiles] = await listFiles(this.cwd, false, 100)
-					const context = `Workspace Root: ${this.cwd}\nTop-level files:\n${topLevelFiles.join("\n")}`
+						// Ensure orchestration stream is ready for memory persistence
+						await this.streamReadyPromise
+						const streamId = this.orchestrationController?.getStreamId()
 
-					this.taskState.groundedSpec = await grounder.ground(taskIntent, context, this.cwd, streamId)
-					this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
+						// Provide high-level context for grounding (using files we already found if possible, but listFiles is fast)
+						const context = `Workspace Root: ${this.cwd}\nTop-level files:\n${topLevelFiles.join("\n")}`
 
-					// Phase 3: Extreme Hardening - Clarification Loop
-					if (this.taskState.groundedSpec.confidenceScore < 0.7) {
-						const missingInfo = this.taskState.groundedSpec.missingInformation?.join("\n") || ""
-						const reasoning = this.taskState.groundedSpec.ambiguityReasoning || "Intent is somewhat ambiguous."
+						const kgService = await this.getKnowledgeGraphService()
+						this.taskState.groundedSpec = await grounder.ground(taskIntent, context, this.cwd, streamId, kgService)
+						this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
 
-						const clarificationPrompt =
-							`I've analyzed your intent but have some questions to ensure I get it right (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
-							`**Reasoning**: ${reasoning}\n\n` +
-							`**Questions**:\n${missingInfo || "- Could you provide more details about the task?"}\n\n` +
-							`Should I proceed with what I have, or would you like to provide more details?`
+						// Phase 3: Extreme Hardening - Clarification Loop
+						if (this.taskState.groundedSpec.confidenceScore < 0.7) {
+							const missingInfo = this.taskState.groundedSpec.missingInformation?.join("\n") || ""
+							const reasoning = this.taskState.groundedSpec.ambiguityReasoning || "Intent is somewhat ambiguous."
 
-						const choice = await this.ask("followup", clarificationPrompt)
-						if (choice.response === "messageResponse" && choice.text) {
-							// Phase 4: Ultimate Hardening - Adaptive Evolution
-							const richerIntent = `${taskIntent}\n\nUser Clarification: ${choice.text}`
-							await this.say("info", "Evolving grounded specification with your clarification...")
-							this.taskState.groundedSpec = await grounder.ground(richerIntent, context, this.cwd, streamId)
-							this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
+							const clarificationPrompt =
+								`I've analyzed your intent but have some questions to ensure I get it right (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
+								`**Reasoning**: ${reasoning}\n\n` +
+								`**Questions**:\n${missingInfo || "- Could you provide more details about the task?"}\n\n` +
+								`Should I proceed with what I have, or would you like to provide more details?`
+
+							const choice = await this.ask("followup", clarificationPrompt)
+							if (choice.response === "messageResponse" && choice.text) {
+								// Phase 4: Ultimate Hardening - Adaptive Evolution
+								const richerIntent = `${taskIntent}\n\nUser Clarification: ${choice.text}`
+								await this.say("info", "Evolving grounded specification with your clarification...")
+								this.taskState.groundedSpec = await grounder.ground(
+									richerIntent,
+									context,
+									this.cwd,
+									streamId,
+									kgService,
+								)
+								this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
+							}
+						}
+
+						// Inject grounded spec into conversation (User-facing summary)
+						const verifiedCount = this.taskState.groundedSpec.verifiedEntities?.length || 0
+						const groundedSpecText =
+							`Task grounded into a structured specification (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
+							`**Variables**: ${this.taskState.groundedSpec.decisionVariables.map((v) => v.name).join(", ") || "None"}\n` +
+							`**Constraints**: ${this.taskState.groundedSpec.constraints.length} identified\n` +
+							`**Rules**: ${this.taskState.groundedSpec.rules.length} defined\n` +
+							`**Verified Entities**: ${verifiedCount} project files/symbols verified\n` +
+							`**Latent Performance**: ${this.taskState.groundedSpec.telemetry?.durationMs || 0}ms`
+
+						await this.say("text", groundedSpecText)
+
+						// Add specific tag to the history for the model
+						this.taskState.userMessageContent.push({
+							type: "text",
+							text: `<grounded_specification>\n${JSON.stringify(this.taskState.groundedSpec, null, 2)}\n</grounded_specification>`,
+						} as CodemarieTextContentBlock)
+
+						if (this.taskState.groundedSpec.confidenceScore < 0.3) {
+							await this.say(
+								"info",
+								"Note: Intent grounding was partial. I'll proceed with the original task but may need clarification later.",
+							)
 						}
 					}
-
-					// Inject grounded spec into conversation (User-facing summary)
-					const verifiedCount = this.taskState.groundedSpec.verifiedEntities?.length || 0
-					const groundedSpecText =
-						`Task grounded into a structured specification (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
-						`**Variables**: ${this.taskState.groundedSpec.decisionVariables.map((v) => v.name).join(", ") || "None"}\n` +
-						`**Constraints**: ${this.taskState.groundedSpec.constraints.length} identified\n` +
-						`**Rules**: ${this.taskState.groundedSpec.rules.length} defined\n` +
-						`**Verified Entities**: ${verifiedCount} project files/symbols verified\n` +
-						`**Latent Performance**: ${this.taskState.groundedSpec.telemetry?.durationMs || 0}ms`
-
-					await this.say("text", groundedSpecText)
-
-					// Add specific tag to the history for the model
-					this.taskState.userMessageContent.push({
-						type: "text",
-						text: `<grounded_specification>\n${JSON.stringify(this.taskState.groundedSpec, null, 2)}\n</grounded_specification>`,
-					} as CodemarieTextContentBlock)
 				} catch (error) {
-					Logger.error("[Task] Intent grounding failed:", error)
-					await this.say("error", "Failed to ground intent. Proceeding with original task.")
+					Logger.error("[Task] Intent grounding failed critically:", error)
+					await this.say("info", "Minor issue structuring the task. Proceeding with your original intent.")
 				}
 			}
 		}
@@ -3767,6 +3787,67 @@ export class Task {
 		}
 
 		return `<environment_details>\n${details.trim()}\n</environment_details>`
+	}
+
+	private isProjectBlank(files: string[]): boolean {
+		if (files.length === 0) return true
+
+		// List of extensions that signify "real" content (not just scaffolding)
+		const sourceExtensions = [
+			".ts",
+			".js",
+			".tsx",
+			".jsx",
+			".py",
+			".go",
+			".rs",
+			".cpp",
+			".c",
+			".h",
+			".java",
+			".rb",
+			".php",
+			".swift",
+			".kt",
+			".md",
+			".mdx",
+		]
+		// List of files that are typically strictly scaffolding/boilerplate
+		const scaffoldingFiles = [
+			"package.json",
+			"package-lock.json",
+			"yarn.lock",
+			"pnpm-lock.yaml",
+			"tsconfig.json",
+			".gitignore",
+			".npmrc",
+			".prettierrc",
+			".eslintrc",
+			"README.md",
+			"LICENSE",
+			".DS_Store",
+		]
+
+		return files.every((f) => {
+			const basename = path.basename(f)
+			const ext = path.extname(f).toLowerCase()
+
+			// If it has a source extension, it's not a blank project
+			if (sourceExtensions.includes(ext)) {
+				// Special case: README.md is often the only file in a "blank" project
+				if (basename.toLowerCase() === "readme.md") return true
+				return false
+			}
+
+			// If it's in the scaffolding list, it counts as "blank" for grounding purposes
+			if (scaffoldingFiles.includes(basename)) return true
+
+			// If it's a hidden file/directory, it counts as "blank"
+			if (basename.startsWith(".")) return true
+
+			// Default: If we see something we don't recognize as scaffolding, it's probably not blank
+			return false
+		})
 	}
 
 	private async getKnowledgeGraphService(): Promise<KnowledgeGraphService | undefined> {

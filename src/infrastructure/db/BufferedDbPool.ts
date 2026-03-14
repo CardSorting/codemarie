@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto"
 import { Kysely, sql } from "kysely"
 import { Logger } from "@/shared/services/Logger"
-import { getDb, type Schema } from "./Config.js"
+import { getDb, type Schema } from "./Config"
 
 // Minimal Mutex implementation for porting
 class Mutex {
@@ -73,6 +73,9 @@ export class BufferedDbPool {
 	private startFlushLoop() {
 		if (this.flushInterval) return
 		this.flushInterval = setInterval(() => this.flush(), 100)
+		if (this.flushInterval.unref) {
+			this.flushInterval.unref()
+		}
 	}
 
 	public async beginWork(agentId: string) {
@@ -143,9 +146,8 @@ export class BufferedDbPool {
 		_validator?: (affectedFiles: Set<string>, ops: WriteOp[]) => Promise<{ success: boolean; errors: string[] }>,
 	) {
 		const release = await this.stateMutex.acquire()
-		let shadow: { ops: WriteOp[]; affectedFiles: Set<string> } | undefined
 		try {
-			shadow = this.agentShadows.get(agentId)
+			const shadow = this.agentShadows.get(agentId)
 			if (!shadow || shadow.ops.length === 0) return
 
 			if (_validator) {
@@ -155,20 +157,16 @@ export class BufferedDbPool {
 				}
 			}
 
+			// Atomic move: and and clear shadow in one lock pulse
+			this.globalBuffer.push(...shadow.ops)
 			this.agentShadows.delete(agentId)
+
+			if (this.globalBuffer.length > 50) {
+				this.flush().catch((e) => Logger.error("[DbPool] Commit-trigger flush error:", e))
+			}
 		} finally {
 			release()
 		}
-
-		if (!shadow) return
-
-		const releaseForPush = await this.stateMutex.acquire()
-		try {
-			this.globalBuffer.push(...shadow.ops)
-		} finally {
-			releaseForPush()
-		}
-		await this.flush()
 	}
 
 	public async rollbackWork(agentId: string, _reason?: string) {
