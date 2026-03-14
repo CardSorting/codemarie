@@ -273,7 +273,7 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 				resolutionType,
 				workspaceHint ? "workspace_name" : undefined,
 				searchPaths.length > 0, // resolution success = found paths to search
-				primaryWorkspaceIndex >= 0 ? primaryWorkspaceIndex : undefined,
+				primaryWorkspaceIndex !== undefined && primaryWorkspaceIndex >= 0 ? primaryWorkspaceIndex : undefined,
 				true,
 			)
 		}

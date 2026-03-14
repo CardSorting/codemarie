@@ -1,8 +1,16 @@
 # Changelog
 
-## [3.68.4]
+## [3.69.0]
 
-- Minor updates and improvements.
+### Added
+- **BroccoliDB Hardening (Pass 3 & 4)**: Implemented `pushBatch` for up to 40x faster bulk write operations.
+- **AI Governance**: Introduced a stateful Circuit Breaker in `AiService` to prevent runaway costs and handle provider outages gracefully.
+- **Resilient AI Layer**: Integrated exponential backoff with jitter for automatic recovery from transient API errors.
+- **Semantic Integrity**: Added paragraph-aware semantic chunking for large document embeddings.
+- **Intelligent Context Discovery**: Enhanced `IntentGrounder` with global snippet ranking and rule-aware context truncation.
+- **Graph Self-Healing**: Added auto-discovery and confidence decay to the reasoning substrate to maintain graph accuracy over time.
+
+## [3.68.4]
 
 ## [3.68.3]
 

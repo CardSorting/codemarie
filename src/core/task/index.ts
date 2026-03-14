@@ -252,7 +252,7 @@ export class Task {
 	// Callbacks
 	private updateTaskHistory: (historyItem: HistoryItem) => Promise<HistoryItem[]>
 	private postStateToWebview: () => Promise<void>
-	private reinitExistingTaskFromId: (taskId: string) => Promise<void>
+	private reinitExistingTaskFromId: (taskId: string, initialState?: Partial<TaskState>) => Promise<void>
 	private cancelTask: () => Promise<void>
 
 	// Cache service

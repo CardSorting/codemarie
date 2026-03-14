@@ -2,7 +2,7 @@
 	"name": "marie-coder",
 	"displayName": "CodeMarie",
 	"description": "CodeMarie is your autonomous coding partner, capable of creating/editing files, running commands, and more with your permission.",
-	"version": "3.68.4",
+	"version": "3.69.0",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
 		".",
@@ -260,10 +260,6 @@
 				"win": "ctrl+'",
 				"linux": "ctrl+'",
 				"when": "editorHasSelection"
-			},
-			{
-				"command": "codemarie.generateGitCommitMessage",
-				"when": "config.git.enabled && scmProvider == git"
 			},
 			{
 				"command": "codemarie.focusChatInput",
