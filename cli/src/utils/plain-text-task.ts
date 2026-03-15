@@ -176,11 +176,17 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 	// non json mode outputs only the final complete message
 	// (it should be the completion_result message)
 	if (!jsonOutput && !verbose) {
-		const msg = Array.from(processedMessages.entries())
-			.sort(([aTs], [bTs]) => aTs - bTs)
-			.map(([_, msg]) => msg)
-			.at(-1)
-		process.stdout.write(`${msg}\n`)
+		const sortedMessages = Array.from(processedMessages.entries()).sort(([aTs], [bTs]) => aTs - bTs)
+
+		// Find the completion_result specifically, or fallback to the last message
+		// We prioritize messages that were explicitly marked as completion_result during handleMessageForPipeMode
+		const completionMsg = sortedMessages.find(([_, msg]) => msg.includes("completion_result"))?.[1]
+		const lastMsg = sortedMessages.at(-1)?.[1]
+		const finalMsg = completionMsg || lastMsg
+
+		if (finalMsg) {
+			process.stdout.write(`${finalMsg.replace(/<line_count>\d+<\/line_count>\n?/g, "")}\n`)
+		}
 	}
 
 	return !hasError

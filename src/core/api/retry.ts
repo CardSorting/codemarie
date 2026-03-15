@@ -86,3 +86,50 @@ export function withRetry(options: RetryOptions = {}) {
 		return descriptor
 	}
 }
+
+export async function asyncRetry<T>(
+	fn: () => Promise<T>,
+	options: RetryOptions = {},
+	onRetry?: (attempt: number, error: any, delay: number) => Promise<void> | void,
+): Promise<T> {
+	const { maxRetries, baseDelay, maxDelay, retryAllErrors } = { ...DEFAULT_OPTIONS, ...options }
+
+	for (let attempt = 0; attempt < maxRetries; attempt++) {
+		try {
+			return await fn()
+		} catch (error: any) {
+			const isRateLimit = error?.status === 429 || error instanceof RetriableError
+			const isLastAttempt = attempt === maxRetries - 1
+
+			if ((!isRateLimit && !retryAllErrors) || isLastAttempt) {
+				throw error
+			}
+
+			const retryAfter =
+				error.headers?.["retry-after"] ||
+				error.headers?.["x-ratelimit-reset"] ||
+				error.headers?.["ratelimit-reset"] ||
+				error.retryAfter
+
+			let delay: number
+			if (retryAfter) {
+				const retryValue = Number.parseInt(retryAfter, 10)
+				if (retryValue > Date.now() / 1000) {
+					delay = retryValue * 1000 - Date.now()
+				} else {
+					delay = retryValue * 1000
+				}
+			} else {
+				delay = Math.min(maxDelay, baseDelay * 2 ** attempt)
+			}
+
+			if (onRetry) {
+				await onRetry(attempt + 1, error, delay)
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, delay))
+		}
+	}
+
+	throw new Error("Retry failed") // Should not reach here due to throw error in loop
+}

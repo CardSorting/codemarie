@@ -341,7 +341,7 @@ export class VscodeTerminalManager implements ITerminalManager {
 		return process ? process.isHot : false
 	}
 
-	disposeAll() {
+	async disposeAll() {
 		// for (const info of this.terminals) {
 		// 	//info.terminal.dispose() // dont want to dispose terminals when task is aborted
 		// }

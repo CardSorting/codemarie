@@ -77,7 +77,17 @@ export class CodemarieFileStorage<T = any> extends CodemarieSyncStorage<T> {
 	private readFromDisk(): Record<string, T> {
 		try {
 			if (fs.existsSync(this.fsPath)) {
-				return JSON.parse(fs.readFileSync(this.fsPath, "utf-8"))
+				const content = fs.readFileSync(this.fsPath, "utf-8")
+				try {
+					return JSON.parse(content)
+				} catch (parseError) {
+					Logger.error(`[${this.name}] failed to parse ${this.fsPath}, attempting restore from backup:`, parseError)
+					const bakPath = `${this.fsPath}.bak`
+					if (fs.existsSync(bakPath)) {
+						const bakContent = fs.readFileSync(bakPath, "utf-8")
+						return JSON.parse(bakContent)
+					}
+				}
 			}
 		} catch (error) {
 			Logger.error(`[${this.name}] failed to read from ${this.fsPath}:`, error)
@@ -89,7 +99,15 @@ export class CodemarieFileStorage<T = any> extends CodemarieSyncStorage<T> {
 		try {
 			const dir = path.dirname(this.fsPath)
 			fs.mkdirSync(dir, { recursive: true })
-			atomicWriteFileSync(this.fsPath, JSON.stringify(this.data, null, 2), this.fileMode)
+			const content = JSON.stringify(this.data, null, 2)
+			atomicWriteFileSync(this.fsPath, content, this.fileMode)
+
+			// Create a backup file
+			try {
+				fs.writeFileSync(`${this.fsPath}.bak`, content, { mode: this.fileMode })
+			} catch (bakError) {
+				Logger.debug(`[${this.name}] failed to create backup file:`, bakError)
+			}
 		} catch (error) {
 			Logger.error(`[${this.name}] failed to write to ${this.fsPath}:`, error)
 		}

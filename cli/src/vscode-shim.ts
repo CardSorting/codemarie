@@ -288,13 +288,13 @@ export class Selection extends Range {
 
 export interface CancellationToken {
 	readonly isCancellationRequested: boolean
-	readonly onCancellationRequested: (listener: (e: any) => any) => { dispose(): void }
+	readonly onCancellationRequested: (listener: (e: unknown) => unknown) => { dispose(): void }
 }
 
 export class CancellationTokenSource {
 	private _token = new (class implements CancellationToken {
 		private _isCancelled = false
-		private _emitter = new EventEmitter<any>()
+		private _emitter = new EventEmitter<void>()
 
 		get isCancellationRequested() {
 			return this._isCancelled
@@ -439,33 +439,69 @@ export const workspace = {
 
 export const window = {
 	showInformationMessage: async <T extends string>(message: string, ...items: T[]): Promise<T | undefined> => {
-		printInfo(`[INFO] ${message}`)
-		if (items.length > 0) {
-			printInfo(`Choices: ${items.join(", ")}`)
-			// For now, return undefined to avoid blocking, or the first item if we want to simulate an "OK"
+		printInfo(message)
+		if (items.length === 0) {
 			return undefined
 		}
-		return undefined
+
+		try {
+			const prompts = (await import("prompts")).default
+			const { value } = await prompts({
+				type: "select",
+				name: "value",
+				message: "Select an option:",
+				choices: items.map((item) => ({ title: item, value: item })),
+				initial: 0,
+			})
+			return value
+		} catch {
+			return undefined
+		}
 	},
 	showWarningMessage: async <T extends string>(message: string, ...items: T[]): Promise<T | undefined> => {
-		printWarning(`[WARN] ${message}`)
-		if (items.length > 0) {
-			printWarning(`Choices: ${items.join(", ")}`)
+		printWarning(message)
+		if (items.length === 0) {
 			return undefined
 		}
-		return undefined
+
+		try {
+			const prompts = (await import("prompts")).default
+			const { value } = await prompts({
+				type: "select",
+				name: "value",
+				message: "Select an option:",
+				choices: items.map((item) => ({ title: item, value: item })),
+				initial: 0,
+			})
+			return value
+		} catch {
+			return undefined
+		}
 	},
 	showErrorMessage: async <T extends string>(message: string, ...items: T[]): Promise<T | undefined> => {
-		printError(`[ERROR] ${message}`)
-		if (items.length > 0) {
-			printError(`Choices: ${items.join(", ")}`)
+		printError(message)
+		if (items.length === 0) {
 			return undefined
 		}
-		return undefined
+
+		try {
+			const prompts = (await import("prompts")).default
+			const { value } = await prompts({
+				type: "select",
+				name: "value",
+				message: "Select an option:",
+				choices: items.map((item) => ({ title: item, value: item })),
+				initial: 0,
+			})
+			return value
+		} catch {
+			return undefined
+		}
 	},
 	createOutputChannel: (name: string) => {
 		const logger = getOutputChannelLogger(name)
-		const log = (text: string) => logger.info({ channel: name }, text)
+		const { SensitiveDataMasker } = require("../shared/utils/SensitiveDataMasker")
+		const log = (text: string) => logger.info({ channel: name }, SensitiveDataMasker.mask(text))
 		return { appendLine: log, append: log, clear: noop, show: noop, hide: noop, dispose: noop }
 	},
 	terminals: [] as unknown[],
@@ -494,10 +530,10 @@ export const window = {
 	},
 }
 
-const commandHandlers = new Map<string, (...args: any[]) => any>()
+const commandHandlers = new Map<string, (...args: unknown[]) => unknown>()
 
 export const commands = {
-	registerCommand: (command: string, callback: (...args: any[]) => any, thisArg?: any) => {
+	registerCommand: (command: string, callback: (...args: unknown[]) => unknown, thisArg?: unknown) => {
 		commandHandlers.set(command, callback.bind(thisArg))
 		return {
 			dispose: () => {
@@ -505,10 +541,10 @@ export const commands = {
 			},
 		}
 	},
-	executeCommand: async <T = any>(command: string, ...rest: any[]): Promise<T | undefined> => {
+	executeCommand: async <T = unknown>(command: string, ...rest: unknown[]): Promise<T | undefined> => {
 		const handler = commandHandlers.get(command)
 		if (handler) {
-			return handler(...rest)
+			return handler(...rest) as T
 		}
 		return undefined
 	},
@@ -522,8 +558,49 @@ export const env = {
 	uiKind: UIKind.Desktop,
 	uriScheme: "codemarie",
 	clipboard: {
-		readText: async () => "",
-		writeText: async (_value: string) => {},
+		readText: async () => {
+			try {
+				const { execSync } = await import("node:child_process")
+				if (process.platform === "darwin") {
+					return execSync("pbpaste").toString()
+				}
+				if (process.platform === "win32") {
+					return execSync("powershell.exe -command Get-Clipboard").toString()
+				}
+				if (process.platform === "linux") {
+					return execSync("xclip -selection clipboard -o || xsel --clipboard --output").toString()
+				}
+			} catch (error) {
+				printWarning(`Failed to read from clipboard: ${error instanceof Error ? error.message : String(error)}`)
+			}
+			return ""
+		},
+		writeText: async (value: string) => {
+			try {
+				const { spawn } = await import("node:child_process")
+				if (process.platform === "darwin") {
+					const child = spawn("pbcopy")
+					child.stdin.write(value)
+					child.stdin.end()
+				} else if (process.platform === "win32") {
+					const child = spawn("powershell.exe", ["-command", "Set-Clipboard"])
+					child.stdin.write(value)
+					child.stdin.end()
+				} else if (process.platform === "linux") {
+					try {
+						const child = spawn("xclip", ["-selection", "clipboard"])
+						child.stdin.write(value)
+						child.stdin.end()
+					} catch {
+						const child = spawn("xsel", ["--clipboard", "--input"])
+						child.stdin.write(value)
+						child.stdin.end()
+					}
+				}
+			} catch (error) {
+				printWarning(`Failed to write to clipboard: ${error instanceof Error ? error.message : String(error)}`)
+			}
+		},
 	},
 	openExternal: async (uri: URI) => {
 		const { openExternal } = await import("@/utils/env")
@@ -606,8 +683,12 @@ export interface ExtensionContext {
 	readonly environmentVariableCollection: EnvironmentVariableCollection
 	readonly extensionMode: ExtensionMode
 	readonly logUri: URI
-	readonly storageUri?: URI
+	readonly storageUri: URI
 	readonly globalStorageUri: URI
+	readonly storagePath: string
+	readonly globalStoragePath: string
+	readonly logPath: string
+	readonly extension: Extension<unknown>
 	asAbsolutePath(relativePath: string): string
 }
 
@@ -621,8 +702,12 @@ export class ExtensionContextShim implements ExtensionContext {
 	readonly environmentVariableCollection: EnvironmentVariableCollection
 	readonly extensionMode: ExtensionMode = ExtensionMode.Production
 	readonly logUri: URI
-	readonly storageUri?: URI
+	readonly storageUri: URI
 	readonly globalStorageUri: URI
+	readonly storagePath: string
+	readonly globalStoragePath: string
+	readonly logPath: string
+	readonly extension: Extension<unknown>
 
 	constructor() {
 		const storageDir = CLINE_CLI_DIR.storage
@@ -641,6 +726,19 @@ export class ExtensionContextShim implements ExtensionContext {
 		this.logUri = URI.file(CLINE_CLI_DIR.log)
 		this.globalStorageUri = URI.file(storageDir)
 		this.storageUri = URI.file(path.join(storageDir, "workspace"))
+		this.storagePath = this.storageUri.fsPath
+		this.globalStoragePath = this.globalStorageUri.fsPath
+		this.logPath = this.logUri.fsPath
+		this.extension = {
+			id: "saoudrizwan.claude-dev",
+			extensionUri: this.extensionUri,
+			extensionPath: this.extensionPath,
+			isActive: true,
+			packageJSON: require("../package.json"),
+			extensionKind: ExtensionKind.UI,
+			exports: undefined,
+			activate: async () => undefined,
+		}
 	}
 
 	asAbsolutePath(relativePath: string): string {
@@ -648,12 +746,22 @@ export class ExtensionContextShim implements ExtensionContext {
 	}
 
 	dispose() {
-		this.subscriptions.forEach((s) => s.dispose())
+		this.subscriptions.forEach((s) => {
+			s.dispose()
+		})
 	}
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: placeholder
-export type Extension<T> = unknown
+export interface Extension<T> {
+	readonly id: string
+	readonly extensionUri: URI
+	readonly extensionPath: string
+	readonly isActive: boolean
+	readonly packageJSON: unknown
+	readonly extensionKind: ExtensionKind
+	readonly exports: T
+	activate(): Promise<T>
+}
 
 // ============================================================================
 // Shutdown event for graceful cleanup

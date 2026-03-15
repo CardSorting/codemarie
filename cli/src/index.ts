@@ -31,7 +31,7 @@ import { CliCommentReviewController } from "./controllers/CliCommentReviewContro
 import { CliWebviewProvider } from "./controllers/CliWebviewProvider"
 import { isAuthConfigured } from "./utils/auth"
 import { restoreConsole, suppressConsoleUnlessVerbose } from "./utils/console"
-import { printInfo, printWarning } from "./utils/display"
+import { printError, printInfo, printWarning } from "./utils/display"
 import { selectOutputMode } from "./utils/mode-selection"
 import { parseImagesFromInput, processImagePaths } from "./utils/parser"
 import { CLINE_CLI_DIR, getCliBinaryPath } from "./utils/path"
@@ -41,7 +41,7 @@ import { applyProviderConfig } from "./utils/provider-config"
 import { getValidCliProviders, isValidCliProvider } from "./utils/providers"
 import { autoUpdateOnStartup, checkForUpdates } from "./utils/update"
 import { initializeCliContext } from "./vscode-context"
-import { CLI_LOG_FILE, shutdownEvent, window } from "./vscode-shim"
+import { CLI_LOG_FILE, type ExtensionContext, shutdownEvent, window } from "./vscode-shim"
 
 // CLI-only behavior: suppress console output unless verbose mode is enabled.
 // Kept explicit here so importing the library bundle does not mutate global console methods.
@@ -65,6 +65,7 @@ interface TaskOptions {
 	timeout?: string
 	json?: boolean
 	stdinWasPiped?: boolean
+	trace?: boolean
 }
 
 let telemetryDisposed = false
@@ -138,6 +139,12 @@ function applyTaskOptions(options: TaskOptions): void {
 	} else if (options.act) {
 		StateManager.get().setGlobalState("mode", "act")
 		telemetryService.captureHostEvent("mode_flag", "act")
+	}
+
+	// Apply trace flag
+	if (options.trace) {
+		Logger.setVerbose(true)
+		telemetryService.captureHostEvent("trace_flag", "true")
 	}
 
 	// Apply model override if specified
@@ -368,7 +375,7 @@ function setupSignalHandlers() {
 
 	// Suppress known abort errors from unhandled rejections
 	// These occur when task is cancelled and async operations throw "Codemarie instance aborted"
-	process.on("unhandledRejection", (reason: unknown) => {
+	process.on("unhandledRejection", async (reason: unknown) => {
 		const message = reason instanceof Error ? reason.message : String(reason)
 		// Silently ignore abort-related errors - they're expected during task cancellation
 		if (message.includes("aborted") || message.includes("abort")) {
@@ -378,13 +385,27 @@ function setupSignalHandlers() {
 		// For other unhandled rejections, log to file via Logger (if available)
 		// This won't show in terminal but will be in log files for debugging
 		Logger.error("Unhandled rejection:", reason)
+
+		// Best-effort flush of state before potential crash
+		if (activeContext) {
+			await activeContext.controller.stateManager.flushPendingState()
+		}
+	})
+
+	process.on("uncaughtException", async (error: Error) => {
+		Logger.error("Uncaught exception:", error)
+		if (activeContext) {
+			await activeContext.controller.stateManager.flushPendingState()
+		}
+		printError(`Fatal error: ${error.message}`)
+		process.exit(1)
 	})
 }
 
 setupSignalHandlers()
 
 interface CliContext {
-	extensionContext: any
+	extensionContext: ExtensionContext
 	dataDir: string
 	extensionDir: string
 	workspacePath: string
@@ -431,8 +452,12 @@ async function initializeCli(options: InitOptions): Promise<CliContext> {
 		`Codemarie CLI initialized. Data dir: ${DATA_DIR}, Extension dir: ${EXTENSION_DIR}, Log dir: ${CLINE_CLI_DIR.log}`,
 	)
 
+	// Start system guardrails
+	const { SystemGuardrails } = await import("@/core/resource/SystemGuardrails")
+	SystemGuardrails.getInstance().start()
+
 	HostProvider.initialize(
-		() => new CliWebviewProvider(extensionContext as any),
+		() => new CliWebviewProvider(extensionContext as unknown as ExtensionContext),
 		() => new FileEditProvider(),
 		() => new CliCommentReviewController(),
 		() => new StandaloneTerminalManager(),
@@ -453,7 +478,13 @@ async function initializeCli(options: InitOptions): Promise<CliContext> {
 	await telemetryService.captureExtensionActivated()
 	await telemetryService.captureHostEvent("codemarie_cli", "initialized")
 
-	const ctx = { extensionContext, dataDir: DATA_DIR, extensionDir: EXTENSION_DIR, workspacePath, controller }
+	const ctx: CliContext = {
+		extensionContext: extensionContext as unknown as ExtensionContext,
+		dataDir: DATA_DIR,
+		extensionDir: EXTENSION_DIR,
+		workspacePath,
+		controller,
+	}
 	activeContext = ctx
 	return ctx
 }
@@ -548,7 +579,7 @@ async function listHistory(options: { config?: string; limit?: number; page?: nu
 
 	const taskHistory = StateManager.get().getGlobalStateKey("taskHistory") || []
 	// Sort by timestamp (newest first) before pagination
-	const sortedHistory = [...taskHistory].sort((a: any, b: any) => (b.ts || 0) - (a.ts || 0))
+	const sortedHistory = [...taskHistory].sort((a, b) => (b.ts || 0) - (a.ts || 0))
 	const limit = typeof options.limit === "string" ? Number.parseInt(options.limit, 10) : options.limit || 10
 	const initialPage = typeof options.page === "string" ? Number.parseInt(options.page, 10) : options.page || 1
 	const totalCount = sortedHistory.length
@@ -671,9 +702,9 @@ async function runAuth(options: {
 	// Quick setup mode - no UI, just save configuration and exit
 	if (hasQuickSetupFlags) {
 		const result = await performQuickAuthSetup(ctx, {
-			provider: options.provider!,
-			apikey: options.apikey!,
-			modelid: options.modelid!,
+			provider: options.provider || "",
+			apikey: options.apikey || "",
+			modelid: options.modelid || "",
 			baseurl: options.baseurl,
 		})
 
@@ -739,6 +770,7 @@ program
 	.option("--json", "Output messages as JSON instead of styled text")
 	.option("--double-check-completion", "Reject first completion attempt to force re-verification")
 	.option("-T, --taskId <id>", "Resume an existing task by ID")
+	.option("--trace", "Enable high-verbosity tool execution logging")
 	.action((prompt, options) => {
 		if (options.taskId) {
 			return resumeTask(options.taskId, { ...options, initialPrompt: prompt })
@@ -783,6 +815,46 @@ program
 	.description("Check for updates and install if available")
 	.option("-v, --verbose", "Show verbose output")
 	.action(() => checkForUpdates(CLI_VERSION))
+
+program
+	.command("doctor")
+	.description("Run diagnostics to verify your system environment")
+	.option("-r, --repair", "Attempt to automatically repair detected issues")
+	.action(async (options: { repair?: boolean }) => {
+		const { DiagnosticService } = await import("./services/diagnostic/DiagnosticService")
+		const diagnostics = DiagnosticService.getInstance()
+		const results = await diagnostics.runAllDiagnostics()
+
+		let hasError = false
+		for (const result of results) {
+			const statusSymbol = result.status === "ok" ? "✔" : result.status === "warning" ? "⚠" : "✖"
+			const statusColor = result.status === "ok" ? "\x1b[32m" : result.status === "warning" ? "\x1b[33m" : "\x1b[31m"
+			console.log(`${statusColor}${statusSymbol}\x1b[0m \x1b[1m${result.name}\x1b[0m: ${result.message}`)
+			if (result.remediation) {
+				console.log(`   └─ ${result.remediation}`)
+			}
+			if (result.status === "error") {
+				hasError = true
+			}
+		}
+
+		if (options.repair && (hasError || results.some((r) => r.status === "warning"))) {
+			console.log("\n\x1b[34mAttempting to repair issues...\x1b[0m")
+			const repairResults = await diagnostics.runRepair(results)
+			for (const result of repairResults) {
+				const statusSymbol = result.status === "ok" ? "✔" : result.status === "warning" ? "⚠" : "✖"
+				const statusColor = result.status === "ok" ? "\x1b[32m" : result.status === "warning" ? "\x1b[33m" : "\x1b[31m"
+				console.log(`${statusColor}${statusSymbol}\x1b[0m \x1b[1m${result.name}\x1b[0m: ${result.message}`)
+			}
+		} else if (hasError) {
+			console.log(
+				"\n\x1b[31mSome diagnostics failed. Please follow the remediation steps above, or run `codemarie doctor --repair`.\x1b[0m",
+			)
+			process.exit(1)
+		} else {
+			console.log("\n\x1b[32mAll systems operational!\x1b[0m")
+		}
+	})
 
 // Dev command with subcommands
 const devCommand = program.command("dev").description("Developer tools and utilities")
@@ -907,6 +979,7 @@ program
 	.option("--double-check-completion", "Reject first completion attempt to force re-verification")
 	.option("--acp", "Run in ACP (Agent Client Protocol) mode for editor integration")
 	.option("-T, --taskId <id>", "Resume an existing task by ID")
+	.option("--trace", "Enable high-verbosity tool execution logging")
 	.action(async (prompt, options) => {
 		// Check for ACP mode first - this takes precedence over everything else
 		if (options.acp) {

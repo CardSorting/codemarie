@@ -547,7 +547,7 @@ export class AcpTerminalManager implements ITerminalManager {
 
 		// Create a new terminal
 		const numericId = this.nextNumericId++
-		const placeholderId = `pending-${numericId}`
+		const placeholderId = `pending-${Date.now()}-${numericId}`
 
 		const managedTerminal: ManagedTerminal = {
 			id: placeholderId, // Will be updated when command runs

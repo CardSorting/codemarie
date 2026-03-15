@@ -203,7 +203,7 @@ export interface ITerminalManager {
 	/**
 	 * Dispose of all terminals and clean up resources.
 	 */
-	disposeAll(): void
+	disposeAll(): Promise<void>
 
 	/**
 	 * Set the timeout for waiting for shell integration.

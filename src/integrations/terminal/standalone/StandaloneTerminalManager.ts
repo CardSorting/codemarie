@@ -235,21 +235,20 @@ export class StandaloneTerminalManager implements ITerminalManager {
 
 	/**
 	 * Dispose of all terminals and clean up resources.
+	 * Returns a promise that resolves when all terminal processes have been terminated.
 	 */
-	disposeAll(): void {
-		// Dispose background commands first
+	async disposeAll(): Promise<void> {
 		this.disposeBackgroundCommands()
 
 		// Terminate all processes
-		for (const [_terminalId, process] of this.processes) {
-			if (process?.terminate) {
-				process.terminate()
-			}
+		const terminationPromises: Promise<void>[] = []
+		for (const process of this.processes.values()) {
+			terminationPromises.push(process.terminate())
 		}
 
-		// Clear all tracking
-		this.terminalIds.clear()
+		await Promise.all(terminationPromises)
 		this.processes.clear()
+		this.terminalIds.clear()
 
 		// Dispose all terminals
 		for (const terminalInfo of this.registry.getAllTerminals()) {
