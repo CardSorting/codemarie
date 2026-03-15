@@ -132,8 +132,7 @@ function createHandlerForProvider(
 		case "vertex":
 			return new VertexHandler({
 				onRetryAttempt: options.onRetryAttempt,
-				vertexProjectId: options.vertexProjectId,
-				vertexRegion: options.vertexRegion,
+				vertexCredentialsJson: options.vertexCredentialsJson,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 				thinkingBudgetTokens:
 					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
@@ -175,6 +174,7 @@ function createHandlerForProvider(
 				onRetryAttempt: options.onRetryAttempt,
 				vertexProjectId: options.vertexProjectId,
 				vertexRegion: options.vertexRegion,
+				vertexCredentialsJson: options.vertexCredentialsJson,
 				geminiApiKey: options.geminiApiKey,
 				geminiBaseUrl: options.geminiBaseUrl,
 				thinkingBudgetTokens:

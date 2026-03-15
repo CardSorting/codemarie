@@ -1,5 +1,6 @@
-import { vertexGlobalModels, vertexModels } from "@shared/api"
+import { ApiConfiguration, vertexGlobalModels, vertexModels } from "@shared/api"
 import VertexData from "@shared/providers/vertex.json"
+import { RemoteConfigFields } from "@shared/storage/state-keys"
 import type { Mode } from "@shared/storage/types"
 import { VSCodeDropdown, VSCodeLink, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -47,7 +48,12 @@ const REGIONS = VertexData.regions
  */
 export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: VertexProviderProps) => {
 	const { apiConfiguration, remoteConfigSettings } = useExtensionState()
-	const { handleFieldChange, handleModeFieldChange } = useApiConfigurationHandlers()
+	const { handleFieldChange: originalHandleFieldChange, handleModeFieldChange } = useApiConfigurationHandlers()
+
+	// Override handleFieldChange to correctly type it for both ApiConfiguration and RemoteConfigFields
+	const handleFieldChange = async (field: keyof ApiConfiguration | keyof RemoteConfigFields, value: any) => {
+		await originalHandleFieldChange(field as any, value)
+	}
 
 	// Get the normalized configuration
 	const { selectedModelId, selectedModelInfo } = normalizeApiConfiguration(apiConfiguration, currentMode)
@@ -102,6 +108,33 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 				</DropdownContainer>
 			</RemotelyConfiguredInputWrapper>
 
+			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexCredentialsJson === undefined}>
+				<DebouncedTextField
+					disabled={remoteConfigSettings?.vertexCredentialsJson !== undefined}
+					initialValue={apiConfiguration?.vertexCredentialsJson || ""}
+					onChange={(value) => handleFieldChange("vertexCredentialsJson", value)}
+					placeholder='Enter Service Account JSON (e.g. {"type": "service_account", ...})'
+					style={{ width: "100%" }}>
+					<div className="flex items-center gap-2 mb-1">
+						<span style={{ fontWeight: 500 }}>Google Cloud Service Account JSON</span>
+						{remoteConfigSettings?.vertexCredentialsJson !== undefined && <LockIcon />}
+					</div>
+				</DebouncedTextField>
+				{apiConfiguration?.vertexCredentialsJson &&
+					(() => {
+						try {
+							JSON.parse(apiConfiguration.vertexCredentialsJson)
+							return null
+						} catch (_) {
+							return (
+								<div style={{ color: "var(--vscode-errorForeground)", fontSize: "11px", marginTop: "4px" }}>
+									Invalid JSON format
+								</div>
+							)
+						}
+					})()}
+			</RemotelyConfiguredInputWrapper>
+
 			<p
 				style={{
 					fontSize: "12px",
@@ -117,8 +150,9 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 				<VSCodeLink
 					href="https://cloud.google.com/docs/authentication/provide-credentials-adc#google-idp"
 					style={{ display: "inline", fontSize: "inherit" }}>
-					{"2) install the Google Cloud CLI › configure Application Default Credentials."}
+					{"2) (Optional) Install the Google Cloud CLI › configure Application Default Credentials"}
 				</VSCodeLink>
+				{" OR 3) create a service account key (JSON) and paste it above."}
 			</p>
 
 			{showModelOptions && (

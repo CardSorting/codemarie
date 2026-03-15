@@ -6,9 +6,12 @@ import {
 	type GenerateContentResponseUsageMetadata,
 	GoogleGenAI,
 	FunctionDeclaration as GoogleTool,
+	HarmBlockThreshold,
+	HarmCategory,
 	ThinkingLevel,
 } from "@google/genai"
 import { GeminiModelId, geminiDefaultModelId, geminiModels, ModelInfo } from "@shared/api"
+import { GoogleAuthOptions } from "google-auth-library"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
@@ -17,6 +20,7 @@ import { ApiHandler, CommonApiHandlerOptions } from "../"
 import { RetriableError, withRetry } from "../retry"
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
 import { ApiStream } from "../transform/stream"
+import { validateAndParseVertexCredentials } from "../utils/vertexUtils"
 
 const rateLimitPatterns = [/got status: 429/i, /429 Too Many Requests/i, /rate limit exceeded/i, /too many requests/i]
 
@@ -24,6 +28,7 @@ interface GeminiHandlerOptions extends CommonApiHandlerOptions {
 	isVertex?: boolean
 	vertexProjectId?: string
 	vertexRegion?: string
+	vertexCredentialsJson?: string
 	geminiApiKey?: string
 	geminiBaseUrl?: string
 	thinkingBudgetTokens?: number
@@ -81,14 +86,31 @@ export class GeminiHandler implements ApiHandler {
 
 			if (options.isVertex) {
 				// Initialize with Vertex AI configuration
-				const project = this.options.vertexProjectId ?? "not-provided"
-				const location = this.options.vertexRegion ?? "not-provided"
-
 				try {
+					let projectId = options.vertexProjectId
+					let googleAuthOptions: GoogleAuthOptions | undefined
+
+					if (options.vertexCredentialsJson) {
+						try {
+							const credentials = validateAndParseVertexCredentials(options.vertexCredentialsJson)
+							projectId = credentials.project_id || projectId
+							googleAuthOptions = { credentials }
+						} catch (error: any) {
+							throw new Error(`Invalid Vertex AI credentials: ${error.message}`)
+						}
+					}
+
+					if (!projectId) {
+						throw new Error("Vertex AI project ID is required")
+					}
+
+					const location = options.vertexRegion || "us-central1"
+
 					this.client = new GoogleGenAI({
 						vertexai: true,
-						project,
+						project: projectId,
 						location,
+						googleAuthOptions: googleAuthOptions as any,
 						httpOptions: {
 							headers: externalHeaders,
 						},
@@ -159,6 +181,25 @@ export class GeminiHandler implements ApiHandler {
 			// Set temperature (default to 0)
 			// Gemini 3 recommends 1.0
 			temperature: info.temperature ?? 1,
+			// Add safety settings to prevent false positives in coding tasks
+			safetySettings: [
+				{
+					category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+					threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+				},
+				{
+					category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+					threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+				},
+				{
+					category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+					threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+				},
+				{
+					category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+					threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+				},
+			],
 		}
 
 		// Add thinking config only if the model supports it
@@ -302,7 +343,8 @@ export class GeminiHandler implements ApiHandler {
 
 							if (responseBody.error) {
 								const detail = responseBody.error.details?.find(
-									(d: any) => d["@type"] === "type.googleapis.com/google.rpc.RetryInfo",
+									(d: { "@type": string; retryDelay?: string }) =>
+										d["@type"] === "type.googleapis.com/google.rpc.RetryInfo",
 								)
 
 								const detailedError = new RetriableError(

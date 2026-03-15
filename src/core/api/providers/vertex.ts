@@ -2,6 +2,7 @@ import { Tool as AnthropicTool } from "@anthropic-ai/sdk/resources/index"
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk"
 import { FunctionDeclaration as GoogleTool } from "@google/genai"
 import { CLAUDE_SONNET_1M_SUFFIX, ModelInfo, VertexModelId, vertexDefaultModelId, vertexModels } from "@shared/api"
+import { GoogleAuth } from "google-auth-library"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { CodemarieTool } from "@/shared/tools"
@@ -9,11 +10,13 @@ import { ApiHandler, CommonApiHandlerOptions } from "../"
 import { withRetry } from "../retry"
 import { sanitizeAnthropicMessages } from "../transform/anthropic-format"
 import { ApiStream } from "../transform/stream"
+import { validateAndParseVertexCredentials } from "../utils/vertexUtils"
 import { GeminiHandler } from "./gemini"
 
 interface VertexHandlerOptions extends CommonApiHandlerOptions {
 	vertexProjectId?: string
 	vertexRegion?: string
+	vertexCredentialsJson?: string
 	apiModelId?: string
 	thinkingBudgetTokens?: number
 	geminiApiKey?: string
@@ -48,7 +51,7 @@ export class VertexHandler implements ApiHandler {
 
 	private ensureAnthropicClient(): AnthropicVertex {
 		if (!this.clientAnthropic) {
-			if (!this.options.vertexProjectId) {
+			if (!this.options.vertexProjectId && !this.options.vertexCredentialsJson) {
 				throw new Error("Vertex AI project ID is required")
 			}
 			if (!this.options.vertexRegion) {
@@ -56,11 +59,33 @@ export class VertexHandler implements ApiHandler {
 			}
 			try {
 				const externalHeaders = buildExternalBasicHeaders()
+
+				let googleAuth: GoogleAuth | undefined
+				let projectId = this.options.vertexProjectId
+
+				if (this.options.vertexCredentialsJson) {
+					try {
+						const credentials = validateAndParseVertexCredentials(this.options.vertexCredentialsJson)
+						projectId = credentials.project_id || projectId
+						googleAuth = new GoogleAuth({
+							credentials,
+							scopes: "https://www.googleapis.com/auth/cloud-platform",
+						})
+					} catch (error: any) {
+						throw new Error(`Invalid Vertex AI credentials: ${error.message}`)
+					}
+				}
+
+				if (!projectId) {
+					throw new Error("Vertex AI project ID is required (provide directly or via service account JSON)")
+				}
+
 				// Initialize Anthropic client for Claude models
 				this.clientAnthropic = new AnthropicVertex({
-					projectId: this.options.vertexProjectId,
+					projectId,
 					// https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#regions
 					region: this.options.vertexRegion,
+					googleAuth,
 					defaultHeaders: externalHeaders,
 				})
 			} catch (error: any) {
@@ -93,6 +118,8 @@ export class VertexHandler implements ApiHandler {
 		// Use model metadata to determine if reasoning should be enabled
 		const reasoningOn = (model.info.supportsReasoning ?? false) && budget_tokens !== 0
 
+		const temperature = reasoningOn ? undefined : (model.info.temperature ?? 0)
+
 		// Tools are available only when native tools are enabled.
 		const nativeToolsOn = tools?.length ? tools?.length > 0 : false
 
@@ -103,7 +130,7 @@ export class VertexHandler implements ApiHandler {
 				model: modelId,
 				max_tokens: model.info.maxTokens || 8192,
 				thinking: reasoningOn ? { type: "enabled", budget_tokens: budget_tokens } : undefined,
-				temperature: reasoningOn ? undefined : 0,
+				temperature,
 				system: [
 					{
 						text: systemPrompt,
