@@ -213,7 +213,18 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 		await config.callbacks.removeLastPartialMessageIfExistsWithType("say", "subagent")
 		await queueStatusUpdate("running", true)
 
-		const runners = prompts.map(() => new SubagentRunner(config, configuredSubagentName))
+		const currentDepth = config.recursionDepth || 0
+		if (currentDepth >= 3) {
+			return formatResponse.toolError(
+				"Swarm Recursion Limit Reached (Depth: 3). To prevent runaway loops, this swarm cannot spawn further subagents. Complete the current task or simplify the objective.",
+			)
+		}
+
+		const runners = prompts.map(() => {
+			const runner = new SubagentRunner(config, configuredSubagentName)
+			runner.setRecursionDepth(currentDepth + 1)
+			return runner
+		})
 		const abortPollInterval = setInterval(() => {
 			if (!config.taskState.abort) {
 				return

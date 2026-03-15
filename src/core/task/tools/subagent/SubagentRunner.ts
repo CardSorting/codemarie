@@ -25,7 +25,6 @@ import { ApiFormat } from "@/shared/proto/codemarie/models"
 import { calculateApiCostAnthropic } from "@/utils/cost"
 import { isNextGenModelFamily } from "@/utils/model-utils"
 import { TaskState } from "../../TaskState"
-import { ToolExecutorCoordinator } from "../ToolExecutorCoordinator"
 import { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import { SubagentBuilder } from "./SubagentBuilder"
@@ -231,6 +230,7 @@ export class SubagentRunner {
 	private readonly allowedTools: CodemarieDefaultTool[]
 	private activeApiAbort: (() => void) | undefined
 	private abortRequested = false
+	private recursionDepth = 0
 	private activeCommandExecutions = 0
 	private abortingCommands = false
 
@@ -241,6 +241,10 @@ export class SubagentRunner {
 		this.agent = new SubagentBuilder(baseConfig, subagentName)
 		this.apiHandler = this.agent.getApiHandler()
 		this.allowedTools = this.agent.getAllowedTools()
+	}
+
+	setRecursionDepth(depth: number): void {
+		this.recursionDepth = depth
 	}
 
 	async abort(): Promise<void> {
@@ -644,7 +648,7 @@ export class SubagentRunner {
 					const latestToolCall = formatToolCallPreview(toolName, toolCallParams)
 					onProgress({ latestToolCall })
 
-					const subagentConfig = this.createSubagentTaskConfig(state)
+					const subagentConfig = this.createSubagentTaskConfig()
 					const handler = this.baseConfig.coordinator.getHandler(toolName)
 					let toolResult: unknown
 
@@ -700,20 +704,26 @@ export class SubagentRunner {
 		}
 	}
 
-	private createSubagentTaskConfig(state: TaskState): TaskConfig {
+	private createSubagentTaskConfig(): TaskConfig {
 		const baseCallbacks = this.baseConfig.callbacks
-		const coordinator = new ToolExecutorCoordinator()
+		const coordinator = this.baseConfig.coordinator
 		const validator = new ToolValidator(this.baseConfig.services.codemarieIgnoreController, (this.baseConfig as any).guard) // Add guard from config
 
 		for (const tool of this.allowedTools) {
 			coordinator.registerByName(tool, validator)
 		}
 
+		const subagentTaskState = new TaskState()
+		subagentTaskState.groundedSpec = this.baseConfig.taskState.groundedSpec
+		subagentTaskState.recursionDepth = this.recursionDepth
+
 		return {
 			...this.baseConfig,
 			api: this.apiHandler,
 			coordinator,
-			taskState: state,
+			taskState: subagentTaskState,
+			messageState: this.baseConfig.messageState, // Use parent's message state handler but they will have their own stream
+			recursionDepth: this.recursionDepth,
 			isSubagentExecution: true,
 			parentGroundedSpec: this.baseConfig.taskState.groundedSpec,
 			vscodeTerminalExecutionMode: "backgroundExec",

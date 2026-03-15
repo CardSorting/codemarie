@@ -43,6 +43,7 @@ export interface TaskConfig {
 	enableParallelToolCalling: boolean
 	isSubagentExecution: boolean
 	parentGroundedSpec?: GroundedSpec
+	recursionDepth?: number
 
 	// Multi-workspace support (optional for backward compatibility)
 	workspaceManager?: WorkspaceRootManager

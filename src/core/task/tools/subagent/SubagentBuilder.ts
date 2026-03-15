@@ -27,6 +27,8 @@ CRITICAL: You are operating within a JOY-ZONED architectural environment.
 2. DOMAIN-FIRST: Prioritize understanding the Domain layer before exploring implementation details in Infrastructure or UI.
 3. REPORTING MANDATE: In your final 'attempt_completion' result, you MUST provide a "JoyZoning Alignment" section, categorizing your findings by their respective layers and evaluating their "Architectural Suitability" (e.g., is the logic appearing in the right zone?).
 4. DEPENDENCY RULE: Ensure your recommendations respect the "Outside-In" dependency rule (Infrastructure/UI -> Core -> Domain).
+5. SWARM IDENTITY: You are part of a collective swarm. Value inherited context as foundational truth, but adjust dynamically based on your specialized research.
+6. SHARED KNOWLEDGE: Proactively signal critical findings (hotspots, violations) via your result messages to inform the broader swarm.
 `
 
 export class SubagentBuilder {
@@ -123,8 +125,9 @@ export class SubagentBuilder {
 			return
 		}
 
-		const mode = _mode === "plan" ? "plan" : "act"
-		const provider = apiConfiguration[_mode === "plan" ? "planModeApiProvider" : "actModeApiProvider"] as ApiProvider
-		apiConfiguration[getProviderModelIdKey(provider as ApiProvider, mode)] = trimmedModelId
+		const modeKey = _mode === "plan" ? "plan" : "act"
+		const providerKey = _mode === "plan" ? "planModeApiProvider" : "actModeApiProvider"
+		const provider = apiConfiguration[providerKey] as ApiProvider
+		apiConfiguration[getProviderModelIdKey(provider, modeKey)] = trimmedModelId
 	}
 }

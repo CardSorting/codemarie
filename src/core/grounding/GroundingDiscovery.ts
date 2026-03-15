@@ -120,6 +120,17 @@ export class GroundingDiscovery {
 				saturatedContext += anchors.map((a) => `- ${a}`).join("\n") + "\n"
 			}
 
+			// Phase 3: Swarm Memory Lookup - proactively load neighbor findings
+			if (streamId) {
+				const { orchestrator } = await import("@/infrastructure/ai/Orchestrator")
+				const findings = await orchestrator.getSwarmFindings(streamId)
+
+				if (findings.length > 0) {
+					saturatedContext += `\n### Predictive Swarm Insights (Shared Findings):\n`
+					saturatedContext += findings.map((f) => `- ${f}`).join("\n") + "\n"
+				}
+			}
+
 			// Pass 5: KG-First Blocking Path
 			if (knowledgeGraph && streamId) {
 				const semanticMatches = await knowledgeGraph.searchKnowledge(streamId, intent, {

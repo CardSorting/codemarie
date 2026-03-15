@@ -257,15 +257,34 @@ export class IntentGrounder {
 
 			// Phase 5: Swarm Synthesis - Merge Specifications
 			if (synthesizedParentSpec) {
+				// Logic to prioritize local findings over parent context for constraints/rules
+				// If confidence is high, local findings are more likely to be up-to-date with current sub-task intent
+				const mergedConstraints = [...new Set([...(synthesizedParentSpec.constraints || []), ...finalSpec.constraints])]
+				const mergedRules = [...new Set([...(synthesizedParentSpec.rules || []), ...finalSpec.rules])]
+
+				// Conflict Resolution: If confidence > 0.8, we filter out parent constraints that are semantically similar but strictly less specific
+				// (Simplified keyword-based conflict resolution for production hardening)
+				const finalConstraints =
+					finalSpec.confidenceScore > 0.8
+						? mergedConstraints.filter(
+								(c) =>
+									!finalSpec.constraints.some((lc) => lc !== c && lc.toLowerCase().includes(c.toLowerCase())),
+							)
+						: mergedConstraints
+
 				finalSpec = {
 					...finalSpec,
-					constraints: Array.from(new Set([...synthesizedParentSpec.constraints, ...finalSpec.constraints])),
-					rules: Array.from(new Set([...synthesizedParentSpec.rules, ...finalSpec.rules])),
-					// Decision variables: Merge by name, favoring local discovery for details
+					constraints: finalConstraints,
+					rules: mergedRules,
 					decisionVariables: this.mergeDecisionVariables(
 						synthesizedParentSpec.decisionVariables,
 						finalSpec.decisionVariables,
 					),
+					telemetry: {
+						...finalSpec.telemetry,
+						inheritanceSource: "synthesized",
+						matchScore: synthesizedParentSpec.telemetry?.matchScore ?? 0,
+					},
 				}
 				Logger.info(`[IntentGrounder] Swarm Synthesis: Successfully merged parent and local specifications.`)
 			}

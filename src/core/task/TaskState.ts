@@ -9,6 +9,7 @@ export class TaskState {
 	groundedSpec?: GroundedSpec
 	groundedSpecHistory: GroundedSpec[] = []
 	public didAttemptGrounding = false
+	public recursionDepth = 0
 
 	// Task-level timing
 	taskStartTimeMs = Date.now()

@@ -141,6 +141,11 @@ export class AgentOrchestrator {
 		return found ? found.value : null
 	}
 
+	public async getSwarmFindings(streamId: string): Promise<string[]> {
+		const items = await dbPool.selectWhere("agent_memory", { column: "streamId", value: streamId })
+		return items.filter((item) => item.key.startsWith("swarm_finding_")).map((item) => item.value)
+	}
+
 	public async getStreamTasks(streamId: string, requestingAgentId?: string): Promise<AgentTask[]> {
 		const results = await dbPool.selectWhere("agent_tasks", { column: "streamId", value: streamId }, requestingAgentId)
 		return results.map((t) => ({
