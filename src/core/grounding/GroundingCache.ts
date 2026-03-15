@@ -1,3 +1,5 @@
+import { Logger } from "@/shared/services/Logger"
+
 interface CacheEntry<V> {
 	value: V
 	timestamp: number
@@ -28,28 +30,44 @@ export class LRUCache<V> {
 	}
 
 	private prune(): void {
-		const now = Date.now()
-		for (const [key, entry] of this.cache.entries()) {
-			if (now - entry.timestamp > this.ttlMs) {
-				this.cache.delete(key)
+		try {
+			const now = Date.now()
+			for (const [key, entry] of this.cache.entries()) {
+				if (now - entry.timestamp > this.ttlMs) {
+					this.cache.delete(key)
+				}
 			}
+		} catch (error) {
+			// Fail-safe: ensure prune doesn't crash the background interval
+			Logger.error("[LRUCache] Prune failed:", error)
 		}
 	}
 
 	get(key: string): V | undefined {
-		const entry = this.cache.get(key)
-		if (entry === undefined) return undefined
+		try {
+			const entry = this.cache.get(key)
+			if (entry === undefined) return undefined
 
-		// TTL check
-		if (this.ttlMs > 0 && Date.now() - entry.timestamp > this.ttlMs) {
+			// TTL check
+			if (this.ttlMs > 0 && Date.now() - entry.timestamp > this.ttlMs) {
+				this.cache.delete(key)
+				return undefined
+			}
+
+			// Move to end (most recently used)
 			this.cache.delete(key)
+			this.cache.set(key, entry)
+			return entry.value
+		} catch {
 			return undefined
 		}
+	}
 
-		// Move to end (most recently used)
-		this.cache.delete(key)
-		this.cache.set(key, entry)
-		return entry.value
+	/**
+	 * Explicitly delete an entry from the cache.
+	 */
+	delete(key: string): boolean {
+		return this.cache.delete(key)
 	}
 
 	/**

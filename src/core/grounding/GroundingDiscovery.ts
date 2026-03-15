@@ -25,7 +25,7 @@ export class GroundingDiscovery {
 		private executeGroundingRequest: (
 			systemPrompt: string,
 			messages: CodemarieStorageMessage[],
-		) => Promise<{ spec: any; tokens: { input: number; output: number } }>,
+		) => Promise<{ spec: unknown; tokens: { input: number; output: number } }>,
 	) {}
 
 	async discoverRelevantContext(
@@ -34,9 +34,10 @@ export class GroundingDiscovery {
 		streamId?: string,
 		knowledgeGraph?: KnowledgeGraphService,
 	): Promise<string> {
+		if (typeof intent !== "string" || !intent) return ""
 		try {
 			// Optimization: Naive keywords for speculative KG discovery
-			const naiveKeywords = intent.split(/\W+/).filter((w) => w.length > 4)
+			const naiveKeywords = intent.split(/\W+/).filter((w) => typeof w === "string" && w.length > 4)
 
 			// Start KG discovery speculatively while waiting for LLM keywords
 			const kgPromise =
@@ -69,6 +70,7 @@ export class GroundingDiscovery {
 				// Deep Semantic Discovery: Search file contents for keywords and get snippets
 				const searchPromises = keywords.map(async (word) => {
 					try {
+						if (typeof word !== "string") return { word: String(word), snippets: [] }
 						// Hardening: Limit search scope to 3 files and 2 snippets per file
 						const snippets = await Promise.race([
 							searchFilesWithSnippets(word, cwd, 3, 2),
@@ -99,17 +101,37 @@ export class GroundingDiscovery {
 			for (const word of keywords) {
 				const results = keywordResults[word] || []
 				for (const snip of results) {
+					if (!snip || typeof snip.path !== "string") continue
 					if (seenPaths.has(snip.path)) {
 						// Points for multi-keyword overlap
 						const existing = allSnippets.find((s) => s.path === snip.path)
-						if (existing) existing.score += 2
+						if (existing) {
+							existing.score += 3 // Increased weight for overlap
+							// Also add unique snippets from other keywords
+							for (const s of snip.snippets) {
+								if (!existing.snippets.includes(s)) {
+									existing.snippets.push(s)
+								}
+							}
+						}
 						continue
 					}
 
 					let score = 1 // Base score
 					// Bonus if file path is mentioned in the intent
-					if (intent.toLowerCase().includes(path.basename(snip.path).toLowerCase())) {
-						score += 5
+					try {
+						const basename = path.basename(snip.path).toLowerCase()
+						const intentLower = intent.toLowerCase()
+						if (intentLower.includes(basename)) {
+							score += 5
+						}
+						// Bonus for exact extension match in intent
+						const ext = path.extname(snip.path).toLowerCase()
+						if (ext && intentLower.includes(ext)) {
+							score += 1
+						}
+					} catch {
+						/* ignore potential string failures */
 					}
 					// Bonus if it's a "deep" file (likely logic) vs root file
 					if (snip.path.includes("/") || snip.path.includes("\\")) {
@@ -121,6 +143,11 @@ export class GroundingDiscovery {
 				}
 			}
 
+			// Final score adjustment: normalize by snippet count (we want dense files)
+			for (const s of allSnippets) {
+				s.score += s.snippets.length * 0.5
+			}
+
 			const topSnippets = allSnippets.sort((a, b) => b.score - a.score).slice(0, 8)
 			const enrichedSnippets = await this.enrichWithMetadata(cwd, topSnippets)
 
@@ -129,9 +156,10 @@ export class GroundingDiscovery {
 			const contextLines: string[] = ["### Semantic Discovery Results (Top Ranked with Metadata):"]
 			for (const snip of enrichedSnippets) {
 				const meta = snip.metadata ? ` [Size: ${snip.metadata.size}b, Mod: ${snip.metadata.mtime}]` : ""
-				contextLines.push(`File: ${snip.path}${meta} (Relevance Score: ${snip.score})`)
+				contextLines.push(`File: ${snip.path}${meta} (Relevance Score: ${snip.score.toFixed(1)})`)
 				contextLines.push("```")
-				contextLines.push(...snip.snippets)
+				// Limit snippets per file to keep context focused
+				contextLines.push(...snip.snippets.slice(0, 4))
 				contextLines.push("```")
 			}
 
@@ -280,7 +308,7 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 			let keywords: string[] = []
 			if (Array.isArray(spec)) {
 				keywords = spec.slice(0, 5)
-			} else if (spec.keywords && Array.isArray(spec.keywords)) {
+			} else if (spec && typeof spec === "object" && "keywords" in spec && Array.isArray(spec.keywords)) {
 				keywords = spec.keywords.slice(0, 5)
 			}
 

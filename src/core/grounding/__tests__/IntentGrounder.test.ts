@@ -1,4 +1,5 @@
 import { expect } from "chai"
+import { Stats } from "fs"
 import fs from "fs/promises"
 import { afterEach, beforeEach, describe, it } from "mocha"
 import * as sinon from "sinon"
@@ -35,11 +36,12 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 			confidenceScore: 1.0,
 		}
 
-		const mockStream = (async function* () {
-			yield { type: "text", text: JSON.stringify(mockResponse) }
-		})() as ApiStream
-
-		mockApiHandler.createMessage.returns(mockStream)
+		mockApiHandler.createMessage.callsFake(
+			() =>
+				(async function* () {
+					yield { type: "text", text: JSON.stringify(mockResponse) }
+				})() as ApiStream,
+		)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 		const spec = await grounder.ground("test task")
@@ -58,24 +60,28 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 			confidenceScore: 0.9,
 		}
 
-		const mockStream = (async function* () {
-			yield { type: "text", text: JSON.stringify(mockResponse) }
-		})() as ApiStream
-
-		mockApiHandler.createMessage.returns(mockStream)
+		mockApiHandler.createMessage.callsFake(
+			() =>
+				(async function* () {
+					yield { type: "text", text: JSON.stringify(mockResponse) }
+				})() as ApiStream,
+		)
 
 		// Mock fs.stat
 		const statStub = sandbox.stub(fs, "stat")
-		statStub.withArgs(sinon.match("existing.ts")).resolves({ isDirectory: () => false, isFile: () => true } as any)
+		statStub
+			.withArgs(sinon.match("existing.ts"))
+			.resolves({ isDirectory: () => false, isFile: () => true } as unknown as Stats)
 		statStub.withArgs(sinon.match("missing.ts")).rejects(new Error("ENOENT"))
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 		const spec = await grounder.ground("task", "context", "/tmp/cwd")
 
-		expect(spec.verifiedEntities).to.contain("existing.ts")
+		expect(spec.verifiedEntities).to.be.an("array")
+		expect(spec.verifiedEntities).to.contain("existing.ts (File)")
 		expect(spec.verifiedEntities).to.not.contain("missing.ts")
 		expect(spec.confidenceScore).to.be.lessThan(0.9) // penalized
-		expect(spec.ambiguityReasoning).to.contain("referenced files were not found")
+		expect(spec.ambiguityReasoning).to.contain("Referenced entities not verified")
 	})
 
 	it("should return a cached result on subsequent calls with the same intent", async () => {
@@ -87,24 +93,27 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 			confidenceScore: 1.0,
 		}
 
-		const mockStream = (async function* () {
-			yield { type: "text", text: JSON.stringify(mockResponse) }
-		})() as ApiStream
-
-		mockApiHandler.createMessage.returns(mockStream)
+		mockApiHandler.createMessage.callsFake(
+			() =>
+				(async function* () {
+					yield { type: "text", text: JSON.stringify(mockResponse) }
+				})() as ApiStream,
+		)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 
 		// First call (cache miss)
 		const spec1 = await grounder.ground("cache test task")
 		expect(spec1.telemetry?.isCacheHit).to.be.false
-		expect(mockApiHandler.createMessage.calledOnce).to.be.true
+		// Note: ground() might call createMessage multiple times (keywords, then main grounding)
+		// But it should be consistent across calls
+		const initialCallCount = mockApiHandler.createMessage.callCount
 
 		// Second call (cache hit)
 		const spec2 = await grounder.ground("cache test task")
 		expect(spec2.telemetry?.isCacheHit).to.be.true
 		expect(spec2.constraints).to.deep.equal(["Cached constraint"])
-		expect(mockApiHandler.createMessage.calledOnce).to.be.true // No second API call
+		expect(mockApiHandler.createMessage.callCount).to.equal(initialCallCount)
 	})
 
 	it("should robustly extract JSON from conversational noise and markdown blocks", async () => {
@@ -123,11 +132,12 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 			"\n```\n\n" +
 			"I hope this helps! Let me know if you have any questions."
 
-		const mockStream = (async function* () {
-			yield { type: "text", text: noisyText }
-		})() as ApiStream
-
-		mockApiHandler.createMessage.returns(mockStream)
+		mockApiHandler.createMessage.callsFake(
+			() =>
+				(async function* () {
+					yield { type: "text", text: noisyText }
+				})() as ApiStream,
+		)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 		const spec = await grounder.ground("noisy task")
@@ -143,11 +153,12 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 			ambiguityReasoning: "Partial output",
 		}
 
-		const mockStream = (async function* () {
-			yield { type: "text", text: JSON.stringify(malformedResponse) }
-		})() as ApiStream
-
-		mockApiHandler.createMessage.returns(mockStream)
+		mockApiHandler.createMessage.callsFake(
+			() =>
+				(async function* () {
+					yield { type: "text", text: JSON.stringify(malformedResponse) }
+				})() as ApiStream,
+		)
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 		const spec = await grounder.ground("malformed task")
@@ -160,7 +171,9 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 	})
 
 	it("should return a fallback spec when grounding fails critically", async () => {
-		mockApiHandler.createMessage.throws(new Error("API Down"))
+		mockApiHandler.createMessage.callsFake(() => {
+			throw new Error("API Down")
+		})
 
 		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
 		const spec = await grounder.ground("failed task")

@@ -64,7 +64,10 @@ export class IntentGrounder {
 			}
 
 			if (streamId) {
-				await this.persistToMemory(streamId, intent, finalSpec)
+				// Don't await non-critical persistence to avoid delaying response
+				this.persistToMemory(streamId, intent, finalSpec).catch((e) =>
+					Logger.warn("[IntentGrounder] Background persistence failed:", e),
+				)
 			}
 			return finalSpec
 		}
@@ -138,10 +141,6 @@ export class IntentGrounder {
 				validatedSpec = this.validator.healSpec(rawSpec)
 			}
 
-			if (cwd) {
-				validatedSpec = await this.validator.verifyEntities(validatedSpec, cwd)
-			}
-
 			let finalSpec = validatedSpec
 			let critiqueTokens = { input: 0, output: 0 }
 			if (validatedSpec.confidenceScore < 0.7) {
@@ -155,6 +154,10 @@ export class IntentGrounder {
 				}
 			}
 
+			if (cwd) {
+				finalSpec = await this.validator.verifyEntities(finalSpec, cwd)
+			}
+
 			const durationMs = Date.now() - startTime
 			finalSpec.telemetry = {
 				durationMs,
@@ -165,7 +168,10 @@ export class IntentGrounder {
 			}
 
 			if (streamId) {
-				await this.persistToMemory(streamId, intent, finalSpec)
+				// Don't await non-critical persistence
+				this.persistToMemory(streamId, intent, finalSpec).catch((e) =>
+					Logger.warn("[IntentGrounder] Background persistence failed:", e),
+				)
 			}
 
 			IntentGrounder.specCache.set(cacheKey, finalSpec)
@@ -201,10 +207,12 @@ export class IntentGrounder {
 	}
 
 	private async persistToMemory(streamId: string, intent: string, spec: GroundedSpec): Promise<void> {
-		await orchestrator.storeMemory(streamId, "last_grounding_spec", JSON.stringify(spec))
-		await orchestrator.storeMemory(streamId, "last_intent", intent)
-		await orchestrator.storeMemory(streamId, "grounding_telemetry", JSON.stringify(spec.telemetry))
 		try {
+			await Promise.all([
+				orchestrator.storeMemory(streamId, "last_grounding_spec", JSON.stringify(spec)),
+				orchestrator.storeMemory(streamId, "last_intent", intent),
+				orchestrator.storeMemory(streamId, "grounding_telemetry", JSON.stringify(spec.telemetry)),
+			])
 			await dbPool.commitWork(streamId)
 		} catch (e) {
 			Logger.error("[IntentGrounder] Failed to commit grounding metadata:", e)
@@ -214,7 +222,7 @@ export class IntentGrounder {
 	private async executeGroundingRequest(
 		systemPrompt: string,
 		messages: CodemarieStorageMessage[],
-	): Promise<{ spec: any; tokens: { input: number; output: number } }> {
+	): Promise<{ spec: unknown; tokens: { input: number; output: number } }> {
 		const stream = this.apiHandler.createMessage(systemPrompt, messages)
 		let fullResponse = ""
 		let reasoning = ""
@@ -240,7 +248,13 @@ export class IntentGrounder {
 							if (lastChars.endsWith("}") || lastChars.endsWith("```")) {
 								try {
 									const spec = GroundingParser.quickExtractJson(fullResponse)
-									if (spec?.decisionVariables && typeof spec.confidenceScore === "number") {
+									if (
+										spec &&
+										typeof spec === "object" &&
+										"decisionVariables" in spec &&
+										"confidenceScore" in spec &&
+										typeof spec.confidenceScore === "number"
+									) {
 										Logger.info("[IntentGrounder] Optimistic Extraction triggered: Spec complete.")
 										this.apiHandler.abort?.()
 										return
@@ -260,6 +274,8 @@ export class IntentGrounder {
 
 		await Promise.race([processStream(), timeoutPromise]).catch((err) => {
 			if (err.name === "AbortError" && fullResponse.length > 0) return
+			// Filter out expected abort errors during optimistic extraction
+			if (err.message?.includes("aborted") && fullResponse.length > 0) return
 			throw err
 		})
 
