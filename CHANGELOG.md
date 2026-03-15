@@ -1,6 +1,10 @@
 # Changelog
 
-## [3.73.0]
+## [3.74.0]
+
+### Added
+
+## [3.73.0] - 2026-03-15
 
 ### Added
 - **Subagent Hardening & Swarm Intelligence**:

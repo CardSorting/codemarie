@@ -1,6 +1,15 @@
 # cline
 
-## [2.8.0]
+## [2.10.0]
+
+### Added
+
+## [2.9.0] - 2026-03-15
+
+### Added
+- **Subagent Swarm Coordination**: Native support for subagent tool delegation and recursion guardrails within the CLI.
+- **Adaptive Thinking Control**: Support for `--thinking` token budget overrides for subagents to optimize cost and performance.
+- **Improved Terminal Persistence**: Hardened status bar and goal header persistence for long-running CLI tasks.
 
 ### Added
 - **Hardened Intent Grounding Subsystem**: Integrated production-grade grounding core with robust JSON repair, enhanced caching, and granular entity validation for more reliable task understanding in the CLI.
