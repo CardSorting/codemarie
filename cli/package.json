@@ -1,6 +1,6 @@
 {
 	"name": "codemarie-cli",
-	"version": "2.8.0",
+	"version": "2.9.0",
 	"description": "Autonomous coding agent CLI - capable of creating/editing files, running commands, using the browser, and more",
 	"main": "dist/lib.mjs",
 	"types": "dist/lib.d.ts",
@@ -63,11 +63,11 @@
 	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/codemarie/codemarie"
+		"url": "https://github.com/cardsorting/codemarie"
 	},
-	"homepage": "https://codemarie.bot",
+	"homepage": "https://mariecoder.com",
 	"bugs": {
-		"url": "https://github.com/codemarie/codemarie/issues"
+		"url": "https://github.com/cardsorting/codemarie/issues"
 	},
 	"devDependencies": {
 		"@types/marked": "^5.0.2",

@@ -2,7 +2,7 @@
 	"name": "marie-coder",
 	"displayName": "CodeMarie",
 	"description": "CodeMarie is your autonomous coding partner, capable of creating/editing files, running commands, and more with your permission.",
-	"version": "3.72.0",
+	"version": "3.73.0",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
 		".",
@@ -18,9 +18,9 @@
 	"publisher": "DreamBeesAI",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/codemarie/codemarie"
+		"url": "https://github.com/cardsorting/codemarie"
 	},
-	"homepage": "https://codemarie.ai",
+	"homepage": "https://mariecoder.com",
 	"categories": [
 		"AI",
 		"Chat",

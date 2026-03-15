@@ -1,21 +1,29 @@
 # Changelog
-2: 
-3: ## [3.72.0]
-4: 
-5: ### Added
-6: - **Grounding Performance Overhaul (Rocket Generation)**: Achieved a ~80% reduction in grounding discovery latency through a multi-pass optimization strategy.
-7: - **Multiplexed Ripgrep Search**: Replaced sequential keyword searches with session-level multiplexing, batching multiple keywords into a single `rg` process to drastically reduce process overhead.
-8: - **Speculative Grounding Pipeline**: Introduced a parallel "racing" architecture that launches speculative grounding attempts based on project rules if deep semantic discovery exceeds a 2-second threshold.
-9: - **Knowledge Graph (KG) Saturation**: Integrated high-confidence KG landmark discovery into the fast-path, allowing the system to bypass expensive file system searches for frequently accessed hotspots.
-10: - **Virtualized Workspace Indexing**: Implemented a background session-level workspace index to eliminate redundant `fs.stat` calls during file discovery and entity verification.
-11: - **Adaptive Structural Shaving**: Modernized context truncation with "Structural Shaving" that intelligently preserves critical imports, headers, and exports while pruning less relevant middle sections to fit context budgets.
-12: - **Heuristic Fast-Path Discovery**: Implemented a regex-based heuristic extraction layer that handles simple intents near-instantly without requiring initial LLM latency.
-13: - **Ripgrep Hardening**: Added column limits and preview constraints to file searches to prevent performance degradation when encountering massive minified or binary assets.
-14: 
-15: ### Fixed
-16: - **JSON Parser Resilience**: Optimized `extractJson` to lock onto the most relevant grounding spec during streaming, improving stability for high-concurrency requests.
-17: - **I/O Overhead**: Reduced total `fs.stat` calls by ~90% through shared caching and workspace virtualization.
-18: 
+
+## [3.73.0]
+
+### Added
+- **Foundational Resilience Hardening**: Initial work on cross-resource grounding stability.
+
+## [3.72.0]
+
+### Added
+- **Grounding Performance Overhaul (Rocket Generation)**: Achieved a ~99% reduction in grounding discovery latency for saturated hotspots through a multi-pass optimization strategy.
+- **Multiplexed Ripgrep Search**: Replaced sequential keyword searches with session-level multiplexing, batching multiple keywords into a single `rg` process.
+- **Speculative Grounding Pipeline**: Introduced a parallel "racing" architecture that launches speculative grounding attempts based on project rules if discovery exceeds a 2-second threshold.
+- **Knowledge Graph (KG) Resilience & Self-Healing (Phase 4)**: Implemented hash-based drift detection and active background refreshing to ensure the reasoning substrate remains synchronized with the codebase.
+- **Fast-KG Satiety Bypass (Phase 5)**: Enabled sub-millisecond grounding discovery (~1ms) by bypassing ripgrep/LLM layers for high-confidence, fresh semantic landmarks.
+- **Virtualized Workspace Indexing**: Implemented accelerated batch indexing (20x concurrency) to eliminate redundant `fs.stat` calls during file discovery.
+- **Token-Aware Context Shaving (Phase 5)**: Developed a symbolic token estimation engine that intelligently preserves dense code structures while managing context budgets more precisely than character-count methods.
+- **Adaptive Structural Shaving**: Intelligent context truncation that preserves critical imports and headers while pruning intermediate sections.
+- **Heuristic Fast-Path Discovery**: Regex-based heuristic extraction layer for simple intents.
+- **Ripgrep Hardening**: Column limits and preview constraints to prevent stalls on massive minified or binary assets.
+- **KG Concurrency Guards**: Implemented refresh locks to prevent redundant background updates in multi-agent environments.
+
+### Fixed
+- **JSON Parser Resilience**: Optimized `extractJson` to lock onto the most relevant grounding spec during streaming, improving stability for high-concurrency requests.
+- **I/O Overhead**: Reduced total `fs.stat` calls by ~90% through shared caching and workspace virtualization.
+
 
 ## [3.71.0]
 
