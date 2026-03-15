@@ -3,6 +3,13 @@
 ## [3.73.0]
 
 ### Added
+- **Subagent Hardening & Swarm Intelligence**:
+  - **Adaptive Budgeting**: Implemented token-aware and cost-aware recursion guardrails to prevent runaway subagent costs.
+  - **Swarm Consensus Protocol**: Introduced a peer-verification mechanism for subagents to validate findings before finalization.
+  - **Tool Delegation & Authorization**: Fine-grained tool permission management for subagents based on agent-specific configurations.
+  - **Autonomous Nudges**: Guided self-correction for subagents encountering context uncertainty or "Toxic Hotspots."
+  - **Type-Safe Subagent Architecture**: Resolved all `any` type diagnostics and implemented structured signaling for high-reliability swarm coordination.
+  - **Thinking Budget Delegation**: Automated adaptive thinking budget overrides for subagents to optimize for fast, efficient reasoning.
 - **Foundational Resilience Hardening**: Initial work on cross-resource grounding stability.
 
 ## [3.72.0]
