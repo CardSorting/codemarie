@@ -25,18 +25,18 @@ interface HistoryPagination {
 	limit: number
 }
 
-interface HookInfo {
+export interface HookInfo {
 	name: string
 	enabled: boolean
 	absolutePath: string
 }
 
-interface WorkspaceHooks {
+export interface WorkspaceHooks {
 	workspaceName: string
 	hooks: HookInfo[]
 }
 
-interface SkillInfo {
+export interface SkillInfo {
 	name: string
 	description: string
 	path: string
@@ -244,13 +244,21 @@ export const App: React.FC<AppProps> = ({
 					) : (
 						<ChatView
 							controller={controller}
+							globalHooks={globalHooks}
+							globalSkills={globalSkills}
+							hooksEnabled={hooksEnabled}
 							initialImages={initialImages}
 							initialPrompt={initialPrompt}
+							localSkills={localSkills}
 							onComplete={onComplete}
 							onError={onError}
 							onExit={onWelcomeExit}
+							onToggleHook={onToggleHook}
+							onToggleSkill={onToggleSkill}
 							onViewChange={setCurrentView}
+							skillsEnabled={skillsEnabled}
 							taskId={selectedTaskId}
+							workspaceHooks={workspaceHooks}
 						/>
 					)}
 				</TaskContextProvider>

@@ -317,25 +317,25 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ config, mode = "ac
 	const modeColor = mode === "plan" ? "yellow" : COLORS.primaryBlue
 
 	const renderButton = (text: string, shortcut: string) => {
-		const label = ` ${text} (${shortcut}) `
+		const label = ` ${text} [${shortcut}] `
 		const padding = Math.max(0, buttonWidth - label.length)
 		const leftPad = Math.floor(padding / 2)
 		const rightPad = padding - leftPad
 		const paddedLabel = " ".repeat(leftPad) + label + " ".repeat(rightPad)
 
 		return (
-			<Text backgroundColor={modeColor} color="black">
+			<Text backgroundColor={modeColor} bold color="black">
 				{paddedLabel}
 			</Text>
 		)
 	}
 
 	const renderModeButton = () => {
-		const text = mode === "plan" ? "Switch to ACT" : "Switch to PLAN"
+		const text = mode === "plan" ? "ACT" : "PLAN"
 		const shortcut = "m"
-		const label = ` ${text} (${shortcut}) `
+		const label = ` Switch to ${text} [${shortcut}] `
 		return (
-			<Text backgroundColor="gray" color="black">
+			<Text backgroundColor="gray" color="white">
 				{label}
 			</Text>
 		)

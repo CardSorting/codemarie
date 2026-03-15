@@ -30,6 +30,7 @@ import { useOcaAuth } from "../hooks/useOcaAuth"
 import { isMouseEscapeSequence } from "../utils/input"
 import { applyBedrockConfig, applyProviderConfig } from "../utils/provider-config"
 import { ApiKeyInput } from "./ApiKeyInput"
+import type { HookInfo, SkillInfo, WorkspaceHooks } from "./App"
 import { BedrockCustomModelFlow } from "./BedrockCustomModelFlow"
 import { type BedrockConfig, BedrockSetup } from "./BedrockSetup"
 import { Checkbox } from "./Checkbox"
@@ -51,14 +52,23 @@ interface SettingsPanelContentProps {
 	controller?: Controller
 	initialMode?: "model-picker" | "featured-models"
 	initialModelKey?: "actModelId" | "planModelId"
+	// Hooks & Skills
+	hooksEnabled?: boolean
+	globalHooks?: HookInfo[]
+	workspaceHooks?: WorkspaceHooks[]
+	onToggleHook?: (isGlobal: boolean, hookName: string, enabled: boolean, workspaceName?: string) => void
+	skillsEnabled?: boolean
+	globalSkills?: SkillInfo[]
+	localSkills?: SkillInfo[]
+	onToggleSkill?: (isGlobal: boolean, skillPath: string, enabled: boolean) => void
 }
 
-type SettingsTab = "api" | "auto-approve" | "features" | "other" | "account" | "mcp"
+type SettingsTab = "api" | "auto-approve" | "features" | "other" | "account" | "mcp" | "hooks" | "skills"
 
 interface ListItem {
 	key: string
 	label: string
-	type: "checkbox" | "readonly" | "editable" | "separator" | "header" | "spacer" | "action" | "cycle"
+	type: "checkbox" | "readonly" | "editable" | "separator" | "header" | "spacer" | "action" | "cycle" | "toggle"
 	value: string | boolean
 	description?: string
 	isSubItem?: boolean
@@ -82,6 +92,8 @@ const TABS: PanelTab[] = [
 	{ key: "auto-approve", label: "Auto-approve" },
 	{ key: "features", label: "Features" },
 	{ key: "mcp", label: "MCP" },
+	{ key: "hooks", label: "Hooks" },
+	{ key: "skills", label: "Skills" },
 	{ key: "account", label: "Account" },
 	{ key: "other", label: "Other" },
 ]
@@ -149,6 +161,14 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 	controller,
 	initialMode,
 	initialModelKey,
+	hooksEnabled,
+	globalHooks = [],
+	workspaceHooks = [],
+	onToggleHook,
+	skillsEnabled,
+	globalSkills = [],
+	localSkills = [],
+	onToggleSkill,
 }) => {
 	const { isRawModeSupported } = useStdinContext()
 	const stateManager = StateManager.get()
@@ -727,6 +747,73 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				return mcpItems
 			}
 
+			case "hooks": {
+				const hookItems: ListItem[] = []
+				if (globalHooks.length > 0) {
+					hookItems.push({ key: "global-hooks-header", label: "Global Hooks:", type: "header", value: "" })
+					for (const hook of globalHooks) {
+						hookItems.push({
+							key: `hook-global-${hook.name}`,
+							label: hook.name,
+							type: "toggle",
+							value: hook.enabled,
+						})
+					}
+				}
+				for (const ws of workspaceHooks) {
+					hookItems.push({
+						key: `ws-hooks-header-${ws.workspaceName}`,
+						label: `${ws.workspaceName} Hooks:`,
+						type: "header",
+						value: "",
+					})
+					for (const hook of ws.hooks) {
+						hookItems.push({
+							key: `hook-ws-${ws.workspaceName}-${hook.name}`,
+							label: hook.name,
+							type: "toggle",
+							value: hook.enabled,
+						})
+					}
+				}
+				if (hookItems.length === 0) {
+					hookItems.push({ key: "no-hooks", label: "No hooks configured", type: "readonly", value: "" })
+				}
+				return hookItems
+			}
+
+			case "skills": {
+				const skillItems: ListItem[] = []
+				if (globalSkills.length > 0) {
+					skillItems.push({ key: "global-skills-header", label: "Global Skills:", type: "header", value: "" })
+					for (const skill of globalSkills) {
+						skillItems.push({
+							key: `skill-global-${skill.name}`,
+							label: skill.name,
+							type: "toggle",
+							value: skill.enabled,
+							description: skill.description,
+						})
+					}
+				}
+				if (localSkills.length > 0) {
+					skillItems.push({ key: "local-skills-header", label: "Workspace Skills:", type: "header", value: "" })
+					for (const skill of localSkills) {
+						skillItems.push({
+							key: `skill-local-${skill.name}`,
+							label: skill.name,
+							type: "toggle",
+							value: skill.enabled,
+							description: skill.description,
+						})
+					}
+				}
+				if (skillItems.length === 0) {
+					skillItems.push({ key: "no-skills", label: "No skills configured", type: "readonly", value: "" })
+				}
+				return skillItems
+			}
+
 			default:
 				return []
 		}
@@ -750,6 +837,10 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		accountOrganization,
 		accountOrganizations,
 		controller?.mcpHub,
+		globalHooks,
+		workspaceHooks,
+		globalSkills,
+		localSkills,
 	])
 
 	// Reset selection when changing tabs
@@ -808,18 +899,22 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			return
 
 		if (item.type === "action") {
-			// Action items trigger their handler directly
-			if (item.key === "login") {
-				handleCodemarieLogin()
-				return
-			}
-			if (item.key === "logout") {
-				handleCodemarieLogout()
-				return
-			}
-			if (item.key === "viewAccount") {
-				handleTabChange("account")
-				return
+			try {
+				// Action items trigger their handler directly
+				if (item.key === "login") {
+					handleCodemarieLogin()
+					return
+				}
+				if (item.key === "logout") {
+					handleCodemarieLogout()
+					return
+				}
+				if (item.key === "viewAccount") {
+					handleTabChange("account")
+					return
+				}
+			} catch (error) {
+				console.error("Failed to execute action:", error)
 			}
 			return
 		}
@@ -981,11 +1076,39 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		actReasoningEffort,
 		planReasoningEffort,
 		rebuildTaskApi,
-		setReasoningEffortForMode, // Update telemetry providers to respect the new setting
+		setReasoningEffortForMode,
 		controller,
 		handleTabChange,
 		provider,
 	])
+
+	// Handle Skill/Hook toggles separately as they use callbacks
+	const handleToggle = useCallback(() => {
+		try {
+			const item = items[selectedIndex]
+			if (!item || item.type !== "toggle") return
+
+			if (item.key.startsWith("hook-global-")) {
+				const name = item.key.replace("hook-global-", "")
+				onToggleHook?.(true, name, !item.value)
+			} else if (item.key.startsWith("hook-ws-")) {
+				const parts = item.key.split("-")
+				const workspaceName = parts[2]
+				const name = parts.slice(3).join("-")
+				onToggleHook?.(false, name, !item.value, workspaceName)
+			} else if (item.key.startsWith("skill-global-")) {
+				const name = item.key.replace("skill-global-", "")
+				const skill = globalSkills.find((s) => s.name === name)
+				if (skill) onToggleSkill?.(true, skill.path, !skill.enabled)
+			} else if (item.key.startsWith("skill-local-")) {
+				const name = item.key.replace("skill-local-", "")
+				const skill = localSkills.find((s) => s.name === name)
+				if (skill) onToggleSkill?.(false, skill.path, !skill.enabled)
+			}
+		} catch (error) {
+			console.error("Failed to toggle skill/hook:", error)
+		}
+	}, [items, selectedIndex, globalSkills, localSkills, onToggleHook, onToggleSkill])
 
 	// Handle completion of the Bedrock custom ARN flow (ARN + base model selected)
 	const handleBedrockCustomFlowComplete = useCallback(
@@ -1297,19 +1420,18 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 	// Navigate tabs
 	const navigateTabs = useCallback(
 		(direction: "left" | "right") => {
-			const tabKeys = TABS.map((t) => t.key)
+			const visibleTabs = TABS.filter((t) => {
+				if (t.key === "hooks") return hooksEnabled
+				if (t.key === "skills") return skillsEnabled
+				return true
+			})
+			const tabKeys = visibleTabs.map((t) => t.key)
 			const currentIdx = tabKeys.indexOf(currentTab)
 			const newIdx =
-				direction === "left"
-					? currentIdx > 0
-						? currentIdx - 1
-						: tabKeys.length - 1
-					: currentIdx < tabKeys.length - 1
-						? currentIdx + 1
-						: 0
+				direction === "left" ? (currentIdx - 1 + tabKeys.length) % tabKeys.length : (currentIdx + 1) % tabKeys.length
 			handleTabChange(tabKeys[newIdx])
 		},
-		[currentTab, handleTabChange],
+		[currentTab, handleTabChange, hooksEnabled, skillsEnabled],
 	)
 
 	// Handle keyboard input
@@ -1473,7 +1595,12 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				return
 			}
 			if (key.tab || key.return) {
-				handleAction()
+				const item = items[selectedIndex]
+				if (item?.type === "toggle") {
+					handleToggle()
+				} else {
+					handleAction()
+				}
 				return
 			}
 		},

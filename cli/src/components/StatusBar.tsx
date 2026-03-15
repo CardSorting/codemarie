@@ -3,9 +3,8 @@
  * Shows git branch, model, context window usage, token count, and cost
  */
 
-import { execSync } from "child_process"
 import { Box, Text } from "ink"
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 interface StatusBarProps {
 	modelId: string
@@ -16,21 +15,7 @@ interface StatusBarProps {
 	cwd?: string
 }
 
-/**
- * Get current git branch name
- */
-function getGitBranch(cwd?: string): string | null {
-	try {
-		const branch = execSync("git rev-parse --abbrev-ref HEAD", {
-			cwd: cwd || process.cwd(),
-			encoding: "utf-8",
-			stdio: ["pipe", "pipe", "pipe"],
-		}).trim()
-		return branch
-	} catch {
-		return null
-	}
-}
+import { getGitBranch } from "../utils/git"
 
 /**
  * Get directory basename
@@ -66,14 +51,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 	cwd,
 }) => {
 	const [branch, setBranch] = useState<string | null>(null)
-	const dirName = getDirName(cwd)
+	const dirName = useMemo(() => getDirName(cwd), [cwd])
 
 	useEffect(() => {
+		// Only fetch branch if it's the first time or cwd changed
 		setBranch(getGitBranch(cwd))
 	}, [cwd])
 
-	const totalTokens = tokensIn + tokensOut
-	const contextBar = createContextBar(totalTokens, contextWindowSize)
+	const totalTokens = useMemo(() => tokensIn + tokensOut, [tokensIn, tokensOut])
+	const contextBar = useMemo(() => createContextBar(totalTokens, contextWindowSize), [totalTokens, contextWindowSize])
 
 	// Format model ID for display (shorten if needed)
 	const displayModel = modelId.length > 20 ? `${modelId.substring(0, 17)}...` : modelId

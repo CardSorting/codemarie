@@ -142,7 +142,7 @@ import { waitFor } from "../utils/timeout"
 import { isFileEditTool, parseToolFromMessage } from "../utils/tools"
 import { shutdownEvent } from "../vscode-shim"
 import { ActionButtons, type ButtonActionType, getButtonConfig, getVisibleButtons } from "./ActionButtons"
-import type { ViewType } from "./App"
+import type { HookInfo, SkillInfo, ViewType, WorkspaceHooks } from "./App"
 import { AsciiMotionCli, StaticRobotFrame } from "./AsciiMotionCli"
 import { ChatMessage } from "./ChatMessage"
 import { FileMentionMenu } from "./FileMentionMenu"
@@ -153,6 +153,7 @@ import { providerModels } from "./ModelPicker"
 import { SettingsPanelContent } from "./SettingsPanelContent"
 import { SkillsPanelContent } from "./SkillsPanelContent"
 import { SlashCommandMenu } from "./SlashCommandMenu"
+import { StatusBar } from "./StatusBar"
 import { ThinkingIndicator } from "./ThinkingIndicator"
 
 /**
@@ -182,6 +183,15 @@ interface ChatViewProps {
 	initialPrompt?: string
 	initialImages?: string[]
 	taskId?: string
+	// Hooks & Skills
+	hooksEnabled?: boolean
+	globalHooks?: HookInfo[]
+	workspaceHooks?: WorkspaceHooks[]
+	onToggleHook?: (isGlobal: boolean, hookName: string, enabled: boolean, workspaceName?: string) => void
+	skillsEnabled?: boolean
+	globalSkills?: SkillInfo[]
+	localSkills?: SkillInfo[]
+	onToggleSkill?: (isGlobal: boolean, skillPath: string, enabled: boolean) => void
 }
 
 const SEARCH_DEBOUNCE_MS = 150
@@ -349,6 +359,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	initialPrompt,
 	initialImages,
 	taskId,
+	hooksEnabled,
+	globalHooks = [],
+	workspaceHooks = [],
+	onToggleHook,
+	skillsEnabled,
+	globalSkills = [],
+	localSkills = [],
+	onToggleSkill,
 }) => {
 	// Get Ink app instance for graceful exit
 	const { exit: inkExit } = useApp()
@@ -771,6 +789,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	// Determine if we're in welcome state (no messages yet and user hasn't scrolled)
 	const isWelcomeState = displayMessages.length === 0 && !userScrolled
 
+	// Goal header metadata - track when the actual task began
+	const [taskStartTime, setTaskStartTime] = useState<number | null>(null)
+
+	useEffect(() => {
+		if (!isWelcomeState && initialPrompt && !taskStartTime) {
+			setTaskStartTime(Date.now())
+		}
+	}, [isWelcomeState, initialPrompt, taskStartTime])
+
 	// Build Static items - each item is rendered once and stays above dynamic content
 	// We pass ALL completed messages to Static and let Ink handle deduplication by key.
 	// Static internally tracks which keys have been rendered and only renders new ones.
@@ -917,6 +944,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
 			inputStateStorage.delete(storageKey)
 
 			try {
+				// Handle local commands
+				if (expandedText.trim().toLowerCase() === "/help") {
+					setTextInput("")
+					setCursorPos(0)
+					setActivePanel({ type: "help" })
+					return
+				}
+
 				// Convert image paths to data URLs if needed
 				const imageDataUrls =
 					images.length > 0
@@ -1443,7 +1478,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	})
 
 	const borderColor = mode === "act" ? COLORS.primaryBlue : "yellow"
-	const metrics = getApiMetrics(messages)
+	const metrics = useMemo(() => getApiMetrics(messages), [messages])
 
 	// Get last API request total tokens for context window progress
 	const lastApiReqTotalTokens = useMemo(() => getLastApiReqTotalTokens(messages), [messages])
@@ -1510,6 +1545,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
 					</Box>
 				)}
 
+				{/* Persistent Goal Header (once task started) */}
+				{!isWelcomeState && initialPrompt && (
+					<Box borderStyle="double" flexDirection="column" marginBottom={1} paddingX={1} width="100%">
+						<Box justifyContent="space-between">
+							<Text bold color={COLORS.primaryBlue}>
+								Goal:{" "}
+								<Text bold={false} color="white">
+									{initialPrompt}
+								</Text>
+							</Text>
+							{taskStartTime && <Text color="gray">[{Math.floor((Date.now() - taskStartTime) / 60000)}m]</Text>}
+						</Box>
+					</Box>
+				)}
+
 				{/* Current streaming message */}
 				{currentMessage && (
 					<Box paddingX={1} width="100%">
@@ -1526,6 +1576,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
 				{/* Thinking indicator when processing */}
 				{isSpinnerActive && <ThinkingIndicator mode={mode} onCancel={handleCancel} startTime={spinnerStartTime} />}
+
+				{/* Persistent Status Bar (always visible at bottom) */}
+				{!isExiting && (
+					<Box flexDirection="column" marginTop={1} width="100%">
+						<StatusBar
+							contextWindowSize={contextWindowSize}
+							modelId={modelId}
+							tokensIn={metrics.totalTokensIn}
+							tokensOut={metrics.totalTokensOut}
+							totalCost={metrics.totalCost}
+						/>
+					</Box>
+				)}
 
 				{/* Input field with border - hidden when panel is open or exiting */}
 				{!activePanel && !isExiting && (
@@ -1552,9 +1615,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
 				{activePanel?.type === "settings" && (
 					<SettingsPanelContent
 						controller={ctrl}
+						globalHooks={globalHooks}
+						globalSkills={globalSkills}
+						hooksEnabled={hooksEnabled}
 						initialMode={activePanel.initialMode}
 						initialModelKey={activePanel.initialModelKey}
+						localSkills={localSkills}
 						onClose={() => setActivePanel(null)}
+						onToggleHook={onToggleHook}
+						onToggleSkill={onToggleSkill}
+						skillsEnabled={skillsEnabled}
+						workspaceHooks={workspaceHooks}
 					/>
 				)}
 
