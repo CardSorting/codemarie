@@ -1,4 +1,21 @@
 # Changelog
+2: 
+3: ## [3.72.0]
+4: 
+5: ### Added
+6: - **Grounding Performance Overhaul (Rocket Generation)**: Achieved a ~80% reduction in grounding discovery latency through a multi-pass optimization strategy.
+7: - **Multiplexed Ripgrep Search**: Replaced sequential keyword searches with session-level multiplexing, batching multiple keywords into a single `rg` process to drastically reduce process overhead.
+8: - **Speculative Grounding Pipeline**: Introduced a parallel "racing" architecture that launches speculative grounding attempts based on project rules if deep semantic discovery exceeds a 2-second threshold.
+9: - **Knowledge Graph (KG) Saturation**: Integrated high-confidence KG landmark discovery into the fast-path, allowing the system to bypass expensive file system searches for frequently accessed hotspots.
+10: - **Virtualized Workspace Indexing**: Implemented a background session-level workspace index to eliminate redundant `fs.stat` calls during file discovery and entity verification.
+11: - **Adaptive Structural Shaving**: Modernized context truncation with "Structural Shaving" that intelligently preserves critical imports, headers, and exports while pruning less relevant middle sections to fit context budgets.
+12: - **Heuristic Fast-Path Discovery**: Implemented a regex-based heuristic extraction layer that handles simple intents near-instantly without requiring initial LLM latency.
+13: - **Ripgrep Hardening**: Added column limits and preview constraints to file searches to prevent performance degradation when encountering massive minified or binary assets.
+14: 
+15: ### Fixed
+16: - **JSON Parser Resilience**: Optimized `extractJson` to lock onto the most relevant grounding spec during streaming, improving stability for high-concurrency requests.
+17: - **I/O Overhead**: Reduced total `fs.stat` calls by ~90% through shared caching and workspace virtualization.
+18: 
 
 ## [3.71.0]
 
