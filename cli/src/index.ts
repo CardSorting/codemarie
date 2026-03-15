@@ -778,31 +778,31 @@ async function runServer(options: {
 	const host = options.host
 	const ctx = await initializeCli({ ...options, enableAuth: true, isRemote: true })
 
-	// Resolve static path for webview-ui
+	// Resolve static path for remote-ui
 	// If we're in a source checkout, it's in the root
-	let staticPath = path.join(ctx.extensionDir, "webview-ui", "dist")
+	let staticPath = path.join(ctx.extensionDir, "remote-ui", "dist")
 	if (!existsSync(staticPath)) {
 		// Fallback for different structures (e.g. if extensionDir is cli/)
-		staticPath = path.join(ctx.extensionDir, "..", "webview-ui", "dist")
+		staticPath = path.join(ctx.extensionDir, "..", "remote-ui", "dist")
 	}
 
 	// Automatic build if requested or if dist is missing and we're in a source tree
 	if (
 		options.build ||
-		(!existsSync(staticPath) && existsSync(path.join(ctx.extensionDir, "..", "webview-ui", "package.json")))
+		(!existsSync(staticPath) && existsSync(path.join(ctx.extensionDir, "..", "remote-ui", "package.json")))
 	) {
-		printInfo("Building webview UI for remote platform...")
+		printInfo("Building remote-ui...")
 		try {
 			const { execSync } = await import("node:child_process")
-			execSync("npm run build:remote", {
-				cwd: path.join(ctx.extensionDir, ".."),
+			execSync("npm run build", {
+				cwd: path.join(ctx.extensionDir, "..", "remote-ui"),
 				stdio: "inherit",
-				env: { ...process.env, VITE_PLATFORM: "remote" },
 			})
 		} catch (error) {
-			printWarning(`Failed to build webview UI: ${error instanceof Error ? error.message : String(error)}`)
+			printWarning(`Failed to build remote-ui: ${error instanceof Error ? error.message : String(error)}`)
 		}
 	}
+	...
 
 	// Ensure we have a token if requested, or generate one/reuse existing
 	let authToken = process.env.CODEMARIE_REMOTE_AUTH_TOKEN
@@ -829,7 +829,7 @@ async function runServer(options: {
 
 	if (!existsSync(staticPath)) {
 		printWarning(`Webview UI dist folder not found at ${staticPath}. Server will only provide API/WebSocket services.`)
-		printInfo("To build the UI, run: npm run build:remote")
+		printInfo("To build the UI, run: npm run build:remote-ui")
 	}
 
 	// Keep the process alive
