@@ -89,7 +89,7 @@ export class VertexHandler implements ApiHandler {
 					googleAuth,
 					apiKey: this.options.vertexApiKey,
 					defaultHeaders: externalHeaders,
-				})
+				} as any)
 			} catch (error: any) {
 				throw new Error(`Error creating Vertex AI Anthropic client: ${error.message}`)
 			}

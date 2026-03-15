@@ -526,7 +526,7 @@ export const env = {
 		writeText: async (_value: string) => {},
 	},
 	openExternal: async (uri: URI) => {
-		const { openExternal } = await import("./utils/env")
+		const { openExternal } = await import("@/utils/env")
 		return openExternal(uri.toString())
 	},
 	isTelemetryEnabled: true,
