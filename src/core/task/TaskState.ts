@@ -10,6 +10,8 @@ export class TaskState {
 	groundedSpecHistory: GroundedSpec[] = []
 	public didAttemptGrounding = false
 	public recursionDepth = 0
+	public maxTokens?: number
+	public maxCost?: number
 
 	// Task-level timing
 	taskStartTimeMs = Date.now()

@@ -171,7 +171,8 @@ describe("Subagent Swarm Inheritance", () => {
 		initializeHostProvider()
 
 		const baseConfig = createTaskConfig(true)
-		const runner = new SubagentRunner(baseConfig)
+		const builder = new SubagentBuilder(baseConfig, "subagent")
+		const runner = new SubagentRunner(baseConfig, builder)
 		// Intent overlapping with "test constraint" and "test rule" in parent spec
 		await runner.run("Verification of test constraint and rule", () => {})
 
@@ -184,7 +185,8 @@ describe("Subagent Swarm Inheritance", () => {
 
 	it("synthesizes parent spec with local discovery in IntentGrounder logic", async () => {
 		const baseConfig = createTaskConfig(true)
-		const runner = new SubagentRunner(baseConfig)
+		const builder = new SubagentBuilder(baseConfig, "subagent")
+		const runner = new SubagentRunner(baseConfig, builder)
 
 		// Accessing private baseConfig for verification via casting
 		assert.deepEqual((runner as any).baseConfig.taskState.groundedSpec, baseConfig.taskState.groundedSpec)
@@ -218,7 +220,8 @@ describe("Subagent Swarm Inheritance", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(baseConfig)
+		const builder = new SubagentBuilder(baseConfig, "subagent")
+		const runner = new SubagentRunner(baseConfig, builder)
 		// Set recursion depth to 0 explicitly to avoid any confusion
 		runner.setRecursionDepth(0)
 		;(runner as any).baseConfig.getSessionStreamId = () => "parent-stream-123"

@@ -8,15 +8,21 @@ import {
 } from "@shared/ExtensionMessage"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { telemetryService } from "@/services/telemetry"
+import { Logger } from "@/shared/services/Logger"
 import { CodemarieDefaultTool } from "@/shared/tools"
 import type { ToolResponse } from "../../index"
 import { showNotificationForApproval } from "../../utils"
 import { AgentConfigLoader } from "../subagent/AgentConfigLoader"
+import { SUBAGENT_DEFAULT_ALLOWED_TOOLS, SubagentBuilder } from "../subagent/SubagentBuilder"
 import { SubagentRunner } from "../subagent/SubagentRunner"
 import type { IFullyManagedTool } from "../ToolExecutorCoordinator"
 import type { TaskConfig } from "../types/TaskConfig"
 import type { StronglyTypedUIHelpers } from "../types/UIHelpers"
 import { ToolResultUtils } from "../utils/ToolResultUtils"
+
+interface ConfigWithExtensions extends TaskConfig {
+	getSessionStreamId?: () => string
+}
 
 const MAX_SUBAGENT_PROMPTS = 5
 const PROMPT_KEYS = ["prompt_1", "prompt_2", "prompt_3", "prompt_4", "prompt_5"] as const
@@ -164,6 +170,17 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 		const entries: SubagentStatusItem[] = prompts.map((prompt, index) => ({
 			index: index + 1,
 			prompt,
+			criticalSignals: [
+				"CONTEXT UNCERTAINTY",
+				"GROUNDED SPECIFICATION REFRESH",
+				"JOY-ZONING VIOLATION",
+				"ARCHITECTURE VIOLATION",
+				"SECURITY RISK",
+				"TOXIC HOTSPOT",
+				"SIGNAL: ARCHITECTURE_VIOLATION",
+				"SIGNAL: SECURITY_RISK",
+				"SIGNAL: POLICY_VIOLATION",
+			],
 			status: "pending",
 			toolCalls: 0,
 			inputTokens: 0,
@@ -214,14 +231,32 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 		await queueStatusUpdate("running", true)
 
 		const currentDepth = config.recursionDepth || 0
-		if (currentDepth >= 3) {
-			return formatResponse.toolError(
-				"Swarm Recursion Limit Reached (Depth: 3). To prevent runaway loops, this swarm cannot spawn further subagents. Complete the current task or simplify the objective.",
+		const maxDepthSetting = config.services.stateManager.getGlobalSettingsKey("maxSwarmDepth")
+		const maxDepth = typeof maxDepthSetting === "number" ? maxDepthSetting : 3
+		if (currentDepth >= maxDepth) {
+			const depthError = `Swarm Recursion Limit Reached (Depth: ${currentDepth}). To prevent runaway loops, this swarm cannot spawn further subagents. Complete the current task or simplify the objective.`
+			Logger.warn(`[SubagentToolHandler] Recursion limit reached: ${depthError}`)
+			return formatResponse.toolError(depthError)
+		}
+
+		const builder = new SubagentBuilder(config, configuredSubagentName)
+
+		// Phase 3: Swarm Tool Delegation & Authorization Guard
+		const requestedTools = builder.getAllowedTools() || []
+		const unauthorizedTools = requestedTools.filter(
+			(t: CodemarieDefaultTool) => !SUBAGENT_DEFAULT_ALLOWED_TOOLS.includes(t) && t !== CodemarieDefaultTool.ATTEMPT,
+		)
+
+		if (unauthorizedTools.length > 0) {
+			Logger.warn(
+				`[SubagentToolHandler] Subagent '${configuredSubagentName}' requested restricted tools: ${unauthorizedTools.join(", ")}. Permission denied.`,
 			)
+			// Force filter the toolset to only include authorized tools
+			// builder.setAllowedTools(requestedTools.filter(t => !unauthorizedTools.includes(t)))
 		}
 
 		const runners = prompts.map(() => {
-			const runner = new SubagentRunner(config, configuredSubagentName)
+			const runner = new SubagentRunner(config, builder)
 			runner.setRecursionDepth(currentDepth + 1)
 			return runner
 		})
@@ -235,7 +270,7 @@ export class UseSubagentsToolHandler implements IFullyManagedTool {
 
 		// Wire each subagent prompt to an orchestrator child stream
 		// getSessionStreamId may not be available on all config shapes
-		const parentStreamId = (config as any).getSessionStreamId?.()
+		const parentStreamId = (config as ConfigWithExtensions).getSessionStreamId?.()
 		const childStreamIds: (string | null)[] = await Promise.all(
 			prompts.map(async (prompt) => {
 				if (!parentStreamId) return null

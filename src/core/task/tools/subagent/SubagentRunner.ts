@@ -7,6 +7,7 @@ import { formatResponse } from "@core/prompts/responses"
 import { PromptRegistry } from "@core/prompts/system-prompt"
 import type { SystemPromptContext } from "@core/prompts/system-prompt/types"
 import { StreamResponseHandler } from "@core/task/StreamResponseHandler"
+import { ModelInfo } from "@shared/api"
 import {
 	CodemarieAssistantToolUseBlock,
 	CodemarieStorageMessage,
@@ -22,12 +23,14 @@ import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { HostRegistryInfo } from "@/registry"
 import { CodemarieError, CodemarieErrorType } from "@/services/error"
 import { ApiFormat } from "@/shared/proto/codemarie/models"
-import { calculateApiCostAnthropic } from "@/utils/cost"
+import { calculateApiCostAnthropic, calculateApiCostOpenAI } from "@/utils/cost"
 import { isNextGenModelFamily } from "@/utils/model-utils"
+import { UniversalGuard } from "../../../policy/UniversalGuard"
 import { TaskState } from "../../TaskState"
 import { ToolValidator } from "../ToolValidator"
 import type { TaskConfig } from "../types/TaskConfig"
 import { SubagentBuilder } from "./SubagentBuilder"
+import { SwarmConsensusHandler } from "./SwarmConsensusHandler"
 
 const MAX_EMPTY_ASSISTANT_RETRIES = 3
 const MAX_INITIAL_STREAM_ATTEMPTS = 3
@@ -44,7 +47,7 @@ export interface SubagentRunResult {
 
 interface ConfigWithExtensions extends TaskConfig {
 	getSessionStreamId?: () => string
-	guard?: any
+	guard?: UniversalGuard
 }
 
 interface SubagentProgressUpdate {
@@ -65,6 +68,8 @@ interface SubagentRunStats {
 	contextTokens: number
 	contextWindow: number
 	contextUsagePercentage: number
+	maxTokens?: number
+	maxCost?: number
 }
 
 interface SubagentRequestUsageState {
@@ -136,6 +141,25 @@ function toToolUseParams(input: unknown): Partial<Record<string, string>> {
 	}
 
 	return params
+}
+
+function calculateApiCost(
+	modelInfo: ModelInfo,
+	inputTokens: number,
+	outputTokens: number,
+	cacheCreationInputTokens?: number,
+	cacheReadInputTokens?: number,
+): number {
+	const format = modelInfo.apiFormat
+	if (
+		format === ApiFormat.OPENAI_CHAT ||
+		format === ApiFormat.OPENAI_RESPONSES ||
+		format === ApiFormat.OPENAI_RESPONSES_WEBSOCKET_MODE
+	) {
+		return calculateApiCostOpenAI(modelInfo, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens)
+	}
+	// Fallback to Anthropic style for providers where inputTokens already represents the total
+	return calculateApiCostAnthropic(modelInfo, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens)
 }
 
 function formatToolArgPreview(value: string, maxLength = 48): string {
@@ -235,20 +259,33 @@ function pushSubagentToolResultBlock(
 }
 
 export class SubagentRunner {
-	private readonly agent: SubagentBuilder
 	private readonly apiHandler: ApiHandler
 	private readonly allowedTools: CodemarieDefaultTool[]
 	private activeApiAbort: (() => void) | undefined
 	private abortRequested = false
 	private recursionDepth = 0
 	private activeCommandExecutions = 0
+	private toolCallHistory: string[] = []
+	private totalConsecutiveIdenticalCalls = 0
+	private readonly MAX_CONSECUTIVE_IDENTICAL_CALLS = 3
+	private signaledFindings = new Set<string>()
+	private stats: SubagentRunStats = {
+		toolCalls: 0,
+		inputTokens: 0,
+		outputTokens: 0,
+		cacheWriteTokens: 0,
+		cacheReadTokens: 0,
+		totalCost: 0,
+		contextTokens: 0,
+		contextWindow: 0,
+		contextUsagePercentage: 0,
+	}
 	private abortingCommands = false
 
 	constructor(
 		private baseConfig: TaskConfig,
-		subagentName = "subagent",
+		private agent: SubagentBuilder,
 	) {
-		this.agent = new SubagentBuilder(baseConfig, subagentName)
 		this.apiHandler = this.agent.getApiHandler()
 		this.allowedTools = this.agent.getAllowedTools()
 	}
@@ -312,7 +349,7 @@ export class SubagentRunner {
 		const usageState: SubagentUsageState = {
 			currentRequest: createEmptyRequestUsageState(),
 		}
-		const stats: SubagentRunStats = {
+		this.stats = {
 			toolCalls: 0,
 			inputTokens: 0,
 			outputTokens: 0,
@@ -322,7 +359,10 @@ export class SubagentRunner {
 			contextTokens: 0,
 			contextWindow: 0,
 			contextUsagePercentage: 0,
+			maxTokens: this.baseConfig.taskState.maxTokens,
+			maxCost: this.baseConfig.taskState.maxCost,
 		}
+		const stats = this.stats
 
 		onProgress({ status: "running", stats })
 
@@ -486,6 +526,20 @@ export class SubagentRunner {
 							stats.contextUsagePercentage =
 								stats.contextWindow > 0 ? (stats.contextTokens / stats.contextWindow) * 100 : 0
 							onProgress({ stats: { ...stats } })
+
+							// Phase 3: Adaptive Budgeting
+							if (stats.maxTokens && stats.inputTokens + stats.outputTokens > stats.maxTokens) {
+								const error = `Swarm Token Budget Exceeded (${stats.maxTokens} tokens). Terminating subagent to prevent runaway costs.`
+								Logger.warn(`[SubagentRunner] ${error}`)
+								onProgress({ status: "failed", error, stats: { ...stats } })
+								return { status: "failed", error, stats }
+							}
+							if (stats.maxCost && stats.totalCost > stats.maxCost) {
+								const error = `Swarm Cost Budget Exceeded ($${stats.maxCost}). Terminating subagent to prevent runaway costs.`
+								Logger.warn(`[SubagentRunner] ${error}`)
+								onProgress({ status: "failed", error, stats: { ...stats } })
+								return { status: "failed", error, stats }
+							}
 							break
 						case "text":
 							requestId = requestId ?? chunk.id
@@ -519,7 +573,7 @@ export class SubagentRunner {
 
 				const calculatedRequestCost =
 					requestUsage.totalCost ??
-					calculateApiCostAnthropic(
+					calculateApiCost(
 						providerInfo.model.info,
 						requestUsage.inputTokens,
 						requestUsage.outputTokens,
@@ -636,6 +690,8 @@ export class SubagentRunner {
 						stats.toolCalls += 1
 						onProgress({ stats: { ...stats } })
 						onProgress({ status: "completed", result: completionResult, stats: { ...stats } })
+						await this.signalCriticalFindingsToSwarm(completionResult)
+						await SwarmConsensusHandler.handleSignal(this.baseConfig, completionResult)
 						return { status: "completed", result: completionResult, stats }
 					}
 
@@ -684,13 +740,31 @@ export class SubagentRunner {
 
 					// Phase 5: Cross-Swarm Memory Signalling
 					// If the tool execution revealed something architecturally significant, signal it via orchestrator
-					const parentStreamId = (this.baseConfig as ConfigWithExtensions).getSessionStreamId?.()
-					if (parentStreamId && serializedToolResult.length > 0) {
-						if (serializedToolResult.includes("JoyZoning Violation") || serializedToolResult.includes("CRITICAL")) {
-							orchestrator
-								.storeMemory(parentStreamId, `swarm_finding_${Date.now()}`, serializedToolResult.slice(0, 500))
-								.catch((e) => Logger.warn("[SubagentRunner] Failed to signal swarm finding:", e))
-						}
+					if (serializedToolResult.length > 0) {
+						await this.signalCriticalFindingsToSwarm(serializedToolResult)
+					}
+
+					// Phase 6: Repetition Detection & Self-Correction
+					const currentCallKey = `${toolName}:${JSON.stringify(toolCallParams)}`
+					if (
+						this.toolCallHistory.length > 0 &&
+						this.toolCallHistory[this.toolCallHistory.length - 1] === currentCallKey
+					) {
+						this.totalConsecutiveIdenticalCalls += 1
+					} else {
+						this.totalConsecutiveIdenticalCalls = 0
+					}
+					this.toolCallHistory.push(currentCallKey)
+					if (this.toolCallHistory.length > 10) this.toolCallHistory.shift()
+
+					if (this.totalConsecutiveIdenticalCalls >= this.MAX_CONSECUTIVE_IDENTICAL_CALLS) {
+						const nudge = `[SELF-CORRECTION NUDGE] You have called the same tool with the same parameters ${this.MAX_CONSECUTIVE_IDENTICAL_CALLS + 1} times in a row. This suggests you are stuck. Please RE-EVALUATE your approach, explore a different architectural layer, or use 'ask_followup_question' to clarify the objective with the parent.`
+						toolResultBlocks.push({
+							type: "text",
+							text: nudge,
+						})
+						Logger.warn(`[SubagentRunner] Repetition detected for tool ${toolName}; injected nudge.`)
+						this.totalConsecutiveIdenticalCalls = 0 // Reset after nudge
 					}
 				}
 
@@ -723,7 +797,8 @@ export class SubagentRunner {
 		const coordinator = new ToolExecutorCoordinator()
 		const validator = new ToolValidator(
 			this.baseConfig.services.codemarieIgnoreController,
-			(this.baseConfig as ConfigWithExtensions).guard,
+			// biome-ignore lint/style/noNonNullAssertion: <explanation>
+			(this.baseConfig as ConfigWithExtensions).guard!,
 		) // Add guard from config
 
 		for (const tool of this.allowedTools) {
@@ -884,14 +959,50 @@ export class SubagentRunner {
 		}
 	}
 
-	private async signalCriticalFindingsToSwarm(result: string) {
+	private hashString(value: string): string {
+		let hash = 2166136261
+		for (let i = 0; i < value.length; i++) {
+			hash ^= value.charCodeAt(i)
+			hash = Math.imul(hash, 16777619)
+		}
+		return (hash >>> 0).toString(36)
+	}
+
+	private async signalCriticalFindingsToSwarm(result: string): Promise<void> {
 		const parentStreamId = (this.baseConfig as ConfigWithExtensions).getSessionStreamId?.()
 		if (!parentStreamId) {
 			return
 		}
 
-		if (result.includes("CRITICAL:") || result.includes("JOY-ZONING VIOLATION")) {
-			await orchestrator.storeMemory(parentStreamId, `swarm_finding_${Date.now()}`, result)
+		const criticalKeywords = [
+			"CRITICAL:",
+			"JOY-ZONING VIOLATION",
+			"ARCHITECTURE VIOLATION",
+			"SECURITY RISK",
+			"TOXIC HOTSPOT",
+			"SIGNAL: ARCHITECTURE_VIOLATION",
+			"SIGNAL: SECURITY_RISK",
+			"GROUNDED SPECIFICATION REFRESH",
+			"CONTEXT UNCERTAINTY",
+		]
+		const upperResult = result.toUpperCase()
+		const findingKey = this.hashString(upperResult).slice(0, 16)
+
+		if (this.signaledFindings.has(findingKey)) {
+			return // De-duplicate identical findings
+		}
+
+		if (criticalKeywords.some((keyword) => upperResult.includes(keyword))) {
+			try {
+				const label =
+					upperResult.includes("GROUNDED SPECIFICATION REFRESH") || upperResult.includes("CONTEXT UNCERTAINTY")
+						? `swarm_nudge_${Date.now()}`
+						: `swarm_finding_${Date.now()}`
+				await orchestrator.storeMemory(parentStreamId, label, result.slice(0, 1500))
+				this.signaledFindings.add(findingKey)
+			} catch (e) {
+				Logger.warn("[SubagentRunner] Failed to signal swarm finding:", e)
+			}
 		}
 	}
 }

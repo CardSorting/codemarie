@@ -174,9 +174,6 @@ export class AgentConfigLoader {
 			.catch((error) => {
 				Logger.error("[AgentConfigLoader] Failed to load initial agent configs", error)
 			})
-			.finally(() =>
-				this.watch().catch((error) => Logger.error("[AgentConfigLoader] Failed to start watching agent configs", error)),
-			)
 	}
 
 	public static getInstance(homeDir = os.homedir()): AgentConfigLoader {

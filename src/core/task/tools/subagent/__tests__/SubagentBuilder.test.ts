@@ -61,9 +61,9 @@ describe("SubagentBuilder", () => {
 
 		assert.deepEqual(builder.getAllowedTools(), [CodemarieDefaultTool.LIST_FILES, CodemarieDefaultTool.ATTEMPT])
 		const prompt = builder.buildSystemPrompt("generated system prompt")
-		assert.match(prompt, /# Agent Profile/)
-		assert.match(prompt, /Name: cached-agent/)
-		assert.match(prompt, /Description: cached description/)
+		assert.match(prompt, /# AGENT PROFILE/)
+		assert.match(prompt, /Identity: cached-agent/)
+		assert.match(prompt, /Objective: cached description/)
 		assert.match(prompt, /cached system prompt/)
 		assert.match(prompt, new RegExp(SUBAGENT_SYSTEM_SUFFIX.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))
 	})

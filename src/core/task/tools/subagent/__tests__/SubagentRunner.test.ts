@@ -201,7 +201,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(true))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("List files", () => {})
 
 		assert.equal(result.status, "completed")
@@ -254,7 +256,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(true))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const shouldCompactStub = sinon.stub(runner as any, "shouldCompactBeforeNextRequest").callsFake((...args: unknown[]) => {
 			const [previousRequestTotalTokens] = args
 			assert.equal(previousRequestTotalTokens, 23)
@@ -318,7 +322,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("List files", () => {})
 
 		assert.equal(result.status, "completed")
@@ -368,7 +374,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("List files", () => {})
 
 		assert.equal(result.status, "completed")
@@ -407,7 +415,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("List files", () => {})
 
 		assert.equal(result.status, "failed")
@@ -418,8 +428,8 @@ describe("SubagentRunner", () => {
 		const createMessage = sinon.stub()
 		createMessage.onFirstCall().callsFake(async function* () {
 			yield* []
-			const contextError = new Error("context length exceeded")
-			;(contextError as Error & { status: number }).status = 400
+			const contextError = new Error("context length exceeded") as any
+			contextError.status = 400
 			throw contextError
 		})
 
@@ -433,7 +443,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("Huge prompt", () => {})
 
 		assert.equal(result.status, "failed")
@@ -465,7 +477,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(true))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("List files", () => {})
 
 		assert.equal(result.status, "completed")
@@ -505,7 +519,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("Run task", () => {})
 
 		assert.equal(result.status, "completed")
@@ -545,7 +561,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("Run task", () => {})
 
 		assert.equal(result.status, "completed")
@@ -585,7 +603,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(false))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("Run task", () => {})
 
 		assert.equal(result.status, "completed")
@@ -653,7 +673,9 @@ describe("SubagentRunner", () => {
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
-		const runner = new SubagentRunner(createTaskConfig(true))
+		const config = createTaskConfig(true)
+		const builder = new SubagentBuilder(config, "subagent")
+		const runner = new SubagentRunner(config, builder)
 		const result = await runner.run("List files", () => {})
 
 		assert.equal(result.status, "completed")
