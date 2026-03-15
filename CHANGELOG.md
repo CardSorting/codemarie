@@ -1,8 +1,11 @@
 # Changelog
 
-## [3.74.0]
+## [3.75.0]
+
+## [3.74.0] - 2026-03-15
 
 ### Added
+- **Vertex AI API Key Support**: Added support for authenticating with Vertex AI using a Google Cloud API key, providing a simpler alternative to Service Account JSON for both Claude and Gemini models.
 
 ## [3.73.0] - 2026-03-15
 
