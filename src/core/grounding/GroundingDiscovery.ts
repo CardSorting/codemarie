@@ -1,7 +1,7 @@
 import * as crypto from "crypto"
 import * as fs from "fs/promises"
 import * as path from "path"
-import { FileSnippet, searchFilesWithSnippets } from "@/services/search/file-search"
+import { FileSnippet, searchFilesWithSnippetsBatch } from "@/services/search/file-search"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
 import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
@@ -14,11 +14,17 @@ export class GroundingDiscovery {
 	private static rulesCache = new LRUCache<string>(10, 600000)
 	// keywordCache: 1 hour TTL for extracted keywords (stable per intent)
 	private static keywordCache = new LRUCache<string[]>(100, 3600000)
+	// statCache: 10 second TTL for fs stats to avoid redundant I/O in a single discovery pass
+	private static statCache = new LRUCache<import("fs").Stats>(50, 10000)
+	// workspaceIndexCache: 5 minute TTL for workspace file list
+	private static workspaceIndexCache = new LRUCache<Map<string, { size: number; mtime: string }>>(5, 300000)
 
 	static clearCache(): void {
 		GroundingDiscovery.rgCache.clear()
 		GroundingDiscovery.rulesCache.clear()
 		GroundingDiscovery.keywordCache.clear()
+		GroundingDiscovery.statCache.clear()
+		GroundingDiscovery.workspaceIndexCache.clear()
 	}
 
 	constructor(
@@ -27,6 +33,34 @@ export class GroundingDiscovery {
 			messages: CodemarieStorageMessage[],
 		) => Promise<{ spec: unknown; tokens: { input: number; output: number } }>,
 	) {}
+
+	getInternalStatCache(): LRUCache<import("fs").Stats> {
+		return GroundingDiscovery.statCache
+	}
+
+	async getWorkspaceIndex(cwd: string): Promise<Map<string, { size: number; mtime: string }>> {
+		const cached = GroundingDiscovery.workspaceIndexCache.get(cwd)
+		if (cached) return cached
+
+		const index = new Map<string, { size: number; mtime: string }>()
+		try {
+			// Phase 3: Workspace Virtualization - Get all files once
+			const { executeRipgrepForFiles } = await import("@/services/search/file-search")
+			const items = await executeRipgrepForFiles(cwd, 5000)
+
+			// We populate the index with existence. Size/Mtime will be lazily added or batch populated if possible.
+			// For now, existence check is the primary speedup for verification.
+			for (const item of items) {
+				if (item.type === "file") {
+					index.set(item.path, { size: 0, mtime: "unknown" })
+				}
+			}
+			GroundingDiscovery.workspaceIndexCache.set(cwd, index)
+		} catch (e) {
+			Logger.warn("[GroundingDiscovery] Failed to build workspace index:", e)
+		}
+		return index
+	}
 
 	async discoverRelevantContext(
 		intent: string,
@@ -50,8 +84,25 @@ export class GroundingDiscovery {
 			// Parallelize KG lookup and Keyword extraction
 			const [kgContext, keywords] = await Promise.all([kgPromise, keywordsPromise])
 
+			// Pass 3: KG Saturation - If KG found high-confidence semantic matches, we can optionally bypass/short-circuit
+			// For now we merge them, but we prioritize them in ranking.
+			let saturatedContext = kgContext
+			if (knowledgeGraph && streamId) {
+				const semanticMatches = await knowledgeGraph.searchKnowledge(streamId, intent, {
+					augmentWithGraph: true,
+					limit: 5,
+				})
+
+				const highConfNodes = semanticMatches.filter((n) => n.similarity > 0.9)
+				if (highConfNodes.length > 0) {
+					Logger.info(`[GroundingDiscovery] KG Saturation: Found ${highConfNodes.length} high-confidence matches.`)
+					saturatedContext += `\n### High-Confidence Semantic Landmarks:\n`
+					saturatedContext += highConfNodes.map((n) => `- ${n.content} (Ref: ${n.id})`).join("\n") + "\n"
+				}
+			}
+
 			if (keywords.length === 0) {
-				return kgContext
+				return saturatedContext
 			}
 
 			// Optimization: Cache ripgrep results with TTL to avoid redundant heavy I/O
@@ -67,27 +118,17 @@ export class GroundingDiscovery {
 				// Phase 5: I/O Circuit Breaker - Cap total search time per keyword
 				const SEARCH_TIMEOUT = 8000
 
-				// Deep Semantic Discovery: Search file contents for keywords and get snippets
-				const searchPromises = keywords.map(async (word) => {
-					try {
-						if (typeof word !== "string") return { word: String(word), snippets: [] }
-						// Hardening: Limit search scope to 3 files and 2 snippets per file
-						const snippets = await Promise.race([
-							searchFilesWithSnippets(word, cwd, 3, 2),
-							new Promise<FileSnippet[]>((_, reject) =>
-								setTimeout(() => reject(new Error(`Timeout searching for "${word}"`)), SEARCH_TIMEOUT),
-							),
-						])
-						return { word, snippets: (snippets as FileSnippet[]).slice(0, 3) }
-					} catch (e) {
-						Logger.warn(`[GroundingDiscovery] Keyword search failed for "${word}":`, e)
-						return { word, snippets: [] }
-					}
-				})
-
-				const results = await Promise.all(searchPromises)
-				for (const { word, snippets } of results) {
-					keywordResults[word] = snippets
+				try {
+					// Pass 2: Multiplexed Ripgrep - Search keywords in a single batch
+					keywordResults = await Promise.race([
+						searchFilesWithSnippetsBatch(keywords, cwd, 3, 2),
+						new Promise<Record<string, FileSnippet[]>>((_, reject) =>
+							setTimeout(() => reject(new Error("Timeout in multiplexed ripgrep batch")), SEARCH_TIMEOUT),
+						),
+					])
+				} catch (e) {
+					Logger.warn("[GroundingDiscovery] Multiplexed search failed, falling back to empty:", e)
+					keywordResults = {}
 				}
 
 				GroundingDiscovery.rgCache.set(cacheKey, keywordResults)
@@ -149,6 +190,7 @@ export class GroundingDiscovery {
 			}
 
 			const topSnippets = allSnippets.sort((a, b) => b.score - a.score).slice(0, 8)
+			// Optimization: Batch metadata enrichment with session cache
 			const enrichedSnippets = await this.enrichWithMetadata(cwd, topSnippets)
 
 			if (enrichedSnippets.length === 0) return ""
@@ -163,7 +205,7 @@ export class GroundingDiscovery {
 				contextLines.push("```")
 			}
 
-			return kgContext + contextLines.join("\n")
+			return saturatedContext + contextLines.join("\n")
 		} catch (error) {
 			Logger.error("[GroundingDiscovery] Semantic discovery failed:", error)
 			return ""
@@ -183,7 +225,8 @@ export class GroundingDiscovery {
 
 			for (const dir of rulesDirs) {
 				try {
-					const files = await this.globMdFiles(dir)
+					// Optimization: Depth-limited rule discovery to avoid scanning massive repos
+					const files = await this.globMdFiles(dir, 1)
 					allMdFiles.push(...files)
 				} catch {
 					/* ignore */
@@ -279,6 +322,20 @@ export class GroundingDiscovery {
 		const cached = GroundingDiscovery.keywordCache.get(cacheKey)
 		if (cached) return cached
 
+		// Optimization: Fast-path heuristic extraction
+		const heuristicKeywords = this.extractKeywordsHeuristics(intent)
+
+		// If heuristic finds enough high-quality keywords (file paths or specific terms), consider skipping LLM
+		const highQualityHeuristics = heuristicKeywords.filter(
+			(k) => k.includes(".") || k.length > 10 || /^[A-Z]/.test(k), // paths, long terms, or PascalCase names
+		)
+
+		if (highQualityHeuristics.length >= 3) {
+			Logger.info("[GroundingDiscovery] Fast-path keyword extraction triggered.")
+			GroundingDiscovery.keywordCache.set(cacheKey, heuristicKeywords)
+			return heuristicKeywords
+		}
+
 		const naiveKeywords = intent
 			.split(/\W+/)
 			.filter(
@@ -313,16 +370,36 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 			}
 
 			// Merge naive and LLM keywords for maximum coverage
-			const merged = Array.from(new Set([...keywords, ...naiveKeywords])).slice(0, 7)
+			const merged = Array.from(new Set([...keywords, ...naiveKeywords, ...heuristicKeywords])).slice(0, 7)
 			if (merged.length > 0) {
 				GroundingDiscovery.keywordCache.set(cacheKey, merged)
 				return merged
 			}
-			return naiveKeywords
+			return heuristicKeywords.length > 0 ? heuristicKeywords : naiveKeywords
 		} catch (e) {
-			Logger.warn("[GroundingDiscovery] Keyword extraction failed, falling back to naive", e)
-			return naiveKeywords
+			Logger.warn("[GroundingDiscovery] Keyword extraction failed, falling back to heuristics", e)
+			return heuristicKeywords.length > 0 ? heuristicKeywords : naiveKeywords
 		}
+	}
+
+	private extractKeywordsHeuristics(intent: string): string[] {
+		const keywords = new Set<string>()
+
+		// Regex for file paths (e.g., src/core/file.ts)
+		const pathMatch = intent.match(/[\w/\\.-]+\.\w+/g)
+		if (pathMatch) pathMatch.forEach((p) => keywords.add(p))
+
+		// Regex for PascalCase/camelCase names (potential classes/functions)
+		const identifierMatch = intent.match(/\b[a-zA-Z][a-zA-Z0-9]{5,}\b/g)
+		if (identifierMatch) {
+			identifierMatch.forEach((id) => {
+				if (!["function", "variable", "refactor", "change", "module", "component"].includes(id.toLowerCase())) {
+					keywords.add(id)
+				}
+			})
+		}
+
+		return Array.from(keywords).slice(0, 7)
 	}
 
 	private async enrichWithMetadata(
@@ -333,7 +410,26 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 			snippets.map(async (snip) => {
 				try {
 					const fullPath = path.join(cwd, snip.path)
-					const stats = await fs.stat(fullPath)
+					const cacheKey = fullPath
+
+					// Pass 3: Use Workspace Index if available
+					const index = GroundingDiscovery.workspaceIndexCache.get(cwd)
+					if (index?.has(snip.path)) {
+						return {
+							...snip,
+							metadata: {
+								size: index.get(snip.path)!.size || 0,
+								mtime: index.get(snip.path)!.mtime || "indexed",
+							},
+						}
+					}
+
+					let stats = GroundingDiscovery.statCache.get(cacheKey)
+					if (!stats) {
+						stats = await fs.stat(fullPath)
+						GroundingDiscovery.statCache.set(cacheKey, stats)
+					}
+
 					return {
 						...snip,
 						metadata: {
@@ -348,8 +444,11 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 		)
 	}
 
-	private async globMdFiles(dir: string): Promise<string[]> {
+	private async globMdFiles(dir: string, currentDepth = 0): Promise<string[]> {
 		const files: string[] = []
+		// Hardening: Prevent too deep search for rules
+		const MAX_RULE_DEPTH = 2
+		if (currentDepth > MAX_RULE_DEPTH) return []
 		try {
 			const entries = await fs.readdir(dir, { withFileTypes: true })
 			for (const entry of entries) {
@@ -357,7 +456,7 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 				if (entry.isDirectory()) {
 					// Hardening: Prevent infinite recursion or too deep search
 					if (!entry.name.startsWith(".")) {
-						files.push(...(await this.globMdFiles(res)))
+						files.push(...(await this.globMdFiles(res, currentDepth + 1)))
 					}
 				} else if (entry.name.endsWith(".md") || entry.name.endsWith(".mdx")) {
 					files.push(res)

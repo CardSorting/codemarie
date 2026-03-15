@@ -107,75 +107,89 @@ export interface FileSnippet {
 	snippets: string[]
 }
 
-export async function searchFilesWithSnippets(
-	keyword: string,
+export async function searchFilesWithSnippetsBatch(
+	keywords: string[],
 	workspacePath: string,
-	fileLimit = 5,
-	snippetLimit = 3,
-): Promise<FileSnippet[]> {
+	fileLimitPerKeyword = 3,
+	snippetLimitPerFile = 2,
+): Promise<Record<string, FileSnippet[]>> {
+	if (keywords.length === 0) return {}
 	const rgPath = await getBinaryLocation("rg")
 
 	return new Promise((resolve, reject) => {
-		// Arguments for ripgrep to get matches with context
 		const args = [
-			"-i", // case-insensitive
+			"-i",
 			"--column",
 			"--line-number",
 			"--no-heading",
 			"--color",
 			"never",
 			"-C",
-			"2", // 2 lines of context
+			"2",
 			"--follow",
 			"--hidden",
+			"--max-columns",
+			"300",
+			"--max-columns-preview",
 			"-g",
 			"!**/{node_modules,.git,.github,out,dist,__pycache__,.venv,.env,venv,env,.cache,tmp,temp}/**",
-			keyword,
-			workspacePath,
 		]
+
+		for (const k of keywords) {
+			args.push("-e", k)
+		}
+		args.push(workspacePath)
 
 		const rgProcess = getSpawnFunction()(rgPath, args)
 		const rl = readline.createInterface({ input: rgProcess.stdout })
 
-		const results: Map<string, string[]> = new Map()
-		let fileCount = 0
+		const keywordResults: Record<string, Map<string, string[]>> = {}
+		keywords.forEach((k) => (keywordResults[k] = new Map()))
+
+		const fileCountPerKeyword: Record<string, number> = {}
+		keywords.forEach((k) => (fileCountPerKeyword[k] = 0))
 
 		rl.on("line", (line) => {
-			// Example line: src/auth/service.ts:10:5: export class AuthService {
-			// Or context line: src/auth/service.ts-9-  ...
 			const match = line.match(/^([^:-]+)[:-]/)
 			if (!match) return
 
 			const absolutePath = match[1]
 			const relativePath = path.relative(workspacePath, absolutePath)
 
-			if (!results.has(relativePath)) {
-				if (fileCount >= fileLimit) return
-				results.set(relativePath, [])
-				fileCount++
-			}
+			// Find which keywords matched this line (approximate since rg -e doesn't label lines per pattern)
+			for (const k of keywords) {
+				if (line.toLowerCase().includes(k.toLowerCase())) {
+					const results = keywordResults[k]
+					if (!results.has(relativePath)) {
+						if (fileCountPerKeyword[k] >= fileLimitPerKeyword) continue
+						results.set(relativePath, [])
+						fileCountPerKeyword[k]++
+					}
 
-			const snippets = results.get(relativePath)!
-			if (snippets.length < snippetLimit * 5) {
-				// Each snippet has context lines, so we allow more lines per file
-				snippets.push(line)
+					const snippets = results.get(relativePath)!
+					if (snippets.length < snippetLimitPerFile * 5) {
+						snippets.push(line)
+					}
+				}
 			}
 		})
 
-		let errorOutput = ""
 		rgProcess.stderr.on("data", (data) => {
-			errorOutput += data.toString()
+			/* Capture error output if needed for debugging */
 		})
 
 		rl.on("close", () => {
-			const finalResults: FileSnippet[] = Array.from(results.entries()).map(([path, snippets]) => ({
-				path,
-				snippets: snippets.slice(0, snippetLimit * 5),
-			}))
+			const finalResults: Record<string, FileSnippet[]> = {}
+			for (const k of keywords) {
+				finalResults[k] = Array.from(keywordResults[k].entries()).map(([path, snippets]) => ({
+					path,
+					snippets: snippets.slice(0, snippetLimitPerFile * 5),
+				}))
+			}
 			resolve(finalResults)
 		})
 
-		rgProcess.on("error", (error) => reject(new Error(`ripgrep process error: ${error.message}`)))
+		rgProcess.on("error", (error) => reject(new Error(`ripgrep batch process error: ${error.message}`)))
 	})
 }
 

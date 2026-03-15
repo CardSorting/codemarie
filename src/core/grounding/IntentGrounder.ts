@@ -88,16 +88,46 @@ export class IntentGrounder {
 
 		const systemPrompt = GROUNDING_SYSTEM_PROMPT
 
-		// Optimization: Parallelize discovery steps
-		const [projectRules, discoveredContext] = await Promise.all([
-			cwd ? this.discovery.loadProjectRules(cwd) : Promise.resolve(""),
-			cwd
-				? Promise.race([
-						this.discovery.discoverRelevantContext(intent, cwd, streamId, knowledgeGraph),
-						new Promise<string>((resolve) => setTimeout(() => resolve(""), 15000)),
-					])
-				: Promise.resolve(""),
+		// Pass 2: Speculative Execution Pipeline
+		// We initiate full discovery and a "fast-track" project rules discovery simultaneously
+		const rulesPromise = cwd ? this.discovery.loadProjectRules(cwd) : Promise.resolve("")
+		const discoveryTimeout = 2000 // 2 second timeout for Path A (Full Semantic) before Path B (Speculative) starts
+
+		let projectRules = ""
+		let discoveredContext = ""
+
+		// Path A: Full semantic discovery
+		const fullDiscoveryPromise = cwd
+			? this.discovery.discoverRelevantContext(intent, cwd, streamId, knowledgeGraph)
+			: Promise.resolve("")
+
+		// Path B: Speculative / Fast Discovery
+		// If Path A takes too long, we proceed with project rules only to start LLM grounding early
+		const fastDiscoveryResult = await Promise.race([
+			fullDiscoveryPromise.then((ctx) => ({ type: "full", ctx })),
+			new Promise<{ type: "speculative"; ctx: string }>((resolve) =>
+				setTimeout(() => resolve({ type: "speculative", ctx: "" }), discoveryTimeout),
+			),
 		])
+
+		if (fastDiscoveryResult.type === "speculative") {
+			Logger.info("[IntentGrounder] Discovery slow, launching speculative grounding path.")
+			projectRules = await rulesPromise
+			discoveredContext = ""
+		} else {
+			projectRules = await rulesPromise
+			discoveredContext = fastDiscoveryResult.ctx
+
+			// Pass 3: KG-First check inside full discovery
+			if (discoveredContext.includes("High-Confidence Semantic Landmarks")) {
+				Logger.info("[IntentGrounder] KG-First: Saturated context detected.")
+			}
+		}
+
+		// Phase 3: Proactive Workspace Index Pre-loading
+		if (cwd) {
+			this.discovery.getWorkspaceIndex(cwd).catch((e) => Logger.warn("[IntentGrounder] Index pre-load failed:", e))
+		}
 
 		// Hardening: Prompt Shaving
 		let finalContext = context || ""
@@ -108,11 +138,28 @@ export class IntentGrounder {
 		const totalLength = intent.length + finalContext.length + finalDiscovered.length + finalRules.length
 
 		if (totalLength > CONTEXT_BUDGET) {
-			Logger.info(`[IntentGrounder] Context budget exceeded (${totalLength} chars). Shaving prompt...`)
-			if (finalContext.length > 5000) finalContext = `${finalContext.substring(0, 5000)}\n[... truncated ...]`
-			if (finalDiscovered.length > 10000) {
-				const sections = finalDiscovered.split("File: ")
-				finalDiscovered = `${sections.slice(0, 5).join("File: ")}\n[... aggressive shaving internal ...]`
+			Logger.info(`[IntentGrounder] Context budget exceeded (${totalLength} chars). Applying structural shaving...`)
+
+			// Structural Shave for Discovered Context: Keep the top ranked file results, shave intermediate lines if needed
+			if (finalDiscovered.length > 12000) {
+				const files = finalDiscovered.split("File: ")
+				// Keep first 3 files entirely, then just titles for the rest
+				finalDiscovered =
+					files.slice(0, 4).join("File: ") +
+					"\n\n[... Additional " +
+					(files.length - 4) +
+					" files identified but snippets shaved to fit budget ...]"
+			}
+
+			// Structural Shave for Environment Context: Keep headers and imports
+			if (finalContext.length > 8000) {
+				const lines = finalContext.split("\n")
+				if (lines.length > 200) {
+					finalContext =
+						lines.slice(0, 100).join("\n") +
+						"\n\n[... Structural Shave: intermediate context removed ...]\n\n" +
+						lines.slice(-50).join("\n")
+				}
 			}
 		}
 
@@ -155,7 +202,9 @@ export class IntentGrounder {
 			}
 
 			if (cwd) {
-				finalSpec = await this.validator.verifyEntities(finalSpec, cwd)
+				const internalCache = this.discovery.getInternalStatCache()
+				const workspaceIndex = await this.discovery.getWorkspaceIndex(cwd)
+				finalSpec = await this.validator.verifyEntities(finalSpec, cwd, internalCache, workspaceIndex)
 			}
 
 			const durationMs = Date.now() - startTime

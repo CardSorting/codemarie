@@ -22,7 +22,13 @@ export function extractJson(fullResponse: string): unknown {
 	let match = codeBlockRegex.exec(fullResponse)
 	while (match !== null) {
 		const block = match[1].trim()
-		if (block.includes("decisionVariables") || (block.includes("{") && block.length > bestMatch.length)) {
+		// Optimization: If we find a block that looks like a complete grounding spec, we take it immediately
+		// to avoid accidental matches with partial subsequent blocks or noise.
+		if (block.includes("decisionVariables") && block.includes("confidenceScore") && block.includes("}")) {
+			bestMatch = block
+			break
+		}
+		if (block.includes("{") && block.length > bestMatch.length) {
 			bestMatch = block
 		}
 		match = codeBlockRegex.exec(fullResponse)

@@ -3,6 +3,7 @@ import * as path from "path"
 import { searchSymbolInFiles } from "@/services/search/file-search"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
+import { LRUCache } from "./GroundingCache"
 import { GroundedSpec, GroundedSpecSchema } from "./types"
 
 export class GroundingValidator {
@@ -70,7 +71,12 @@ export class GroundingValidator {
 		return healed
 	}
 
-	async verifyEntities(spec: GroundedSpec, cwd: string): Promise<GroundedSpec> {
+	async verifyEntities(
+		spec: GroundedSpec,
+		cwd: string,
+		statCache?: LRUCache<import("fs").Stats>,
+		workspaceIndex?: Map<string, { size: number; mtime: string }>,
+	): Promise<GroundedSpec> {
 		const verifiedEntities: string[] = []
 		const missingEntities: string[] = []
 		const plannedEntities: string[] = []
@@ -138,7 +144,20 @@ export class GroundingValidator {
 							}
 						} else {
 							// Normal path check (file or directory)
-							const stat = await fs.stat(fullPath)
+							const cacheKey = fullPath
+
+							// Pass 3: Index-based existence check
+							if (workspaceIndex && workspaceIndex.has(entity)) {
+								verifiedEntities.push(`${entity} (Indexed File)`)
+								return
+							}
+
+							let stat = statCache?.get(cacheKey)
+							if (!stat) {
+								stat = await fs.stat(fullPath)
+								statCache?.set(cacheKey, stat)
+							}
+
 							if (stat.isDirectory()) {
 								verifiedEntities.push(`${entity} (Directory)`)
 							} else {
