@@ -61,6 +61,7 @@ interface TaskOptions {
 	reasoningEffort?: string
 	maxConsecutiveMistakes?: string
 	yolo?: boolean
+	safeYolo?: boolean
 	doubleCheckCompletion?: boolean
 	timeout?: string
 	json?: boolean
@@ -203,6 +204,12 @@ function applyTaskOptions(options: TaskOptions): void {
 	if (options.yolo) {
 		StateManager.get().setSessionOverride("yoloModeToggled", true)
 		telemetryService.captureHostEvent("yolo_flag", "true")
+	}
+
+	// Set safe-yolo mode as a session-scoped override
+	if (options.safeYolo) {
+		StateManager.get().setSessionOverride("safeYoloModeToggled", true)
+		telemetryService.captureHostEvent("safe_yolo_flag", "true")
 	}
 
 	// Set double-check completion based on flag
@@ -758,7 +765,8 @@ program
 	.argument("<prompt>", "The task prompt")
 	.option("-a, --act", "Run in act mode")
 	.option("-p, --plan", "Run in plan mode")
-	.option("-y, --yolo", "Enable yes/yolo mode (auto-approve actions)")
+	.option("-y, --yolo", "Enable yes/yolo mode (auto-approve all actions)")
+	.option("-s, --safe-yolo", "Enable safe-yolo mode (auto-approve read-only and trusted actions)")
 	.option("-t, --timeout <seconds>", "Optional timeout in seconds (applies only when provided)")
 	.option("-m, --model <model>", "Model to use for the task")
 	.option("-v, --verbose", "Show verbose output")
@@ -775,7 +783,7 @@ program
 		if (options.taskId) {
 			return resumeTask(options.taskId, { ...options, initialPrompt: prompt })
 		}
-		return runTask(prompt, options)
+		return runTask(prompt, { ...options, safeYolo: options.safeYolo })
 	})
 
 program
@@ -787,11 +795,25 @@ program
 	.option("--config <path>", "Path to Codemarie configuration directory")
 	.action(listHistory)
 
-program
-	.command("config")
+const config = program.command("config").description("Show or manage configuration")
+
+config
 	.description("Show current configuration")
 	.option("--config <path>", "Path to Codemarie configuration directory")
 	.action(showConfig)
+
+config
+	.command("clear-trust")
+	.description("Clear persistent trust for tools and commands")
+	.option("--config <path>", "Path to Codemarie configuration directory")
+	.action(async (options) => {
+		const ctx = await initializeCli(options)
+		StateManager.get().clearPersistentTrust()
+		await StateManager.get().flushPendingState()
+		printInfo("Persistent trust cleared.")
+		await disposeCliContext(ctx)
+		exit(0)
+	})
 
 program
 	.command("auth")

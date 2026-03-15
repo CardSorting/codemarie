@@ -500,7 +500,7 @@ export const window = {
 	},
 	createOutputChannel: (name: string) => {
 		const logger = getOutputChannelLogger(name)
-		const { SensitiveDataMasker } = require("../shared/utils/SensitiveDataMasker")
+		const { SensitiveDataMasker } = require("@shared/utils/SensitiveDataMasker")
 		const log = (text: string) => logger.info({ channel: name }, SensitiveDataMasker.mask(text))
 		return { appendLine: log, append: log, clear: noop, show: noop, hide: noop, dispose: noop }
 	},

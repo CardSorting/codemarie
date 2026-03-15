@@ -350,7 +350,7 @@ function mergePromise(process: AcpTerminalProcess, promise: Promise<void>): Term
 
 	for (const [property, descriptor] of descriptors) {
 		if (descriptor) {
-			const value = (descriptor.value as Function).bind(promise)
+			const value = (descriptor.value as (...args: unknown[]) => unknown).bind(promise)
 			Reflect.defineProperty(process, property, { ...descriptor, value })
 		}
 	}
@@ -504,7 +504,7 @@ export class AcpTerminalManager implements ITerminalManager {
 			this.numericIdToStringId.set(managedTerminal.numericId, handle.id)
 
 			// Update the process with the new terminal ID
-			;(process as any).terminalId = handle.id
+			;(process as unknown as { terminalId: string }).terminalId = handle.id
 
 			// Start the process polling
 			process.run(command)
@@ -623,7 +623,7 @@ export class AcpTerminalManager implements ITerminalManager {
 	/**
 	 * Dispose of all terminals and clean up resources.
 	 */
-	disposeAll(): void {
+	async disposeAll(): Promise<void> {
 		// Release all terminals
 		this.releaseAll().catch((err) => {
 			Logger.debug("[AcpTerminalManager] Error releasing terminals:", err)

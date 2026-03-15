@@ -37,9 +37,30 @@ export class AutoApprove {
 		}
 	}
 
+	/**
+	 * Check if a command is persistently trusted
+	 */
+	public shouldAutoApproveCommand(command: string): boolean {
+		const trustedCommands = this.stateManager.getTrustedCommands()
+		const commandPrefix = command.trim().split(" ")[0]
+		return trustedCommands.some((trusted) => {
+			// Exact match or prefix match if the trusted entry ends with *
+			if (trusted.endsWith("*")) {
+				return command.startsWith(trusted.slice(0, -1))
+			}
+			return commandPrefix === trusted || command === trusted
+		})
+	}
+
 	// Check if the tool should be auto-approved based on the settings
 	// Returns bool for most tools, and tuple for tools with nested settings
 	shouldAutoApproveTool(toolName: CodemarieDefaultTool): boolean | [boolean, boolean] {
+		// Check persistent trust list
+		const trustedTools = this.stateManager.getTrustedTools()
+		if (trustedTools.includes(toolName)) {
+			return [true, true]
+		}
+
 		if (this.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
 			switch (toolName) {
 				case CodemarieDefaultTool.FILE_READ:
@@ -122,12 +143,47 @@ export class AutoApprove {
 	async shouldAutoApproveToolWithPath(
 		blockname: CodemarieDefaultTool,
 		autoApproveActionpath: string | undefined,
+		command?: string,
+		mcpServerName?: string,
 	): Promise<boolean> {
+		// Check persistent command trust first if applicable
+		if (blockname === CodemarieDefaultTool.BASH && command) {
+			if (this.shouldAutoApproveCommand(command)) {
+				return true
+			}
+		}
+
+		// Check persistent MCP server trust
+		if ((blockname === CodemarieDefaultTool.MCP_USE || blockname === CodemarieDefaultTool.MCP_ACCESS) && mcpServerName) {
+			const trustedMcpServers = this.stateManager.getTrustedMcpServers()
+			if (trustedMcpServers.includes(mcpServerName)) {
+				return true
+			}
+		}
+
 		if (this.stateManager.getGlobalSettingsKey("yoloModeToggled")) {
 			return true
 		}
 		if (this.stateManager.getGlobalSettingsKey("autoApproveAllToggled")) {
 			return true
+		}
+
+		// Safe-yolo mode: auto-approve read-only tools and trusted commands/MCP
+		if (this.stateManager.getGlobalSettingsKey("safeYoloModeToggled")) {
+			// Read-only tools are already handled by shouldAutoApproveTool if it returns true
+			// BASH and MCP are handled above if they are trusted
+			// Here we check if the tool itself is considered "safe-listable"
+			const isReadOnly = [
+				CodemarieDefaultTool.FILE_READ,
+				CodemarieDefaultTool.LIST_FILES,
+				CodemarieDefaultTool.LIST_CODE_DEF,
+				CodemarieDefaultTool.SEARCH,
+				CodemarieDefaultTool.NEW_RULE,
+			].includes(blockname)
+
+			if (isReadOnly) {
+				return true
+			}
 		}
 
 		let isLocalRead = false

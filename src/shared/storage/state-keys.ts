@@ -42,10 +42,10 @@ type FieldDefinition<T> = {
 	default: T // The default value for the field with proper type casting using as (e.g., `true as boolean | undefined`)
 	isAsync?: boolean
 	isComputed?: boolean
-	transform?: (value: any) => T
+	transform?: (value: unknown) => T
 }
 
-type FieldDefinitions = Record<string, FieldDefinition<any>>
+type FieldDefinitions = Record<string, FieldDefinition<unknown>>
 
 export type ConfiguredAPIKeys = Partial<Record<ApiProvider, boolean>>
 const REMOTE_CONFIG_EXTRA_FIELDS = {
@@ -93,6 +93,12 @@ const GLOBAL_STATE_FIELDS = {
 	worktreeAutoOpenPath: { default: undefined as string | undefined },
 	// Tracks architectural violations (Strikes) per file to enable progressive enforcement
 	architecturalStrikes: { default: {} as Record<string, number> },
+	// Persistent trust for specific tools (auto-approved if present)
+	trustedTools: { default: [] as string[] },
+	// Persistent trust for specific command prefixes (auto-approved if present)
+	trustedCommands: { default: [] as string[] },
+	// Persistent trust for specific MCP servers (auto-approved if present)
+	trustedMcpServers: { default: [] as string[] },
 } satisfies FieldDefinitions
 
 // Fields that map directly to ApiHandlerOptions in @shared/api.ts
@@ -258,7 +264,7 @@ const USER_SETTINGS_FIELDS = {
 	globalSkillsToggles: { default: {} as Record<string, boolean> },
 	browserSettings: {
 		default: DEFAULT_BROWSER_SETTINGS as BrowserSettings,
-		transform: (v: any) => ({ ...DEFAULT_BROWSER_SETTINGS, ...v }),
+		transform: (v: unknown) => ({ ...DEFAULT_BROWSER_SETTINGS, ...(v as object) }),
 	},
 	telemetrySetting: { default: "unset" as TelemetrySetting },
 	planActSeparateModelsSetting: { default: false as boolean, isComputed: true },
@@ -270,6 +276,7 @@ const USER_SETTINGS_FIELDS = {
 	strictPlanModeEnabled: { default: false as boolean },
 	yoloModeToggled: { default: false as boolean },
 	autoApproveAllToggled: { default: false as boolean },
+	safeYoloModeToggled: { default: false as boolean },
 	useAutoCondense: { default: false as boolean },
 	subagentsEnabled: { default: false as boolean },
 	maxSwarmDepth: { default: 3 as number },
@@ -378,6 +385,7 @@ export const LocalStateKeys = [
 // ============================================================================
 
 type ExtractDefault<T> = T extends { default: infer U } ? U : never
+// biome-ignore lint/suspicious/noExplicitAny: any is required for generic type inference in BuildInterface
 type BuildInterface<T extends Record<string, { default: any }>> = { [K in keyof T]: ExtractDefault<T[K]> }
 
 export type GlobalState = BuildInterface<typeof GLOBAL_STATE_FIELDS>
@@ -440,28 +448,30 @@ export const isAsyncProperty = (key: string): boolean => ASYNC_PROPERTIES.has(ke
 export const isComputedProperty = (key: string): boolean => COMPUTED_PROPERTIES.has(key)
 
 export const getDefaultValue = <K extends GlobalStateAndSettingsKey>(key: K): GlobalStateAndSettings[K] | undefined => {
-	return ((GLOBAL_STATE_DEFAULTS as any)[key] ?? (SETTINGS_DEFAULTS as any)[key]) as GlobalStateAndSettings[K] | undefined
+	return ((GLOBAL_STATE_DEFAULTS as Record<string, unknown>)[key] ?? (SETTINGS_DEFAULTS as Record<string, unknown>)[key]) as
+		| GlobalStateAndSettings[K]
+		| undefined
 }
 
 export const hasTransform = (key: string): boolean => key in SETTINGS_TRANSFORMS
 export const applyTransform = <T>(key: string, value: T): T => {
 	const transform = SETTINGS_TRANSFORMS[key]
-	return transform ? transform(value) : value
+	return transform ? (transform(value) as T) : value
 }
 
 function extractDefaults<T extends Record<string, any>>(props: T): Partial<BuildInterface<T>> {
 	return Object.fromEntries(
 		Object.entries(props)
-			.map(([key, prop]) => [key, prop.default])
+			.map(([key, prop]) => [key, (prop as { default: unknown }).default])
 			.filter(([_, value]) => value !== undefined),
-	) as Partial<BuildInterface<T>>
+	) as unknown as Partial<BuildInterface<T>>
 }
 
-function extractTransforms<T extends Record<string, any>>(props: T): Record<string, (value: any) => any> {
+function extractTransforms<T extends Record<string, any>>(props: T): Record<string, (value: unknown) => unknown> {
 	return Object.fromEntries(
 		Object.entries(props)
-			.filter(([_, prop]) => "transform" in prop && prop.transform !== undefined)
-			.map(([key, prop]) => [key, prop.transform]),
+			.filter(([_, prop]) => "transform" in (prop as object) && (prop as { transform?: unknown }).transform !== undefined)
+			.map(([key, prop]) => [key, (prop as { transform: (value: unknown) => unknown }).transform]),
 	)
 }
 

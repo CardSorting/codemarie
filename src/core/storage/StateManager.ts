@@ -973,4 +973,101 @@ export class StateManager {
 		}
 		return { ...this.workspaceStateCache }
 	}
+	/**
+	 * Get the list of persistently trusted tool names
+	 */
+	public getTrustedTools(): string[] {
+		return this.getGlobalStateKey("trustedTools") || []
+	}
+
+	/**
+	 * Add a tool name to the persistent trust list
+	 */
+	public addTrustedTool(tool: string): void {
+		const trusted = new Set(this.getTrustedTools())
+		if (!trusted.has(tool)) {
+			trusted.add(tool)
+			this.setGlobalState("trustedTools", Array.from(trusted))
+		}
+	}
+
+	/**
+	 * Remove a tool name from the persistent trust list
+	 */
+	public removeTrustedTool(tool: string): void {
+		const trusted = new Set(this.getTrustedTools())
+		if (trusted.has(tool)) {
+			trusted.delete(tool)
+			this.setGlobalState("trustedTools", Array.from(trusted))
+		}
+	}
+
+	/**
+	 * Get the list of persistently trusted command prefixes
+	 */
+	public getTrustedCommands(): string[] {
+		return this.getGlobalStateKey("trustedCommands") || []
+	}
+
+	/**
+	 * Add a command prefix to the persistent trust list
+	 */
+	public addTrustedCommand(command: string): void {
+		const trusted = new Set(this.getTrustedCommands())
+		if (!trusted.has(command)) {
+			trusted.add(command)
+			this.setGlobalState("trustedCommands", Array.from(trusted))
+		}
+	}
+
+	/**
+	 * Remove a command prefix from the persistent trust list
+	 */
+	public removeTrustedCommand(command: string): void {
+		const trusted = new Set(this.getTrustedCommands())
+		if (trusted.has(command)) {
+			trusted.delete(command)
+			this.setGlobalState("trustedCommands", Array.from(trusted))
+		}
+	}
+
+	/**
+	 * Get the list of persistently trusted MCP servers
+	 */
+	public getTrustedMcpServers(): string[] {
+		return this.getGlobalStateKey("trustedMcpServers") || []
+	}
+
+	/**
+	 * Add an MCP server to the persistent trust list
+	 */
+	public addTrustedMcpServer(serverName: string): void {
+		const trusted = new Set(this.getTrustedMcpServers())
+		if (!trusted.has(serverName)) {
+			trusted.add(serverName)
+			this.setGlobalState("trustedMcpServers", Array.from(trusted))
+		}
+	}
+
+	/**
+	 * Remove an MCP server from the persistent trust list
+	 */
+	public removeTrustedMcpServer(serverName: string): void {
+		const trusted = new Set(this.getTrustedMcpServers())
+		if (trusted.has(serverName)) {
+			trusted.delete(serverName)
+			this.setGlobalState("trustedMcpServers", Array.from(trusted))
+		}
+	}
+
+	/**
+	 * Clear all persistent trust for tools and commands
+	 */
+	public clearPersistentTrust(): void {
+		this.setGlobalStateBatch({
+			trustedTools: [],
+			trustedCommands: [],
+			trustedMcpServers: [],
+		})
+	}
 }

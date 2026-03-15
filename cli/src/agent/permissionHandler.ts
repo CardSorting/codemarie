@@ -11,6 +11,7 @@
 import type * as acp from "@agentclientprotocol/sdk"
 import type { CodemarieAsk } from "@shared/ExtensionMessage"
 import type { CodemarieAskResponse } from "@shared/WebviewMessage"
+import { StateManager } from "@/core/storage/StateManager"
 import { Logger } from "@/shared/services/Logger.js"
 import type { AcpSessionState, CodemariePermissionOption } from "./types.js"
 
@@ -113,7 +114,7 @@ export function getPermissionOptionsForAskType(askType: CodemarieAsk): acp.Permi
  * Handle an ACP permission response and translate it to Codemarie's format.
  *
  * @param response - The ACP permission response from the client
- * @param askType - The original CodemarieAsk type that triggered the permission request
+ * @param _askType - The original CodemarieAsk type that triggered the permission request
  * @returns The translated result for Codemarie's handleWebviewAskResponse
  */
 export function handlePermissionResponse(
@@ -186,17 +187,9 @@ export function createPermissionRequest(
 /**
  * Track "always allow" decisions for auto-approval.
  * This maintains a set of tool/command patterns that have been auto-approved.
+ * Uses persistent StateManager for storage.
  */
 export class AutoApprovalTracker {
-	/** Set of auto-approved command prefixes */
-	private autoApprovedCommands: Set<string> = new Set()
-
-	/** Set of auto-approved tool names */
-	private autoApprovedTools: Set<string> = new Set()
-
-	/** Set of auto-approved MCP servers */
-	private autoApprovedMcpServers: Set<string> = new Set()
-
 	/**
 	 * Record an "always allow" decision for a permission request.
 	 *
@@ -204,19 +197,20 @@ export class AutoApprovalTracker {
 	 * @param identifier - The identifier for the operation (command, tool name, etc.)
 	 */
 	recordAlwaysAllow(askType: CodemarieAsk, identifier: string): void {
+		const stateManager = StateManager.get()
 		switch (askType) {
 			case "command":
 				// Store the first word of the command as the key
 				const commandPrefix = identifier.split(" ")[0]
-				this.autoApprovedCommands.add(commandPrefix)
+				stateManager.addTrustedCommand(commandPrefix)
 				break
 
 			case "tool":
-				this.autoApprovedTools.add(identifier)
+				stateManager.addTrustedTool(identifier)
 				break
 
 			case "use_mcp_server":
-				this.autoApprovedMcpServers.add(identifier)
+				stateManager.addTrustedMcpServer(identifier)
 				break
 		}
 	}
@@ -226,19 +220,27 @@ export class AutoApprovalTracker {
 	 *
 	 * @param askType - The Codemarie ask type
 	 * @param identifier - The identifier for the operation
-	 * @returns True if the operation was previously auto-approved
+	 * @returns True if the operation was previously auto-approved or persistently trusted
 	 */
 	isAutoApproved(askType: CodemarieAsk, identifier: string): boolean {
+		const stateManager = StateManager.get()
 		switch (askType) {
-			case "command":
+			case "command": {
 				const commandPrefix = identifier.split(" ")[0]
-				return this.autoApprovedCommands.has(commandPrefix)
+				const trustedCommands = stateManager.getTrustedCommands()
+				return trustedCommands.some((trusted) => {
+					if (trusted.endsWith("*")) {
+						return identifier.startsWith(trusted.slice(0, -1))
+					}
+					return commandPrefix === trusted || identifier === trusted
+				})
+			}
 
 			case "tool":
-				return this.autoApprovedTools.has(identifier)
+				return stateManager.getTrustedTools().includes(identifier)
 
 			case "use_mcp_server":
-				return this.autoApprovedMcpServers.has(identifier)
+				return stateManager.getTrustedMcpServers().includes(identifier)
 
 			default:
 				return false
@@ -249,9 +251,7 @@ export class AutoApprovalTracker {
 	 * Clear all auto-approval records.
 	 */
 	clear(): void {
-		this.autoApprovedCommands.clear()
-		this.autoApprovedTools.clear()
-		this.autoApprovedMcpServers.clear()
+		StateManager.get().clearPersistentTrust()
 	}
 }
 
@@ -301,7 +301,7 @@ export async function processPermissionRequest(
 		}
 	}
 
-	// Request permission from the ACP client
+	// Request permission from the client
 	const response = await requestPermission(sessionId, toolCall, options)
 
 	// Handle the response
