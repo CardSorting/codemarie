@@ -50,8 +50,9 @@ export class SubagentBuilder {
 		const effectiveApiConfiguration = {
 			...apiConfiguration,
 			ulid: this.baseConfig.ulid,
-		} as Record<string, unknown>
-		this.applyModelOverride(effectiveApiConfiguration, mode, this.agentConfig.modelId)
+		}
+
+		this.applyModelOverride(effectiveApiConfiguration as Record<string, unknown>, mode, this.agentConfig.modelId)
 		this.apiHandler = buildApiHandler(effectiveApiConfiguration as typeof apiConfiguration, mode)
 	}
 
@@ -125,7 +126,7 @@ export class SubagentBuilder {
 			return
 		}
 
-		const modeKey = _mode === "plan" ? "plan" : "act"
+		const modeKey: "plan" | "act" = _mode === "plan" ? "plan" : "act"
 		const providerKey = _mode === "plan" ? "planModeApiProvider" : "actModeApiProvider"
 		const provider = apiConfiguration[providerKey] as ApiProvider
 		apiConfiguration[getProviderModelIdKey(provider, modeKey)] = trimmedModelId

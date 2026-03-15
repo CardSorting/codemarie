@@ -42,6 +42,11 @@ export interface SubagentRunResult {
 	stats: SubagentRunStats
 }
 
+interface ConfigWithExtensions extends TaskConfig {
+	getSessionStreamId?: () => string
+	guard?: any
+}
+
 interface SubagentProgressUpdate {
 	stats?: SubagentRunStats
 	latestToolCall?: string
@@ -207,7 +212,12 @@ function parseNonNativeToolCalls(assistantText: string): SubagentToolCall[] {
 		}))
 }
 
-function pushSubagentToolResultBlock(toolResultBlocks: any[], call: SubagentToolCall, label: string, content: string): void {
+function pushSubagentToolResultBlock(
+	toolResultBlocks: CodemarieUserContent[],
+	call: SubagentToolCall,
+	label: string,
+	content: string,
+): void {
 	if (call.isNativeToolCall) {
 		toolResultBlocks.push({
 			type: "tool_result",
@@ -373,7 +383,7 @@ export class SubagentRunner {
 			const generatedSystemPrompt = await promptRegistry.get(context)
 
 			// Fluid Orchestration: Inject parent stream context for subagent awareness
-			const parentStreamId = (this.baseConfig as any).getSessionStreamId?.()
+			const parentStreamId = (this.baseConfig as ConfigWithExtensions).getSessionStreamId?.()
 			if (parentStreamId) {
 				try {
 					const compressed = await orchestrator.getCompressedContext(parentStreamId)
@@ -551,7 +561,7 @@ export class SubagentRunner {
 					)
 					finalizedToolCalls = fallbackNonNativeToolCalls
 				}
-				const assistantContent = [] as any[]
+				const assistantContent: (CodemarieTextContentBlock | CodemarieAssistantToolUseBlock)[] = []
 				if (assistantText.trim().length > 0) {
 					assistantContent.push({
 						type: "text",
@@ -613,6 +623,9 @@ export class SubagentRunner {
 					const toolCallParams = toToolUseParams(call.input)
 
 					if (toolName === CodemarieDefaultTool.ATTEMPT) {
+						if (toolCallParams?.result) {
+							await this.signalCriticalFindingsToSwarm(toolCallParams.result)
+						}
 						const completionResult = toolCallParams.result?.trim()
 						if (!completionResult) {
 							const missingResultError = formatResponse.missingToolParameterError("result")
@@ -671,7 +684,7 @@ export class SubagentRunner {
 
 					// Phase 5: Cross-Swarm Memory Signalling
 					// If the tool execution revealed something architecturally significant, signal it via orchestrator
-					const parentStreamId = (this.baseConfig as any).getSessionStreamId?.()
+					const parentStreamId = (this.baseConfig as ConfigWithExtensions).getSessionStreamId?.()
 					if (parentStreamId && serializedToolResult.length > 0) {
 						if (serializedToolResult.includes("JoyZoning Violation") || serializedToolResult.includes("CRITICAL")) {
 							orchestrator
@@ -706,8 +719,12 @@ export class SubagentRunner {
 
 	private createSubagentTaskConfig(): TaskConfig {
 		const baseCallbacks = this.baseConfig.callbacks
-		const coordinator = this.baseConfig.coordinator
-		const validator = new ToolValidator(this.baseConfig.services.codemarieIgnoreController, (this.baseConfig as any).guard) // Add guard from config
+		const { ToolExecutorCoordinator } = require("../ToolExecutorCoordinator")
+		const coordinator = new ToolExecutorCoordinator()
+		const validator = new ToolValidator(
+			this.baseConfig.services.codemarieIgnoreController,
+			(this.baseConfig as ConfigWithExtensions).guard,
+		) // Add guard from config
 
 		for (const tool of this.allowedTools) {
 			coordinator.registerByName(tool, validator)
@@ -864,6 +881,17 @@ export class SubagentRunner {
 				Logger.warn(`[SubagentRunner] Initial stream failed. Retrying attempt ${attempt + 1}.`, error)
 				await delay(delayMs)
 			}
+		}
+	}
+
+	private async signalCriticalFindingsToSwarm(result: string) {
+		const parentStreamId = (this.baseConfig as ConfigWithExtensions).getSessionStreamId?.()
+		if (!parentStreamId) {
+			return
+		}
+
+		if (result.includes("CRITICAL:") || result.includes("JOY-ZONING VIOLATION")) {
+			await orchestrator.storeMemory(parentStreamId, `swarm_finding_${Date.now()}`, result)
 		}
 	}
 }

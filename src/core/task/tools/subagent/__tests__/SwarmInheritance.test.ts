@@ -206,24 +206,36 @@ describe("Subagent Swarm Inheritance", () => {
 		})
 
 		const baseConfig = createTaskConfig(true)
-		const orchestrator = await import("@/infrastructure/ai/Orchestrator")
-		sinon.stub(orchestrator, "orchestrator").value({
-			storeMemory: sinon.stub().resolves(),
-		})
+		;(baseConfig as any).services.stateManager.getGlobalSettingsKey = (key: string) => {
+			if (key === "subagentsEnabled") return true
+			if (key === "mode") return "act"
+			return undefined
+		}
+
+		const { orchestrator } = await import("@/infrastructure/ai/Orchestrator")
+		const storeMemoryStub = sinon.stub(orchestrator, "storeMemory").resolves()
 
 		stubApiHandler(createMessage)
 		initializeHostProvider()
 
 		const runner = new SubagentRunner(baseConfig)
+		// Set recursion depth to 0 explicitly to avoid any confusion
+		runner.setRecursionDepth(0)
 		;(runner as any).baseConfig.getSessionStreamId = () => "parent-stream-123"
 
 		await runner.run("Audit security", () => {})
 
-		assert.ok((orchestrator.orchestrator as any).storeMemory.calledOnce)
+		assert.ok(storeMemoryStub.calledOnce, "orchestrator.storeMemory should be called once")
+		storeMemoryStub.restore()
 	})
 
 	it("enforces recursion guard at depth 3", async () => {
 		const baseConfig = createTaskConfig(true)
+		;(baseConfig as any).services.stateManager.getGlobalSettingsKey = (key: string) => {
+			if (key === "subagentsEnabled") return true
+			if (key === "mode") return "act"
+			return undefined
+		}
 		;(baseConfig as any).recursionDepth = 3
 
 		const { UseSubagentsToolHandler } = await import("../../handlers/SubagentToolHandler")
@@ -231,11 +243,11 @@ describe("Subagent Swarm Inheritance", () => {
 
 		const result = await handler.execute(baseConfig, {
 			name: CodemarieDefaultTool.USE_SUBAGENTS,
-			params: { prompt: "test" },
+			params: { prompt_1: "test" },
 		} as any)
 
 		const content = typeof result === "string" ? result : (result as any).content
-		assert.ok(content.includes("Swarm Recursion Limit Reached"))
+		assert.ok(content.includes("Swarm Recursion Limit Reached"), `Expected recursion limit message, but got: ${content}`)
 	})
 
 	it("resolves conflicts by prioritizing high-confidence local constraints", async () => {
