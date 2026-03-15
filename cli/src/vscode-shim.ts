@@ -112,6 +112,32 @@ export enum EndOfLine {
 	CRLF = 2,
 }
 
+export enum UIKind {
+	Desktop = 1,
+	Web = 2,
+}
+
+export enum ViewColumn {
+	Active = -1,
+	Beside = -2,
+	One = 1,
+	Two = 2,
+	Three = 3,
+	Four = 4,
+	Five = 5,
+	Six = 6,
+	Seven = 7,
+	Eight = 8,
+	Nine = 9,
+}
+
+export enum ColorThemeKind {
+	Light = 1,
+	Dark = 2,
+	HighContrast = 3,
+	HighContrastLight = 4,
+}
+
 const outputChannelLoggers = new Map<string, Logger>()
 
 function getOutputChannelLogger(channelName: string): Logger {
@@ -261,8 +287,45 @@ export class Selection extends Range {
 }
 
 export interface CancellationToken {
-	isCancellationRequested: boolean
-	onCancellationRequested: unknown
+	readonly isCancellationRequested: boolean
+	readonly onCancellationRequested: (listener: (e: any) => any) => { dispose(): void }
+}
+
+export class CancellationTokenSource {
+	private _token = new (class implements CancellationToken {
+		private _isCancelled = false
+		private _emitter = new EventEmitter<any>()
+
+		get isCancellationRequested() {
+			return this._isCancelled
+		}
+		get onCancellationRequested() {
+			return this._emitter.event
+		}
+
+		cancel() {
+			if (!this._isCancelled) {
+				this._isCancelled = true
+				this._emitter.fire(undefined)
+			}
+		}
+
+		dispose() {
+			this._emitter.dispose()
+		}
+	})()
+
+	get token(): CancellationToken {
+		return this._token
+	}
+
+	cancel(): void {
+		this._token.cancel()
+	}
+
+	dispose(): void {
+		this._token.dispose()
+	}
 }
 
 export class EventEmitter<T> {
@@ -375,14 +438,30 @@ export const workspace = {
 }
 
 export const window = {
-	showInformationMessage: async (message: string) => {
+	showInformationMessage: async <T extends string>(message: string, ...items: T[]): Promise<T | undefined> => {
 		printInfo(`[INFO] ${message}`)
+		if (items.length > 0) {
+			printInfo(`Choices: ${items.join(", ")}`)
+			// For now, return undefined to avoid blocking, or the first item if we want to simulate an "OK"
+			return undefined
+		}
+		return undefined
 	},
-	showWarningMessage: async (message: string) => {
+	showWarningMessage: async <T extends string>(message: string, ...items: T[]): Promise<T | undefined> => {
 		printWarning(`[WARN] ${message}`)
+		if (items.length > 0) {
+			printWarning(`Choices: ${items.join(", ")}`)
+			return undefined
+		}
+		return undefined
 	},
-	showErrorMessage: async (message: string) => {
+	showErrorMessage: async <T extends string>(message: string, ...items: T[]): Promise<T | undefined> => {
 		printError(`[ERROR] ${message}`)
+		if (items.length > 0) {
+			printError(`Choices: ${items.join(", ")}`)
+			return undefined
+		}
+		return undefined
 	},
 	createOutputChannel: (name: string) => {
 		const logger = getOutputChannelLogger(name)
@@ -399,6 +478,59 @@ export const window = {
 		hide: noop,
 		dispose: noop,
 	}),
+	activeTextEditor: undefined,
+	visibleTextEditors: [],
+	onDidChangeActiveTextEditor: () => noopDisposable,
+	onDidChangeVisibleTextEditors: () => noopDisposable,
+	onDidChangeTextEditorSelection: () => noopDisposable,
+	onDidChangeTextEditorVisibleRanges: () => noopDisposable,
+	onDidChangeTextEditorOptions: () => noopDisposable,
+	onDidChangeTextEditorViewColumn: () => noopDisposable,
+	tabGroups: {
+		all: [],
+		activeTabGroup: { tabs: [], activeTab: undefined, isActive: true, viewColumn: ViewColumn.One },
+		onDidChangeTabs: () => noopDisposable,
+		onDidChangeTabGroups: () => noopDisposable,
+	},
+}
+
+const commandHandlers = new Map<string, (...args: any[]) => any>()
+
+export const commands = {
+	registerCommand: (command: string, callback: (...args: any[]) => any, thisArg?: any) => {
+		commandHandlers.set(command, callback.bind(thisArg))
+		return {
+			dispose: () => {
+				commandHandlers.delete(command)
+			},
+		}
+	},
+	executeCommand: async <T = any>(command: string, ...rest: any[]): Promise<T | undefined> => {
+		const handler = commandHandlers.get(command)
+		if (handler) {
+			return handler(...rest)
+		}
+		return undefined
+	},
+}
+
+export const env = {
+	appName: "Codemarie CLI",
+	appRoot: path.resolve(__dirname, ".."),
+	language: "en",
+	shell: process.env.SHELL || "/bin/sh",
+	uiKind: UIKind.Desktop,
+	uriScheme: "codemarie",
+	clipboard: {
+		readText: async () => "",
+		writeText: async (_value: string) => {},
+	},
+	openExternal: async (uri: URI) => {
+		const { openExternal } = await import("./utils/env")
+		return openExternal(uri.toString())
+	},
+	isTelemetryEnabled: true,
+	onDidChangeTelemetryEnabled: () => noopDisposable,
 }
 
 export interface Memento {
@@ -513,6 +645,10 @@ export class ExtensionContextShim implements ExtensionContext {
 
 	asAbsolutePath(relativePath: string): string {
 		return path.resolve(this.extensionPath, relativePath)
+	}
+
+	dispose() {
+		this.subscriptions.forEach((s) => s.dispose())
 	}
 }
 

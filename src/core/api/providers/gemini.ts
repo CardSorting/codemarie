@@ -28,6 +28,7 @@ interface GeminiHandlerOptions extends CommonApiHandlerOptions {
 	isVertex?: boolean
 	vertexProjectId?: string
 	vertexRegion?: string
+	vertexApiKey?: string
 	vertexCredentialsJson?: string
 	geminiApiKey?: string
 	geminiBaseUrl?: string
@@ -100,8 +101,10 @@ export class GeminiHandler implements ApiHandler {
 						}
 					}
 
-					if (!projectId) {
-						throw new Error("Vertex AI project ID is required")
+					const apiKey = options.vertexApiKey || options.geminiApiKey
+
+					if (!apiKey && !projectId && !googleAuthOptions) {
+						throw new Error("Vertex AI requires either an API Key, Project ID, or Service Account JSON")
 					}
 
 					const location = options.vertexRegion || "us-central1"
@@ -110,6 +113,7 @@ export class GeminiHandler implements ApiHandler {
 						vertexai: true,
 						project: projectId,
 						location,
+						apiKey,
 						googleAuthOptions: googleAuthOptions as any,
 						httpOptions: {
 							headers: externalHeaders,

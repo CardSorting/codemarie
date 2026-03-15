@@ -135,6 +135,20 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 					})()}
 			</RemotelyConfiguredInputWrapper>
 
+			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexApiKey === undefined}>
+				<DebouncedTextField
+					disabled={remoteConfigSettings?.vertexApiKey !== undefined}
+					initialValue={apiConfiguration?.vertexApiKey || ""}
+					onChange={(value) => handleFieldChange("vertexApiKey", value)}
+					placeholder="Enter API Key..."
+					style={{ width: "100%" }}>
+					<div className="flex items-center gap-2 mb-1">
+						<span style={{ fontWeight: 500 }}>Google Cloud API Key</span>
+						{remoteConfigSettings?.vertexApiKey !== undefined && <LockIcon />}
+					</div>
+				</DebouncedTextField>
+			</RemotelyConfiguredInputWrapper>
+
 			<p
 				style={{
 					fontSize: "12px",

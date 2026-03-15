@@ -16,6 +16,7 @@ import { GeminiHandler } from "./gemini"
 interface VertexHandlerOptions extends CommonApiHandlerOptions {
 	vertexProjectId?: string
 	vertexRegion?: string
+	vertexApiKey?: string
 	vertexCredentialsJson?: string
 	apiModelId?: string
 	thinkingBudgetTokens?: number
@@ -51,8 +52,8 @@ export class VertexHandler implements ApiHandler {
 
 	private ensureAnthropicClient(): AnthropicVertex {
 		if (!this.clientAnthropic) {
-			if (!this.options.vertexProjectId && !this.options.vertexCredentialsJson) {
-				throw new Error("Vertex AI project ID is required")
+			if (!this.options.vertexProjectId && !this.options.vertexCredentialsJson && !this.options.vertexApiKey) {
+				throw new Error("Vertex AI project ID or API Key is required")
 			}
 			if (!this.options.vertexRegion) {
 				throw new Error("Vertex AI region is required")
@@ -76,16 +77,17 @@ export class VertexHandler implements ApiHandler {
 					}
 				}
 
-				if (!projectId) {
-					throw new Error("Vertex AI project ID is required (provide directly or via service account JSON)")
-				}
+				// If we have an API key but no project ID, we can still proceed for some models/regions
+				// but AnthropicVertex SDK usually wants a project ID.
+				// However, standard Google API keys can be used via the `apiKey` option in recent SDKs.
 
 				// Initialize Anthropic client for Claude models
 				this.clientAnthropic = new AnthropicVertex({
-					projectId,
+					projectId: projectId || "unused", // SDK requires projectId but API key might override
 					// https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#regions
 					region: this.options.vertexRegion,
 					googleAuth,
+					apiKey: this.options.vertexApiKey,
 					defaultHeaders: externalHeaders,
 				})
 			} catch (error: any) {
