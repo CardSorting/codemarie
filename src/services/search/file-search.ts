@@ -14,10 +14,18 @@ import { getBinaryLocation } from "@/utils/fs"
 export type SpawnFunction = typeof childProcess.spawn
 export const getSpawnFunction = (): SpawnFunction => childProcess.spawn
 
-export async function searchFilesWithKeyword(keyword: string, workspacePath: string, limit = 100): Promise<string[]> {
+export async function searchFilesWithKeyword(
+	keyword: string,
+	workspacePath: string,
+	limit = 100,
+	signal?: AbortSignal,
+): Promise<string[]> {
 	const rgPath = await getBinaryLocation("rg")
 
 	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			return reject(new Error("Ripgrep search aborted"))
+		}
 		// Arguments for ripgrep to list files containing the keyword
 		const args = [
 			"-l", // --files-with-matches
@@ -31,6 +39,12 @@ export async function searchFilesWithKeyword(keyword: string, workspacePath: str
 		]
 
 		const rgProcess = getSpawnFunction()(rgPath, args)
+
+		const onAbort = () => {
+			rgProcess.kill()
+			reject(new Error("Ripgrep search aborted"))
+		}
+		signal?.addEventListener("abort", onAbort)
 		const rl = readline.createInterface({ input: rgProcess.stdout })
 
 		const fileResults: string[] = []
@@ -54,6 +68,7 @@ export async function searchFilesWithKeyword(keyword: string, workspacePath: str
 		})
 
 		rl.on("close", () => {
+			signal?.removeEventListener("abort", onAbort)
 			if (errorOutput && fileResults.length === 0) {
 				// Exit code 1 means no matches found, which is expected behavior
 				if (!errorOutput.includes("No such file or directory")) {
@@ -66,7 +81,10 @@ export async function searchFilesWithKeyword(keyword: string, workspacePath: str
 			resolve(fileResults)
 		})
 
-		rgProcess.on("error", (error) => reject(new Error(`ripgrep process error: ${error.message}`)))
+		rgProcess.on("error", (error) => {
+			signal?.removeEventListener("abort", onAbort)
+			reject(new Error(`ripgrep process error: ${error.message}`))
+		})
 	})
 }
 
@@ -112,11 +130,15 @@ export async function searchFilesWithSnippetsBatch(
 	workspacePath: string,
 	fileLimitPerKeyword = 3,
 	snippetLimitPerFile = 2,
+	signal?: AbortSignal,
 ): Promise<Record<string, FileSnippet[]>> {
 	if (keywords.length === 0) return {}
 	const rgPath = await getBinaryLocation("rg")
 
 	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			return reject(new Error("Ripgrep search aborted"))
+		}
 		const args = [
 			"-i",
 			"--column",
@@ -141,13 +163,24 @@ export async function searchFilesWithSnippetsBatch(
 		args.push(workspacePath)
 
 		const rgProcess = getSpawnFunction()(rgPath, args)
+
+		const onAbort = () => {
+			rgProcess.kill()
+			reject(new Error("Ripgrep batch search aborted"))
+		}
+		signal?.addEventListener("abort", onAbort)
+
 		const rl = readline.createInterface({ input: rgProcess.stdout })
 
 		const keywordResults: Record<string, Map<string, string[]>> = {}
-		keywords.forEach((k) => (keywordResults[k] = new Map()))
+		keywords.forEach((k) => {
+			keywordResults[k] = new Map()
+		})
 
 		const fileCountPerKeyword: Record<string, number> = {}
-		keywords.forEach((k) => (fileCountPerKeyword[k] = 0))
+		keywords.forEach((k) => {
+			fileCountPerKeyword[k] = 0
+		})
 
 		rl.on("line", (line) => {
 			const match = line.match(/^([^:-]+)[:-]/)
@@ -166,19 +199,20 @@ export async function searchFilesWithSnippetsBatch(
 						fileCountPerKeyword[k]++
 					}
 
-					const snippets = results.get(relativePath)!
-					if (snippets.length < snippetLimitPerFile * 5) {
+					const snippets = results.get(relativePath)
+					if (snippets && snippets.length < snippetLimitPerFile * 5) {
 						snippets.push(line)
 					}
 				}
 			}
 		})
 
-		rgProcess.stderr.on("data", (data) => {
+		rgProcess.stderr.on("data", () => {
 			/* Capture error output if needed for debugging */
 		})
 
 		rl.on("close", () => {
+			signal?.removeEventListener("abort", onAbort)
 			const finalResults: Record<string, FileSnippet[]> = {}
 			for (const k of keywords) {
 				finalResults[k] = Array.from(keywordResults[k].entries()).map(([path, snippets]) => ({
@@ -189,15 +223,23 @@ export async function searchFilesWithSnippetsBatch(
 			resolve(finalResults)
 		})
 
-		rgProcess.on("error", (error) => reject(new Error(`ripgrep batch process error: ${error.message}`)))
+		rgProcess.on("error", (error) => {
+			signal?.removeEventListener("abort", onAbort)
+			reject(new Error(`ripgrep batch process error: ${error.message}`))
+		})
 	})
 }
 
 export async function executeRipgrepForFiles(
 	workspacePath: string,
 	limit = 5000,
+	signal?: AbortSignal,
 ): Promise<{ path: string; type: "file" | "folder"; label?: string }[]> {
 	const rgPath = await getBinaryLocation("rg")
+
+	if (signal?.aborted) {
+		throw new Error("Ripgrep file listing aborted")
+	}
 
 	return new Promise((resolve, reject) => {
 		// Arguments for ripgrep to list files, follow symlinks, include hidden, and exclude common directories
@@ -212,6 +254,13 @@ export async function executeRipgrepForFiles(
 
 		// Spawn the ripgrep process with the specified arguments
 		const rgProcess = getSpawnFunction()(rgPath, args)
+
+		const onAbort = () => {
+			rgProcess.kill()
+			reject(new Error("Ripgrep file listing aborted"))
+		}
+		signal?.addEventListener("abort", onAbort)
+
 		const rl = readline.createInterface({ input: rgProcess.stdout })
 
 		// Array to store file results and Set to track unique directories
@@ -255,6 +304,7 @@ export async function executeRipgrepForFiles(
 
 		// When ripgrep finishes or is closed
 		rl.on("close", () => {
+			signal?.removeEventListener("abort", onAbort)
 			if (errorOutput && fileResults.length === 0) {
 				reject(new Error(`ripgrep process error: ${errorOutput.trim()}`))
 				return
@@ -272,7 +322,10 @@ export async function executeRipgrepForFiles(
 		})
 
 		// Handle process-level errors
-		rgProcess.on("error", (error) => reject(new Error(`ripgrep process error: ${error.message}`)))
+		rgProcess.on("error", (error) => {
+			signal?.removeEventListener("abort", onAbort)
+			reject(new Error(`ripgrep process error: ${error.message}`))
+		})
 	})
 }
 
@@ -370,7 +423,7 @@ export async function searchWorkspaceFiles(
 
 // Custom match scoring for results ordering
 // Candidate score tiebreaker - fewer gaps between matched characters scores higher
-export const OrderbyMatchScore = (a: FzfResultItem<any>, b: FzfResultItem<any>) => {
+export const OrderbyMatchScore = (a: FzfResultItem<unknown>, b: FzfResultItem<unknown>) => {
 	const countGaps = (positions: Iterable<number>) => {
 		let gaps = 0,
 			prev = Number.NEGATIVE_INFINITY
@@ -440,7 +493,8 @@ export async function searchWorkspaceFilesMultiroot(
 			}
 
 			flatResults = flatResults.map((result) => {
-				if (pathCounts.get(result.path)! > 1 && result.workspaceName) {
+				const count = pathCounts.get(result.path) ?? 0
+				if (count > 1 && result.workspaceName) {
 					return {
 						...result,
 						label: `${result.workspaceName}:/${result.path}`,

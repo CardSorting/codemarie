@@ -362,6 +362,7 @@ export class SubagentRunner {
 				isSubagentRun: true,
 				mode: mode as "plan" | "act", // Subagents inherit the parent's mode context
 				parentMode: mode as "plan" | "act",
+				groundedSpec: this.baseConfig.taskState.groundedSpec,
 			}
 
 			const promptRegistry = PromptRegistry.getInstance()

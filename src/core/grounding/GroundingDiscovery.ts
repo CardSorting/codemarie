@@ -1,11 +1,14 @@
 import * as crypto from "crypto"
-import * as fs from "fs/promises"
+import * as fs from "fs"
+import * as fsp from "fs/promises"
+import * as os from "os"
 import * as path from "path"
 import { FileSnippet, searchFilesWithSnippetsBatch } from "@/services/search/file-search"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
 import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { LRUCache } from "./GroundingCache"
+import { InterfaceSummarizer } from "./InterfaceSummarizer"
 
 export class GroundingDiscovery {
 	// rgCache: 1 minute TTL for ripgrep results
@@ -15,7 +18,7 @@ export class GroundingDiscovery {
 	// keywordCache: 1 hour TTL for extracted keywords (stable per intent)
 	private static keywordCache = new LRUCache<string[]>(100, 3600000)
 	// statCache: 10 second TTL for fs stats to avoid redundant I/O in a single discovery pass
-	private static statCache = new LRUCache<import("fs").Stats>(50, 10000)
+	private static statCache = new LRUCache<fs.Stats>(50, 10000)
 	// workspaceIndexCache: 5 minute TTL for workspace file list
 	private static workspaceIndexCache = new LRUCache<Map<string, { size: number; mtime: string }>>(5, 300000)
 	// refreshingNodes: Track nodes currently being refreshed to avoid redundant work
@@ -36,8 +39,16 @@ export class GroundingDiscovery {
 		) => Promise<{ spec: unknown; tokens: { input: number; output: number } }>,
 	) {}
 
-	getInternalStatCache(): LRUCache<import("fs").Stats> {
+	getInternalStatCache(): LRUCache<fs.Stats> {
 		return GroundingDiscovery.statCache
+	}
+
+	private static getAdaptiveConcurrency(projectSize = 0): number {
+		const cpuCount = os.cpus().length || 4
+		// In large projects, we want to be more conservative to avoid I/O thrashing
+		if (projectSize > 5000) return Math.min(cpuCount, 8)
+		if (projectSize > 1000) return Math.min(cpuCount * 2, 16)
+		return Math.min(cpuCount * 4, 32)
 	}
 
 	async getWorkspaceIndex(cwd: string): Promise<Map<string, { size: number; mtime: string }>> {
@@ -73,17 +84,17 @@ export class GroundingDiscovery {
 		files: string[],
 		index: Map<string, { size: number; mtime: string }>,
 	): Promise<void> {
-		const CONCURRENCY = 20
+		const CONCURRENCY = GroundingDiscovery.getAdaptiveConcurrency(index.size)
 		for (let i = 0; i < files.length; i += CONCURRENCY) {
 			const batch = files.slice(i, i + CONCURRENCY)
 			await Promise.all(
 				batch.map(async (file) => {
 					try {
 						const fullPath = path.isAbsolute(file) ? file : path.join(cwd, file)
-						const stats = await fs.stat(fullPath)
+						const stats = await fsp.stat(fullPath)
 						index.set(file, {
 							size: stats.size,
-							mtime: stats.mtime.toISOString().split("T")[0],
+							mtime: stats.mtime.toISOString().split("T")[0] || "unknown",
 						})
 					} catch {
 						// skip if file removed since index start
@@ -133,11 +144,16 @@ export class GroundingDiscovery {
 							})
 							.join("\n") + "\n"
 
-					// Satiety Check: If we have an extremely high precision match that is fresh, bypass ripgrep entirely
-					const satietyReached = validatedNodes.some((n) => n.similarity > 0.98 && !n.isStale)
-					if (satietyReached) {
+					// Phase 5: Multi-Factor Satiety Metric
+					// Satiety is reached if:
+					// 1. We have an extremely high precision match (>0.98) that is fresh.
+					// 2. We have 3+ high precision matches (>0.90) that are all fresh.
+					const landmarkSatiety = validatedNodes.some((n) => n.similarity > 0.98 && !n.isStale)
+					const coverageSatiety = validatedNodes.filter((n) => n.similarity > 0.9 && !n.isStale).length >= 3
+
+					if (landmarkSatiety || coverageSatiety) {
 						Logger.info(
-							"[GroundingDiscovery] Fast-KG Satiety reached (>0.98). Bypassing Keyword Extraction and Ripgrep.",
+							`[GroundingDiscovery] Fast-KG Satiety reached (${landmarkSatiety ? "Landmark" : "Coverage"}). Bypassing Ripgrep.`,
 						)
 						return saturatedContext
 					}
@@ -179,18 +195,17 @@ export class GroundingDiscovery {
 			} else {
 				// Phase 5: I/O Circuit Breaker - Cap total search time per keyword
 				const SEARCH_TIMEOUT = 8000
+				const controller = new AbortController()
+				const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT)
 
 				try {
 					// Pass 2: Multiplexed Ripgrep - Search keywords in a single batch
-					keywordResults = await Promise.race([
-						searchFilesWithSnippetsBatch(keywords, cwd, 3, 2),
-						new Promise<Record<string, FileSnippet[]>>((_, reject) =>
-							setTimeout(() => reject(new Error("Timeout in multiplexed ripgrep batch")), SEARCH_TIMEOUT),
-						),
-					])
+					keywordResults = await searchFilesWithSnippetsBatch(keywords, cwd, 3, 2, controller.signal)
 				} catch (e) {
-					Logger.warn("[GroundingDiscovery] Multiplexed search failed, falling back to empty:", e)
+					Logger.warn("[GroundingDiscovery] Multiplexed search failed or timed out, falling back to empty:", e)
 					keywordResults = {}
+				} finally {
+					clearTimeout(timeoutId)
 				}
 
 				GroundingDiscovery.rgCache.set(cacheKey, keywordResults)
@@ -259,7 +274,15 @@ export class GroundingDiscovery {
 
 			const contextLines: string[] = ["### Semantic Discovery Results (Top Ranked with Metadata):"]
 			for (const snip of enrichedSnippets) {
-				const meta = snip.metadata ? ` [Size: ${snip.metadata.size}b, Mod: ${snip.metadata.mtime}]` : ""
+				const metaParts = []
+				if (snip.metadata) {
+					metaParts.push(`Size: ${snip.metadata.size}b`)
+					metaParts.push(`Mod: ${snip.metadata.mtime}`)
+					if (snip.metadata.interfaceSummary) {
+						metaParts.push(`Interface: ${snip.metadata.interfaceSummary}`)
+					}
+				}
+				const meta = metaParts.length > 0 ? ` [${metaParts.join(", ")}]` : ""
 				contextLines.push(`File: ${snip.path}${meta} (Relevance Score: ${snip.score.toFixed(1)})`)
 				contextLines.push("```")
 				// Limit snippets per file to keep context focused
@@ -314,7 +337,7 @@ export class GroundingDiscovery {
 
 			const ruleContents = await Promise.all(
 				allMdFiles.slice(0, 8).map(async (filePath) => {
-					const content = await fs.readFile(filePath, "utf-8")
+					const content = await fsp.readFile(filePath, "utf-8")
 					const relativePath = path.relative(cwd, filePath)
 
 					// Extreme Hardening: Intelligent Rule Truncation
@@ -379,7 +402,11 @@ export class GroundingDiscovery {
 		return ""
 	}
 
-	private async isNodeStale(cwd: string, node: any, knowledgeGraph: KnowledgeGraphService): Promise<boolean> {
+	private async isNodeStale(
+		cwd: string,
+		node: { id: string; content: string; metadata?: Record<string, any> },
+		knowledgeGraph: KnowledgeGraphService,
+	): Promise<boolean> {
 		try {
 			// Phase 4.1: Path Robustness - Use metadata path if available
 			const filePath = node.metadata?.path || node.content.split("\n")[0]?.trim()
@@ -396,15 +423,18 @@ export class GroundingDiscovery {
 			}
 
 			// Phase 4.1: I/O Guard - Skip hashing for massive files (> 1MB) during discovery
-			const stats = GroundingDiscovery.statCache.get(fullPath) || (await fs.stat(fullPath))
-			GroundingDiscovery.statCache.set(fullPath, stats)
+			let stats = GroundingDiscovery.statCache.get(fullPath)
+			if (!stats) {
+				stats = await fsp.stat(fullPath)
+				GroundingDiscovery.statCache.set(fullPath, stats)
+			}
 
 			if (stats.size > 1024 * 1024) {
 				Logger.info(`[GroundingDiscovery] Skipping hash check for large file: ${filePath} (${stats.size}b)`)
 				return node.metadata?.size !== stats.size // Fallback to size-only check
 			}
 
-			const content = await fs.readFile(fullPath, "utf-8")
+			const content = await fsp.readFile(fullPath, "utf-8")
 			const currentHash = knowledgeGraph.calculateHash(content)
 
 			return node.metadata?.hash !== currentHash
@@ -413,7 +443,11 @@ export class GroundingDiscovery {
 		}
 	}
 
-	private triggerBackgroundRefresh(node: any, cwd: string, knowledgeGraph: KnowledgeGraphService): void {
+	private triggerBackgroundRefresh(
+		node: { id: string; content: string; metadata?: Record<string, any> },
+		cwd: string,
+		knowledgeGraph: KnowledgeGraphService,
+	): void {
 		// Phase 4.1: Concurrency Guard - Don't start duplicate refreshes
 		if (GroundingDiscovery.refreshingNodes.has(node.id)) return
 		GroundingDiscovery.refreshingNodes.add(node.id)
@@ -425,8 +459,8 @@ export class GroundingDiscovery {
 				if (!filePath) return
 
 				const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath)
-				const stats = await fs.stat(fullPath)
-				const freshContent = await fs.readFile(fullPath, "utf-8")
+				const stats = await fsp.stat(fullPath)
+				const freshContent = await fsp.readFile(fullPath, "utf-8")
 
 				// Update with fresh content, new hash, and mtime
 				await knowledgeGraph.updateKnowledge(node.id, {
@@ -435,7 +469,7 @@ export class GroundingDiscovery {
 						...node.metadata,
 						path: filePath,
 						hash: knowledgeGraph.calculateHash(freshContent),
-						mtime: stats.mtime.toISOString().split("T")[0],
+						mtime: stats.mtime.toISOString().split("T")[0] || "unknown",
 						size: stats.size,
 					},
 				})
@@ -518,7 +552,11 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 
 		// Regex for file paths (e.g., src/core/file.ts)
 		const pathMatch = intent.match(/[\w/\\.-]+\.\w+/g)
-		if (pathMatch) pathMatch.forEach((p) => keywords.add(p))
+		if (pathMatch) {
+			pathMatch.forEach((p) => {
+				keywords.add(p)
+			})
+		}
 
 		// Regex for PascalCase/camelCase names (potential classes/functions)
 		const identifierMatch = intent.match(/\b[a-zA-Z][a-zA-Z0-9]{5,}\b/g)
@@ -536,43 +574,70 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 	private async enrichWithMetadata(
 		cwd: string,
 		snippets: { path: string; snippets: string[]; score: number }[],
-	): Promise<{ path: string; snippets: string[]; score: number; metadata?: { size: number; mtime: string } }[]> {
-		return Promise.all(
-			snippets.map(async (snip) => {
-				try {
-					const fullPath = path.join(cwd, snip.path)
-					const cacheKey = fullPath
+	): Promise<
+		{
+			path: string
+			snippets: string[]
+			score: number
+			metadata?: { size: number; mtime: string; interfaceSummary?: string }
+		}[]
+	> {
+		const index = GroundingDiscovery.workspaceIndexCache.get(cwd)
+		const CONCURRENCY = GroundingDiscovery.getAdaptiveConcurrency(index?.size || 0)
+		const results: { path: string; snippets: string[]; score: number; metadata?: any }[] = []
 
-					// Pass 3: Use Workspace Index if available
-					const index = GroundingDiscovery.workspaceIndexCache.get(cwd)
-					if (index?.has(snip.path)) {
+		for (let i = 0; i < snippets.length; i += CONCURRENCY) {
+			const batch = snippets.slice(i, i + CONCURRENCY)
+			const enrichedBatch = await Promise.all(
+				batch.map(async (snip) => {
+					try {
+						const fullPath = path.join(cwd, snip.path)
+						const cacheKey = fullPath
+
+						// Pass 5: Add interface summary with per-file circuit breaker
+						const SUMMARIZER_TIMEOUT = 1000
+						const interfaceSummary = await Promise.race([
+							InterfaceSummarizer.summarize(fullPath),
+							new Promise<string>((resolve) =>
+								setTimeout(() => resolve("[Summary timed out]"), SUMMARIZER_TIMEOUT),
+							),
+						])
+
+						// Pass 3: Use Workspace Index if available
+						const indexedMeta = index?.get(snip.path)
+						if (indexedMeta) {
+							return {
+								...snip,
+								metadata: {
+									size: indexedMeta.size,
+									mtime: indexedMeta.mtime,
+									interfaceSummary,
+								},
+							}
+						}
+
+						let stats = GroundingDiscovery.statCache.get(cacheKey)
+						if (!stats) {
+							stats = await fsp.stat(fullPath)
+							GroundingDiscovery.statCache.set(cacheKey, stats)
+						}
+
 						return {
 							...snip,
 							metadata: {
-								size: index.get(snip.path)!.size || 0,
-								mtime: index.get(snip.path)!.mtime || "indexed",
+								size: stats.size,
+								mtime: stats.mtime.toISOString().split("T")[0],
+								interfaceSummary,
 							},
 						}
+					} catch {
+						return snip
 					}
-
-					let stats = GroundingDiscovery.statCache.get(cacheKey)
-					if (!stats) {
-						stats = await fs.stat(fullPath)
-						GroundingDiscovery.statCache.set(cacheKey, stats)
-					}
-
-					return {
-						...snip,
-						metadata: {
-							size: stats.size,
-							mtime: stats.mtime.toISOString().split("T")[0],
-						},
-					}
-				} catch {
-					return snip
-				}
-			}),
-		)
+				}),
+			)
+			results.push(...enrichedBatch)
+		}
+		return results
 	}
 
 	private async globMdFiles(dir: string, currentDepth = 0): Promise<string[]> {
@@ -581,7 +646,7 @@ Return ONLY a JSON string array of keywords. (e.g. ["AuthService.ts", "login", "
 		const MAX_RULE_DEPTH = 2
 		if (currentDepth > MAX_RULE_DEPTH) return []
 		try {
-			const entries = await fs.readdir(dir, { withFileTypes: true })
+			const entries = await fsp.readdir(dir, { withFileTypes: true })
 			for (const entry of entries) {
 				const res = path.resolve(dir, entry.name)
 				if (entry.isDirectory()) {

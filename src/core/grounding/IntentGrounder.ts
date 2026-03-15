@@ -1,4 +1,5 @@
 import * as crypto from "crypto"
+import * as path from "path"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { dbPool } from "@/infrastructure/db/BufferedDbPool"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
@@ -72,17 +73,33 @@ export class IntentGrounder {
 			return finalSpec
 		}
 
-		// Phase 5: Swarm Inheritance
-		if (parentSpec && intent.length < 100 && intent.includes(parentSpec.ambiguityReasoning || "")) {
-			Logger.info("[IntentGrounder] Swarm Inheritance: Reusing parent specification.")
-			return {
-				...parentSpec,
-				telemetry: {
-					durationMs: Date.now() - startTime,
-					tokensIn: 0,
-					tokensOut: 0,
-					isCacheHit: false,
-				},
+		// Phase 5: Swarm Inheritance - Robust Similarity Check
+		if (parentSpec && intent.length > 0) {
+			const intentWords = intent
+				.toLowerCase()
+				.split(/\W+/)
+				.filter((w) => w.length > 4)
+			const parentWords = (parentSpec.ambiguityReasoning || "")
+				.toLowerCase()
+				.split(/\W+/)
+				.filter((w) => w.length > 4)
+
+			// If sub-agent intent is very similar to parent's reasoning, inherit
+			const overlap = intentWords.filter((w) => parentWords.includes(w))
+			const isSimilar = overlap.length >= 2 || (intentWords.length > 0 && overlap.length / intentWords.length > 0.5)
+
+			if (isSimilar) {
+				Logger.info(`[IntentGrounder] Swarm Inheritance: Reusing parent specification (Overlap: ${overlap.join(", ")}).`)
+				return {
+					...parentSpec,
+					telemetry: {
+						durationMs: Date.now() - startTime,
+						tokensIn: 0,
+						tokensOut: 0,
+						isCacheHit: false,
+						inheritanceSource: "parent",
+					} as GroundedSpec["telemetry"],
+				}
 			}
 		}
 
@@ -148,17 +165,29 @@ export class IntentGrounder {
 			if (finalDiscovered.length > 0) {
 				const files = finalDiscovered.split("File: ")
 				let shavedDiscovery = files[0] // Headers
-				let discoveredTokens = estimator(shavedDiscovery)
+				const topFiles = files.slice(1)
 
-				// Opportunistically fill remaining budget with top files
-				for (let i = 1; i < files.length; i++) {
-					const fileText = "File: " + files[i]
+				// Phase 5: Intelligent Ranking during Shaving
+				// We prioritize files that appear in the intent or have high confidence
+				topFiles.sort((a, b) => {
+					const aPath = a.split(" [")[0].toLowerCase()
+					const bPath = b.split(" [")[0].toLowerCase()
+					const aInIntent = intent.toLowerCase().includes(path.basename(aPath))
+					const bInIntent = intent.toLowerCase().includes(path.basename(bPath))
+					if (aInIntent && !bInIntent) return -1
+					if (!aInIntent && bInIntent) return 1
+					return 0
+				})
+
+				let discoveredTokens = estimator(shavedDiscovery)
+				for (let i = 0; i < topFiles.length; i++) {
+					const fileText = `File: ${topFiles[i]}`
 					const fileTokens = estimator(fileText)
 					if (currentTokens + discoveredTokens + fileTokens < TOKEN_BUDGET) {
 						shavedDiscovery += fileText
 						discoveredTokens += fileTokens
 					} else {
-						shavedDiscovery += `\n\n[... Additional ${files.length - i} files shaved to fit token budget ...]`
+						shavedDiscovery += `\n\n[... Additional ${topFiles.length - i} relevant files omitted to fit token budget ...]`
 						break
 					}
 				}
@@ -170,17 +199,17 @@ export class IntentGrounder {
 			if (currentTokens > TOKEN_BUDGET + 2000) {
 				const lines = finalContext.split("\n")
 				if (lines.length > 100) {
-					finalContext =
-						lines.slice(0, 50).join("\n") + "\n\n[... Context shaved ...]\n\n" + lines.slice(-30).join("\n")
+					finalContext = `${lines.slice(0, 50).join("\n")}\n\n[... Context shaved ...]\n\n${lines.slice(-30).join("\n")}`
 				}
 			}
 		}
 
-		const userContent =
-			`Ground this intent: ${intent}` +
-			(finalContext ? `\n\nEnvironment Context:\n${finalContext}` : "") +
-			(finalDiscovered ? `\n\nDiscovered Semantic Context (ripgrep snippets):\n${finalDiscovered}` : "") +
-			(finalRules ? `\n\nProject Rules (.codemarierules):\n${finalRules}` : "")
+		const userContent = [
+			`Ground this intent: ${intent}`,
+			finalContext ? `\n\nEnvironment Context:\n${finalContext}` : "",
+			finalDiscovered ? `\n\nDiscovered Semantic Context (ripgrep snippets):\n${finalDiscovered}` : "",
+			finalRules ? `\n\nProject Rules (.codemarierules):\n${finalRules}` : "",
+		].join("")
 
 		const messages: CodemarieStorageMessage[] = [
 			{
