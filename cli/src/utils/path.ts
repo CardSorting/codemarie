@@ -6,10 +6,12 @@ import { rgPath } from "@vscode/ripgrep"
 const data = process.env.CLINE_DATA_DIR ?? path.join(os.homedir(), ".codemarie", "data")
 
 const log = process.env.CLINE_LOG_DIR ?? path.join(data, "logs")
+const storage = process.env.CLINE_STORAGE_DIR ?? path.join(data, "storage")
 
 export const CLINE_CLI_DIR = {
 	data,
 	log,
+	storage,
 }
 
 /**

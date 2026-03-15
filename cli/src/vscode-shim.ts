@@ -4,8 +4,11 @@
  */
 
 import { existsSync, readFileSync } from "node:fs"
+import fs from "node:fs/promises"
 import path from "node:path"
 import pino, { type Logger } from "pino"
+import { URI } from "vscode-uri"
+import { CodemarieFileStorage } from "@/shared/storage"
 import { printError, printInfo, printWarning } from "./utils/display"
 import { CLINE_CLI_DIR } from "./utils/path"
 
@@ -17,7 +20,7 @@ export const CLI_LOG_FILE = path.join(CLINE_CLI_DIR.log, "codemarie-cli.1.log")
 /**
  * Safely read and parse a JSON file, returning a default value on failure
  */
-export function readJson<T = any>(filePath: string, defaultValue: T = {} as T): T {
+export function readJson<T = unknown>(filePath: string, defaultValue: T = {} as T): T {
 	try {
 		if (existsSync(filePath)) {
 			return JSON.parse(readFileSync(filePath, "utf8"))
@@ -57,7 +60,9 @@ export class EnvironmentVariableCollection {
 	}
 
 	forEach(callback: (variable: string, mutator: { value: string; type: string }, collection: this) => void) {
-		this.variables.forEach((mutator, variable) => callback(variable, mutator, this))
+		this.variables.forEach((mutator, variable) => {
+			callback(variable, mutator, this)
+		})
 	}
 
 	delete(variable: string) {
@@ -86,6 +91,13 @@ export enum ExtensionMode {
 export enum ExtensionKind {
 	UI = 1,
 	Workspace = 2,
+}
+
+export enum FileType {
+	Unknown = 0,
+	File = 1,
+	Directory = 2,
+	SymbolicLink = 64,
 }
 
 export enum DiagnosticSeverity {
@@ -174,7 +186,7 @@ export class Range {
 	) {
 		if (typeof startOrStartLine === "number") {
 			this.start = new Position(startOrStartLine, endOrStartCharacter as number)
-			this.end = new Position(endLine!, endCharacter!)
+			this.end = new Position(endLine ?? 0, endCharacter ?? 0)
 		} else {
 			this.start = startOrStartLine
 			this.end = endOrStartCharacter as Position
@@ -235,7 +247,7 @@ export class Selection extends Range {
 				: anchorOrAnchorLine
 		const active =
 			typeof anchorOrAnchorLine === "number"
-				? new Position(activeLine!, activeCharacter!)
+				? new Position(activeLine ?? 0, activeCharacter ?? 0)
 				: (activeOrAnchorCharacter as Position)
 		const isForward = anchor.isBefore(active)
 		super(isForward ? anchor : active, isForward ? active : anchor)
@@ -250,7 +262,7 @@ export class Selection extends Range {
 
 export interface CancellationToken {
 	isCancellationRequested: boolean
-	onCancellationRequested: any
+	onCancellationRequested: unknown
 }
 
 export class EventEmitter<T> {
@@ -267,7 +279,9 @@ export class EventEmitter<T> {
 	}
 
 	fire(data: T): void {
-		this.listeners.forEach((listener) => listener(data))
+		this.listeners.forEach((listener) => {
+			listener(data)
+		})
 	}
 
 	dispose(): void {
@@ -278,8 +292,12 @@ export class EventEmitter<T> {
 export class Disposable {
 	constructor(private callOnDispose: () => void) {}
 
-	static from(...disposables: { dispose(): any }[]): Disposable {
-		return new Disposable(() => disposables.forEach((d) => d.dispose()))
+	static from(...disposables: { dispose(): unknown }[]): Disposable {
+		return new Disposable(() => {
+			disposables.forEach((d) => {
+				d.dispose()
+			})
+		})
 	}
 
 	dispose(): void {
@@ -288,20 +306,71 @@ export class Disposable {
 }
 
 const noop = () => {}
-const noopAsync = async () => {}
 const noopDisposable = { dispose: noop }
 
 export const workspace = {
-	workspaceFolders: undefined as any[] | undefined,
-	getWorkspaceFolder: (_uri: any) => undefined,
+	get workspaceFolders() {
+		const workspacePath = process.env.CLINE_WORKSPACE_DIR || process.cwd()
+		return [
+			{
+				uri: URI.file(workspacePath),
+				name: path.basename(workspacePath),
+				index: 0,
+			},
+		]
+	},
+	getWorkspaceFolder: (uri: URI) => {
+		const folders = workspace.workspaceFolders
+		return folders.find((f) => uri.fsPath.startsWith(f.uri.fsPath))
+	},
 	onDidChangeWorkspaceFolders: () => noopDisposable,
 	fs: {
-		readFile: async (_uri: any): Promise<Uint8Array> => new Uint8Array(),
-		writeFile: noopAsync,
-		delete: noopAsync,
-		stat: async (_uri: any) => ({ type: 1, size: 0 }),
-		readDirectory: async (_uri: any): Promise<any[]> => [],
-		createDirectory: noopAsync,
+		readFile: async (uri: URI): Promise<Uint8Array> => {
+			return new Uint8Array(await fs.readFile(uri.fsPath))
+		},
+		writeFile: async (uri: URI, content: Uint8Array): Promise<void> => {
+			await fs.writeFile(uri.fsPath, Buffer.from(content))
+		},
+		delete: async (uri: URI, options?: { recursive?: boolean; useTrash?: boolean }): Promise<void> => {
+			await fs.rm(uri.fsPath, { recursive: options?.recursive, force: true })
+		},
+		stat: async (uri: URI) => {
+			const stats = await fs.stat(uri.fsPath)
+			return {
+				type: stats.isDirectory()
+					? FileType.Directory
+					: stats.isFile()
+						? FileType.File
+						: stats.isSymbolicLink()
+							? FileType.SymbolicLink
+							: FileType.Unknown,
+				size: stats.size,
+				ctime: stats.ctimeMs,
+				mtime: stats.mtimeMs,
+			}
+		},
+		readDirectory: async (uri: URI): Promise<[string, FileType][]> => {
+			const entries = await fs.readdir(uri.fsPath, { withFileTypes: true })
+			return entries.map((e) => [
+				e.name,
+				e.isDirectory()
+					? FileType.Directory
+					: e.isFile()
+						? FileType.File
+						: e.isSymbolicLink()
+							? FileType.SymbolicLink
+							: FileType.Unknown,
+			]) as [string, FileType][]
+		},
+		createDirectory: async (uri: URI): Promise<void> => {
+			await fs.mkdir(uri.fsPath, { recursive: true })
+		},
+		rename: async (source: URI, target: URI): Promise<void> => {
+			await fs.rename(source.fsPath, target.fsPath)
+		},
+		copy: async (source: URI, target: URI, options?: { overwrite: boolean }): Promise<void> => {
+			await fs.cp(source.fsPath, target.fsPath, { recursive: true, force: options?.overwrite })
+		},
 	},
 }
 
@@ -320,9 +389,9 @@ export const window = {
 		const log = (text: string) => logger.info({ channel: name }, text)
 		return { appendLine: log, append: log, clear: noop, show: noop, hide: noop, dispose: noop }
 	},
-	terminals: [] as any[],
-	activeTerminal: undefined as any,
-	createTerminal: (_options?: any) => ({
+	terminals: [] as unknown[],
+	activeTerminal: undefined as unknown,
+	createTerminal: (_options?: unknown) => ({
 		name: "CLI Terminal",
 		processId: Promise.resolve(process.pid),
 		sendText: (text: string) => printInfo(`[${new Date().toISOString()}] [Terminal] ${text}`),
@@ -332,11 +401,123 @@ export const window = {
 	}),
 }
 
-export type ExtensionContext = any
-export type Memento = any
-export type SecretStorage = any
+export interface Memento {
+	get<T>(key: string): T | undefined
+	get<T>(key: string, defaultValue: T): T
+	update(key: string, value: unknown): Thenable<void>
+	keys(): readonly string[]
+	setKeysForSync(keys: string[]): void
+}
+
+export interface SecretStorageChangeEvent {
+	readonly key: string
+}
+
+export interface SecretStorage {
+	get(key: string): Thenable<string | undefined>
+	store(key: string, value: string): Thenable<void>
+	delete(key: string): Thenable<void>
+	readonly onDidChange: (listener: (e: SecretStorageChangeEvent) => void) => { dispose(): void }
+}
+
+export class MementoShim implements Memento {
+	constructor(private storage: CodemarieFileStorage) {}
+	get<T>(key: string): T | undefined
+	get<T>(key: string, defaultValue: T): T
+	get<T>(key: string, defaultValue?: T): T | undefined {
+		return this.storage.get(key, defaultValue)
+	}
+	update(key: string, value: unknown): Thenable<void> {
+		return this.storage.update(key, value)
+	}
+	keys(): readonly string[] {
+		return this.storage.keys()
+	}
+	setKeysForSync(_keys: string[]): void {
+		// No-op for CLI
+	}
+}
+
+export class SecretStorageShim implements SecretStorage {
+	private storage: CodemarieFileStorage
+	private _onDidChange = new EventEmitter<SecretStorageChangeEvent>()
+	readonly onDidChange = this._onDidChange.event
+
+	constructor(filePath: string) {
+		this.storage = new CodemarieFileStorage(filePath, "SecretStorage", { fileMode: 0o600 })
+	}
+
+	get(key: string): Thenable<string | undefined> {
+		return Promise.resolve(this.storage.get(key))
+	}
+
+	store(key: string, value: string): Thenable<void> {
+		this.storage.set(key, value)
+		this._onDidChange.fire({ key })
+		return Promise.resolve()
+	}
+
+	delete(key: string): Thenable<void> {
+		this.storage.delete(key)
+		this._onDidChange.fire({ key })
+		return Promise.resolve()
+	}
+}
+
+export interface ExtensionContext {
+	readonly subscriptions: { dispose(): void }[]
+	readonly workspaceState: Memento
+	readonly globalState: Memento & { setKeysForSync(keys: string[]): void }
+	readonly secrets: SecretStorage
+	readonly extensionUri: URI
+	readonly extensionPath: string
+	readonly environmentVariableCollection: EnvironmentVariableCollection
+	readonly extensionMode: ExtensionMode
+	readonly logUri: URI
+	readonly storageUri?: URI
+	readonly globalStorageUri: URI
+	asAbsolutePath(relativePath: string): string
+}
+
+export class ExtensionContextShim implements ExtensionContext {
+	readonly subscriptions: { dispose(): void }[] = []
+	readonly workspaceState: Memento
+	readonly globalState: Memento & { setKeysForSync(keys: string[]): void }
+	readonly secrets: SecretStorage
+	readonly extensionUri: URI
+	readonly extensionPath: string
+	readonly environmentVariableCollection: EnvironmentVariableCollection
+	readonly extensionMode: ExtensionMode = ExtensionMode.Production
+	readonly logUri: URI
+	readonly storageUri?: URI
+	readonly globalStorageUri: URI
+
+	constructor() {
+		const storageDir = CLINE_CLI_DIR.storage
+		const globalStatePath = path.join(storageDir, "globalState.json")
+		const workspaceStatePath = path.join(storageDir, "workspaceState.json")
+		const secretsPath = path.join(storageDir, "secrets.json")
+
+		this.globalState = new MementoShim(new CodemarieFileStorage(globalStatePath, "GlobalState"))
+		this.workspaceState = new MementoShim(new CodemarieFileStorage(workspaceStatePath, "WorkspaceState"))
+		this.secrets = new SecretStorageShim(secretsPath)
+
+		// extensionPath should point to the root of the project/package
+		this.extensionPath = path.resolve(__dirname, "..")
+		this.extensionUri = URI.file(this.extensionPath)
+		this.environmentVariableCollection = new EnvironmentVariableCollection()
+		this.logUri = URI.file(CLINE_CLI_DIR.log)
+		this.globalStorageUri = URI.file(storageDir)
+		this.storageUri = URI.file(path.join(storageDir, "workspace"))
+	}
+
+	asAbsolutePath(relativePath: string): string {
+		return path.resolve(this.extensionPath, relativePath)
+	}
+}
+
 // biome-ignore lint/correctness/noUnusedVariables: placeholder
-export type Extension<T> = any
+export type Extension<T> = unknown
 
 // ============================================================================
 // Shutdown event for graceful cleanup
