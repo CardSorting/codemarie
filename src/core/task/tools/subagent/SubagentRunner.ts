@@ -764,6 +764,12 @@ export class SubagentRunner {
 							text: nudge,
 						})
 						Logger.warn(`[SubagentRunner] Repetition detected for tool ${toolName}; injected nudge.`)
+
+						// Phase 4: Autonomous Toxic Hotspot Signaling
+						this.signalCriticalFindingsToSwarm(
+							`TOXIC HOTSPOT DETECTED: Subagent is stuck in a repetition loop with tool '${toolName}'. Potential architectural conflict or context uncertainty at this depth.`,
+						).catch((e) => Logger.warn("[SubagentRunner] Failed to signal toxic hotspot:", e))
+
 						this.totalConsecutiveIdenticalCalls = 0 // Reset after nudge
 					}
 				}
@@ -797,7 +803,7 @@ export class SubagentRunner {
 		const coordinator = new ToolExecutorCoordinator()
 		const validator = new ToolValidator(
 			this.baseConfig.services.codemarieIgnoreController,
-			// biome-ignore lint/style/noNonNullAssertion: <explanation>
+			// biome-ignore lint/style/noNonNullAssertion: Guard is guaranteed to exist by SubagentToolHandler validation.
 			(this.baseConfig as ConfigWithExtensions).guard!,
 		) // Add guard from config
 
