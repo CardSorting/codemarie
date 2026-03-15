@@ -14,6 +14,7 @@ export interface Callbacks<TResponse> {
 	onComplete: () => void
 }
 
+/* biome-ignore lint/complexity/noStaticOnlyClass: ProtoBusClient is used as a namespace for gRPC methods */
 export abstract class ProtoBusClient {
 	static serviceName: string
 
@@ -21,7 +22,7 @@ export abstract class ProtoBusClient {
 		methodName: string,
 		request: TRequest,
 		encodeRequest: (_: TRequest) => unknown,
-		decodeResponse: (_: { [key: string]: any }) => TResponse,
+		decodeResponse: (_: Record<string, unknown>) => TResponse,
 	): Promise<TResponse> {
 		return new Promise((resolve, reject) => {
 			const requestId = uuidv4()
@@ -29,6 +30,18 @@ export abstract class ProtoBusClient {
 			// Set up one-time listener for this specific request
 			const handleResponse = (event: MessageEvent) => {
 				const message = event.data
+				if (message.type === "host_action") {
+					// Special handling for host actions like showing messages
+					const { method, args } = message.host_action
+					if (method === "showInformationMessage") {
+						alert(`INFO: ${args[0]}`)
+					} else if (method === "showWarningMessage") {
+						alert(`WARNING: ${args[0]}`)
+					} else if (method === "showErrorMessage") {
+						alert(`ERROR: ${args[0]}`)
+					}
+					return
+				}
 				if (message.type === "grpc_response" && message.grpc_response?.request_id === requestId) {
 					// Remove listener once we get our response
 					window.removeEventListener("message", handleResponse)
@@ -61,7 +74,7 @@ export abstract class ProtoBusClient {
 		methodName: string,
 		request: TRequest,
 		encodeRequest: (_: TRequest) => unknown,
-		decodeResponse: (_: { [key: string]: any }) => TResponse,
+		decodeResponse: (_: Record<string, unknown>) => TResponse,
 		callbacks: Callbacks<TResponse>,
 	): () => void {
 		const requestId = uuidv4()
@@ -69,6 +82,18 @@ export abstract class ProtoBusClient {
 		const handleResponse = (event: MessageEvent) => {
 			const message = event.data
 			if (message.type === "grpc_response" && message.grpc_response?.request_id === requestId) {
+				if (message.type === "host_action") {
+					// Special handling for host actions like showing messages
+					const { method, args } = message.host_action
+					if (method === "showInformationMessage") {
+						alert(`INFO: ${args[0]}`)
+					} else if (method === "showWarningMessage") {
+						alert(`WARNING: ${args[0]}`)
+					} else if (method === "showErrorMessage") {
+						alert(`ERROR: ${args[0]}`)
+					}
+					return
+				}
 				if (message.grpc_response.message) {
 					// Process streaming message
 					const response = PLATFORM_CONFIG.decodeMessage(message.grpc_response.message, decodeResponse)

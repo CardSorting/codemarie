@@ -99,6 +99,8 @@ const GLOBAL_STATE_FIELDS = {
 	trustedCommands: { default: [] as string[] },
 	// Persistent trust for specific MCP servers (auto-approved if present)
 	trustedMcpServers: { default: [] as string[] },
+	// Authentication token for remote control
+	remoteAuthToken: { default: undefined as string | undefined },
 } satisfies FieldDefinitions
 
 // Fields that map directly to ApiHandlerOptions in @shared/api.ts
@@ -459,7 +461,7 @@ export const applyTransform = <T>(key: string, value: T): T => {
 	return transform ? (transform(value) as T) : value
 }
 
-function extractDefaults<T extends Record<string, any>>(props: T): Partial<BuildInterface<T>> {
+function extractDefaults<T extends Record<string, { default: unknown }>>(props: T): Partial<BuildInterface<T>> {
 	return Object.fromEntries(
 		Object.entries(props)
 			.map(([key, prop]) => [key, (prop as { default: unknown }).default])
@@ -467,18 +469,20 @@ function extractDefaults<T extends Record<string, any>>(props: T): Partial<Build
 	) as unknown as Partial<BuildInterface<T>>
 }
 
-function extractTransforms<T extends Record<string, any>>(props: T): Record<string, (value: unknown) => unknown> {
+function extractTransforms<T extends Record<string, { default: unknown }>>(
+	props: T,
+): Record<string, (value: unknown) => unknown> {
 	return Object.fromEntries(
 		Object.entries(props)
 			.filter(([_, prop]) => "transform" in (prop as object) && (prop as { transform?: unknown }).transform !== undefined)
-			.map(([key, prop]) => [key, (prop as { transform: (value: unknown) => unknown }).transform]),
+			.map(([key, prop]) => [key, (prop as unknown as { transform: (value: unknown) => unknown }).transform]),
 	)
 }
 
-function extractMetadata<T extends Record<string, any>>(props: T, field: string): Set<string> {
+function extractMetadata<T extends Record<string, { default: unknown }>>(props: T, field: string): Set<string> {
 	return new Set(
 		Object.entries(props)
-			.filter(([_, prop]) => field in prop && prop[field] === true)
+			.filter(([_, prop]) => field in (prop as object) && (prop as Record<string, unknown>)[field] === true)
 			.map(([key]) => key),
 	)
 }

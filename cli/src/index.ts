@@ -2,6 +2,8 @@
  * Codemarie CLI - TypeScript implementation with React Ink
  */
 
+import { existsSync } from "node:fs"
+import path from "node:path"
 import { exit } from "node:process"
 import type { ApiProvider } from "@shared/api"
 import { Command } from "commander"
@@ -10,6 +12,7 @@ import React from "react"
 import { CodemarieEndpoint } from "@/config"
 import type { Controller } from "@/core/controller"
 import { StateManager } from "@/core/storage/StateManager"
+import { RemoteWebviewProvider } from "@/core/webview/RemoteWebviewProvider"
 import { AuthHandler } from "@/hosts/external/AuthHandler"
 import { HostProvider } from "@/hosts/host-provider"
 import { FileEditProvider } from "@/integrations/editor/FileEditProvider"
@@ -29,6 +32,7 @@ import { checkRawModeSupport } from "./context/StdinContext"
 import { createCliHostBridgeProvider } from "./controllers"
 import { CliCommentReviewController } from "./controllers/CliCommentReviewController"
 import { CliWebviewProvider } from "./controllers/CliWebviewProvider"
+import { RemoteServer } from "./server/RemoteServer"
 import { isAuthConfigured } from "./utils/auth"
 import { restoreConsole, suppressConsoleUnlessVerbose } from "./utils/console"
 import { printError, printInfo, printWarning } from "./utils/display"
@@ -424,6 +428,7 @@ interface InitOptions {
 	cwd?: string
 	verbose?: boolean
 	enableAuth?: boolean
+	isRemote?: boolean
 }
 
 /**
@@ -463,12 +468,20 @@ async function initializeCli(options: InitOptions): Promise<CliContext> {
 	const { SystemGuardrails } = await import("@/core/resource/SystemGuardrails")
 	SystemGuardrails.getInstance().start()
 
+	const webviewProviderCreator = options.isRemote
+		? () => new RemoteWebviewProvider(extensionContext as unknown as ExtensionContext)
+		: () => new CliWebviewProvider(extensionContext as unknown as ExtensionContext)
+
+	const hostBridgeProvider = options.isRemote
+		? (await import("@/hosts/RemoteHostHostBridge")).createRemoteHostHostBridgeProvider()
+		: createCliHostBridgeProvider(workspacePath)
+
 	HostProvider.initialize(
-		() => new CliWebviewProvider(extensionContext as unknown as ExtensionContext),
+		webviewProviderCreator,
 		() => new FileEditProvider(),
 		() => new CliCommentReviewController(),
 		() => new StandaloneTerminalManager(),
-		createCliHostBridgeProvider(workspacePath),
+		hostBridgeProvider,
 		logToChannel,
 		async (path: string) => (options.enableAuth ? AuthHandler.getInstance().getCallbackUrl(path) : ""),
 		getCliBinaryPath,
@@ -479,7 +492,7 @@ async function initializeCli(options: InitOptions): Promise<CliContext> {
 	await StateManager.initialize(storageContext)
 	await ErrorService.initialize()
 
-	const webview = HostProvider.get().createWebviewProvider() as CliWebviewProvider
+	const webview = HostProvider.get().createWebviewProvider()
 	const controller = webview.controller
 
 	await telemetryService.captureExtensionActivated()
@@ -748,6 +761,79 @@ async function runAuth(options: {
 			exit(authError ? 1 : 0)
 		},
 	)
+}
+
+/**
+ * Run the remote server
+ */
+async function runServer(options: {
+	port: string
+	host: string
+	verbose?: boolean
+	config?: string
+	cwd?: string
+	build?: boolean
+}) {
+	const port = Number.parseInt(options.port, 10)
+	const host = options.host
+	const ctx = await initializeCli({ ...options, enableAuth: true, isRemote: true })
+
+	// Resolve static path for webview-ui
+	// If we're in a source checkout, it's in the root
+	let staticPath = path.join(ctx.extensionDir, "webview-ui", "dist")
+	if (!existsSync(staticPath)) {
+		// Fallback for different structures (e.g. if extensionDir is cli/)
+		staticPath = path.join(ctx.extensionDir, "..", "webview-ui", "dist")
+	}
+
+	// Automatic build if requested or if dist is missing and we're in a source tree
+	if (
+		options.build ||
+		(!existsSync(staticPath) && existsSync(path.join(ctx.extensionDir, "..", "webview-ui", "package.json")))
+	) {
+		printInfo("Building webview UI for remote platform...")
+		try {
+			const { execSync } = await import("node:child_process")
+			execSync("npm run build:remote", {
+				cwd: path.join(ctx.extensionDir, ".."),
+				stdio: "inherit",
+				env: { ...process.env, VITE_PLATFORM: "remote" },
+			})
+		} catch (error) {
+			printWarning(`Failed to build webview UI: ${error instanceof Error ? error.message : String(error)}`)
+		}
+	}
+
+	// Ensure we have a token if requested, or generate one/reuse existing
+	let authToken = process.env.CODEMARIE_REMOTE_AUTH_TOKEN
+	if (!authToken) {
+		authToken = StateManager.get().getGlobalStateKey("remoteAuthToken")
+		if (!authToken) {
+			authToken = Math.random().toString(36).substring(2, 15)
+			StateManager.get().setGlobalState("remoteAuthToken", authToken)
+			await StateManager.get().flushPendingState()
+		}
+		process.env.CODEMARIE_REMOTE_AUTH_TOKEN = authToken
+	}
+
+	printInfo(`Remote control authentication token: ${authToken}`)
+	printInfo(`Access URL: http://${host}:${port}/?token=${authToken}`)
+
+	const server = new RemoteServer(ctx.controller, {
+		port,
+		host,
+		staticPath: existsSync(staticPath) ? staticPath : undefined,
+	})
+
+	server.start({ port, host })
+
+	if (!existsSync(staticPath)) {
+		printWarning(`Webview UI dist folder not found at ${staticPath}. Server will only provide API/WebSocket services.`)
+		printInfo("To build the UI, run: npm run build:remote")
+	}
+
+	// Keep the process alive
+	process.stdin.resume()
 }
 
 // Setup CLI commands
@@ -1068,6 +1154,17 @@ program
 			await showWelcome(options)
 		}
 	})
+
+program
+	.command("server")
+	.description("Start the remote control server")
+	.option("-p, --port <number>", "Port to listen on", "26042")
+	.option("-H, --host <address>", "Host to listen on", "127.0.0.1")
+	.option("-v, --verbose", "Show verbose output")
+	.option("--config <path>", "Path to Codemarie configuration directory")
+	.option("-c, --cwd <path>", "Working directory for the task")
+	.option("--build", "Automatically build the webview-ui for remote platform")
+	.action(runServer)
 
 // Parse and run
 program.parse()

@@ -108,7 +108,7 @@ message Secrets {
   optional string embedding_api_key = 53;
   optional string vertex_credentials_json = 56;
   optional string vertex_api_key = 58;
-  optional string openai_codex_oauth_credentials = 60;
+  optional string openai_codex_oauth_credentials = 61;
 }
 
 // NOTE: Add new fields under API_HANDLER_SETTINGS_FIELDS or USER_SETTINGS_FIELDS
@@ -294,8 +294,8 @@ message Settings {
   optional string vertex_credentials_json = 190;
   optional int32 max_swarm_depth = 192;
   optional string vertex_api_key = 194;
-  map<string, string> open_ai_headers = 195;
   optional bool safe_yolo_mode_toggled = 196;
+  map<string, string> open_ai_headers = 197;
 }
 
 message State {

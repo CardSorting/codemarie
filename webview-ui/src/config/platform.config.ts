@@ -14,12 +14,14 @@ export interface PlatformConfig {
 export enum PlatformType {
 	VSCODE = 0,
 	STANDALONE = 1,
+	REMOTE = 2,
 }
 
 function stringToPlatformType(name: string): PlatformType {
 	const mapping: Record<string, PlatformType> = {
 		vscode: PlatformType.VSCODE,
 		standalone: PlatformType.STANDALONE,
+		remote: PlatformType.REMOTE,
 	}
 	if (name in mapping) {
 		return mapping[name]
@@ -47,8 +49,14 @@ declare global {
 		// !! Do not change the name of the handler without updating it on
 		// the JetBrains side as well. !!
 		standalonePostMessage?: (message: string) => void
+		remoteSocket?: WebSocket
 	}
-	function acquireVsCodeApi(): any
+	interface VsCodeApi {
+		postMessage(message: unknown): void
+		getState(): unknown
+		setState(state: unknown): void
+	}
+	function acquireVsCodeApi(): VsCodeApi
 }
 
 // Initialize the vscode API if available
@@ -56,34 +64,44 @@ const vsCodeApi = typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : 
 
 // Implementations for post message handling
 const postMessageStrategies: Record<string, PostMessageFunction> = {
-	vscode: (message: any) => {
+	vscode: (message: unknown) => {
 		if (vsCodeApi) {
 			vsCodeApi.postMessage(message)
 		} else {
 			console.log("postMessage fallback: ", message)
 		}
 	},
-	standalone: (message: any) => {
-		if (!window.standalonePostMessage) {
+	standalone: (message: unknown) => {
+		const standalonePostMessage = window.standalonePostMessage
+		if (!standalonePostMessage) {
 			console.error("Standalone postMessage not found.")
 			return
 		}
 		const json = JSON.stringify(message)
 		console.log(`Standalone postMessage: ${json.slice(0, 200)}`)
-		window.standalonePostMessage(json)
+		standalonePostMessage(json)
+	},
+	remote: (message: unknown) => {
+		const remoteSocket = window.remoteSocket
+		if (!remoteSocket || remoteSocket.readyState !== WebSocket.OPEN) {
+			console.warn("Remote socket not connected. Queuing message not implemented here yet.")
+			return
+		}
+		const json = JSON.stringify(message)
+		remoteSocket.send(json)
 	},
 }
 
 // Implementations for message encoding
 const messageEncoders: Record<string, MessageEncoder> = {
-	none: <T>(message: T, _encoder: (_: T) => unknown) => message,
+	none: <T>(message: T, _encoder: (_: T) => unknown) => message as unknown,
 	json: <T>(message: T, encoder: (_: T) => unknown) => encoder(message),
 }
 
 // Implementations for message decoding
 const messageDecoders: Record<string, MessageDecoder> = {
-	none: <T>(message: any, _decoder: (_: { [key: string]: any }) => T) => message,
-	json: <T>(message: any, decoder: (_: { [key: string]: any }) => T) => decoder(message),
+	none: <T>(message: unknown, _decoder: (_: Record<string, unknown>) => T) => message as T,
+	json: <T>(message: unknown, decoder: (_: Record<string, unknown>) => T) => decoder(message as Record<string, unknown>),
 }
 
 // Local declaration of the platform compile-time constant
@@ -110,6 +128,6 @@ export const PLATFORM_CONFIG: PlatformConfig = {
 type MessageEncoding = "none" | "json"
 
 // Function types for platform-specific behaviors
-type PostMessageFunction = (message: any) => void
-type MessageEncoder = <T>(message: T, encoder: (_: T) => unknown) => any
-type MessageDecoder = <T>(message: any, decoder: (_: { [key: string]: any }) => T) => T
+type PostMessageFunction = (message: unknown) => void
+type MessageEncoder = <T>(message: T, encoder: (_: T) => unknown) => unknown
+type MessageDecoder = <T>(message: unknown, decoder: (_: Record<string, unknown>) => T) => T

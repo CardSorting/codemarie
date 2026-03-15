@@ -19,12 +19,13 @@ import { TelemetrySetting } from "./TelemetrySetting"
 import { UserInfo } from "./UserInfo"
 // webview will hold state
 export interface ExtensionMessage {
-	type: "grpc_response" // New type for gRPC responses
+	type: "grpc_response" | "state" // New type for gRPC responses
 	grpc_response?: GrpcResponse
+	state?: ExtensionState
 }
 
 export type GrpcResponse = {
-	message?: any // JSON serialized protobuf message
+	message?: unknown // JSON serialized protobuf message
 	request_id: string // Same ID as the request
 	error?: string // Optional error message
 	is_streaming?: boolean // Whether this is part of a streaming response

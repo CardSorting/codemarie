@@ -372,6 +372,10 @@ export const ExtensionStateContextProvider: React.FC<{
 									: prevState.autoApprovalSettings,
 							}
 
+							// Handle host actions (e.g. notifications) sent via state updates for now
+							// if they are embedded or sent separately.
+							// But actually we added a separate message handler in the webview.
+
 							// Update welcome screen state based on API configuration if welcome view not in progress
 							if (!newState.welcomeViewCompleted && !showWelcome) {
 								setShowWelcome(true)
