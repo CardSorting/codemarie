@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.71.0]
+
+### Added
+- **Production-Grade Intent Grounding**: Completed a deep audit and hardening pass of the grounding subsystem.
+- **Robust JSON Repair Engine**: Implemented a stack-based JSON repair logic in `GroundingParser` to handle malformed or truncated LLM responses by automatically balancing braces/brackets and closing open strings.
+- **Hardened Grounding Cache**: Enhanced `LRUCache` with explicit entry deletion, periodic background pruning, and robust error handling to prevent memory leaks.
+- **Granular Confidence Recalibration**: Refined `GroundingValidator` with weighted confidence scoring based on entity importance (e.g., prioritizing decision variables) and expanded symbol verification support for Rust, Ruby, and other languages.
+- **Concurrent Persistence**: Optimized `IntentGrounder` performance by parallelizing storage operations and improving telemetry tracking.
+
+### Fixed
+- **Intent Grounding Crash**: Resolved a critical "toLowerCase is not a function" error caused by non-string elements in grounding specs.
+- **Code Quality**: Fixed multiple Biome linting errors and improved type safety by replacing unsafe `any` types with `unknown` across the grounding core.
+
 ## [3.70.0]
 
 ### Added

@@ -1,5 +1,14 @@
 # cline
 
+## [2.8.0]
+
+### Added
+- **Hardened Intent Grounding Subsystem**: Integrated production-grade grounding core with robust JSON repair, enhanced caching, and granular entity validation for more reliable task understanding in the CLI.
+
+### Fixed
+- **Grounding Reliability**: Resolved "toLowerCase is not a function" crash during grounding validation.
+- **Type Safety**: Improved core type safety across grounding discovery and validation components.
+
 ## [2.5.1]
 
 ### Added
