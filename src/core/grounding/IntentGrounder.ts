@@ -129,36 +129,49 @@ export class IntentGrounder {
 			this.discovery.getWorkspaceIndex(cwd).catch((e) => Logger.warn("[IntentGrounder] Index pre-load failed:", e))
 		}
 
-		// Hardening: Prompt Shaving
+		// Pass 5: Token-Aware Shaving
 		let finalContext = context || ""
 		let finalDiscovered = discoveredContext || ""
 		const finalRules = projectRules || ""
 
-		const CONTEXT_BUDGET = 25000
-		const totalLength = intent.length + finalContext.length + finalDiscovered.length + finalRules.length
+		// Estimate tokens instead of character counts for more precision
+		const TOKEN_BUDGET = 8000 // Target budget for semantic enrichment
+		const estimator = (txt: string) => this.estimateTokens(txt)
 
-		if (totalLength > CONTEXT_BUDGET) {
-			Logger.info(`[IntentGrounder] Context budget exceeded (${totalLength} chars). Applying structural shaving...`)
+		let currentTokens = estimator(intent) + estimator(finalRules) + estimator(finalContext)
 
-			// Structural Shave for Discovered Context: Keep the top ranked file results, shave intermediate lines if needed
-			if (finalDiscovered.length > 12000) {
+		if (currentTokens + estimator(finalDiscovered) > TOKEN_BUDGET) {
+			Logger.info(
+				`[IntentGrounder] Context budget tight (${currentTokens} estimated tokens). Applying token-aware shaving...`,
+			)
+
+			if (finalDiscovered.length > 0) {
 				const files = finalDiscovered.split("File: ")
-				// Keep first 3 files entirely, then just titles for the rest
-				finalDiscovered =
-					files.slice(0, 4).join("File: ") +
-					"\n\n[... Additional " +
-					(files.length - 4) +
-					" files identified but snippets shaved to fit budget ...]"
+				let shavedDiscovery = files[0] // Headers
+				let discoveredTokens = estimator(shavedDiscovery)
+
+				// Opportunistically fill remaining budget with top files
+				for (let i = 1; i < files.length; i++) {
+					const fileText = "File: " + files[i]
+					const fileTokens = estimator(fileText)
+					if (currentTokens + discoveredTokens + fileTokens < TOKEN_BUDGET) {
+						shavedDiscovery += fileText
+						discoveredTokens += fileTokens
+					} else {
+						shavedDiscovery += `\n\n[... Additional ${files.length - i} files shaved to fit token budget ...]`
+						break
+					}
+				}
+				finalDiscovered = shavedDiscovery
 			}
 
-			// Structural Shave for Environment Context: Keep headers and imports
-			if (finalContext.length > 8000) {
+			// If still over, shave environment context lines
+			currentTokens = estimator(intent) + estimator(finalRules) + estimator(finalContext) + estimator(finalDiscovered)
+			if (currentTokens > TOKEN_BUDGET + 2000) {
 				const lines = finalContext.split("\n")
-				if (lines.length > 200) {
+				if (lines.length > 100) {
 					finalContext =
-						lines.slice(0, 100).join("\n") +
-						"\n\n[... Structural Shave: intermediate context removed ...]\n\n" +
-						lines.slice(-50).join("\n")
+						lines.slice(0, 50).join("\n") + "\n\n[... Context shaved ...]\n\n" + lines.slice(-30).join("\n")
 				}
 			}
 		}
@@ -344,6 +357,18 @@ export class IntentGrounder {
 			spec: GroundingParser.extractJson(fullResponse),
 			tokens,
 		}
+	}
+
+	/**
+	 * Rough symbolic token estimator optimized for code and technical text.
+	 * Better than 4 chars/token as it accounts for symbols and CamelCase.
+	 */
+	private estimateTokens(text: string): number {
+		if (!text) return 0
+		// Code often has many symbols and CamelCase which increase token counts
+		// Split by typical delimiters and CamelCase boundaries
+		const chunks = text.split(/[\s.()[\]{}:;'"=<>!+\-*/\\,]+|(?<=[a-z])(?=[A-Z])/)
+		return Math.ceil(chunks.length * 1.3) // 1.3 weight factor for sub-tokens
 	}
 }
 

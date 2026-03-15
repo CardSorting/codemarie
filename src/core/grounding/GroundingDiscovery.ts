@@ -18,6 +18,8 @@ export class GroundingDiscovery {
 	private static statCache = new LRUCache<import("fs").Stats>(50, 10000)
 	// workspaceIndexCache: 5 minute TTL for workspace file list
 	private static workspaceIndexCache = new LRUCache<Map<string, { size: number; mtime: string }>>(5, 300000)
+	// refreshingNodes: Track nodes currently being refreshed to avoid redundant work
+	private static refreshingNodes = new Set<string>()
 
 	static clearCache(): void {
 		GroundingDiscovery.rgCache.clear()
@@ -46,20 +48,49 @@ export class GroundingDiscovery {
 		try {
 			// Phase 3: Workspace Virtualization - Get all files once
 			const { executeRipgrepForFiles } = await import("@/services/search/file-search")
-			const items = await executeRipgrepForFiles(cwd, 5000)
+			const items = await executeRipgrepForFiles(cwd, 10000) // Increased limit for large projects
 
-			// We populate the index with existence. Size/Mtime will be lazily added or batch populated if possible.
-			// For now, existence check is the primary speedup for verification.
 			for (const item of items) {
 				if (item.type === "file") {
 					index.set(item.path, { size: 0, mtime: "unknown" })
 				}
 			}
+
+			// Phase 5: Accelerated Indexing - Batch populate stats for the first 500 files
+			// This makes drift detection near-instant for most hotspots.
+			const filesToStat = Array.from(index.keys()).slice(0, 500)
+			await this.batchPopulateStats(cwd, filesToStat, index)
+
 			GroundingDiscovery.workspaceIndexCache.set(cwd, index)
 		} catch (e) {
 			Logger.warn("[GroundingDiscovery] Failed to build workspace index:", e)
 		}
 		return index
+	}
+
+	private async batchPopulateStats(
+		cwd: string,
+		files: string[],
+		index: Map<string, { size: number; mtime: string }>,
+	): Promise<void> {
+		const CONCURRENCY = 20
+		for (let i = 0; i < files.length; i += CONCURRENCY) {
+			const batch = files.slice(i, i + CONCURRENCY)
+			await Promise.all(
+				batch.map(async (file) => {
+					try {
+						const fullPath = path.isAbsolute(file) ? file : path.join(cwd, file)
+						const stats = await fs.stat(fullPath)
+						index.set(file, {
+							size: stats.size,
+							mtime: stats.mtime.toISOString().split("T")[0],
+						})
+					} catch {
+						// skip if file removed since index start
+					}
+				}),
+			)
+		}
 	}
 
 	async discoverRelevantContext(
@@ -70,10 +101,53 @@ export class GroundingDiscovery {
 	): Promise<string> {
 		if (typeof intent !== "string" || !intent) return ""
 		try {
+			// Pass 5: KG-First Blocking Path
+			let saturatedContext = ""
+			if (knowledgeGraph && streamId) {
+				const semanticMatches = await knowledgeGraph.searchKnowledge(streamId, intent, {
+					augmentWithGraph: true,
+					limit: 5,
+				})
+
+				const validatedNodes = await Promise.all(
+					semanticMatches.map(async (n) => {
+						const isStale = await this.isNodeStale(cwd, n, knowledgeGraph)
+						if (isStale) {
+							this.triggerBackgroundRefresh(n, cwd, knowledgeGraph)
+							return { ...n, similarity: n.similarity * 0.5, isStale: true }
+						}
+						return { ...n, isStale: false }
+					}),
+				)
+
+				const highConfNodes = validatedNodes.filter((n) => n.similarity > 0.45 || (n.similarity > 0.95 && !n.isStale))
+
+				if (highConfNodes.length > 0) {
+					Logger.info(`[GroundingDiscovery] KG-First: Found ${highConfNodes.length} matches (Drift-Checked).`)
+					saturatedContext += `\n### High-Confidence Semantic Landmarks:\n`
+					saturatedContext +=
+						highConfNodes
+							.map((n) => {
+								const staleWarning = n.isStale ? " [STALE - MODIFIED]" : ""
+								return `- ${n.content}${staleWarning} (Ref: ${n.id})`
+							})
+							.join("\n") + "\n"
+
+					// Satiety Check: If we have an extremely high precision match that is fresh, bypass ripgrep entirely
+					const satietyReached = validatedNodes.some((n) => n.similarity > 0.98 && !n.isStale)
+					if (satietyReached) {
+						Logger.info(
+							"[GroundingDiscovery] Fast-KG Satiety reached (>0.98). Bypassing Keyword Extraction and Ripgrep.",
+						)
+						return saturatedContext
+					}
+				}
+			}
+
 			// Optimization: Naive keywords for speculative KG discovery
 			const naiveKeywords = intent.split(/\W+/).filter((w) => typeof w === "string" && w.length > 4)
 
-			// Start KG discovery speculatively while waiting for LLM keywords
+			// Start speculative discovery and LLM keyword extraction in parallel
 			const kgPromise =
 				knowledgeGraph && streamId
 					? this.speculativeKgDiscovery(intent, streamId, knowledgeGraph, naiveKeywords)
@@ -81,24 +155,12 @@ export class GroundingDiscovery {
 
 			const keywordsPromise = this.extractKeywords(intent, cwd)
 
-			// Parallelize KG lookup and Keyword extraction
-			const [kgContext, keywords] = await Promise.all([kgPromise, keywordsPromise])
+			// Parallelize Speculative KG lookup and Keyword extraction
+			const [speculativeKgContext, keywords] = await Promise.all([kgPromise, keywordsPromise])
 
-			// Pass 3: KG Saturation - If KG found high-confidence semantic matches, we can optionally bypass/short-circuit
-			// For now we merge them, but we prioritize them in ranking.
-			let saturatedContext = kgContext
-			if (knowledgeGraph && streamId) {
-				const semanticMatches = await knowledgeGraph.searchKnowledge(streamId, intent, {
-					augmentWithGraph: true,
-					limit: 5,
-				})
-
-				const highConfNodes = semanticMatches.filter((n) => n.similarity > 0.9)
-				if (highConfNodes.length > 0) {
-					Logger.info(`[GroundingDiscovery] KG Saturation: Found ${highConfNodes.length} high-confidence matches.`)
-					saturatedContext += `\n### High-Confidence Semantic Landmarks:\n`
-					saturatedContext += highConfNodes.map((n) => `- ${n.content} (Ref: ${n.id})`).join("\n") + "\n"
-				}
+			// Phase 5: Affinity Promotion - Merge results with weighted ranking
+			if (speculativeKgContext) {
+				saturatedContext += `\n### Predictive File Affinities (Speculative):\n${speculativeKgContext}\n`
 			}
 
 			if (keywords.length === 0) {
@@ -193,7 +255,7 @@ export class GroundingDiscovery {
 			// Optimization: Batch metadata enrichment with session cache
 			const enrichedSnippets = await this.enrichWithMetadata(cwd, topSnippets)
 
-			if (enrichedSnippets.length === 0) return ""
+			if (enrichedSnippets.length === 0) return saturatedContext
 
 			const contextLines: string[] = ["### Semantic Discovery Results (Top Ranked with Metadata):"]
 			for (const snip of enrichedSnippets) {
@@ -315,6 +377,75 @@ export class GroundingDiscovery {
 			Logger.warn("[GroundingDiscovery] Speculative KG discovery failed:", kgError)
 		}
 		return ""
+	}
+
+	private async isNodeStale(cwd: string, node: any, knowledgeGraph: KnowledgeGraphService): Promise<boolean> {
+		try {
+			// Phase 4.1: Path Robustness - Use metadata path if available
+			const filePath = node.metadata?.path || node.content.split("\n")[0]?.trim()
+			if (!filePath || !filePath.includes(".")) return false
+
+			const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath)
+
+			// Phase 4.1: I/O Shortcut - Check mtime/size from session cache first
+			const index = GroundingDiscovery.workspaceIndexCache.get(cwd)
+			const cachedMeta = index?.get(filePath) || index?.get(path.relative(cwd, fullPath))
+
+			if (cachedMeta && node.metadata?.mtime === cachedMeta.mtime && node.metadata?.size === cachedMeta.size) {
+				return false // Metadata match, assume fresh
+			}
+
+			// Phase 4.1: I/O Guard - Skip hashing for massive files (> 1MB) during discovery
+			const stats = GroundingDiscovery.statCache.get(fullPath) || (await fs.stat(fullPath))
+			GroundingDiscovery.statCache.set(fullPath, stats)
+
+			if (stats.size > 1024 * 1024) {
+				Logger.info(`[GroundingDiscovery] Skipping hash check for large file: ${filePath} (${stats.size}b)`)
+				return node.metadata?.size !== stats.size // Fallback to size-only check
+			}
+
+			const content = await fs.readFile(fullPath, "utf-8")
+			const currentHash = knowledgeGraph.calculateHash(content)
+
+			return node.metadata?.hash !== currentHash
+		} catch {
+			return true // If file missing or error, consider stale
+		}
+	}
+
+	private triggerBackgroundRefresh(node: any, cwd: string, knowledgeGraph: KnowledgeGraphService): void {
+		// Phase 4.1: Concurrency Guard - Don't start duplicate refreshes
+		if (GroundingDiscovery.refreshingNodes.has(node.id)) return
+		GroundingDiscovery.refreshingNodes.add(node.id)
+
+		// Background execution to avoid blocking discovery
+		;(async () => {
+			try {
+				const filePath = node.metadata?.path || node.content.split("\n")[0]?.trim()
+				if (!filePath) return
+
+				const fullPath = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath)
+				const stats = await fs.stat(fullPath)
+				const freshContent = await fs.readFile(fullPath, "utf-8")
+
+				// Update with fresh content, new hash, and mtime
+				await knowledgeGraph.updateKnowledge(node.id, {
+					content: freshContent,
+					metadata: {
+						...node.metadata,
+						path: filePath,
+						hash: knowledgeGraph.calculateHash(freshContent),
+						mtime: stats.mtime.toISOString().split("T")[0],
+						size: stats.size,
+					},
+				})
+				Logger.info(`[GroundingDiscovery] Refreshed stale KG node: ${node.id} (${filePath})`)
+			} catch (e) {
+				Logger.warn(`[GroundingDiscovery] Background KG refresh failed for ${node.id}:`, e)
+			} finally {
+				GroundingDiscovery.refreshingNodes.delete(node.id)
+			}
+		})().catch(() => {})
 	}
 
 	private async extractKeywords(intent: string, _cwd: string): Promise<string[]> {

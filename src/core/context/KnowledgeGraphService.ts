@@ -1,3 +1,4 @@
+import { createHash } from "crypto"
 import { nanoid } from "nanoid"
 import { Logger } from "@/shared/services/Logger"
 import { dbPool, type WriteOp } from "../../infrastructure/db/BufferedDbPool"
@@ -59,6 +60,10 @@ export class KnowledgeGraphService {
 			Logger.warn(`[KnowledgeGraphService] Failed to push operation to DB pool: ${error}`)
 			// V9: Silent fallback - we don't throw to prevent blocking the agent
 		}
+	}
+
+	public calculateHash(content: string): string {
+		return createHash("sha256").update(content).digest("hex")
 	}
 
 	private startCleanupLoop() {
@@ -157,7 +162,12 @@ export class KnowledgeGraphService {
 				confidence: options.confidence ?? 1.0,
 				hubScore: 0,
 				expiresAt: options.expiresAt || null,
-				metadata: options.metadata ? JSON.stringify(options.metadata) : null,
+				metadata: JSON.stringify({
+					...options.metadata,
+					hash: this.calculateHash(content),
+					mtime: options.metadata?.mtime || new Date().toISOString().split("T")[0],
+					size: options.metadata?.size || Buffer.byteLength(content),
+				}),
 				createdAt: Date.now(),
 			},
 			layer: "domain",

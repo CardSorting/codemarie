@@ -41,7 +41,7 @@ vi.mock("../hooks/useTerminalSize", () => ({
 }))
 
 describe("App", () => {
-	const mockController = {
+	const mockController: any = {
 		dispose: vi.fn(),
 		stateManager: { flushPendingState: vi.fn() },
 	}
