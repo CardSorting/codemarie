@@ -8,10 +8,15 @@
 - **Hardened Grounding Cache**: Enhanced `LRUCache` with explicit entry deletion, periodic background pruning, and robust error handling to prevent memory leaks.
 - **Granular Confidence Recalibration**: Refined `GroundingValidator` with weighted confidence scoring based on entity importance (e.g., prioritizing decision variables) and expanded symbol verification support for Rust, Ruby, and other languages.
 - **Concurrent Persistence**: Optimized `IntentGrounder` performance by parallelizing storage operations and improving telemetry tracking.
+- **Vertex AI Service Account Support**: Added direct support for Service Account JSON credentials, eliminating the need for environment variables or CLI configurations.
+- **Expanded Vertex AI Regions**: Added comprehensive world-wide region support in `vertex.json` (e.g., Osaka, Frankfurt, Hyderabad).
+- **Vertex AI Safety Controls**: Implemented adjustable safety thresholds to prevent false-positive content blocks during coding tasks.
 
 ### Fixed
 - **Intent Grounding Crash**: Resolved a critical "toLowerCase is not a function" error caused by non-string elements in grounding specs.
 - **Code Quality**: Fixed multiple Biome linting errors and improved type safety by replacing unsafe `any` types with `unknown` across the grounding core.
+- **Vertex AI Provider Hardening**: Resolved all IDE type errors related to `vertexCredentialsJson` and modernized handlers with model-specific parameter enforcement (temperature, reasoning budget).
+- **Service Account Validation**: Centralized credential parsing in `vertexUtils.ts` with strict checks for PEM format and email structure to provide better error diagnostics.
 
 ## [3.70.0]
 
