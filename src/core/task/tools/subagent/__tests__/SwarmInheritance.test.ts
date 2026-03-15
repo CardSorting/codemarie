@@ -181,4 +181,52 @@ describe("Subagent Swarm Inheritance", () => {
 		assert.equal(context.groundedSpec?.decisionVariables[0].name, "verifying-file.ts")
 		assert.equal(context.groundedSpec?.constraints[0], "test constraint")
 	})
+
+	it("synthesizes parent spec with local discovery in IntentGrounder logic", async () => {
+		const baseConfig = createTaskConfig(true)
+		const runner = new SubagentRunner(baseConfig)
+
+		// Accessing private baseConfig for verification via casting
+		assert.deepEqual((runner as any).baseConfig.taskState.groundedSpec, baseConfig.taskState.groundedSpec)
+	})
+
+	it("signals critical findings to parent swarm memory", async () => {
+		const createMessage = sinon.stub()
+		createMessage.onFirstCall().callsFake(async function* () {
+			yield {
+				type: "tool_calls",
+				tool_call: {
+					function: {
+						id: "toolu_finding_1",
+						name: CodemarieDefaultTool.ATTEMPT,
+						arguments: JSON.stringify({ result: "CRITICAL: Found a JoyZoning Violation in security.ts" }),
+					},
+				},
+			}
+		})
+
+		const baseConfig = createTaskConfig(true)
+		// Properly stub the orchestrator which is imported at the top of SubagentRunner or other files
+		// Note: SubagentRunner imports orchestrator from "@/infrastructure/ai/Orchestrator"
+		const orchestrator = await import("@/infrastructure/ai/Orchestrator")
+		sinon.stub(orchestrator, "orchestrator").value({
+			storeMemory: sinon.stub().resolves(),
+		})
+
+		stubApiHandler(createMessage)
+		initializeHostProvider()
+
+		const runner = new SubagentRunner(baseConfig)
+		// Mock the session ID getter
+		;(runner as any).baseConfig.getSessionStreamId = () => "parent-stream-123"
+
+		await runner.run("Audit security", () => {})
+
+		// Verify signalling occurred
+		assert.ok((orchestrator.orchestrator as any).storeMemory.calledOnce)
+		const [streamId, key, value] = (orchestrator.orchestrator as any).storeMemory.firstCall.args
+		assert.equal(streamId, "parent-stream-123")
+		assert.ok(key.startsWith("swarm_finding_"))
+		assert.ok(value.includes("JoyZoning Violation"))
+	})
 })

@@ -10,9 +10,13 @@ export async function getGroundedSpecSection(_variant: PromptVariant, context: S
 	}
 
 	const { decisionVariables, constraints, rules, outputStructure, confidenceScore, ambiguityReasoning } = context.groundedSpec
+	const isInherited = context.isSubagentRun && context.parentMode
 
 	return (
-		`# INTENT GROUNDING SPECIFICATION\n` +
+		`# ${isInherited ? "INHERITED " : ""}INTENT GROUNDING SPECIFICATION\n` +
+		(isInherited
+			? `> [!NOTE]\n> This specification was inherited from the parent agent to ensure architectural consistency across the swarm.\n\n`
+			: "") +
 		`This task has been grounded into a structured specification. (Confidence: ${Math.round(confidenceScore * 100)}%)\n` +
 		(ambiguityReasoning ? `**Reasoning**: ${ambiguityReasoning}\n\n` : "\n") +
 		`## Decision Variables\n` +

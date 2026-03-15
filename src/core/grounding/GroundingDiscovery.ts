@@ -109,11 +109,18 @@ export class GroundingDiscovery {
 		cwd: string,
 		streamId?: string,
 		knowledgeGraph?: KnowledgeGraphService,
+		anchors?: string[],
 	): Promise<string> {
 		if (typeof intent !== "string" || !intent) return ""
 		try {
-			// Pass 5: KG-First Blocking Path
+			// Phase 5: Anchor Injection - Force critical files into context
 			let saturatedContext = ""
+			if (anchors && anchors.length > 0) {
+				saturatedContext += `\n### Primary Inherited Anchors:\n`
+				saturatedContext += anchors.map((a) => `- ${a}`).join("\n") + "\n"
+			}
+
+			// Pass 5: KG-First Blocking Path
 			if (knowledgeGraph && streamId) {
 				const semanticMatches = await knowledgeGraph.searchKnowledge(streamId, intent, {
 					augmentWithGraph: true,

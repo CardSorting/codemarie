@@ -74,32 +74,37 @@ export class IntentGrounder {
 		}
 
 		// Phase 5: Swarm Inheritance - Robust Similarity Check
+		let synthesizedParentSpec: GroundedSpec | undefined
 		if (parentSpec && intent.length > 0) {
-			const intentWords = intent
-				.toLowerCase()
-				.split(/\W+/)
-				.filter((w) => w.length > 4)
-			const parentWords = (parentSpec.ambiguityReasoning || "")
-				.toLowerCase()
-				.split(/\W+/)
-				.filter((w) => w.length > 4)
+			const tokenize = (text: string) =>
+				text
+					.toLowerCase()
+					.split(/[\s.()[\]{}:;'"=<>!+\-*/\\,]+|(?<=[a-z])(?=[A-Z])/)
+					.filter((w) => w.length > 3)
 
-			// If sub-agent intent is very similar to parent's reasoning, inherit
+			const intentWords = tokenize(intent)
+			const parentSearchSpace = [
+				parentSpec.ambiguityReasoning || "",
+				...parentSpec.constraints,
+				...parentSpec.rules,
+				...parentSpec.decisionVariables.map((v) => `${v.name} ${v.description}`),
+			].join(" ")
+
+			const parentWords = tokenize(parentSearchSpace)
+
+			// If sub-agent intent is very similar to parent's scope, we mark it for synthesis
 			const overlap = intentWords.filter((w) => parentWords.includes(w))
-			const isSimilar = overlap.length >= 2 || (intentWords.length > 0 && overlap.length / intentWords.length > 0.5)
+			const uniqueOverlap = Array.from(new Set(overlap))
+			const matchScore = intentWords.length > 0 ? uniqueOverlap.length / new Set(intentWords).size : 0
+
+			// Threshold: 2 unique technical words or > 40% keyword overlap
+			const isSimilar = uniqueOverlap.length >= 2 || (intentWords.length > 0 && matchScore > 0.4)
 
 			if (isSimilar) {
-				Logger.info(`[IntentGrounder] Swarm Inheritance: Reusing parent specification (Overlap: ${overlap.join(", ")}).`)
-				return {
-					...parentSpec,
-					telemetry: {
-						durationMs: Date.now() - startTime,
-						tokensIn: 0,
-						tokensOut: 0,
-						isCacheHit: false,
-						inheritanceSource: "parent",
-					} as GroundedSpec["telemetry"],
-				}
+				Logger.info(
+					`[IntentGrounder] Swarm Synthesis: Parent context matched (Match: ${(matchScore * 100).toFixed(0)}%). Proceeding with synthesis.`,
+				)
+				synthesizedParentSpec = parentSpec
 			}
 		}
 
@@ -114,8 +119,9 @@ export class IntentGrounder {
 		let discoveredContext = ""
 
 		// Path A: Full semantic discovery
+		const anchors = synthesizedParentSpec?.decisionVariables.map((v) => v.name)
 		const fullDiscoveryPromise = cwd
-			? this.discovery.discoverRelevantContext(intent, cwd, streamId, knowledgeGraph)
+			? this.discovery.discoverRelevantContext(intent, cwd, streamId, knowledgeGraph, anchors)
 			: Promise.resolve("")
 
 		// Path B: Speculative / Fast Discovery
@@ -249,6 +255,21 @@ export class IntentGrounder {
 				finalSpec = await this.validator.verifyEntities(finalSpec, cwd, internalCache, workspaceIndex)
 			}
 
+			// Phase 5: Swarm Synthesis - Merge Specifications
+			if (synthesizedParentSpec) {
+				finalSpec = {
+					...finalSpec,
+					constraints: Array.from(new Set([...synthesizedParentSpec.constraints, ...finalSpec.constraints])),
+					rules: Array.from(new Set([...synthesizedParentSpec.rules, ...finalSpec.rules])),
+					// Decision variables: Merge by name, favoring local discovery for details
+					decisionVariables: this.mergeDecisionVariables(
+						synthesizedParentSpec.decisionVariables,
+						finalSpec.decisionVariables,
+					),
+				}
+				Logger.info(`[IntentGrounder] Swarm Synthesis: Successfully merged parent and local specifications.`)
+			}
+
 			const durationMs = Date.now() - startTime
 			finalSpec.telemetry = {
 				durationMs,
@@ -256,6 +277,7 @@ export class IntentGrounder {
 				tokensOut: tokens.output + critiqueTokens.output,
 				model: this.apiHandler.getModel().id,
 				isCacheHit: false,
+				inheritanceSource: synthesizedParentSpec ? "parent" : "none",
 			}
 
 			if (streamId) {
@@ -398,6 +420,27 @@ export class IntentGrounder {
 		// Split by typical delimiters and CamelCase boundaries
 		const chunks = text.split(/[\s.()[\]{}:;'"=<>!+\-*/\\,]+|(?<=[a-z])(?=[A-Z])/)
 		return Math.ceil(chunks.length * 1.3) // 1.3 weight factor for sub-tokens
+	}
+
+	private mergeDecisionVariables(
+		parent: GroundedSpec["decisionVariables"],
+		local: GroundedSpec["decisionVariables"],
+	): GroundedSpec["decisionVariables"] {
+		const mergedMap = new Map<string, (typeof parent)[number]>()
+		for (const v of parent) mergedMap.set(v.name, v)
+		for (const v of local) {
+			const existing = mergedMap.get(v.name)
+			if (existing) {
+				mergedMap.set(v.name, {
+					...existing,
+					description: v.description || existing.description,
+					range: Array.from(new Set([...(existing.range || []), ...(v.range || [])])),
+				})
+			} else {
+				mergedMap.set(v.name, v)
+			}
+		}
+		return Array.from(mergedMap.values())
 	}
 }
 

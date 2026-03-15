@@ -23,6 +23,8 @@ export const GroundedSpecSchema = z.object({
 			tokensOut: z.number().optional(),
 			model: z.string().optional(),
 			isCacheHit: z.boolean().optional(),
+			inheritanceSource: z.enum(["parent", "cache", "none"]).optional(),
+			matchScore: z.number().optional(),
 		})
 		.optional(),
 	verifiedEntities: z.array(z.string()).optional(),

@@ -664,6 +664,17 @@ export class SubagentRunner {
 					const serializedToolResult = serializeToolResult(toolResult)
 					const toolDescription = handler?.getDescription(toolCallBlock) || `[${toolName}]`
 					pushSubagentToolResultBlock(toolResultBlocks, call, toolDescription, serializedToolResult)
+
+					// Phase 5: Cross-Swarm Memory Signalling
+					// If the tool execution revealed something architecturally significant, signal it via orchestrator
+					const parentStreamId = (this.baseConfig as any).getSessionStreamId?.()
+					if (parentStreamId && serializedToolResult.length > 0) {
+						if (serializedToolResult.includes("JoyZoning Violation") || serializedToolResult.includes("CRITICAL")) {
+							orchestrator
+								.storeMemory(parentStreamId, `swarm_finding_${Date.now()}`, serializedToolResult.slice(0, 500))
+								.catch((e) => Logger.warn("[SubagentRunner] Failed to signal swarm finding:", e))
+						}
+					}
 				}
 
 				conversation.push({
