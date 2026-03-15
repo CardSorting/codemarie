@@ -5,16 +5,18 @@
 
 import { Box } from "ink"
 import React, { ReactNode, useCallback, useState } from "react"
+import { Controller } from "@/core/controller"
 import { StdinProvider } from "../context/StdinContext"
 import { TaskContextProvider } from "../context/TaskContext"
 import { useTerminalSize } from "../hooks/useTerminalSize"
 import { AuthView } from "./AuthView"
 import { ChatView } from "./ChatView"
+import { CheckpointView } from "./CheckpointView"
 import { ConfigView } from "./ConfigView"
 import { HistoryView } from "./HistoryView"
 import { TaskJsonView } from "./TaskJsonView"
 
-export type ViewType = "task" | "history" | "config" | "auth" | "welcome"
+export type ViewType = "task" | "history" | "config" | "auth" | "welcome" | "checkpoints"
 
 interface HistoryPagination {
 	page: number
@@ -44,7 +46,7 @@ interface SkillInfo {
 interface AppProps {
 	view: ViewType
 	taskId?: string
-	controller?: any
+	controller?: Controller
 	// Output Style
 	verbose?: boolean
 	jsonOutput?: boolean
@@ -58,8 +60,8 @@ interface AppProps {
 	onHistoryPageChange?: (page: number) => void
 	// For config view
 	dataDir?: string
-	globalState?: Record<string, any>
-	workspaceState?: Record<string, any>
+	globalState?: Record<string, unknown>
+	workspaceState?: Record<string, unknown>
 	// Rules toggles
 	globalCodemarieRulesToggles?: Record<string, boolean>
 	localCodemarieRulesToggles?: Record<string, boolean>
@@ -183,7 +185,7 @@ export const App: React.FC<AppProps> = ({
 
 	switch (currentView) {
 		case "history":
-			content = (
+			content = controller ? (
 				<HistoryView
 					allItems={historyAllItems}
 					controller={controller}
@@ -192,7 +194,7 @@ export const App: React.FC<AppProps> = ({
 					onSelectTask={handleSelectTask}
 					pagination={historyPagination}
 				/>
-			)
+			) : null
 			break
 
 		case "config":
@@ -247,10 +249,29 @@ export const App: React.FC<AppProps> = ({
 							onComplete={onComplete}
 							onError={onError}
 							onExit={onWelcomeExit}
+							onViewChange={setCurrentView}
 							taskId={selectedTaskId}
 						/>
 					)}
 				</TaskContextProvider>
+			)
+			break
+
+		case "checkpoints":
+			content = (
+				<CheckpointView
+					checkpoints={
+						controller?.task?.messageStateHandler
+							.getCodemarieMessages()
+							.filter((m) => m.say === "checkpoint_created" || m.lastCheckpointHash)
+							.map((m) => ({
+								id: m.lastCheckpointHash || String(m.ts),
+								ts: m.ts,
+								description: m.text,
+							})) || []
+					}
+					onClose={() => setCurrentView("task")}
+				/>
 			)
 			break
 

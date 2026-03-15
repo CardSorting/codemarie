@@ -113,8 +113,8 @@ import { getProviderDefaultModelId, getProviderModelIdKey } from "@shared/storag
 import type { Mode } from "@shared/storage/types"
 import { execSync } from "child_process"
 import { Box, Static, Text, useApp, useInput } from "ink"
-// biome-ignore lint/style/useImportType: JSX requires React as a value (jsx: "react" in tsconfig)
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Controller } from "@/core/controller"
 import { getAvailableSlashCommands } from "@/core/controller/slash/getAvailableSlashCommands"
 import { showTaskWithId } from "@/core/controller/task/showTaskWithId"
 import { StateManager } from "@/core/storage/StateManager"
@@ -142,6 +142,7 @@ import { waitFor } from "../utils/timeout"
 import { isFileEditTool, parseToolFromMessage } from "../utils/tools"
 import { shutdownEvent } from "../vscode-shim"
 import { ActionButtons, type ButtonActionType, getButtonConfig, getVisibleButtons } from "./ActionButtons"
+import type { ViewType } from "./App"
 import { AsciiMotionCli, StaticRobotFrame } from "./AsciiMotionCli"
 import { ChatMessage } from "./ChatMessage"
 import { FileMentionMenu } from "./FileMentionMenu"
@@ -167,16 +168,17 @@ interface PersistedInputState {
 
 const inputStateStorage = new Map<string, PersistedInputState>()
 
-function getInputStorageKey(controller: any, taskId?: string): string {
+function getInputStorageKey(controller: Controller | undefined, taskId?: string): string {
 	// Use taskId if available, otherwise fall back to controller instance
 	return taskId || (controller?.task?.taskId ?? "default")
 }
 
 interface ChatViewProps {
-	controller?: any
+	controller?: Controller
 	onExit?: () => void
 	onComplete?: () => void
 	onError?: () => void
+	onViewChange?: (view: ViewType) => void
 	initialPrompt?: string
 	initialImages?: string[]
 	taskId?: string
@@ -343,6 +345,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 	onExit,
 	onComplete: _onComplete,
 	onError,
+	onViewChange,
 	initialPrompt,
 	initialImages,
 	taskId,
@@ -1172,6 +1175,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
 						setSlashMenuDismissed(true)
 						return
 					}
+					if (cmd.name === "checkpoints") {
+						onViewChange?.("checkpoints")
+						setTextInput("")
+						setCursorPos(0)
+						setSelectedSlashIndex(0)
+						setSlashMenuDismissed(true)
+						return
+					}
 					if (cmd.name === "exit" || cmd.name === "q") {
 						handleExit()
 						return
@@ -1386,6 +1397,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
 		}
 
 		// 12. Normal input handling
+		if (input === "m" && !mentionInfo.inMentionMode && !slashInfo.inSlashMode && !key.ctrl && !key.meta) {
+			toggleMode()
+			return
+		}
 		if (key.shift && key.tab) {
 			toggleAutoApproveAll()
 			return

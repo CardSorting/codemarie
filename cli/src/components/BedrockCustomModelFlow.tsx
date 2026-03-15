@@ -5,7 +5,6 @@
  */
 
 import { Box, Text, useInput } from "ink"
-// biome-ignore lint/correctness/noUnusedImports: React is needed for JSX at runtime
 import React, { useCallback, useState } from "react"
 import { COLORS } from "../constants/colors"
 import { useStdinContext } from "../context/StdinContext"

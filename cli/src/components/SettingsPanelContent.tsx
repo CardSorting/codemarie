@@ -53,7 +53,7 @@ interface SettingsPanelContentProps {
 	initialModelKey?: "actModelId" | "planModelId"
 }
 
-type SettingsTab = "api" | "auto-approve" | "features" | "other" | "account"
+type SettingsTab = "api" | "auto-approve" | "features" | "other" | "account" | "mcp"
 
 interface ListItem {
 	key: string
@@ -81,6 +81,7 @@ const TABS: PanelTab[] = [
 	{ key: "api", label: "API" },
 	{ key: "auto-approve", label: "Auto-approve" },
 	{ key: "features", label: "Features" },
+	{ key: "mcp", label: "MCP" },
 	{ key: "account", label: "Account" },
 	{ key: "other", label: "Other" },
 ]
@@ -246,7 +247,9 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 	const handleOcaAuthSuccess = useCallback(async () => {
 		await applyProviderConfig({ providerId: "oca", controller })
 		// Fetch OCA models from the API - this sets actModeOcaModelId/planModeOcaModelId in state
-		await refreshOcaModels(controller!, StringRequest.create({ value: "" }))
+		if (controller) {
+			await refreshOcaModels(controller, StringRequest.create({ value: "" }))
+		}
 		setProvider("oca")
 		refreshModelIds()
 	}, [controller, refreshModelIds])
@@ -695,6 +698,35 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				accountItems.push({ key: "logout", label: "Sign out", type: "action", value: "" })
 				return accountItems
 
+			case "mcp": {
+				const mcpItems: ListItem[] = []
+				const mcpServers = controller?.mcpHub?.getServers() || []
+
+				if (mcpServers.length === 0) {
+					mcpItems.push({
+						key: "no-servers",
+						label: "No MCP servers configured",
+						type: "readonly",
+						value: "",
+					})
+				} else {
+					for (const server of mcpServers) {
+						mcpItems.push({
+							key: `mcp-${server.name}`,
+							label: server.name,
+							type: "readonly",
+							value: server.status === "connected" ? "Connected" : "Disconnected",
+							description:
+								typeof server.config === "object" && server.config !== null && "command" in server.config
+									? (server.config as { command: string }).command
+									: "Custom server",
+						})
+					}
+				}
+
+				return mcpItems
+			}
+
 			default:
 				return []
 		}
@@ -717,6 +749,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		accountBalance,
 		accountOrganization,
 		accountOrganizations,
+		controller?.mcpHub,
 	])
 
 	// Reset selection when changing tabs
@@ -917,7 +950,8 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 
 		// Auto-approve action toggles
 		const actionKey = item.key as keyof AutoApprovalSettings["actions"]
-		const newActions = { ...autoApproveSettings.actions, [actionKey]: newValue }
+		// biome-ignore lint/style/useConst: oxc flags property assignment as reassignment here for some reason
+		let newActions = { ...autoApproveSettings.actions, [actionKey]: newValue }
 
 		// If disabling a parent, also disable its children
 		if (!newValue) {
@@ -1429,6 +1463,13 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			}
 			if (key.downArrow) {
 				navigateItems("down")
+				return
+			}
+			if (input === "m") {
+				const currentMode = stateManager.getGlobalSettingsKey("mode")
+				const nextMode = currentMode === "plan" ? "act" : "plan"
+				stateManager.setGlobalState("mode", nextMode)
+				rebuildTaskApi()
 				return
 			}
 			if (key.tab || key.return) {

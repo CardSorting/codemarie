@@ -21,6 +21,7 @@ export type ButtonActionType =
 	| "new_task" // Start a new task
 	| "cancel" // Cancel streaming
 	| "retry" // Retry the last action
+	| "toggle_mode" // Switch between Plan and Act mode
 
 /**
  * Button configuration for different message states
@@ -295,6 +296,8 @@ export function getVisibleButtons(config: ButtonConfig) {
  * Does not show cancel-only buttons (ThinkingIndicator handles that with esc)
  */
 export const ActionButtons: React.FC<ActionButtonsProps> = ({ config, mode = "act" }) => {
+	const { columns: terminalWidth } = useTerminalSize()
+
 	if (!config.enableButtons) {
 		return null
 	}
@@ -306,7 +309,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ config, mode = "ac
 	}
 
 	// Calculate button widths based on terminal width
-	const { columns: terminalWidth } = useTerminalSize()
 	const buttonCount = (hasPrimary ? 1 : 0) + (hasSecondary ? 1 : 0)
 	const gapWidth = buttonCount > 1 ? 1 : 0 // 1 char gap between buttons
 	const availableWidth = terminalWidth - 2 - gapWidth // 1 space padding on each side
@@ -328,10 +330,23 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ config, mode = "ac
 		)
 	}
 
+	const renderModeButton = () => {
+		const text = mode === "plan" ? "Switch to ACT" : "Switch to PLAN"
+		const shortcut = "m"
+		const label = ` ${text} (${shortcut}) `
+		return (
+			<Text backgroundColor="gray" color="black">
+				{label}
+			</Text>
+		)
+	}
+
 	return (
 		<Box flexDirection="row" gap={1} marginLeft={1} width="100%">
-			{hasPrimary && renderButton(config.primaryText!, "1")}
-			{hasSecondary && renderButton(config.secondaryText!, hasPrimary ? "2" : "1")}
+			{hasPrimary && config.primaryText && renderButton(config.primaryText, "1")}
+			{hasSecondary && config.secondaryText && renderButton(config.secondaryText, hasPrimary ? "2" : "1")}
+			<Box flexGrow={1} />
+			<Box marginRight={1}>{renderModeButton()}</Box>
 		</Box>
 	)
 }
