@@ -326,6 +326,8 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.NOUSRESEARCH
 		case "openai-codex":
 			return ProtoApiProvider.OPENAI_CODEX
+		case "cloudflare":
+			return ProtoApiProvider.CLOUDFLARE
 		default:
 			return ProtoApiProvider.ANTHROPIC
 	}
@@ -416,6 +418,8 @@ export function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvid
 			return "nousResearch"
 		case ProtoApiProvider.OPENAI_CODEX:
 			return "openai-codex"
+		case ProtoApiProvider.CLOUDFLARE:
+			return "cloudflare"
 		default:
 			return "anthropic"
 	}
@@ -513,6 +517,8 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		embeddingModelId: config.embeddingModelId,
 		embeddingApiKey: config.embeddingApiKey,
 		embeddingOpenAiBaseUrl: config.embeddingOpenAiBaseUrl,
+		cloudflareAccountId: config.cloudflareAccountId,
+		cloudflareApiToken: config.cloudflareApiToken,
 
 		// Plan mode configurations
 		planModeApiProvider: config.planModeApiProvider ? convertApiProviderToProto(config.planModeApiProvider) : undefined,
@@ -697,6 +703,8 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		embeddingModelId: protoConfig.embeddingModelId,
 		embeddingApiKey: protoConfig.embeddingApiKey,
 		embeddingOpenAiBaseUrl: protoConfig.embeddingOpenAiBaseUrl,
+		cloudflareAccountId: protoConfig.cloudflareAccountId,
+		cloudflareApiToken: protoConfig.cloudflareApiToken,
 
 		// Plan mode configurations
 		planModeApiProvider:

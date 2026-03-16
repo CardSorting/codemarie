@@ -200,6 +200,7 @@ message ModelsApiSecrets {
   optional string minimax_api_key = 38;
   optional string aihubmix_api_key = 39;
   optional string embedding_api_key = 40;
+  optional string cloudflare_api_token = 41;
 }
 
 // API configuration options (non-secret settings)
@@ -252,6 +253,7 @@ message ModelsApiOptions {
   optional ApiProvider embedding_provider = 45;
   optional string embedding_model_id = 46;
   optional string embedding_open_ai_base_url = 47;
+  optional string cloudflare_account_id = 48;
 
   // Plan mode configurations
   optional ApiProvider plan_mode_api_provider = 100;
@@ -464,6 +466,7 @@ enum ApiProvider {
   AIHUBMIX = 38;
   NOUSRESEARCH = 39;
   OPENAI_CODEX = 40;
+  CLOUDFLARE = 41;
 }
 
 enum ApiFormat {
@@ -606,6 +609,8 @@ message ModelsApiConfiguration {
   optional string embedding_model_id = 88;
   optional string embedding_api_key = 89;
   optional string embedding_open_ai_base_url = 90;
+  optional string cloudflare_account_id = 91;
+  optional string cloudflare_api_token = 92;
 
   // Plan mode configurations
   optional ApiProvider plan_mode_api_provider = 100;

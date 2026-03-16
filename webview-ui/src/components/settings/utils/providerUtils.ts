@@ -13,6 +13,8 @@ import {
 	cerebrasModels,
 	claudeCodeDefaultModelId,
 	claudeCodeModels,
+	cloudflareDefaultModelId,
+	cloudflareModels,
 	deepSeekDefaultModelId,
 	deepSeekModels,
 	doubaoDefaultModelId,
@@ -90,6 +92,8 @@ export function getModelsForProvider(
 			return anthropicModels
 		case "claude-code":
 			return claudeCodeModels
+		case "cloudflare":
+			return cloudflareModels
 		case "bedrock":
 			return bedrockModels
 		case "vertex":
@@ -190,6 +194,8 @@ export function normalizeApiConfiguration(
 			return getProviderData(anthropicModels, anthropicDefaultModelId)
 		case "claude-code":
 			return getProviderData(claudeCodeModels, claudeCodeDefaultModelId)
+		case "cloudflare":
+			return getProviderData(cloudflareModels, cloudflareDefaultModelId)
 		case "bedrock":
 			const awsBedrockCustomSelected =
 				currentMode === "plan"

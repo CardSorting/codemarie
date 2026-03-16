@@ -72,6 +72,11 @@ export function validateApiConfiguration(currentMode: Mode, apiConfiguration?: A
 				break
 			case "codemarie":
 				break
+			case "cloudflare":
+				if (!apiConfiguration.cloudflareAccountId || !apiConfiguration.cloudflareApiToken) {
+					return "You must provide a valid Cloudflare Account ID and API Token."
+				}
+				break
 			case "openai-codex":
 				// Authentication is handled via OAuth, not API key
 				// Validation happens at runtime in the handler

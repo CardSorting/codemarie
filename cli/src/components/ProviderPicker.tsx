@@ -110,6 +110,8 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 			)
 		case "claude-code":
 			return !!config.claudeCodePath
+		case "cloudflare":
+			return !!(config.cloudflareAccountId && config.cloudflareApiToken)
 		case "oca":
 			return !!config.ocaBaseUrl
 		default:
