@@ -1,12 +1,17 @@
 # Changelog
 
-## [3.76.0] - 2026-03-15
+## [3.76.1] - 2026-03-15
 
 ### Added
 - **Cloudflare Workers AI Support**: Integrated Cloudflare Workers AI as a new provider, including:
   - Full configuration support for Account ID and API Tokens.
   - Support for models like `@cf/zai-org/glm-4.7-flash`, `@cf/meta/llama-3.3-70b-instruct-fp8-v2`, and `@cf/deepseek-ai/deepseek-r1-distill-qwen-32b`.
   - Comprehensive provider documentation.
+
+### Fixed
+- **Cloudflare Provider Selection**: Fixed an issue where selecting Cloudflare Workers AI as a provider in the UI would reset to the default provider due to missing internal proto definitions and conversion logic.
+
+## [3.76.0] - 2026-03-15
 
 ## [3.75.0]
 
