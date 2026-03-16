@@ -41,6 +41,7 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 			}
 
 			if (hasContent) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[ChatView] handleSendMessage - Sending message:", messageToSend)
 				let messageSent = false
 
@@ -261,6 +262,7 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 					try {
 						if (backgroundCommandRunning) {
 							await TaskServiceClient.cancelBackgroundCommand(EmptyRequest.create({})).catch((err) =>
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Failed to cancel background command:", err),
 							)
 						}
@@ -278,11 +280,13 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 					switch (codemarieAsk) {
 						case "condense":
 							await SlashServiceClient.condense(StringRequest.create({ value: lastMessage?.text })).catch((err) =>
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error(err),
 							)
 							break
 						case "report_bug":
 							await SlashServiceClient.reportBug(StringRequest.create({ value: lastMessage?.text })).catch((err) =>
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error(err),
 							)
 							break

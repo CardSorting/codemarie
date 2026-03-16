@@ -390,16 +390,21 @@ export const ExtensionStateContextProvider: React.FC<{
 							return newState
 						})
 					} catch (error) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Error parsing state JSON:", error)
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.log("[DEBUG] ERR getting state", error)
 					}
 				}
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log('[DEBUG] ended "got subscribed state"')
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in state subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("State subscription completed")
 			},
 		})
@@ -409,13 +414,16 @@ export const ExtensionStateContextProvider: React.FC<{
 			{},
 			{
 				onResponse: () => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("[DEBUG] Received mcpButtonClicked event from gRPC stream")
 					navigateToMcp()
 				},
 				onError: (error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error in mcpButtonClicked subscription:", error)
 				},
 				onComplete: () => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("mcpButtonClicked subscription completed")
 				},
 			},
@@ -427,13 +435,16 @@ export const ExtensionStateContextProvider: React.FC<{
 			{
 				onResponse: () => {
 					// When history button is clicked, navigate to history view
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("[DEBUG] Received history button clicked event from gRPC stream")
 					navigateToHistory()
 				},
 				onError: (error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error in history button clicked subscription:", error)
 				},
 				onComplete: () => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("History button clicked subscription completed")
 				},
 			},
@@ -445,10 +456,12 @@ export const ExtensionStateContextProvider: React.FC<{
 			{
 				onResponse: () => {
 					// When chat button is clicked, navigate to chat
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("[DEBUG] Received chat button clicked event from gRPC stream")
 					navigateToChat()
 				},
 				onError: (error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error in chat button subscription:", error)
 				},
 				onComplete: () => {},
@@ -458,15 +471,18 @@ export const ExtensionStateContextProvider: React.FC<{
 		// Subscribe to MCP servers updates
 		mcpServersSubscriptionRef.current = McpServiceClient.subscribeToMcpServers(EmptyRequest.create(), {
 			onResponse: (response) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] Received MCP servers update from gRPC stream")
 				if (response.mcpServers) {
 					setMcpServers(convertProtoMcpServersToMcpServers(response.mcpServers))
 				}
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in MCP servers subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("MCP servers subscription completed")
 			},
 		})
@@ -478,9 +494,11 @@ export const ExtensionStateContextProvider: React.FC<{
 				navigateToSettings()
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in settings button clicked subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("Settings button clicked subscription completed")
 			},
 		})
@@ -494,9 +512,11 @@ export const ExtensionStateContextProvider: React.FC<{
 					navigateToWorktrees()
 				},
 				onError: (error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error in worktrees button clicked subscription:", error)
 				},
 				onComplete: () => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("Worktrees button clicked subscription completed")
 				},
 			},
@@ -508,6 +528,7 @@ export const ExtensionStateContextProvider: React.FC<{
 				try {
 					// Validate critical fields
 					if (!protoMessage.ts || protoMessage.ts <= 0) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Invalid timestamp in partial message:", protoMessage)
 						return
 					}
@@ -524,13 +545,16 @@ export const ExtensionStateContextProvider: React.FC<{
 						return prevState
 					})
 				} catch (error) {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to process partial message:", error, protoMessage)
 				}
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in partialMessage subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] partialMessage subscription completed")
 			},
 		})
@@ -538,13 +562,16 @@ export const ExtensionStateContextProvider: React.FC<{
 		// Subscribe to MCP marketplace catalog updates
 		mcpMarketplaceUnsubscribeRef.current = McpServiceClient.subscribeToMcpMarketplaceCatalog(EmptyRequest.create({}), {
 			onResponse: (catalog) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] Received MCP marketplace catalog update from gRPC stream")
 				setMcpMarketplaceCatalog(catalog)
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in MCP marketplace catalog subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("MCP marketplace catalog subscription completed")
 			},
 		})
@@ -559,9 +586,11 @@ export const ExtensionStateContextProvider: React.FC<{
 				})
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in OpenRouter models subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("OpenRouter models subscription completed")
 			},
 		})
@@ -573,9 +602,11 @@ export const ExtensionStateContextProvider: React.FC<{
 				setLiteLlmModels(models)
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in LiteLLM models subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("LiteLLM models subscription completed")
 			},
 		})
@@ -583,9 +614,11 @@ export const ExtensionStateContextProvider: React.FC<{
 		// Initialize webview using gRPC
 		UiServiceClient.initializeWebview(EmptyRequest.create({}))
 			.then(() => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] Webview initialization completed via gRPC")
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to initialize webview via gRPC:", error)
 			})
 
@@ -593,13 +626,16 @@ export const ExtensionStateContextProvider: React.FC<{
 		accountButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToAccountButtonClicked(EmptyRequest.create(), {
 			onResponse: () => {
 				// When account button is clicked, navigate to account view
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] Received account button clicked event from gRPC stream")
 				navigateToAccount()
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in account button clicked subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("Account button clicked subscription completed")
 			},
 		})
@@ -610,6 +646,7 @@ export const ExtensionStateContextProvider: React.FC<{
 				setAvailableTerminalProfiles(response.profiles)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to fetch available terminal profiles:", error)
 			})
 
@@ -622,6 +659,7 @@ export const ExtensionStateContextProvider: React.FC<{
 				})
 			},
 			onError: (error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in relinquishControl subscription:", error)
 			},
 			onComplete: () => {},
@@ -705,6 +743,7 @@ export const ExtensionStateContextProvider: React.FC<{
 					...models,
 				})
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((error: Error) => console.error("Failed to refresh OpenRouter models:", error))
 	}, [])
 
@@ -716,16 +755,20 @@ export const ExtensionStateContextProvider: React.FC<{
 					...models,
 				})
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((error: Error) => console.error("Failed to refresh Hicap models:", error))
 	}, [])
 
 	const refreshLiteLlmModels = useCallback(() => {
-		return ModelsServiceClient.refreshLiteLlmModelsRpc(EmptyRequest.create({}))
-			.then((response: OpenRouterCompatibleModelInfo) => {
-				const models = fromProtobufModels(response.models)
-				setLiteLlmModels(models)
-			})
-			.catch((error: Error) => console.error("Failed to refresh LiteLLM models:", error))
+		return (
+			ModelsServiceClient.refreshLiteLlmModelsRpc(EmptyRequest.create({}))
+				.then((response: OpenRouterCompatibleModelInfo) => {
+					const models = fromProtobufModels(response.models)
+					setLiteLlmModels(models)
+				})
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
+				.catch((error: Error) => console.error("Failed to refresh LiteLLM models:", error))
+		)
 	}, [])
 
 	const refreshBasetenModels = useCallback(() => {
@@ -736,6 +779,7 @@ export const ExtensionStateContextProvider: React.FC<{
 					...fromProtobufModels(response.models),
 				})
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((err) => console.error("Failed to refresh Baseten models:", err))
 	}, [])
 
@@ -745,6 +789,7 @@ export const ExtensionStateContextProvider: React.FC<{
 				const models = fromProtobufModels(response.models)
 				setVercelAiGatewayModels(models)
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((error: Error) => console.error("Failed to refresh Vercel AI Gateway models:", error))
 	}, [])
 
@@ -780,6 +825,7 @@ export const ExtensionStateContextProvider: React.FC<{
 				const models = fromProtobufModels(response.models)
 				setCodemarieModels((prev) => (Object.keys(models).length > 0 ? models : (prev ?? null)))
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((error: Error) => console.error("Failed to refresh Codemarie models:", error))
 	}, [])
 

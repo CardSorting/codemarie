@@ -21,7 +21,6 @@ class ImagePreview extends React.Component<
 	private imgRef = React.createRef<HTMLImageElement>()
 	private timeoutId: NodeJS.Timeout | null = null
 	private heartbeatId: NodeJS.Timeout | null = null
-	private aspectRatio = 1
 
 	constructor(props: ImagePreviewProps) {
 		super(props)
@@ -35,6 +34,7 @@ class ImagePreview extends React.Component<
 	componentDidMount() {
 		// Set up a timeout to handle cases where the image never loads or errors
 		this.timeoutId = setTimeout(() => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(`Image load timeout for ${this.props.url}`)
 			if (this.state.loading) {
 				this.setState({
@@ -61,14 +61,17 @@ class ImagePreview extends React.Component<
 		checkIfImageUrl(url)
 			.then((isImage) => {
 				if (isImage) {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log(`URL is confirmed as image: ${url}`)
 					this.loadImage(url)
 				} else {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log(`URL is not an image: ${url}`)
 					this.handleImageError()
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log(`Error checking if URL is an image: ${error}`)
 				// Don't fallback to direct image loading on error
 				// Instead, report the error so the URL can be handled as a non-image
@@ -82,6 +85,7 @@ class ImagePreview extends React.Component<
 
 		// For SVG files, we don't need to calculate aspect ratio as they're vector-based
 		if (isSvg) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(`SVG image detected, skipping aspect ratio calculation: ${url}`)
 			// Default aspect ratio for SVGs
 			this.aspectRatio = 1
@@ -93,6 +97,7 @@ class ImagePreview extends React.Component<
 		const testImg = new Image()
 
 		testImg.onload = () => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(`Test image loaded successfully: ${url}`)
 
 			// Calculate aspect ratio for proper display
@@ -104,6 +109,7 @@ class ImagePreview extends React.Component<
 		}
 
 		testImg.onerror = () => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(`Test image failed to load: ${url}`)
 			this.handleImageError()
 		}
@@ -130,6 +136,7 @@ class ImagePreview extends React.Component<
 
 	// Handle image load event
 	handleImageLoad = () => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Image loaded successfully: ${this.props.url}`)
 		this.setState({ loading: false })
 		this.cleanup()
@@ -137,6 +144,7 @@ class ImagePreview extends React.Component<
 
 	// Handle image error event
 	handleImageError = () => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Image failed to load: ${this.props.url}`)
 		this.setState({
 			loading: false,
@@ -233,6 +241,7 @@ class ImagePreview extends React.Component<
 								}),
 							)
 						} catch (err) {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Error opening URL in browser:", err)
 						}
 					}}
@@ -269,6 +278,7 @@ class ImagePreview extends React.Component<
 							)
 						}
 					} catch (err) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Error opening image:", err)
 					}
 				}}

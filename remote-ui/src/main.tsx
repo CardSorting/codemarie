@@ -24,16 +24,19 @@ if (PLATFORM_CONFIG.type === PlatformType.REMOTE) {
 	}
 
 	socket.onopen = () => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("[Remote] WebSocket connected")
 		// Request initial state if needed, though server sends it on connection
 		window.postMessage({ command: "init" }, "*")
 	}
 
 	socket.onclose = () => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("[Remote] WebSocket closed")
 	}
 
 	socket.onerror = (error) => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.error("[Remote] WebSocket error:", error)
 	}
 }

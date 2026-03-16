@@ -73,6 +73,7 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 				setIsBundled(result.isBundled)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error getting detected Chrome path:", error)
 			})
 	}, [])
@@ -85,6 +86,7 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 					setConnectionStatus(result.success)
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error testing browser connection:", error)
 					setConnectionStatus(false)
 				})
@@ -94,6 +96,7 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 					setConnectionStatus(result.success)
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error discovering browser:", error)
 					setConnectionStatus(false)
 				})
@@ -141,6 +144,7 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 				setDebugMode(false)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error relaunching Chrome:", error)
 				setRelaunchResult({
 					success: false,

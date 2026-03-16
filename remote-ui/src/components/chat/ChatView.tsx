@@ -156,10 +156,12 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 					if (textToCopy !== null) {
 						try {
 							FileServiceClient.copyToClipboard(StringRequest.create({ value: textToCopy })).catch((err) => {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Error copying to clipboard:", err)
 							})
 							e.preventDefault()
 						} catch (error) {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Error copying to clipboard:", error)
 						}
 					}
@@ -209,6 +211,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 				}
 			}
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error selecting images & files:", error)
 		}
 	}, [selectedModelInfo.supportsImages, selectedFiles.length, selectedImages.length, setSelectedFiles, setSelectedImages])
@@ -227,9 +230,11 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 					}
 				},
 				onError: (error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error in showWebview subscription:", error)
 				},
 				onComplete: () => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("showWebview subscription completed")
 				},
 			},
@@ -261,9 +266,11 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 					}
 				},
 				onError: (error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error in addToInput subscription:", error)
 				},
 				onComplete: () => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("addToInput subscription completed")
 				},
 			},

@@ -56,10 +56,12 @@ export const safeCreateUrl = (url: string): URL | null => {
 			try {
 				return new URL(`https://${url}`)
 			} catch (_e) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log(`Invalid URL: ${url}`)
 				return null
 			}
 		}
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Invalid URL: ${url}`)
 		return null
 	}
@@ -130,6 +132,7 @@ export const normalizeRelativeUrl = (relativeUrl: string, baseUrl: string): stri
 		}
 		return `${baseUrlObj.protocol}//${baseUrlObj.host}${basePath}${relativeUrl}`
 	} catch (error) {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Error normalizing relative URL: ${error}`)
 		return relativeUrl // Return original on error
 	}
@@ -148,6 +151,7 @@ export const formatUrlForOpening = (url: string): string => {
 		return urlObj.href
 	}
 
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log(`Invalid URL format: ${url}`)
 	// Return a safe fallback that won't crash
 	return "about:blank"
@@ -165,11 +169,13 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 	// Convert HTTP to HTTPS for security in the network request only
 	if (secureUrl.startsWith("http://")) {
 		secureUrl = secureUrl.replace("http://", "https://")
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Using HTTPS version for image check: ${secureUrl}`)
 	}
 
 	// Validate URL before proceeding
 	if (!isUrl(url)) {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("Invalid URL format:", url)
 		return false
 	}
@@ -180,6 +186,7 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 			// Use the gRPC client with timeout
 			const timeoutPromise = new Promise<boolean>((resolve) => {
 				setTimeout(() => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.log("Hit timeout waiting for checkIsImageUrl")
 					resolve(false)
 				}, 3000)
@@ -189,6 +196,7 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 			const servicePromise = WebServiceClient.checkIsImageUrl(StringRequest.create({ value: url }))
 				.then((result) => result.isImage)
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error checking if URL is an image via gRPC:", error)
 					return false
 				})
@@ -196,6 +204,7 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 			// Race between the service call and the timeout
 			return Promise.race([servicePromise, timeoutPromise])
 		} catch (_error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("Error checking if URL is an image:", url)
 			// Return false to indicate it's not an image
 			return false
@@ -205,6 +214,7 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 	// Don't fall back to extension check for other URLs
 	// Only data URLs (handled above) are guaranteed to be images
 	// For all other URLs, we need proper content type verification
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log(`URL protocol not supported for image check: ${url}`)
 	return false
 }
@@ -226,12 +236,14 @@ export const extractUrlsFromText = (text: string, maxUrls = 50): UrlMatch[] => {
 
 		// Skip invalid URLs
 		if (!isUrl(url)) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("Skipping invalid URL:", url)
 			continue
 		}
 
 		// Skip localhost URLs to prevent security issues
 		if (isLocalhostUrl(url)) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("Skipping localhost URL:", url)
 			continue
 		}
@@ -247,6 +259,7 @@ export const extractUrlsFromText = (text: string, maxUrls = 50): UrlMatch[] => {
 		urlCount++
 	}
 
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log(`Found ${matches.length} URLs in text`)
 	return matches.sort((a, b) => a.index - b.index)
 }
@@ -264,6 +277,7 @@ export const processUrlTypes = async (
 	onProgress: (updatedMatches: UrlMatch[]) => void,
 	cancellationToken: { cancelled: boolean },
 ): Promise<void> => {
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log(`Starting sequential URL processing for ${matches.length} URLs`)
 
 	for (let i = 0; i < matches.length; i++) {
@@ -274,11 +288,13 @@ export const processUrlTypes = async (
 
 		// Check if processing has been canceled
 		if (cancellationToken.cancelled) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("URL processing canceled")
 			return
 		}
 
 		const match = matches[i]
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Processing URL ${i + 1} of ${matches.length}: ${match.url}`)
 
 		try {
@@ -297,6 +313,7 @@ export const processUrlTypes = async (
 			// Notify progress with a new array to ensure React detects changes
 			onProgress([...matches])
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(`URL check error: ${match.url}`, err)
 			match.isProcessed = true
 
@@ -312,6 +329,7 @@ export const processUrlTypes = async (
 		}
 	}
 
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log(`URL processing complete. Found ${matches.filter((m) => m.isImage).length} image URLs`)
 }
 
@@ -354,6 +372,7 @@ export const processResponseUrls = (
 	// Return cleanup function
 	return () => {
 		cancellationToken.cancelled = true
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("Cleaning up URL processing")
 	}
 }

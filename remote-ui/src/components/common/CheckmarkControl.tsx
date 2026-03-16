@@ -110,6 +110,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore task error:", err)
 		} finally {
 			setRestoreTaskDisabled(false)
@@ -127,6 +128,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore workspace error:", err)
 		} finally {
 			setRestoreWorkspaceDisabled(false)
@@ -144,6 +146,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore both error:", err)
 		} finally {
 			setRestoreBothDisabled(false)
@@ -199,6 +202,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 									}),
 								)
 							} catch (err) {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("CheckpointDiff error:", err)
 							} finally {
 								setCompareDisabled(false)

@@ -117,7 +117,7 @@ export class GroundingDiscovery {
 			let saturatedContext = ""
 			if (anchors && anchors.length > 0) {
 				saturatedContext += `\n### Primary Inherited Anchors:\n`
-				saturatedContext += anchors.map((a) => `- ${a}`).join("\n") + "\n"
+				saturatedContext += `${anchors.map((a) => `- ${a}`).join("\n")}\n`
 			}
 
 			// Phase 3: Swarm Memory Lookup - proactively load neighbor findings
@@ -127,7 +127,7 @@ export class GroundingDiscovery {
 
 				if (findings.length > 0) {
 					saturatedContext += `\n### Predictive Swarm Insights (Shared Findings):\n`
-					saturatedContext += findings.map((f) => `- ${f}`).join("\n") + "\n"
+					saturatedContext += `${findings.map((f) => `- ${f}`).join("\n")}\n`
 				}
 			}
 
@@ -154,13 +154,12 @@ export class GroundingDiscovery {
 				if (highConfNodes.length > 0) {
 					Logger.info(`[GroundingDiscovery] KG-First: Found ${highConfNodes.length} matches (Drift-Checked).`)
 					saturatedContext += `\n### High-Confidence Semantic Landmarks:\n`
-					saturatedContext +=
-						highConfNodes
-							.map((n) => {
-								const staleWarning = n.isStale ? " [STALE - MODIFIED]" : ""
-								return `- ${n.content}${staleWarning} (Ref: ${n.id})`
-							})
-							.join("\n") + "\n"
+					saturatedContext += `${highConfNodes
+						.map((n) => {
+							const staleWarning = n.isStale ? " [STALE - MODIFIED]" : ""
+							return `- ${n.content}${staleWarning} (Ref: ${n.id})`
+						})
+						.join("\n")}\n`
 
 					// Phase 5: Multi-Factor Satiety Metric
 					// Satiety is reached if:

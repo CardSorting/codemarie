@@ -57,6 +57,7 @@ const getImageDimensions = (dataUrl: string): Promise<{ width: number; height: n
 			}
 		}
 		img.onerror = (err) => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to load image for dimension check:", err)
 			reject(new Error("Failed to load image to check dimensions."))
 		}
@@ -277,6 +278,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 						}
 					})
 					.catch((error) => {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Error searching commits:", error)
 					})
 			}
@@ -365,6 +367,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 									setSearchLoading(false)
 								})
 								.catch((error) => {
+									// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 									console.error("Error searching files:", error)
 									setFileSearchResults([])
 									setSearchLoading(false)
@@ -783,6 +786,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 									setSearchLoading(false)
 								})
 								.catch((error) => {
+									// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 									console.error("Error searching files:", error)
 									setFileSearchResults([])
 									setSearchLoading(false)
@@ -874,6 +878,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							const reader = new FileReader()
 							reader.onloadend = async () => {
 								if (reader.error) {
+									// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 									console.error("Error reading file:", reader.error)
 									resolve(null)
 								} else {
@@ -1218,6 +1223,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					uris = JSON.parse(resourceUrlsData)
 					uris = uris.map((uri) => decodeURIComponent(uri))
 				} catch (error) {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to parse resourceurls JSON:", error)
 					uris = [] // Reset if parsing failed
 				}
@@ -1248,6 +1254,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 						}
 					})
 					.catch((error) => {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Error getting relative paths:", error)
 					})
 				return
@@ -1318,6 +1325,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							reader.onloadend = async () => {
 								// Make async
 								if (reader.error) {
+									// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 									console.error("Error reading file:", reader.error)
 									resolve(null)
 								} else {

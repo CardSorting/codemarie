@@ -84,6 +84,7 @@ export const OpenRouterProvider = ({ showModelOptions, isPopup, currentMode }: O
 							try {
 								await AccountServiceClient.openrouterAuthClicked(EmptyRequest.create())
 							} catch (error) {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Failed to open OpenRouter auth:", error)
 							}
 						}}

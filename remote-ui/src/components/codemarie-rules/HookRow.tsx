@@ -28,6 +28,7 @@ const HookRow: React.FC<HookRowProps> = ({
 }) => {
 	const handleEditClick = () => {
 		FileServiceClient.openFile(StringRequest.create({ value: absolutePath })).catch((err) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to open file:", err),
 		)
 	}
@@ -45,6 +46,7 @@ const HookRow: React.FC<HookRowProps> = ({
 					onDelete(response.hooksToggles)
 				}
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((err) => console.error("Failed to delete hook:", err))
 	}
 

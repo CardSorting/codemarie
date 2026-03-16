@@ -26,8 +26,10 @@ export const BrowserSettingsMenu = () => {
 		// Function to fetch connection info
 		;(async () => {
 			try {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] SENDING BROWSER CONNECTION INFO REQUEST")
 				const info = await BrowserServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[DEBUG] GOT BROWSER REPLY:", info, typeof info)
 				setConnectionInfo({
 					isConnected: info.isConnected,
@@ -35,6 +37,7 @@ export const BrowserSettingsMenu = () => {
 					host: info.host,
 				})
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error fetching browser connection info:", error)
 			}
 		})()
@@ -80,6 +83,7 @@ export const BrowserSettingsMenu = () => {
 						host: info.host,
 					})
 				} catch (error) {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error fetching browser connection info:", error)
 				}
 			}
@@ -119,6 +123,7 @@ export const BrowserSettingsMenu = () => {
 					host: info.host,
 				})
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error fetching browser connection info:", error)
 			}
 		}

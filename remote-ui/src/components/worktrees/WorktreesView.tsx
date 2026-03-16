@@ -87,6 +87,7 @@ const WorktreesView = ({ onDone }: WorktreesViewProps) => {
 			setHasGitignore(status.hasGitignore)
 			setGitignoreContent(status.gitignoreContent)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to load worktree include status:", err)
 		}
 	}, [])
@@ -159,6 +160,7 @@ const WorktreesView = ({ onDone }: WorktreesViewProps) => {
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to switch worktree:", err)
 		}
 	}, [])

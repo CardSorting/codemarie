@@ -11,6 +11,7 @@ export const TelemetryBanner: React.FC = () => {
 	const { navigateToSettings } = useExtensionState()
 
 	const handleClose = useCallback(() => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		StateServiceClient.updateTelemetrySetting(telemetryRequest).catch(console.error)
 	}, [])
 

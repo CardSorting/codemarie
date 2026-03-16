@@ -71,6 +71,7 @@ const RequestyModelPicker: React.FC<RequestyModelPickerProps> = ({ isPopup, base
 				})
 			})
 			.catch((err) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to refresh Requesty models:", err)
 			})
 	})

@@ -33,6 +33,7 @@ const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
 				setMcpServers(mcpServers)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling tool auto-approve", error)
 			})
 	}

@@ -1061,6 +1061,7 @@ const createNewFormatMultiFileMessages = () => [
 
 *** Delete File: src/auth/old-utils.js
 -function deprecatedHelper() {
+// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 -  console.log('This is deprecated')
 -}
 -
@@ -1244,6 +1245,7 @@ try {
   const response = await fetch(url)
   return response.json()
 } catch (error) {
+  // biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
   console.error(error)
 }
 =======
@@ -1254,6 +1256,7 @@ try {
   }
   return response.json()
 } catch (error) {
+  // biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
   console.error('API request failed:', error)
   throw error
 }

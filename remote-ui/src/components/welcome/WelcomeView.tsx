@@ -18,6 +18,7 @@ const WelcomeView = memo(() => {
 	const handleLogin = () => {
 		setIsLoading(true)
 		AccountServiceClient.accountLoginClicked(EmptyRequest.create())
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((err) => console.error("Failed to get login URL:", err))
 			.finally(() => {
 				setIsLoading(false)
@@ -28,6 +29,7 @@ const WelcomeView = memo(() => {
 		try {
 			await StateServiceClient.setWelcomeViewCompleted(BooleanRequest.create({ value: true }))
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to update API configuration or complete welcome view:", error)
 		}
 	}

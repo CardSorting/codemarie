@@ -52,6 +52,7 @@ export const TerminalSettingsSection: React.FC<TerminalSettingsSectionProps> = (
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to update terminal connection timeout:", error)
 			})
 	}

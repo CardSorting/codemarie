@@ -73,6 +73,7 @@ const McpMarketplaceView = () => {
 					setMcpMarketplaceCatalog(response)
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error refreshing MCP marketplace:", error)
 					setError("Failed to load marketplace data")
 					setIsLoading(false)

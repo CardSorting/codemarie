@@ -138,6 +138,7 @@ export const CodemarieAccountView = ({
 			const newPaymentsData = response.paymentTransactions
 			setPaymentsData((prev) => (deepEqual(newPaymentsData, prev) ? prev : newPaymentsData))
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to fetch user credit:", error)
 		}
 	}, [])
@@ -172,6 +173,7 @@ export const CodemarieAccountView = ({
 				// Cache the updated data
 				cacheCurrentData(id)
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to fetch credit balance:", error)
 			} finally {
 				setLastFetchTime(Date.now())

@@ -11,6 +11,7 @@ const ReportBugPreview: React.FC<ReportBugPreviewProps> = ({ data }) => {
 		try {
 			return JSON.parse(data || "{}")
 		} catch (e) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to parse bug report data", e)
 			return {}
 		}

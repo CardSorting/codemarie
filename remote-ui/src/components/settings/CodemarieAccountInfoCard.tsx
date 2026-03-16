@@ -15,6 +15,7 @@ export const CodemarieAccountInfoCard = () => {
 	const handleLogin = () => {
 		setIsLoading(true)
 		AccountServiceClient.accountLoginClicked(EmptyRequest.create())
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((err) => console.error("Failed to get login URL:", err))
 			.finally(() => {
 				setIsLoading(false)

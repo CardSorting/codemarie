@@ -29,7 +29,7 @@ describe("Knowledge Graph Drift Mitigation", () => {
 		}
 
 		const kg = await KnowledgeGraphService.getInstance(embeddingHandler as any)
-		const streamId = "test-stream-" + Date.now()
+		const streamId = `test-stream-${Date.now()}`
 
 		// Register stream to satisfy foreign key constraint
 		await dbPool.push({

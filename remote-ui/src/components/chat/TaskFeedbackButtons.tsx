@@ -34,6 +34,7 @@ const TaskFeedbackButtons: React.FC<TaskFeedbackButtonsProps> = ({ messageTs, is
 				setShouldShow(false)
 			}
 		} catch (e) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error checking feedback history:", e)
 		}
 	}, [messageTs])
@@ -64,9 +65,11 @@ const TaskFeedbackButtons: React.FC<TaskFeedbackButtonsProps> = ({ messageTs, is
 				history[messageTs] = true
 				localStorage.setItem("taskFeedbackHistory", JSON.stringify(history))
 			} catch (e) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error updating feedback history:", e)
 			}
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error sending task feedback:", error)
 		}
 	}

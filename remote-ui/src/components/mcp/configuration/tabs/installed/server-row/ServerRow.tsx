@@ -105,6 +105,7 @@ const ServerRow = ({
 				setMcpServers(mcpServers)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error updating MCP server timeout", error)
 			})
 	}
@@ -126,6 +127,7 @@ const ServerRow = ({
 			.catch((error) => {
 				// Reset the restarting state
 				setIsRestarting(false)
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error restarting MCP server", error)
 			})
 	}
@@ -141,6 +143,7 @@ const ServerRow = ({
 				setIsDeleting(false)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error deleting MCP server", error)
 				setIsDeleting(false)
 			})
@@ -163,6 +166,7 @@ const ServerRow = ({
 				setMcpServers(mcpServers)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling all tools auto-approve", error)
 			})
 	}
@@ -179,6 +183,7 @@ const ServerRow = ({
 				setMcpServers(mcpServers)
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling MCP server", error)
 			})
 	}

@@ -77,6 +77,7 @@ export const Collapsed: Story = {
 		cacheReads: 180,
 		totalCost: 0.085,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -107,6 +108,7 @@ export const Expanded: Story = {
 		cacheReads: 180,
 		totalCost: 0.085,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -141,6 +143,7 @@ export const WithImages: Story = {
 		cacheReads: 220,
 		totalCost: 0.125,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -175,6 +178,7 @@ export const WithFiles: Story = {
 		cacheReads: 340,
 		totalCost: 0.185,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -207,6 +211,7 @@ export const LongTaskText: Story = {
 		cacheReads: 410,
 		totalCost: 0.245,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -238,6 +243,7 @@ export const HighTokenUsage: Story = {
 		totalCost: 1.85,
 		lastApiReqTotalTokens: 73000,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -271,6 +277,7 @@ export const NoCost: Story = {
 		tokensOut: 800,
 		totalCost: 0,
 		doesModelSupportPromptCache: false,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -299,6 +306,7 @@ export const WithCheckpointError: Story = {
 		tokensOut: 950,
 		totalCost: 0.065,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -332,6 +340,7 @@ export const WithProgressMessage: Story = {
 		lastProgressMessageText:
 			"- [x] Set up project structure\n- [x] Install dependencies\n- [ ] Create API routes\n- [ ] Test endpoints",
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -360,6 +369,7 @@ export const LocalEnvironment: Story = {
 		tokensOut: 1400,
 		totalCost: 0.095,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -389,6 +399,7 @@ export const StagingEnvironment: Story = {
 		tokensOut: 1600,
 		totalCost: 0.115,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -418,6 +429,7 @@ export const ProductionEnvironment: Story = {
 		tokensOut: 1900,
 		totalCost: 0.135,
 		doesModelSupportPromptCache: true,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [
@@ -447,6 +459,7 @@ export const MinimalTask: Story = {
 		tokensOut: 80,
 		totalCost: 0.005,
 		doesModelSupportPromptCache: false,
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		onClose: () => console.log("Close clicked"),
 	},
 	decorators: [

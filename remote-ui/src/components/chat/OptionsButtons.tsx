@@ -70,6 +70,7 @@ export const OptionsButtons = ({
 								}),
 							)
 						} catch (error) {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Error sending option response:", error)
 						}
 					}}>

@@ -34,6 +34,7 @@ const CreateWorktreeModal = ({ open, onClose, openAfterCreate = false, onSuccess
 			setNewWorktreePath(defaults.suggestedPath)
 			setHasWorktreeInclude(includeStatus.exists)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to load worktree defaults:", err)
 		} finally {
 			setIsLoadingDefaults(false)

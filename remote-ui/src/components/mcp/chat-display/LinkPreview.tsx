@@ -239,6 +239,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 								}),
 							)
 						} catch (err) {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Error opening URL in browser:", err)
 						}
 					}}
@@ -281,6 +282,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 							}),
 						)
 					} catch (err) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Error opening URL in browser:", err)
 					}
 				}}
@@ -298,6 +300,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 						<img
 							alt=""
 							onError={(e) => {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.log(`Image could not be loaded: ${data.image}`)
 								// Hide the broken image
 								;(e.target as HTMLImageElement).style.display = "none"

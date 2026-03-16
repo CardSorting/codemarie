@@ -26,6 +26,7 @@ function stringToPlatformType(name: string): PlatformType {
 	if (name in mapping) {
 		return mapping[name]
 	}
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.error("Unknown platform:", name)
 	// Default to VSCode for unknown types
 	return PlatformType.VSCODE
@@ -68,16 +69,19 @@ const postMessageStrategies: Record<string, PostMessageFunction> = {
 		if (vsCodeApi) {
 			vsCodeApi.postMessage(message)
 		} else {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("postMessage fallback: ", message)
 		}
 	},
 	standalone: (message: unknown) => {
 		const standalonePostMessage = window.standalonePostMessage
 		if (!standalonePostMessage) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Standalone postMessage not found.")
 			return
 		}
 		const json = JSON.stringify(message)
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log(`Standalone postMessage: ${json.slice(0, 200)}`)
 		standalonePostMessage(json)
 	},
@@ -110,6 +114,7 @@ declare const __PLATFORM__: string
 // Get the specific platform config at compile time
 const configs = platformConfigs as PlatformConfigs
 const selectedConfig = configs[__PLATFORM__]
+// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 console.log("[PLATFORM_CONFIG] Build platform:", __PLATFORM__)
 
 // Build the platform config with injected functions

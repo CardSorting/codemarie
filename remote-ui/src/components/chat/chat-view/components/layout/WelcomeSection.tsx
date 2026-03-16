@@ -41,6 +41,7 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ showHistoryView,
 	// Handle click on home page worktree element with telemetry
 	const handleWorktreeClick = useCallback(() => {
 		WorktreeServiceClient.trackWorktreeViewOpened(TrackWorktreeViewOpenedRequest.create({ source: "home_page" })).catch(
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error,
 		)
 		navigateToWorktrees()

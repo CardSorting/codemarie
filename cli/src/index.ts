@@ -802,7 +802,6 @@ async function runServer(options: {
 			printWarning(`Failed to build remote-ui: ${error instanceof Error ? error.message : String(error)}`)
 		}
 	}
-	...
 
 	// Ensure we have a token if requested, or generate one/reuse existing
 	let authToken = process.env.CODEMARIE_REMOTE_AUTH_TOKEN

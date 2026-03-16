@@ -226,6 +226,7 @@ const HookMessage = memo(({ message, CommandOutput }: HookMessageProps) => {
 								e.stopPropagation()
 								// Cancel the task - cancelling a hook always cancels the entire task
 								TaskServiceClient.cancelTask(EmptyRequest.create({})).catch((err) =>
+									// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 									console.error("Failed to cancel task:", err),
 								)
 							}}

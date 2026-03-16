@@ -305,6 +305,7 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup, 
 													e.stopPropagation()
 													StateServiceClient.toggleFavoriteModel(
 														StringRequest.create({ value: item.id }),
+														// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 													).catch((error) => console.error("Failed to toggle favorite model:", error))
 												}}
 											/>

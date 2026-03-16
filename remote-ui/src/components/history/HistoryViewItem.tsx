@@ -45,6 +45,7 @@ const HistoryViewItem = ({
 
 	const handleShowTaskWithId = useCallback((id: string) => {
 		TaskServiceClient.showTaskWithId(StringRequest.create({ value: id })).catch((error) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error showing task:", error),
 		)
 	}, [])
@@ -208,6 +209,7 @@ const HistoryViewItem = ({
 													e.stopPropagation()
 													TaskServiceClient.exportTaskWithId(
 														StringRequest.create({ value: item.id }),
+														// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 													).catch((err) => console.error("Failed to export task:", err))
 												}}
 												variant="ghost">

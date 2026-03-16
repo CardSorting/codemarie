@@ -42,6 +42,7 @@ export const TabList = forwardRef<
 >(({ children, className, value, onValueChange, ...props }, ref) => {
 	const handleTabSelect = useCallback(
 		(tabValue: string) => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("Tab selected:", tabValue)
 			onValueChange(tabValue)
 		},

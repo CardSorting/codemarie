@@ -263,6 +263,7 @@ Edit the markdown content in the controls panel to test:
 
 ## Code Blocks:
 \`\`\`javascript
+// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 console.log("Hello, World!")
 \`\`\`
 

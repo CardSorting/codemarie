@@ -75,6 +75,7 @@ const ApiConfigurationSection = ({ renderSectionHeader, initialModelTab }: ApiCo
 									}),
 								)
 							} catch (error) {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Failed to update separate models setting:", error)
 							}
 						}}>

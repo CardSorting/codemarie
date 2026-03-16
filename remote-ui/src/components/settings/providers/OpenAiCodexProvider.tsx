@@ -30,6 +30,7 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 		try {
 			await AccountServiceClient.openAiCodexSignIn({})
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to sign in to OpenAI Codex:", error)
 		}
 	}
@@ -38,6 +39,7 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 		try {
 			await AccountServiceClient.openAiCodexSignOut({})
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to sign out of OpenAI Codex:", error)
 		}
 	}

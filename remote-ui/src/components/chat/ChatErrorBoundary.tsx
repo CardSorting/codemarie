@@ -27,7 +27,9 @@ export class ChatErrorBoundary extends React.Component<ChatErrorBoundaryProps, C
 	}
 
 	componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.error("Error in ChatErrorBoundary:", error.message)
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.error("Component stack:", errorInfo.componentStack)
 	}
 

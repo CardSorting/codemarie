@@ -59,6 +59,7 @@ const HuggingFaceModelPicker: React.FC<HuggingFaceModelPickerProps> = ({ isPopup
 				})
 			})
 			.catch((err) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to refresh Hugging Face models:", err)
 			})
 	})

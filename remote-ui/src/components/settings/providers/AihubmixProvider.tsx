@@ -42,7 +42,9 @@ export const AIhubmixProvider = ({ showModelOptions, isPopup, currentMode }: AIh
 		return base
 	}
 
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log("selectedModelId", selectedModelId)
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log("selectedModelInfo", selectedModelInfo)
 
 	// Get the normalized configuration
@@ -72,10 +74,12 @@ export const AIhubmixProvider = ({ showModelOptions, isPopup, currentMode }: AIh
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to fetch AIhubmix models:", error)
 			})
 	}, [ensureSelectedPresent])
 
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log("apiConfiguration", apiConfiguration)
 
 	return (

@@ -108,6 +108,7 @@ const McpResponseDisplay: React.FC<McpResponseDisplayProps> = ({ responseText })
 			return
 		}
 
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("Processing MCP response for URL extraction")
 		setIsLoading(true)
 		setError(null)
@@ -246,6 +247,7 @@ const McpResponseDisplay: React.FC<McpResponseDisplayProps> = ({ responseText })
 			</ResponseContainer>
 		)
 	} catch (_error) {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("Error rendering MCP response - falling back to plain text") // Restored comment
 		// Fallback for critical rendering errors
 		return (

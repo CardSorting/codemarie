@@ -104,6 +104,7 @@ const RuleRow: React.FC<{
 		// For remote rules, use the special remote:// URI format
 		const filePath = isRemote ? `${REMOTE_URI_SCHEME}${ruleType === "workflow" ? "workflow" : "rule"}/${rulePath}` : rulePath
 		FileServiceClient.openFile(StringRequest.create({ value: filePath })).catch((err) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to open file:", err),
 		)
 	}
@@ -117,6 +118,7 @@ const RuleRow: React.FC<{
 				}),
 			)
 				.then(() => onDeleteSkill?.())
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				.catch((err) => console.error("Failed to delete skill:", err))
 		} else {
 			FileServiceClient.deleteRuleFile(
@@ -125,6 +127,7 @@ const RuleRow: React.FC<{
 					isGlobal,
 					type: ruleType || "codemarie",
 				}),
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			).catch((err) => console.error("Failed to delete rule file:", err))
 		}
 	}

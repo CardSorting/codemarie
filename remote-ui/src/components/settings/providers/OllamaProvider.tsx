@@ -45,6 +45,7 @@ export const OllamaProvider = ({ showModelOptions, isPopup, currentMode }: Ollam
 				setOllamaModels(response.values)
 			}
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to fetch Ollama models:", error)
 			setOllamaModels([])
 		}

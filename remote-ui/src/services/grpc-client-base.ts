@@ -51,6 +51,7 @@ export abstract class ProtoBusClient {
 					} else if (message.grpc_response.error) {
 						reject(new Error(message.grpc_response.error))
 					} else {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Received ProtoBus message with no response or error ", JSON.stringify(message))
 					}
 				}
@@ -106,6 +107,7 @@ export abstract class ProtoBusClient {
 					// Only remove the event listener on error
 					window.removeEventListener("message", handleResponse)
 				} else {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Received ProtoBus message with no response or error ", JSON.stringify(message))
 				}
 				if (message.grpc_response.is_streaming === false) {
@@ -137,6 +139,7 @@ export abstract class ProtoBusClient {
 					request_id: requestId,
 				},
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(`[DEBUG] Sent cancellation for request: ${requestId}`)
 		}
 	}

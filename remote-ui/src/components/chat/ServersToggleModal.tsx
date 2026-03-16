@@ -29,6 +29,7 @@ const ServersToggleModal: React.FC = () => {
 					}
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to fetch MCP servers:", error)
 				})
 		}

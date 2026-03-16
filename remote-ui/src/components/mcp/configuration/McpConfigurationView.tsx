@@ -47,6 +47,7 @@ const McpConfigurationView = ({ onDone, initialTab }: McpViewProps) => {
 					setMcpMarketplaceCatalog(response)
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Error refreshing MCP marketplace:", error)
 				})
 
@@ -58,6 +59,7 @@ const McpConfigurationView = ({ onDone, initialTab }: McpViewProps) => {
 					}
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to fetch MCP servers:", error)
 				})
 		}

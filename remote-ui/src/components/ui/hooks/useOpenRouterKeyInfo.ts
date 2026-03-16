@@ -38,6 +38,7 @@ async function getOpenRouterKeyInfo(apiKey: string, signal: AbortSignal): Promis
 			if (response.status === 401) {
 				console.warn("OpenRouter API key is invalid or unauthorized.")
 			} else {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error(`Error fetching OpenRouter key info: HTTP ${response.status}`)
 			}
 			return null
@@ -46,12 +47,14 @@ async function getOpenRouterKeyInfo(apiKey: string, signal: AbortSignal): Promis
 		const responseData = await response.json()
 		const result = openRouterKeyInfoSchema.safeParse(responseData)
 		if (!result.success) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("OpenRouter API key info validation failed:", result.error.flatten().fieldErrors)
 			return null
 		}
 		return result.data.data
 	} catch (error: any) {
 		if (error.name !== "AbortError") {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error fetching OpenRouter key info:", error)
 		}
 		return null
@@ -123,6 +126,7 @@ export const useOpenRouterKeyInfo = (apiKey?: string) => {
 				})
 				.catch((err) => {
 					if (!signal.aborted) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("[useOpenRouterKeyInfo] Fetch error:", err)
 						setError(err instanceof Error ? err : new Error("An unknown error occurred"))
 						if (!isBackgroundFetch) {

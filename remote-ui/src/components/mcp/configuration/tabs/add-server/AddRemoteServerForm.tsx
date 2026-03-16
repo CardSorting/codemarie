@@ -129,6 +129,7 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 					appearance="secondary"
 					onClick={() => {
 						McpServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Error opening MCP settings:", error)
 						})
 					}}

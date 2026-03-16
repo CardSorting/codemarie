@@ -103,6 +103,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 					}
 				})
 				.catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to refresh rules:", error)
 				})
 		}
@@ -138,6 +139,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				})
 				.catch((error) => {
 					if (!abortController.signal.aborted) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Failed to refresh hooks:", error)
 					}
 				})
@@ -175,6 +177,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				})
 				.catch((error) => {
 					if (!isCancelled) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Failed to refresh skills:", error)
 					}
 				})
@@ -252,6 +255,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling Codemarie rule:", error)
 			})
 	}
@@ -270,6 +274,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling Cursor rule:", error)
 			})
 	}
@@ -287,6 +292,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling Windsurf rule:", error)
 			})
 	}
@@ -304,6 +310,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling Agents rule:", error)
 			})
 	}
@@ -322,6 +329,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				setWorkspaceHooks(response.hooksToggles?.workspaceHooks || [])
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling hook:", error)
 			})
 	}
@@ -344,6 +352,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((err: Error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to toggle workflow:", err)
 			})
 	}
@@ -364,6 +373,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling remote rule:", error)
 			})
 	}
@@ -383,6 +393,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling remote workflow:", error)
 			})
 	}
@@ -411,6 +422,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error toggling skill:", error)
 			})
 	}

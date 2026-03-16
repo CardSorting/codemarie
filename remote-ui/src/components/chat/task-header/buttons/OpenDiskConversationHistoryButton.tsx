@@ -15,6 +15,7 @@ const OpenDiskConversationHistoryButton: React.FC<{
 		}
 
 		FileServiceClient.openDiskConversationHistory(StringRequest.create({ value: taskId })).catch((err) => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error(err)
 		})
 	}

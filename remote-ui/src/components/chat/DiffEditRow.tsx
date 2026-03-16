@@ -100,6 +100,7 @@ const FileBlock = memo<{ file: Patch; isStreaming: boolean; startLineNumber?: nu
 
 			if (file.path) {
 				FileServiceClient.openFileRelativePath(StringRequest.create({ value: file.path })).catch((err) =>
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to open file:", err),
 				)
 			}

@@ -1,4 +1,5 @@
 import type { ExtensionMessage } from "@shared/ExtensionMessage"
+import { KeyValuePair } from "@shared/proto/codemarie/common"
 import { ResetStateRequest } from "@shared/proto/codemarie/state"
 import { UserOrganization } from "@shared/proto/index.codemarie"
 import {
@@ -176,7 +177,7 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 			return
 		}
 
-		const grpcMessage = message.grpc_response?.message
+		const grpcMessage = message.grpc_response?.message as KeyValuePair | undefined
 		if (grpcMessage?.key !== "scrollToSettings") {
 			return
 		}

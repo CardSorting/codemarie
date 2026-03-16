@@ -402,6 +402,7 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 							alt="Browser screenshot"
 							onClick={() =>
 								FileServiceClient.openImage(StringRequest.create({ value: displayState.screenshot })).catch(
+									// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 									(err) => console.error("Failed to open image:", err),
 								)
 							}

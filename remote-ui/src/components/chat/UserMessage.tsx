@@ -61,6 +61,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ text, images, files, messageT
 				sendMessageFromChatRow?.(editedText, images || [], files || [])
 			}, delay)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore error:", err)
 		}
 	}

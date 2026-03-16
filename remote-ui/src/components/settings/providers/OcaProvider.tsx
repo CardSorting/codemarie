@@ -50,6 +50,7 @@ function useOcaAuth() {
 		try {
 			await OcaAccountServiceClient.ocaAccountLoginClicked(EmptyRequest.create())
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("OCA login failed:", error)
 		}
 	}, [])
@@ -58,6 +59,7 @@ function useOcaAuth() {
 		try {
 			await OcaAccountServiceClient.ocaAccountLogoutClicked(EmptyRequest.create())
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("OCA logout failed:", error)
 		}
 	}, [])
@@ -79,6 +81,7 @@ function useOcaAuth() {
 			},
 			onError: (err: Error) => {
 				if (!unmountedRef.current) {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("OCA auth callback subscription error:", err)
 					if (!initialReceivedRef.current) {
 						initialReceivedRef.current = true
@@ -142,6 +145,7 @@ function useOcaModels({
 			}
 		} catch (err) {
 			if (!unmountedRef.current && myReqId === reqIdRef.current) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to refresh Oca models:", err)
 				setHasError(true)
 			}

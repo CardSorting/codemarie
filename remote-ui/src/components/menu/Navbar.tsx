@@ -27,6 +27,7 @@ export const Navbar = () => {
 					// Close the current task, then navigate to the chat view
 					TaskServiceClient.clearTask({})
 						.catch((error) => {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Failed to clear task:", error)
 						})
 						.finally(() => navigateToChat())

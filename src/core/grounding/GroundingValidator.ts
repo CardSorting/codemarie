@@ -147,7 +147,7 @@ export class GroundingValidator {
 							const cacheKey = fullPath
 
 							// Pass 3: Index-based existence check
-							if (workspaceIndex && workspaceIndex.has(entity)) {
+							if (workspaceIndex?.has(entity)) {
 								verifiedEntities.push(`${entity} (Indexed File)`)
 								return
 							}

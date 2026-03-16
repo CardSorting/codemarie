@@ -10,6 +10,7 @@ export async function updateAutoApproveSettings(settings: AutoApprovalSettings) 
 	try {
 		await StateServiceClient.updateAutoApprovalSettings({ metadata: {}, ...settings })
 	} catch (error) {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.error("Failed to update auto approval settings:", error)
 		throw error
 	}

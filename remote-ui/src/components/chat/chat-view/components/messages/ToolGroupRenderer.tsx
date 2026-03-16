@@ -148,6 +148,7 @@ export const ToolGroupRenderer = memo(({ messages, allMessages, isLastGroup }: T
 
 	const handleOpenFile = useCallback((filePath: string) => {
 		FileServiceClient.openFileRelativePath(StringRequest.create({ value: filePath })).catch((err) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to open file:", err),
 		)
 	}, [])

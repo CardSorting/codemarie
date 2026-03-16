@@ -47,6 +47,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, onCopy, clas
 				setCopied(true)
 				setTimeout(() => setCopied(false), COPIED_TIMEOUT)
 			})
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			.catch((err) => console.error("Copy failed", err))
 	}, [textToCopy, onCopy])
 

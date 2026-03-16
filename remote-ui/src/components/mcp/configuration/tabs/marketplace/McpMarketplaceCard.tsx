@@ -112,14 +112,17 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 												StringRequest.create({ value: item.mcpId }),
 											)
 											if (response.error) {
+												// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 												console.error("MCP download failed:", response.error)
 												setError(response.error)
 											} else {
+												// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 												console.log("MCP download successful:", response)
 												// Clear any previous errors on success
 												setError(null)
 											}
 										} catch (error) {
+											// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 											console.error("Failed to download MCP:", error)
 										} finally {
 											setIsDownloading(false)

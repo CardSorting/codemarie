@@ -65,6 +65,7 @@ export const LMStudioProvider = ({ currentMode }: LMStudioProviderProps) => {
 				}
 			})
 			.catch((error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to parse LM Studio models:", error)
 			})
 	}, [endpoint])

@@ -216,6 +216,7 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 		try {
 			await StateServiceClient.resetState(ResetStateRequest.create({ global: resetGlobalState }))
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to reset state:", error)
 		}
 	}, [])

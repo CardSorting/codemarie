@@ -65,6 +65,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 			)
 			setTasks(response.tasks || [])
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error loading task history:", error)
 		}
 	}, [showFavoritesOnly, showCurrentWorkspaceOnly, searchQuery, sortOption])
@@ -97,6 +98,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 					loadTaskHistory()
 				}
 			} catch (err) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error(`[FAVORITE_TOGGLE_UI] Error for task ${taskId}:`, err)
 				// Revert optimistic update
 				setPendingFavoriteToggles((prev) => {
@@ -134,6 +136,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 				setTotalTasksSize?.(response.value || 0)
 			}
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error getting total tasks size:", error)
 		}
 	}, [setTotalTasksSize])
@@ -166,6 +169,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		(id: string) => {
 			TaskServiceClient.deleteTasksWithIds(StringArrayRequest.create({ value: [id] }))
 				.then(() => fetchTotalTasksSize())
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				.catch((error) => console.error("Error deleting task:", error))
 		},
 		[fetchTotalTasksSize],
@@ -176,6 +180,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 			if (ids.length > 0) {
 				TaskServiceClient.deleteTasksWithIds(StringArrayRequest.create({ value: ids }))
 					.then(() => fetchTotalTasksSize())
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					.catch((error) => console.error("Error deleting tasks:", error))
 				setSelectedItems([])
 			}
@@ -445,6 +450,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 							setDeleteAllDisabled(true)
 							TaskServiceClient.deleteAllTaskHistory(BooleanRequest.create({}))
 								.then(() => fetchTotalTasksSize())
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								.catch((error) => console.error("Error deleting task history:", error))
 								.finally(() => setDeleteAllDisabled(false))
 						}}

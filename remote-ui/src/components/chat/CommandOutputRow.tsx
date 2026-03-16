@@ -71,6 +71,7 @@ export const CommandOutputContent = memo(
 						className="flex flex-wrap items-center gap-1.5 px-3 py-2 mx-2 my-1.5 rounded-sm bg-banner-background cursor-pointer hover:brightness-110 transition-colors"
 						onClick={() => {
 							FileServiceClient.openFile(StringRequest.create({ value: logFilePath })).catch((err) =>
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Failed to open log file:", err),
 							)
 						}}

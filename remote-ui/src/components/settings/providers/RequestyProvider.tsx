@@ -50,6 +50,7 @@ export const RequestyProvider = ({ showModelOptions, isPopup, currentMode }: Req
 								}),
 							)
 						} catch (error) {
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 							console.error("Failed to open Requesty auth:", error)
 						}
 					}}

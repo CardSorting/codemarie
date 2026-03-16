@@ -37,6 +37,7 @@ export const updateSetting = (field: keyof UpdateSettingsRequest, value: any) =>
 	updateRequest[field] = convertedValue
 
 	StateServiceClient.updateSettings(UpdateSettingsRequest.create(updateRequest)).catch((error) => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.error(`Failed to update setting ${field}:`, error)
 	})
 }

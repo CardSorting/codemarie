@@ -508,6 +508,7 @@ export const ChatRowContent = memo(
 									onClick={() => {
 										if (!isImage) {
 											FileServiceClient.openFile(StringRequest.create({ value: tool.content })).catch(
+												// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 												(err) => console.error("Failed to open file:", err),
 											)
 										}
@@ -667,6 +668,7 @@ export const ChatRowContent = memo(
 									// Open the URL in the default browser using gRPC
 									if (tool.path) {
 										UiServiceClient.openUrl(StringRequest.create({ value: tool.path })).catch((err) => {
+											// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 											console.error("Failed to open URL:", err)
 										})
 									}
@@ -1112,6 +1114,7 @@ export const ChatRowContent = memo(
 											// Enable background terminal execution mode
 											await UiServiceClient.setTerminalExecutionMode(BooleanRequest.create({ value: true }))
 										} catch (error) {
+											// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 											console.error("Failed to enable background terminal:", error)
 										}
 									}}>

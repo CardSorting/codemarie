@@ -37,6 +37,7 @@ export const CodemarieAuthProvider: React.FC<{ children: React.ReactNode }> = ({
 				return old
 			})
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to fetch user organizations:", error)
 		}
 	}, [])
@@ -46,6 +47,7 @@ export const CodemarieAuthProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, [userOrganizations])
 
 	useEffect(() => {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("Extension: CodemarieAuthContext: user updated:", user?.uid)
 	}, [user?.uid])
 
@@ -70,9 +72,11 @@ export const CodemarieAuthProvider: React.FC<{ children: React.ReactNode }> = ({
 				})
 			},
 			onError: (error: Error) => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error in auth callback subscription:", error)
 			},
 			onComplete: () => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("Auth callback subscription completed")
 			},
 		})
@@ -111,11 +115,13 @@ export const useCodemarieSignIn = () => {
 			setIsLoading(true)
 
 			AccountServiceClient.accountLoginClicked(EmptyRequest.create())
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				.catch((err) => console.error("Failed to get login URL:", err))
 				.finally(() => {
 					setIsLoading(false)
 				})
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error signing in:", error)
 		}
 	}, [])
@@ -129,9 +135,11 @@ export const useCodemarieSignIn = () => {
 export const handleSignOut = async () => {
 	try {
 		await AccountServiceClient.accountLogoutClicked(EmptyRequest.create()).catch((err) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to logout:", err),
 		)
 	} catch (error) {
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.error("Error signing out:", error)
 		throw error
 	}

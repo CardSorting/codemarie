@@ -63,6 +63,7 @@ export const HicapProvider = ({ showModelOptions, isPopup, currentMode }: HicapP
 							try {
 								await AccountServiceClient.hicapAuthClicked(EmptyRequest.create())
 							} catch (error) {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Failed to open Hicap auth:", error)
 							}
 						}}

@@ -36,6 +36,7 @@ export const AskSageProvider = ({ showModelOptions, isPopup, currentMode }: AskS
 				const response = await fetch(`${apiUrl}/get-models`)
 
 				if (!response.ok) {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to fetch AskSage models, falling back to default list.")
 					setAvailableModels(askSageModels)
 					return
@@ -59,6 +60,7 @@ export const AskSageProvider = ({ showModelOptions, isPopup, currentMode }: AskS
 					setAvailableModels(askSageModels)
 				}
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error fetching AskSage models:", error)
 				setAvailableModels(askSageModels)
 			}

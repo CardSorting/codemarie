@@ -40,6 +40,7 @@ const CreditLimitError: React.FC<CreditLimitErrorProps> = ({
 				url.searchParams.set("callback_url", callbackUrl)
 				setFullBuyCreditsUrl(url.toString())
 			} catch (error) {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Error fetching callback URL:", error)
 				// Fallback to URL without callback if the API call fails
 				setFullBuyCreditsUrl(dashboardUrl)
@@ -82,6 +83,7 @@ const CreditLimitError: React.FC<CreditLimitErrorProps> = ({
 							}),
 						)
 					} catch (error) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("Error invoking action:", error)
 					}
 				}}>

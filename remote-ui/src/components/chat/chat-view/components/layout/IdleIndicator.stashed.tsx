@@ -46,6 +46,7 @@ export function useIdleIndicator(
 			return
 		}
 
+		// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 		console.log("[IdleIndicator] Setting up MutationObserver")
 
 		const resetIdleTimer = () => {
@@ -66,12 +67,14 @@ export function useIdleIndicator(
 			const elapsed = Date.now() - timerStartTimeRef.current
 			const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed)
 
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log(
 				`[IdleIndicator] DOM mutation detected, restarting timer. Elapsed: ${elapsed}ms, Remaining: ${remaining}ms`,
 			)
 
 			// Start new timer for remaining duration
 			idleTimerRef.current = setTimeout(() => {
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.log("[IdleIndicator] DOM idle for 3s, showing indicator")
 				setShowIdleIndicator(true)
 			}, remaining)
@@ -104,6 +107,7 @@ export function useIdleIndicator(
 		resetIdleTimer()
 
 		return () => {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.log("[IdleIndicator] Cleaning up MutationObserver")
 			observer.disconnect()
 			if (idleTimerRef.current) {

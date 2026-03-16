@@ -137,9 +137,11 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 		try {
 			const pngDataUrl = await svgToPng(svgEl)
 			FileServiceClient.openImage(StringRequest.create({ value: pngDataUrl })).catch((err) =>
+				// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 				console.error("Failed to open image:", err),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error converting SVG to PNG:", err)
 		}
 	}
@@ -148,6 +150,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 		try {
 			await navigator.clipboard.writeText(code)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Copy failed", err)
 		}
 	}
@@ -166,6 +169,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 }
 
 async function svgToPng(svgEl: SVGElement): Promise<string> {
+	// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 	console.log("svgToPng function called")
 	// Clone the SVG to avoid modifying the original
 	const svgClone = svgEl.cloneNode(true) as SVGElement

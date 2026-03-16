@@ -142,6 +142,7 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 			setCodemarieFreeModels(free)
 			return true
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to refresh Codemarie recommended models:", error)
 			return false
 		}
@@ -497,6 +498,7 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 													e.stopPropagation()
 													StateServiceClient.toggleFavoriteModel(
 														StringRequest.create({ value: item.id }),
+														// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 													).catch((error) => console.error("Failed to toggle favorite model:", error))
 												}}
 											/>

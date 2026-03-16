@@ -66,6 +66,7 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 						apiKey,
 					}),
 				).catch((error) => {
+					// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 					console.error("Failed to refresh OpenAI models:", error)
 				})
 			}, 500)

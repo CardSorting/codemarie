@@ -14,6 +14,7 @@ const HomeHeader = ({ shouldShowQuickWins = false }: HomeHeaderProps) => {
 		try {
 			await UiServiceClient.openWalkthrough(EmptyRequest.create())
 		} catch (error) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Error opening walkthrough:", error)
 		}
 	}

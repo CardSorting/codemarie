@@ -166,6 +166,7 @@
 				"!!**/esbuild.*",
 				"!!**/*.mts",
 				"!!**/webview-ui/**",
+				"!!**/remote-ui/**",
 				"!!**/evals/**",
 				"!!**/standalone/**",
 				"!!**/cli/**",

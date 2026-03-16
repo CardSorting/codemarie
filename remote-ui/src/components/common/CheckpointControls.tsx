@@ -51,6 +51,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore task error:", err)
 			setRestoreTaskDisabled(false)
 		}
@@ -66,6 +67,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore workspace error:", err)
 			setRestoreWorkspaceDisabled(false)
 		}
@@ -81,6 +83,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 				}),
 			)
 		} catch (err) {
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Checkpoint restore both error:", err)
 			setRestoreBothDisabled(false)
 		}
@@ -132,6 +135,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 							}),
 						)
 					} catch (err) {
+						// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						console.error("CheckpointDiff error:", err)
 					} finally {
 						setCompareDisabled(false)

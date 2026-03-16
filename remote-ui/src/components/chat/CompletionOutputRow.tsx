@@ -98,6 +98,7 @@ const CompletionOutputActionRow = memo(
 							Int64Request.create({
 								value: messageTs,
 							}),
+							// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 						).catch((err) => console.error("Failed to show task completion view changes:", err))
 					}}
 					style={{
@@ -117,6 +118,7 @@ const CompletionOutputActionRow = memo(
 								metadata: {},
 								messageTs,
 							}).catch((err) => {
+								// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 								console.error("Failed to explain changes:", err)
 								setExplainChangesDisabled(false)
 							})

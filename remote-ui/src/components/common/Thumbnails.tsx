@@ -44,12 +44,14 @@ const Thumbnails = ({ images, files, style, setImages, setFiles, onHeightChange,
 
 	const handleImageClick = (image: string) => {
 		FileServiceClient.openImage(StringRequest.create({ value: image })).catch((err) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to open image:", err),
 		)
 	}
 
 	const handleFileClick = (filePath: string) => {
 		FileServiceClient.openFile(StringRequest.create({ value: filePath })).catch((err) =>
+			// biome-ignore lint/suspicious/noConsole: No Logger service available in remote-ui
 			console.error("Failed to open file:", err),
 		)
 	}
