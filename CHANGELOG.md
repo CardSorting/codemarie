@@ -4,6 +4,7 @@
 
 ### Fixed
 - **Linting & Code Style**: Resolved several linting issues across the codebase:
+  - Fixed TypeScript and linting errors in `AlignmentGuard` component (`webview-ui/src/components/chat/AlignmentGuard.tsx`).
   - Renamed storage key `claude-code-path` to `claudeCodePath` in `src/shared/storage/state-keys.ts` for camelCase consistency and to fix parse errors.
   - Removed unused imports in Gemini and Vertex AI provider implementations (`src/core/api/providers/gemini.ts` and `src/core/api/providers/vertex.ts`).
   - Synchronized and regenerated state proto and TypeScript definitions.
