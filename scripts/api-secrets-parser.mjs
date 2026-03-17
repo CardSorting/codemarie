@@ -123,11 +123,6 @@ export function extractProviderFromFieldName(fieldName) {
 		return null
 	}
 
-	// Special case: Vertex fields (not in ApiHandlerSecrets but in ApiHandlerOptions)
-	if (lowerFieldName === "vertexprojectid" || lowerFieldName === "vertexregion") {
-		return "vertex"
-	}
-
 	// Pattern 1: AWS-specific fields (check before generic pattern to avoid false positives)
 	if (lowerFieldName.startsWith("aws")) {
 		// awsAccessKey, awsSecretKey, awsSessionToken, awsRegion -> bedrock
@@ -260,11 +255,9 @@ function applySpecialCaseMappings(providerApiKeyMap, apiSecretsFields, assignedF
 		providerApiKeyMap.bedrock = bedrockFields
 	}
 
-	// Special case 2: Vertex needs project ID and region
+	// Special case 2: Vertex typically uses application default credentials
 	if (providerApiKeyMap.vertex) {
-		// Vertex typically uses application default credentials,
-		// but requires project ID and region configuration
-		// These are already captured if they exist in ApiHandlerSecrets
+		// Vertex is now handled by standard pattern matching for vertexApiKey
 	}
 
 	// Special case 3: SAP AI Core multi-key authentication
@@ -323,8 +316,6 @@ export function generateApiKeyDisplayName(fieldName) {
 		togetherApiKey: "Together AI API Key",
 		difyApiKey: "Dify API Key",
 		codemarieAccountId: "CodeMarie Account ID",
-		vertexProjectId: "Vertex Project ID",
-		vertexRegion: "Vertex Region",
 		sapAiCoreClientId: "SAP AI Core Client ID",
 		sapAiCoreClientSecret: "SAP AI Core Client Secret",
 		huaweiCloudMaasApiKey: "Huawei Cloud MaaS API Key",
@@ -356,7 +347,7 @@ export function validateApiKeyMappings(providerIds, providerApiKeyMap) {
 	for (const providerId of providerIds) {
 		if (!providerApiKeyMap[providerId] || providerApiKeyMap[providerId].length === 0) {
 			// Some providers don't require API keys - they use alternative authentication:
-			const noKeyProviders = ["vscode-lm", "ollama", "lmstudio", "claude-code", "oca", "vertex", "qwen-code"]
+			const noKeyProviders = ["vscode-lm", "ollama", "lmstudio", "claude-code", "oca", "qwen-code"]
 
 			if (!noKeyProviders.includes(providerId)) {
 				unmappedProviders.push(providerId)

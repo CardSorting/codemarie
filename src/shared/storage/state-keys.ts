@@ -120,7 +120,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	awsProfile: { default: undefined as string | undefined },
 	awsBedrockEndpoint: { default: undefined as string | undefined },
 	claudeCodePath: { default: undefined as string | undefined },
-	vertexRegion: { default: undefined as string | undefined },
 	vertexApiKey: { default: undefined as string | undefined },
 	openAiBaseUrl: { default: undefined as string | undefined },
 	ollamaBaseUrl: { default: undefined as string | undefined },
@@ -366,7 +365,6 @@ const SECRETS_KEYS = [
 	"mcpOAuthSecrets",
 	"openai-codex-oauth-credentials", // JSON blob containing OAuth tokens for OpenAI Codex (ChatGPT subscription)
 	"embeddingApiKey",
-	"vertexCredentialsJson",
 ] as const
 
 // WARNING, these are not ALL of the local state keys in practice. For example, FileContextTracker

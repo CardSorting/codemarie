@@ -1,10 +1,10 @@
-import { ApiConfiguration, vertexGlobalModels, vertexModels } from "@shared/api"
+import { ApiConfiguration, vertexModels } from "@shared/api"
 import VertexData from "@shared/providers/vertex.json"
 import { RemoteConfigFields } from "@shared/storage/state-keys"
 import type { Mode } from "@shared/storage/types"
-import { VSCodeDropdown, VSCodeLink, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { DROPDOWN_Z_INDEX, DropdownContainer } from "../ApiOptions"
+import { DROPDOWN_Z_INDEX } from "../ApiOptions"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { ModelInfoView } from "../common/ModelInfoView"
 import { ModelSelector } from "../common/ModelSelector"
@@ -41,7 +41,7 @@ const SUPPORTED_THINKING_MODELS = [
 	"gemini-2.5-flash-lite-preview-06-17",
 ]
 
-const REGIONS = VertexData.regions
+const _REGIONS = VertexData.regions
 
 /**
  * The GCP Vertex AI provider configuration component
@@ -58,8 +58,8 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 	// Get the normalized configuration
 	const { selectedModelId, selectedModelInfo } = normalizeApiConfiguration(apiConfiguration, currentMode)
 
-	// Determine which models to use based on region
-	const modelsToUse = apiConfiguration?.vertexRegion === "global" ? vertexGlobalModels : vertexModels
+	// Always use vertexModels
+	const modelsToUse = vertexModels
 
 	return (
 		<div
@@ -80,32 +80,6 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 						{remoteConfigSettings?.vertexApiKey !== undefined && <LockIcon />}
 					</div>
 				</DebouncedTextField>
-			</RemotelyConfiguredInputWrapper>
-
-			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexRegion === undefined}>
-				<DropdownContainer className="dropdown-container" zIndex={DROPDOWN_Z_INDEX - 1}>
-					<div
-						className="flex items-center gap-2 mb-1"
-						style={{ opacity: remoteConfigSettings?.vertexRegion !== undefined ? 0.4 : 1 }}>
-						<label htmlFor="vertex-region-dropdown">
-							<span className="font-medium">Google Cloud Region</span>
-						</label>
-						{remoteConfigSettings?.vertexRegion !== undefined && <LockIcon />}
-					</div>
-					<VSCodeDropdown
-						disabled={remoteConfigSettings?.vertexRegion !== undefined}
-						id="vertex-region-dropdown"
-						onChange={(e: any) => handleFieldChange("vertexRegion", e.target.value)}
-						style={{ width: "100%" }}
-						value={apiConfiguration?.vertexRegion || ""}>
-						<VSCodeOption value="">Select a region...</VSCodeOption>
-						{REGIONS.map((region) => (
-							<VSCodeOption key={region} value={region}>
-								{region}
-							</VSCodeOption>
-						))}
-					</VSCodeDropdown>
-				</DropdownContainer>
 			</RemotelyConfiguredInputWrapper>
 
 			<p

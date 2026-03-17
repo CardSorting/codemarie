@@ -592,7 +592,6 @@ export async function migrateWelcomeViewCompleted(context: vscode.ExtensionConte
 
 			// Fetch configuration values from global state
 			const awsRegion = context.globalState.get("awsRegion")
-			const vertexProjectId = context.globalState.get("vertexProjectId")
 			const planModeOllamaModelId = context.globalState.get("planModeOllamaModelId")
 			const planModeLmStudioModelId = context.globalState.get("planModeLmStudioModelId")
 			const actModeOllamaModelId = context.globalState.get("actModeOllamaModelId")
@@ -606,7 +605,6 @@ export async function migrateWelcomeViewCompleted(context: vscode.ExtensionConte
 				apiKey,
 				openRouterApiKey,
 				awsRegion,
-				vertexProjectId,
 				openAiApiKey,
 				ollamaApiKey,
 				planModeOllamaModelId,

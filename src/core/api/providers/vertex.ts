@@ -12,7 +12,6 @@ import { ApiStream } from "../transform/stream"
 import { GeminiHandler } from "./gemini"
 
 interface VertexHandlerOptions extends CommonApiHandlerOptions {
-	vertexRegion?: string
 	vertexApiKey?: string
 	apiModelId?: string
 	thinkingBudgetTokens?: number
@@ -58,7 +57,7 @@ export class VertexHandler implements ApiHandler {
 				this.clientAnthropic = new AnthropicVertex({
 					projectId: "unused", // SDK requires projectId but API key might override
 					// https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#regions
-					region: this.options.vertexRegion || "us-central1",
+					region: "us-central1",
 					apiKey: this.options.vertexApiKey,
 					defaultHeaders: externalHeaders,
 				} as any)

@@ -739,8 +739,6 @@ describe("Remote Config Schema", () => {
 							{ id: "claude-3-5-sonnet-v2@20241022", thinkingBudgetTokens: 1600 },
 							{ id: "claude-3-5-haiku@20241022" },
 						],
-						vertexProjectId: "my-gcp-project",
-						vertexRegion: "us-central1",
 					},
 					Anthropic: {
 						models: [
@@ -798,8 +796,6 @@ describe("Remote Config Schema", () => {
 			expect(result.providerSettings?.Vertex?.models?.[0].thinkingBudgetTokens).to.equal(1600)
 			expect(result.providerSettings?.Vertex?.models?.[1].id).to.equal("claude-3-5-haiku@20241022")
 			expect(result.providerSettings?.Vertex?.models?.[1].thinkingBudgetTokens).to.be.undefined
-			expect(result.providerSettings?.Vertex?.vertexProjectId).to.equal("my-gcp-project")
-			expect(result.providerSettings?.Vertex?.vertexRegion).to.equal("us-central1")
 
 			expect(result.providerSettings?.Anthropic?.models).to.have.lengthOf(2)
 			expect(result.providerSettings?.Anthropic?.models?.[0].id).to.equal("claude-3-5-sonnet-20241022")

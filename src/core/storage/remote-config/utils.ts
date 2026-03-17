@@ -192,13 +192,6 @@ export function transformRemoteConfigToStateShape(remoteConfig: RemoteConfig): P
 		transformed.planModeApiProvider = "vertex"
 		transformed.actModeApiProvider = "vertex"
 		providers.push("vertex")
-
-		if (vertexSettings.vertexProjectId !== undefined) {
-			transformed.vertexProjectId = vertexSettings.vertexProjectId
-		}
-		if (vertexSettings.vertexRegion !== undefined) {
-			transformed.vertexRegion = vertexSettings.vertexRegion
-		}
 	}
 
 	const anthropicSettings = remoteConfig.providerSettings?.Anthropic

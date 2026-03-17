@@ -51,7 +51,6 @@ export interface ApiHandlerOptions extends Partial<ApiHandlerSettings> {
 	ulid?: string // Used to identify the task in API requests
 	onRetryAttempt?: (attempt: number, maxRetries: number, delay: number, error: any) => void // Callback function
 	vertexApiKey?: string
-	vertexCredentialsJson?: string
 }
 
 export type ApiConfiguration = ApiHandlerOptions

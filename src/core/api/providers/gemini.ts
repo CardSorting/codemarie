@@ -24,7 +24,6 @@ const rateLimitPatterns = [/got status: 429/i, /429 Too Many Requests/i, /rate l
 
 interface GeminiHandlerOptions extends CommonApiHandlerOptions {
 	isVertex?: boolean
-	vertexRegion?: string
 	vertexApiKey?: string
 	geminiApiKey?: string
 	geminiBaseUrl?: string
@@ -90,7 +89,7 @@ export class GeminiHandler implements ApiHandler {
 						throw new Error("Vertex AI requires an API Key")
 					}
 
-					const location = options.vertexRegion || "us-central1"
+					const location = "us-central1"
 
 					this.client = new GoogleGenAI({
 						vertexai: true,
