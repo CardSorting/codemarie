@@ -182,4 +182,34 @@ describe("IntentGrounder (Pass 5 - Autonomous Validation)", () => {
 		expect(spec.ambiguityReasoning).to.contain("Grounding failed: API Down")
 		expect(spec.missingInformation).to.contain("The system failed to structure your intent. Please try rephrasing.")
 	})
+
+	it("should perform architectural layer discovery (Joy-Zoning)", async () => {
+		const mockResponse = {
+			decisionVariables: [{ name: "service", description: "target", range: ["src/domain/service.ts"] }],
+			constraints: [],
+			outputStructure: {},
+			rules: [],
+			confidenceScore: 1.0,
+		}
+
+		mockApiHandler.createMessage.callsFake(
+			() =>
+				(async function* () {
+					yield { type: "text", text: JSON.stringify(mockResponse) }
+				})() as ApiStream,
+		)
+
+		// Mock fs.stat to allow entity verification
+		const statStub = sandbox.stub(fs, "stat")
+		statStub
+			.withArgs(sinon.match("src/domain/service.ts"))
+			.resolves({ isDirectory: () => false, isFile: () => true } as unknown as Stats)
+
+		const grounder = new IntentGrounder(mockApiHandler as unknown as ApiHandler)
+		const spec = await grounder.ground("domain task", "", "/abs/path")
+
+		expect(spec.architecturalLayers).to.exist
+		expect(spec.architecturalLayers?.["src/domain/service.ts (File)"]).to.equal("domain")
+		expect(spec.policyCompliance?.isAligned).to.be.true
+	})
 })

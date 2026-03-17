@@ -39,7 +39,6 @@ import {
 import { MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSize } from "react-use"
 import { ActionCheckboxes } from "@/components/chat/ActionCheckboxes"
-import { GroundingHeader } from "@/components/chat/GroundingHeader"
 import { OptionsButtons } from "@/components/chat/OptionsButtons"
 import { CheckmarkControl } from "@/components/common/CheckmarkControl"
 import { WithCopyButton } from "@/components/common/CopyButton"
@@ -51,15 +50,21 @@ import { cn } from "@/lib/utils"
 import { FileServiceClient, UiServiceClient } from "@/services/grpc-client"
 import { findMatchingResourceOrTemplate, getMcpServerDisplayName } from "@/utils/mcp"
 import CodeAccordian, { cleanPathPrefix } from "../common/CodeAccordian"
+import { AlignmentGuard } from "./AlignmentGuard"
+import { ClarificationHub } from "./ClarificationHub"
 import { CommandOutputContent, CommandOutputRow } from "./CommandOutputRow"
 import { CompletionOutputRow } from "./CompletionOutputRow"
 import { DiffEditRow } from "./DiffEditRow"
 import ErrorRow from "./ErrorRow"
+import { GroundingHeader } from "./GroundingHeader"
 import HookMessage from "./HookMessage"
+import { IntentDecomposition } from "./IntentDecomposition"
 import { MarkdownRow } from "./MarkdownRow"
 import NewTaskPreview from "./NewTaskPreview"
+import { OutcomeMapper } from "./OutcomeMapper"
 import PlanCompletionOutputRow from "./PlanCompletionOutputRow"
 import QuoteButton from "./QuoteButton"
+import { RedTeamAlerts } from "./RedTeamAlerts"
 import ReportBugPreview from "./ReportBugPreview"
 import { RequestStartRow } from "./RequestStartRow"
 import SearchResultsDisplay from "./SearchResultsDisplay"
@@ -1200,6 +1205,15 @@ export const ChatRowContent = memo(
 						let ambiguityReasoning: string | undefined
 						let verifiedEntities: string[] | undefined
 						let risks: CodemarieAskQuestion["risks"] | undefined
+						let intentDecomposition: CodemarieAskQuestion["intentDecomposition"] | undefined
+						let constraints: string[] | undefined
+						let constraintExplanations: Record<string, string> | undefined
+						let architecturalLayers: CodemarieAskQuestion["architecturalLayers"] | undefined
+						let policyCompliance: CodemarieAskQuestion["policyCompliance"] | undefined
+						let outcomeMapping: CodemarieAskQuestion["outcomeMapping"] | undefined
+						let adversarialCritique: CodemarieAskQuestion["adversarialCritique"] | undefined
+						let interactiveClarifications: CodemarieAskQuestion["interactiveClarifications"] | undefined
+						let swarmConsensus: CodemarieAskQuestion["swarmConsensus"] | undefined
 						try {
 							const parsedMessage = JSON.parse(message.text || "{}") as CodemarieAskQuestion
 							question = parsedMessage.question
@@ -1210,6 +1224,15 @@ export const ChatRowContent = memo(
 							ambiguityReasoning = parsedMessage.ambiguityReasoning
 							verifiedEntities = parsedMessage.verifiedEntities
 							risks = parsedMessage.risks
+							intentDecomposition = parsedMessage.intentDecomposition
+							constraints = parsedMessage.constraints
+							constraintExplanations = parsedMessage.constraintExplanations
+							architecturalLayers = parsedMessage.architecturalLayers
+							policyCompliance = parsedMessage.policyCompliance
+							outcomeMapping = parsedMessage.outcomeMapping
+							adversarialCritique = parsedMessage.adversarialCritique
+							interactiveClarifications = parsedMessage.interactiveClarifications
+							swarmConsensus = parsedMessage.swarmConsensus
 						} catch (_e) {
 							// legacy messages would pass question directly
 							question = message.text
@@ -1244,9 +1267,26 @@ export const ChatRowContent = memo(
 									<GroundingHeader
 										ambiguityReasoning={ambiguityReasoning}
 										confidenceScore={confidenceScore}
+										constraintExplanations={constraintExplanations}
+										constraints={constraints}
 										hasActions={!!actions?.length}
 										risks={risks}
 										verifiedEntities={verifiedEntities}
+									/>
+								)}
+								{intentDecomposition && <IntentDecomposition phases={intentDecomposition} />}
+								{(policyCompliance || architecturalLayers) && (
+									<AlignmentGuard
+										architecturalLayers={architecturalLayers}
+										policyCompliance={policyCompliance}
+									/>
+								)}
+								{outcomeMapping && <OutcomeMapper outcomeMapping={outcomeMapping} />}
+								{adversarialCritique && <RedTeamAlerts adversarialCritique={adversarialCritique} />}
+								{(interactiveClarifications || swarmConsensus) && (
+									<ClarificationHub
+										interactiveClarifications={interactiveClarifications}
+										swarmConsensus={swarmConsensus}
 									/>
 								)}
 								{actions && actions.length > 0 && (

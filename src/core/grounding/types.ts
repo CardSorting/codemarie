@@ -15,6 +15,14 @@ export const GroundedSpecSchema = z.object({
 	rules: z.array(z.string()).default([]),
 	confidenceScore: z.number().min(0).max(1).default(0.5),
 	ambiguityReasoning: z.string().optional(),
+	intentDecomposition: z
+		.array(
+			z.object({
+				phase: z.string(),
+				goal: z.string(),
+			}),
+		)
+		.optional(),
 	missingInformation: z.array(z.string()).optional(),
 	telemetry: z
 		.object({
@@ -49,6 +57,52 @@ export const GroundedSpecSchema = z.object({
 				description: z.string(),
 			}),
 		)
+		.optional(),
+	constraintExplanations: z.record(z.string(), z.string()).optional(),
+	architecturalLayers: z.record(z.string(), z.enum(["domain", "core", "infrastructure", "ui", "plumbing"])).optional(),
+	policyCompliance: z
+		.object({
+			isAligned: z.boolean(),
+			reasoning: z.string(),
+			violations: z.array(z.string()).optional(),
+		})
+		.optional(),
+	outcomeMapping: z
+		.object({
+			blastRadius: z.array(z.object({ path: z.string(), reason: z.string() })).optional(),
+			complexityDelta: z
+				.object({
+					linesAdded: z.number(),
+					linesDeleted: z.number(),
+					filesCreated: z.number(),
+				})
+				.optional(),
+			predictedOutcome: z.string().optional(),
+		})
+		.optional(),
+	adversarialCritique: z
+		.object({
+			critique: z.string(),
+			pitfalls: z.array(z.string()),
+			mitigations: z.array(z.string()),
+			redTeamScore: z.number(),
+		})
+		.optional(),
+	interactiveClarifications: z
+		.array(
+			z.object({
+				label: z.string(),
+				type: z.enum(["provide_path", "clarify_intent", "select_variant", "confirm_risk"]),
+				data: z.record(z.string(), z.any()).optional(),
+			}),
+		)
+		.optional(),
+	swarmConsensus: z
+		.object({
+			agreementScore: z.number(),
+			consensusNarrative: z.string(),
+			agentFeedback: z.array(z.string()),
+		})
 		.optional(),
 })
 
@@ -107,6 +161,20 @@ Decompose the intent into:
 4. Rules: Logic, heuristics, or specific coding standards to follow.
 5. Confidence Score: 0.0 to 1.0. Penalize if the intent is vague or contradicts the provided environment context.
 6. Ambiguity Reasoning: Brief explanation of why the confidence score is not 1.0.
+10. Intent Decomposition: A phase-by-phase breakdown of your interpretation of the intent (e.g., Phase 1: Context Gathering, Phase 2: Logic Implementation).
+11. Constraint Explanations: For every constraint listed in 'constraints', provide a corresponding key-value pair in 'constraintExplanations' explaining *why* that constraint is necessary from a technical or safety perspective.
+12. Architectural Layers: Map every file path in 'verifiedEntities' or 'actions' to its corresponding Joy-Zoning layer (domain, core, infrastructure, ui, plumbing).
+13. Policy Compliance: Evaluate if the proposed plan aligns with the project's architectural policies (e.g., Domain must not have side effects).
+14. Outcome Mapping: Predict the "End State" of the codebase using Blast Radius and Complexity Deltas.
+15. Adversarial Critique (Red-Teaming): Perform a self-critique of the proposed plan. Identify potential pitfalls, hidden risks, or architectural anti-patterns.
+16. Interactive Clarifications: If there is 'missingInformation', create actionable 'interactiveClarifications'.
+	- Each should have a 'label' (e.g., "Confirm path for server.ts").
+	- A 'type' (provide_path, clarify_intent, etc.).
+	- Optional 'data' to help the UI resolve it.
+17. Swarm Consensus: Provide a 'swarmConsensus' evaluation.
+	- 'agreementScore' (0.0 to 1.0) representing the hypothetical agreement across various architectural perspectives.
+	- 'consensusNarrative' summarizing the cross-agent verification.
+	- 'agentFeedback' (specific pointers from simulated "Specialist" agents).
 7. Missing Information: Specific questions to ask the user to clear up ambiguity.
 9. Risks: A list of potential side effects or high-impact areas that may be affected. Pay special attention to "Blast Radius" hints for chokepoint files.
 	- Example Risks: [{"impact": "high", "description": "Modifying server.ts affects all incoming requests."}]

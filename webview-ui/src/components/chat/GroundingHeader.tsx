@@ -67,6 +67,45 @@ const VerifiedBadge = styled(Badge)`
   color: var(--vscode-badge-foreground);
 `
 
+const ConstraintContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-editorGroup-border);
+`
+
+const ConstraintItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`
+
+const ConstraintLabel = styled.div`
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`
+
+const ConstraintExplanation = styled.div`
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding-left: 18px;
+  font-style: italic;
+`
+
+const Bullet = styled.span`
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--vscode-button-background);
+  display: inline-block;
+`
+
 interface Risk {
 	impact: "high" | "medium" | "low"
 	description: string
@@ -78,6 +117,8 @@ interface GroundingHeaderProps {
 	hasActions: boolean
 	risks?: Risk[]
 	verifiedEntities?: string[]
+	constraints?: string[]
+	constraintExplanations?: Record<string, string>
 }
 
 export const GroundingHeader = ({
@@ -86,6 +127,8 @@ export const GroundingHeader = ({
 	hasActions,
 	risks,
 	verifiedEntities,
+	constraints,
+	constraintExplanations,
 }: GroundingHeaderProps) => {
 	const percentage = Math.round(confidenceScore * 100)
 
@@ -114,6 +157,23 @@ export const GroundingHeader = ({
 					))}
 					{verifiedEntities.length > 3 && <VerifiedBadge>+{verifiedEntities.length - 3} more</VerifiedBadge>}
 				</MetaRow>
+			)}
+
+			{constraints && constraints.length > 0 && (
+				<ConstraintContainer>
+					<span className="text-[11px] font-bold text-description uppercase mb-1">Constraints & Requirements:</span>
+					{constraints.map((c, i) => (
+						<ConstraintItem key={i}>
+							<ConstraintLabel>
+								<Bullet />
+								{c}
+							</ConstraintLabel>
+							{constraintExplanations && constraintExplanations[c] && (
+								<ConstraintExplanation>{constraintExplanations[c]}</ConstraintExplanation>
+							)}
+						</ConstraintItem>
+					))}
+				</ConstraintContainer>
 			)}
 
 			{highRisk && (

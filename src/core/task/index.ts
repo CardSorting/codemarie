@@ -1500,6 +1500,15 @@ export class Task {
 								ambiguityReasoning: this.taskState.groundedSpec.ambiguityReasoning,
 								verifiedEntities: this.taskState.groundedSpec.verifiedEntities,
 								risks: this.taskState.groundedSpec.risks,
+								intentDecomposition: this.taskState.groundedSpec.intentDecomposition,
+								constraints: this.taskState.groundedSpec.constraints,
+								constraintExplanations: this.taskState.groundedSpec.constraintExplanations,
+								architecturalLayers: this.taskState.groundedSpec.architecturalLayers,
+								policyCompliance: this.taskState.groundedSpec.policyCompliance,
+								outcomeMapping: this.taskState.groundedSpec.outcomeMapping,
+								adversarialCritique: this.taskState.groundedSpec.adversarialCritique,
+								interactiveClarifications: this.taskState.groundedSpec.interactiveClarifications,
+								swarmConsensus: this.taskState.groundedSpec.swarmConsensus,
 								options: ["Proceed", "Abort"],
 							}
 

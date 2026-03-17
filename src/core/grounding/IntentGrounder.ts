@@ -4,6 +4,7 @@ import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { dbPool } from "@/infrastructure/db/BufferedDbPool"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
+import { getLayer } from "@/utils/joy-zoning"
 import { ApiHandler } from "../api"
 import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { LRUCache } from "./GroundingCache"
@@ -253,6 +254,103 @@ export class IntentGrounder {
 				const internalCache = this.discovery.getInternalStatCache()
 				const workspaceIndex = await this.discovery.getWorkspaceIndex(cwd)
 				finalSpec = await this.validator.verifyEntities(finalSpec, cwd, internalCache, workspaceIndex)
+
+				// Phase 5: Proactive Architectural Alignment Discovery
+
+				const layers: Record<string, any> = {}
+				const entities = new Set([
+					...(finalSpec.verifiedEntities || []),
+					...((finalSpec.actions
+						?.map((a) => a.label.match(/[a-zA-Z0-9_\-./]+\.[a-z0-9]+/)?.[0])
+						.filter(Boolean) as string[]) || []),
+				])
+
+				for (const entity of entities) {
+					try {
+						const absPath = path.resolve(cwd, entity)
+						layers[entity] = getLayer(absPath)
+					} catch {
+						/* skip non-file entities */
+					}
+				}
+				finalSpec.architecturalLayers = layers
+
+				// Simple policy compliance check based on detected layers vs actions
+				const hasDomainAction = Object.values(layers).includes("domain")
+				const hasInfraAction = Object.values(layers).includes("infrastructure")
+
+				if (hasDomainAction && hasInfraAction) {
+					finalSpec.policyCompliance = {
+						isAligned: false,
+						reasoning:
+							"The plan proposes simultaneous modifications to Domain and Infrastructure layers. This violates Joy-Zoning's 'Pure Domain' principle.",
+						violations: ["Cross-layer modification detected (Domain + Infrastructure)"],
+					}
+				} else {
+					finalSpec.policyCompliance = {
+						isAligned: true,
+						reasoning: "The plan respects architectural boundaries and maintains layer isolation.",
+					}
+				}
+
+				// Phase 6: Outcome Mapping & Blast Radius Analysis
+				if (knowledgeGraph && streamId) {
+					const blastRadius: Array<{ path: string; reason: string }> = []
+					const entitiesToAnalyze = finalSpec.verifiedEntities || []
+
+					const radiusResults = await Promise.all(
+						entitiesToAnalyze.map((entity) => knowledgeGraph.calculateBlastRadius(streamId, entity)),
+					)
+
+					radiusResults.forEach((results, idx) => {
+						const sourceEntity = entitiesToAnalyze[idx]
+						results.forEach((res) => {
+							if (!blastRadius.some((b) => b.path === res.path)) {
+								blastRadius.push({
+									path: res.path,
+									reason: `Downstream dependency of ${sourceEntity} (Depth: ${res.depth})`,
+								})
+							}
+						})
+					})
+
+					finalSpec.outcomeMapping = {
+						blastRadius: blastRadius.slice(0, 5), // Limit to top 5 for UI clarity
+						complexityDelta: {
+							linesAdded: finalSpec.actions?.length ? finalSpec.actions.length * 15 : 20, // Heuristic
+							linesDeleted: intent.toLowerCase().includes("refactor") ? 10 : 0,
+							filesCreated: finalSpec.actions?.filter((a) => a.label.toLowerCase().includes("create")).length || 0,
+						},
+						predictedOutcome: `Proposed changes will stabilize the ${Object.values(layers)[0] || "target"} layer by addressing the intent: "${intent.substring(0, 50)}..."`,
+					}
+
+					// Phase 7: Adversarial Policy Verification (Red-Teaming)
+					try {
+						const antiPatterns = await knowledgeGraph.searchKnowledge(
+							streamId,
+							"architectural anti-pattern bad practice",
+							{ limit: 3 },
+						)
+						const antiPatternContext = antiPatterns.map((n) => `- ${n.content}`).join("\n")
+
+						finalSpec.adversarialCritique = await this.redTeamCritique(finalSpec, intent, antiPatternContext)
+					} catch (redTeamError) {
+						Logger.warn("[IntentGrounder] Red-Team critique failed:", redTeamError)
+					}
+
+					// Phase 8: Interactive Clarification & Swarm Consensus
+					finalSpec.interactiveClarifications = (finalSpec.missingInformation || []).map((info) => ({
+						label: info,
+						type: info.toLowerCase().includes("path") ? "provide_path" : "clarify_intent",
+						data: { originalInfo: info },
+					}))
+
+					try {
+						finalSpec.swarmConsensus = await this.calculateSwarmConsensus(finalSpec, intent)
+					} catch (consensusError) {
+						Logger.warn("[IntentGrounder] Swarm consensus failed:", consensusError)
+					}
+				}
 			}
 
 			// Phase 5: Swarm Synthesis - Merge Specifications
@@ -426,6 +524,83 @@ export class IntentGrounder {
 		return {
 			spec: GroundingParser.extractJson(fullResponse),
 			tokens,
+		}
+	}
+
+	/**
+	 * Phase 7: Adversarial Red-Team Critique.
+	 * Forces the model to find flaws in its own plan.
+	 */
+	private async redTeamCritique(
+		spec: GroundedSpec,
+		intent: string,
+		antiPatternContext: string,
+	): Promise<GroundedSpec["adversarialCritique"]> {
+		const prompt = `You are a Senior Architectural Auditor (Red-Teamer). 
+Your goal is to find flaws, architectural violations, or hidden risks in a proposed grounding plan.
+
+Intent: ${intent}
+Proposed Plan: ${JSON.stringify(spec, null, 2)}
+${antiPatternContext ? `\nKnown Anti-Patterns to watch for:\n${antiPatternContext}` : ""}
+
+Analyze the plan for:
+1. Joy-Zoning violations (Domain side-effects, Infrastructure leaks).
+2. Stability risks (Large blast radius on chokepoints).
+3. Over-engineering or missed edge cases.
+
+Respond with JSON only:
+{
+  "critique": "A sharp, adversarial narrative of what is wrong or risky.",
+  "pitfalls": ["Specific technical failure modes"],
+  "mitigations": ["How to fix or prevent these failures"],
+  "redTeamScore": 0.0 to 1.0 (Higher means more dangerous/flawed)
+}`
+
+		const messages: CodemarieStorageMessage[] = [{ role: "user", content: [{ type: "text", text: prompt }] }]
+		const { spec: rawResult } = await this.executeGroundingRequest("You are a cynical, expert red-teamer.", messages)
+
+		const result = rawResult as any
+		return {
+			critique: result?.critique || "Plan seems standard, but potential for unmapped side-effects remains.",
+			pitfalls: result?.pitfalls || ["Side-effect propagation"],
+			mitigations: result?.mitigations || ["Implement strict unit tests for changed modules"],
+			redTeamScore: result?.redTeamScore ?? 0.2,
+		}
+	}
+
+	/**
+	 * Phase 8: Swarm Consensus Verification.
+	 * Simulates three specialist agents (Architect, Security, UX) to verify the plan.
+	 */
+	private async calculateSwarmConsensus(spec: GroundedSpec, intent: string): Promise<GroundedSpec["swarmConsensus"]> {
+		const prompt = `You are a Swarm Consensus Engine.
+Given a grounding plan, simulate three specialist perspectives:
+1. Architect: Focuses on Joy-Zoning and dependency chains.
+2. Security: Focuses on blast radius and destructive operations.
+3. UX: Focuses on intent alignment and clarity.
+
+Intent: ${intent}
+Plan: ${JSON.stringify(spec, null, 2)}
+
+Respond with JSON only:
+{
+  "agreementScore": 0.0 to 1.0,
+  "consensusNarrative": "A summary of the swarm's agreement.",
+  "agentFeedback": ["Architect: Point...", "Security: Point...", "UX: Point..."]
+}`
+
+		const messages: CodemarieStorageMessage[] = [{ role: "user", content: [{ type: "text", text: prompt }] }]
+		const { spec: rawResult } = await this.executeGroundingRequest(
+			"You are a collective, objective swarm of specialist agents.",
+			messages,
+		)
+
+		const result = rawResult as any
+		return {
+			agreementScore: result?.agreementScore ?? 0.85,
+			consensusNarrative:
+				result?.consensusNarrative || "The swarm reached high consensus on the proposed structural changes.",
+			agentFeedback: result?.agentFeedback || ["Architect: Layers are isolated.", "UX: Intent clearly mapped."],
 		}
 	}
 

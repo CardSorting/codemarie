@@ -1,4 +1,4 @@
-// type that represents json data that is sent from extension to webview, called ExtensionMessage and has 'type' enum which can be 'plusButtonClicked' or 'settingsButtonClicked' or 'hello'
+// type that represents json data that is sent from extension to webview, called ExtensionMessage and has 'type' enum which can be 'command' or 'tool_use'
 
 import { WorkspaceRoot } from "@shared/multi-root/types"
 import { RemoteConfigFields } from "@shared/storage/state-keys"
@@ -343,6 +343,43 @@ export interface CodemariePlanModeResponse {
 		impact: "high" | "medium" | "low"
 		description: string
 	}>
+	intentDecomposition?: Array<{
+		phase: string
+		goal: string
+	}>
+	constraints?: string[]
+	constraintExplanations?: Record<string, string>
+	architecturalLayers?: Record<string, "domain" | "core" | "infrastructure" | "ui" | "plumbing">
+	policyCompliance?: {
+		isAligned: boolean
+		reasoning: string
+		violations?: string[]
+	}
+	outcomeMapping?: {
+		blastRadius?: Array<{ path: string; reason: string }>
+		complexityDelta?: {
+			linesAdded: number
+			linesDeleted: number
+			filesCreated: number
+		}
+		predictedOutcome?: string
+	}
+	adversarialCritique?: {
+		critique: string
+		pitfalls: string[]
+		mitigations: string[]
+		redTeamScore: number
+	}
+	interactiveClarifications?: Array<{
+		label: string
+		type: "provide_path" | "clarify_intent" | "select_variant" | "confirm_risk"
+		data?: Record<string, any>
+	}>
+	swarmConsensus?: {
+		agreementScore: number
+		consensusNarrative: string
+		agentFeedback: string[]
+	}
 }
 
 export interface CodemarieAskQuestion {
@@ -366,6 +403,43 @@ export interface CodemarieAskQuestion {
 		impact: "high" | "medium" | "low"
 		description: string
 	}>
+	intentDecomposition?: Array<{
+		phase: string
+		goal: string
+	}>
+	constraints?: string[]
+	constraintExplanations?: Record<string, string>
+	architecturalLayers?: Record<string, "domain" | "core" | "infrastructure" | "ui" | "plumbing">
+	policyCompliance?: {
+		isAligned: boolean
+		reasoning: string
+		violations?: string[]
+	}
+	outcomeMapping?: {
+		blastRadius?: Array<{ path: string; reason: string }>
+		complexityDelta?: {
+			linesAdded: number
+			linesDeleted: number
+			filesCreated: number
+		}
+		predictedOutcome?: string
+	}
+	adversarialCritique?: {
+		critique: string
+		pitfalls: string[]
+		mitigations: string[]
+		redTeamScore: number
+	}
+	interactiveClarifications?: Array<{
+		label: string
+		type: "provide_path" | "clarify_intent" | "select_variant" | "confirm_risk"
+		data?: Record<string, any>
+	}>
+	swarmConsensus?: {
+		agreementScore: number
+		consensusNarrative: string
+		agentFeedback: string[]
+	}
 }
 
 export interface CodemarieAskNewTask {
