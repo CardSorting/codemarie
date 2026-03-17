@@ -38,8 +38,8 @@ export function getConfiguredProviders(
 		configured.push("bedrock")
 	}
 
-	// Vertex - requires project ID and region
-	if (apiConfiguration.vertexProjectId && apiConfiguration.vertexRegion) {
+	// Vertex - requires API key
+	if (apiConfiguration.vertexApiKey) {
 		configured.push("vertex")
 	}
 

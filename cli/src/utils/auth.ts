@@ -56,7 +56,6 @@ export async function checkAnyProviderConfigured(): Promise<boolean> {
 	// Check provider-specific settings that indicate configuration
 	// (for providers that don't require API keys like Bedrock with IAM, Ollama, LM Studio)
 	if (config.awsRegion) return true
-	if (config.vertexProjectId) return true
 	if (config.ollamaBaseUrl) return true
 	if (config.lmStudioBaseUrl) return true
 

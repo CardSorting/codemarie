@@ -11,7 +11,6 @@ import {
 	ThinkingLevel,
 } from "@google/genai"
 import { GeminiModelId, geminiDefaultModelId, geminiModels, ModelInfo } from "@shared/api"
-import { GoogleAuthOptions } from "google-auth-library"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
@@ -20,16 +19,13 @@ import { ApiHandler, CommonApiHandlerOptions } from "../"
 import { RetriableError, withRetry } from "../retry"
 import { convertAnthropicMessageToGemini } from "../transform/gemini-format"
 import { ApiStream } from "../transform/stream"
-import { validateAndParseVertexCredentials } from "../utils/vertexUtils"
 
 const rateLimitPatterns = [/got status: 429/i, /429 Too Many Requests/i, /rate limit exceeded/i, /too many requests/i]
 
 interface GeminiHandlerOptions extends CommonApiHandlerOptions {
 	isVertex?: boolean
-	vertexProjectId?: string
 	vertexRegion?: string
 	vertexApiKey?: string
-	vertexCredentialsJson?: string
 	geminiApiKey?: string
 	geminiBaseUrl?: string
 	thinkingBudgetTokens?: number
@@ -88,38 +84,23 @@ export class GeminiHandler implements ApiHandler {
 			if (options.isVertex) {
 				// Initialize with Vertex AI configuration
 				try {
-					let projectId = options.vertexProjectId
-					let googleAuthOptions: GoogleAuthOptions | undefined
-
-					if (options.vertexCredentialsJson) {
-						try {
-							const credentials = validateAndParseVertexCredentials(options.vertexCredentialsJson)
-							projectId = credentials.project_id || projectId
-							googleAuthOptions = { credentials }
-						} catch (error: any) {
-							throw new Error(`Invalid Vertex AI credentials: ${error.message}`)
-						}
-					}
-
 					const apiKey = options.vertexApiKey || options.geminiApiKey
 
-					if (!apiKey && !projectId && !googleAuthOptions) {
-						throw new Error("Vertex AI requires either an API Key, Project ID, or Service Account JSON")
+					if (!apiKey) {
+						throw new Error("Vertex AI requires an API Key")
 					}
 
 					const location = options.vertexRegion || "us-central1"
 
 					this.client = new GoogleGenAI({
 						vertexai: true,
-						project: projectId,
 						location,
 						apiKey,
-						googleAuthOptions: googleAuthOptions as any,
 						httpOptions: {
 							headers: externalHeaders,
 						},
 					})
-				} catch (error) {
+				} catch (error: any) {
 					throw new Error(`Error creating Gemini Vertex AI client: ${error.message}`)
 				}
 			} else {

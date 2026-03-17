@@ -27,7 +27,7 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 		case "bedrock":
 			return !!config.awsRegion
 		case "vertex":
-			return !!(config.vertexProjectId && config.vertexRegion)
+			return !!config.vertexApiKey
 		case "gemini":
 			return !!config.geminiApiKey
 		case "openai-native":

@@ -68,16 +68,16 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 				flexDirection: "column",
 				gap: 5,
 			}}>
-			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexProjectId === undefined}>
+			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexApiKey === undefined}>
 				<DebouncedTextField
-					disabled={remoteConfigSettings?.vertexProjectId !== undefined}
-					initialValue={apiConfiguration?.vertexProjectId || ""}
-					onChange={(value) => handleFieldChange("vertexProjectId", value)}
-					placeholder="Enter Project ID..."
+					disabled={remoteConfigSettings?.vertexApiKey !== undefined}
+					initialValue={apiConfiguration?.vertexApiKey || ""}
+					onChange={(value) => handleFieldChange("vertexApiKey", value)}
+					placeholder="Enter API Key..."
 					style={{ width: "100%" }}>
 					<div className="flex items-center gap-2 mb-1">
-						<span style={{ fontWeight: 500 }}>Google Cloud Project ID</span>
-						{remoteConfigSettings?.vertexProjectId !== undefined && <LockIcon />}
+						<span style={{ fontWeight: 500 }}>Google Cloud API Key</span>
+						{remoteConfigSettings?.vertexApiKey !== undefined && <LockIcon />}
 					</div>
 				</DebouncedTextField>
 			</RemotelyConfiguredInputWrapper>
@@ -108,47 +108,6 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 				</DropdownContainer>
 			</RemotelyConfiguredInputWrapper>
 
-			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexCredentialsJson === undefined}>
-				<DebouncedTextField
-					disabled={remoteConfigSettings?.vertexCredentialsJson !== undefined}
-					initialValue={apiConfiguration?.vertexCredentialsJson || ""}
-					onChange={(value) => handleFieldChange("vertexCredentialsJson", value)}
-					placeholder='Enter Service Account JSON (e.g. {"type": "service_account", ...})'
-					style={{ width: "100%" }}>
-					<div className="flex items-center gap-2 mb-1">
-						<span style={{ fontWeight: 500 }}>Google Cloud Service Account JSON</span>
-						{remoteConfigSettings?.vertexCredentialsJson !== undefined && <LockIcon />}
-					</div>
-				</DebouncedTextField>
-				{apiConfiguration?.vertexCredentialsJson &&
-					(() => {
-						try {
-							JSON.parse(apiConfiguration.vertexCredentialsJson)
-							return null
-						} catch (_) {
-							return (
-								<div style={{ color: "var(--vscode-errorForeground)", fontSize: "11px", marginTop: "4px" }}>
-									Invalid JSON format
-								</div>
-							)
-						}
-					})()}
-			</RemotelyConfiguredInputWrapper>
-
-			<RemotelyConfiguredInputWrapper hidden={remoteConfigSettings?.vertexApiKey === undefined}>
-				<DebouncedTextField
-					disabled={remoteConfigSettings?.vertexApiKey !== undefined}
-					initialValue={apiConfiguration?.vertexApiKey || ""}
-					onChange={(value) => handleFieldChange("vertexApiKey", value)}
-					placeholder="Enter API Key..."
-					style={{ width: "100%" }}>
-					<div className="flex items-center gap-2 mb-1">
-						<span style={{ fontWeight: 500 }}>Google Cloud API Key</span>
-						{remoteConfigSettings?.vertexApiKey !== undefined && <LockIcon />}
-					</div>
-				</DebouncedTextField>
-			</RemotelyConfiguredInputWrapper>
-
 			<p
 				style={{
 					fontSize: "12px",
@@ -159,14 +118,10 @@ export const VertexProvider = ({ showModelOptions, isPopup, currentMode }: Verte
 				<VSCodeLink
 					href="https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#before_you_begin"
 					style={{ display: "inline", fontSize: "inherit" }}>
-					{"1) create a Google Cloud account › enable the Vertex AI API › enable the desired Claude models,"}
-				</VSCodeLink>{" "}
-				<VSCodeLink
-					href="https://cloud.google.com/docs/authentication/provide-credentials-adc#google-idp"
-					style={{ display: "inline", fontSize: "inherit" }}>
-					{"2) (Optional) Install the Google Cloud CLI › configure Application Default Credentials"}
+					{
+						" create a Google Cloud account › enable the Vertex AI API › enable the desired models › generate an API key."
+					}
 				</VSCodeLink>
-				{" OR 3) create a service account key (JSON) and paste it above."}
 			</p>
 
 			{showModelOptions && (

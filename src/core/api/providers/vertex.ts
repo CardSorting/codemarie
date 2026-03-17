@@ -2,7 +2,6 @@ import { Tool as AnthropicTool } from "@anthropic-ai/sdk/resources/index"
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk"
 import { FunctionDeclaration as GoogleTool } from "@google/genai"
 import { CLAUDE_SONNET_1M_SUFFIX, ModelInfo, VertexModelId, vertexDefaultModelId, vertexModels } from "@shared/api"
-import { GoogleAuth } from "google-auth-library"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { CodemarieTool } from "@/shared/tools"
@@ -10,14 +9,11 @@ import { ApiHandler, CommonApiHandlerOptions } from "../"
 import { withRetry } from "../retry"
 import { sanitizeAnthropicMessages } from "../transform/anthropic-format"
 import { ApiStream } from "../transform/stream"
-import { validateAndParseVertexCredentials } from "../utils/vertexUtils"
 import { GeminiHandler } from "./gemini"
 
 interface VertexHandlerOptions extends CommonApiHandlerOptions {
-	vertexProjectId?: string
 	vertexRegion?: string
 	vertexApiKey?: string
-	vertexCredentialsJson?: string
 	apiModelId?: string
 	thinkingBudgetTokens?: number
 	geminiApiKey?: string
@@ -52,41 +48,17 @@ export class VertexHandler implements ApiHandler {
 
 	private ensureAnthropicClient(): AnthropicVertex {
 		if (!this.clientAnthropic) {
-			if (!this.options.vertexProjectId && !this.options.vertexCredentialsJson && !this.options.vertexApiKey) {
-				throw new Error("Vertex AI project ID or API Key is required")
-			}
-			if (!this.options.vertexRegion) {
-				throw new Error("Vertex AI region is required")
+			if (!this.options.vertexApiKey) {
+				throw new Error("Vertex AI API Key is required")
 			}
 			try {
 				const externalHeaders = buildExternalBasicHeaders()
 
-				let googleAuth: GoogleAuth | undefined
-				let projectId = this.options.vertexProjectId
-
-				if (this.options.vertexCredentialsJson) {
-					try {
-						const credentials = validateAndParseVertexCredentials(this.options.vertexCredentialsJson)
-						projectId = credentials.project_id || projectId
-						googleAuth = new GoogleAuth({
-							credentials,
-							scopes: "https://www.googleapis.com/auth/cloud-platform",
-						})
-					} catch (error: any) {
-						throw new Error(`Invalid Vertex AI credentials: ${error.message}`)
-					}
-				}
-
-				// If we have an API key but no project ID, we can still proceed for some models/regions
-				// but AnthropicVertex SDK usually wants a project ID.
-				// However, standard Google API keys can be used via the `apiKey` option in recent SDKs.
-
 				// Initialize Anthropic client for Claude models
 				this.clientAnthropic = new AnthropicVertex({
-					projectId: projectId || "unused", // SDK requires projectId but API key might override
+					projectId: "unused", // SDK requires projectId but API key might override
 					// https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#regions
-					region: this.options.vertexRegion,
-					googleAuth,
+					region: this.options.vertexRegion || "us-central1",
 					apiKey: this.options.vertexApiKey,
 					defaultHeaders: externalHeaders,
 				} as any)

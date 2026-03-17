@@ -452,7 +452,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		awsBedrockApiKey: config.awsBedrockApiKey,
 		awsBedrockEndpoint: config.awsBedrockEndpoint,
 		claudeCodePath: config.claudeCodePath,
-		vertexProjectId: config.vertexProjectId,
 		vertexRegion: config.vertexRegion,
 		openAiBaseUrl: config.openAiBaseUrl,
 		openAiApiKey: config.openAiApiKey,

@@ -84,7 +84,6 @@ export const VertexModelSchema = z.object({
 export const VertexSettingsSchema = z.object({
 	// A list of the allowed models with their settings
 	models: z.array(VertexModelSchema).optional(),
-	vertexProjectId: z.string().optional(),
 	vertexRegion: z.string().optional(),
 })
 

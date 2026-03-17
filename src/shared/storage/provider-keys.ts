@@ -51,6 +51,7 @@ export const ProviderToApiKeyMap: Partial<Record<ApiProvider, keyof Secrets | (k
 	anthropic: "apiKey",
 	openrouter: "openRouterApiKey",
 	bedrock: ["awsAccessKey", "awsBedrockApiKey"],
+	vertex: "vertexApiKey",
 	openai: "openAiApiKey",
 	gemini: "geminiApiKey",
 	"openai-native": "openAiNativeApiKey",
