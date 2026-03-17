@@ -36,6 +36,8 @@ export const GroundedSpecSchema = z.object({
 				description: z.string().optional(),
 				rationale: z.string().optional(),
 				priority: z.enum(["critical", "recommended", "optional"]).default("recommended"),
+				impact: z.enum(["low", "medium", "high"]).default("medium"),
+				dependsOn: z.array(z.string()).optional(),
 				isChecked: z.boolean().default(false),
 			}),
 		)
@@ -67,8 +69,8 @@ Context: Workspace has src/auth/service.ts and src/auth/utils.ts
   "confidenceScore": 0.85,
   "ambiguityReasoning": "Intent is clear but the specific refactoring goal (performance vs readability) is slightly vague.",
   "actions": [
-    { "id": "refactor-auth-service", "label": "Refactor src/auth/service.ts", "description": "Apply DRY principles", "rationale": "High-complexity file matching intent keywords", "priority": "critical" },
-    { "id": "update-auth-tests", "label": "Update auth tests", "description": "Ensure no regressions", "rationale": "Required by project rules for logic changes", "priority": "recommended" }
+    { "id": "refactor-auth-service", "label": "Refactor src/auth/service.ts", "description": "Apply DRY principles", "rationale": "High-complexity file matching intent keywords", "priority": "critical", "impact": "high" },
+    { "id": "update-auth-tests", "label": "Update auth tests", "description": "Ensure no regressions", "rationale": "Required by project rules for logic changes", "priority": "recommended", "impact": "medium", "dependsOn": ["refactor-auth-service"] }
   ],
   "risks": [
     { "impact": "medium", "description": "Modifying core auth logic may impact all downstream services if API signatures change." }
@@ -111,7 +113,11 @@ Decompose the intent into:
 
 ### OPERATIONAL PRINCIPLES:
 - **USE SEMANTIC CONTEXT**: You are provided with "Discovered Semantic Context" (ripgrep) and "Historical Semantic Affinities" (Knowledge Graph). Use these to verify file existence, understand patterns, identify symbols, and discover "hidden" dependencies that often change together.
-- **BLAST RADIUS AWARENESS**: Pay attention to the Blast Radius hints. If an intent modifies a "chokepoint" file (high dependency), include constraints or rules for extensive regression testing.
+- **BLAST RADIUS & CHOKEPOINTS**: If an intent modifies a "chokepoint" file (e.g. core services, main entry points), you MUST:
+	1. Add a high-risk entry in 'risks'.
+	2. Include defensive actions (e.g., "Draft regression tests for [file]").
+	3. Set 'impact' to "high" for related actions.
+- **DEPENDENCY CHAIN**: Ensure actions are ordered logically using 'dependsOn'. For example, code changes should depend on dependency installation, and verification should depend on code changes.
 - **DETERMINISTIC PATHS**: Use exact file paths found in the context. Do not guess directory structures.
 - **NEW FILE HANDLING**: If you intend to create a new file, you MUST add a rule starting with "Create [path]" so the verification layer can recognize it as a "Planned" entity rather than a missing one.
 - **BE ACTIONABLE**: The resulting spec should be enough for an autonomous agent to start work without further guessing.
@@ -132,6 +138,6 @@ Return the result STRICTLY as a JSON object matching this structure:
   "confidenceScore": number (0.0 to 1.0),
   "ambiguityReasoning": string | undefined,
   "missingInformation": string[] | undefined,
-  "actions": [{ "id": string, "label": string, "description": string | undefined, "rationale": string | undefined, "priority": "critical" | "recommended" | "optional" }] | undefined,
+  "actions": [{ "id": string, "label": string, "description": string | undefined, "rationale": string | undefined, "priority": "critical" | "recommended" | "optional", "impact": "low" | "medium" | "high", "dependsOn": string[] | undefined }] | undefined,
   "risks": [{ "impact": "high" | "medium" | "low", "description": string }] | undefined
 }`

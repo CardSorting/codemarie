@@ -81,17 +81,25 @@ export class GroundingValidator {
 		const missingEntities: string[] = []
 		const plannedEntities: string[] = []
 
+		// Hardened regex: Support common extensions and common patterns (e.g. src/file.tsx, auth.service.ts)
+		const pathRegex = /[a-zA-Z0-9_\-./]+\.[a-z]{2,5}/g
+
 		const entitiesToVerify = [
 			...spec.decisionVariables.flatMap((v) => {
 				const paths = [...(v.range || [])]
-				// Also check if description looks like a path or symbol
 				if (typeof v.description === "string") {
-					const match = v.description.match(/[a-zA-Z0-9_\-./]+\.[a-z]{2,4}/)
-					if (match) paths.push(match[0])
+					const matches = v.description.match(pathRegex)
+					if (matches) paths.push(...matches)
 				}
 				return paths
 			}),
-			...spec.constraints.flatMap((c) => (typeof c === "string" ? c.match(/[a-zA-Z0-9_\-./]+\.[a-z]{2,4}/g) || [] : [])),
+			...spec.constraints.flatMap((c) => (typeof c === "string" ? c.match(pathRegex) || [] : [])),
+			...(spec.actions?.flatMap((a) => [
+				...(a.label.match(pathRegex) || []),
+				...(a.description?.match(pathRegex) || []),
+				...(a.rationale?.match(pathRegex) || []),
+			]) || []),
+			...(spec.risks?.flatMap((r) => r.description.match(pathRegex) || []) || []),
 		]
 
 		const uniqueEntities = [...new Set(entitiesToVerify)].filter((e) => typeof e === "string" && e.length > 0)

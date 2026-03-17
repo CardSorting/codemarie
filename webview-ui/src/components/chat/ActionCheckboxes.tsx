@@ -18,13 +18,15 @@ const ActionList = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `
 
-const ActionItem = styled.div`
+const ActionItem = styled.div<{ disabled?: boolean }>`
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 8px;
   border-radius: 4px;
-  transition: background 0.1s ease;
+  transition: all 0.2s ease;
+  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
+  pointer-events: ${(props) => (props.disabled ? "none" : "auto")};
   &:hover {
     background: var(--vscode-list-hoverBackground);
   }
@@ -65,6 +67,19 @@ const ActionDescription = styled.span`
   line-height: 1.5;
 `
 
+const DependencyInfo = styled.span`
+  font-size: 10px;
+  color: var(--vscode-errorForeground);
+  font-weight: 500;
+  margin-top: 2px;
+`
+
+const BadgeContainer = styled.div`
+  display: flex;
+  gap: 4px;
+  align-items: center;
+`
+
 const PriorityBadge = ({ priority }: { priority: "critical" | "recommended" | "optional" }) => {
 	const variants = {
 		critical: "danger",
@@ -78,12 +93,27 @@ const PriorityBadge = ({ priority }: { priority: "critical" | "recommended" | "o
 	)
 }
 
+const ImpactBadge = ({ impact }: { impact: "high" | "medium" | "low" }) => {
+	const variants = {
+		high: "danger",
+		medium: "warning",
+		low: "success",
+	} as const
+	return (
+		<Badge className="text-[8px] uppercase px-1 py-0 h-3.5 opacity-80" variant={variants[impact]}>
+			{impact} Impact
+		</Badge>
+	)
+}
+
 interface Action {
 	id: string
 	label: string
 	description?: string
 	rationale?: string
 	priority: "critical" | "recommended" | "optional"
+	impact: "high" | "medium" | "low"
+	dependsOn?: string[]
 	isChecked: boolean
 }
 
@@ -100,8 +130,15 @@ export const ActionCheckboxes = ({ actions, onActionsChange }: ActionCheckboxesP
 		return [...localActions].sort((a, b) => priorityMap[a.priority] - priorityMap[b.priority])
 	}, [localActions])
 
+	const isDependencyMet = (action: Action) => {
+		if (!action.dependsOn || action.dependsOn.length === 0) return true
+		return action.dependsOn.every((depId) => localActions.find((a) => a.id === depId)?.isChecked)
+	}
+
 	const handleToggle = (id: string) => {
-		const updated = localActions.map((a) => (a.id === id ? { ...a, isChecked: !a.isChecked } : a))
+		let updated = localActions.map((a) => (a.id === id ? { ...a, isChecked: !a.isChecked } : a))
+
+		updated = cascade(updated)
 		setLocalActions(updated)
 		onActionsChange(updated)
 	}
@@ -109,8 +146,20 @@ export const ActionCheckboxes = ({ actions, onActionsChange }: ActionCheckboxesP
 	const handleToggleAll = () => {
 		const allChecked = localActions.every((a) => a.isChecked)
 		const updated = localActions.map((a) => ({ ...a, isChecked: !allChecked }))
-		setLocalActions(updated)
+		setLocalActions(cascade(updated))
 		onActionsChange(updated)
+	}
+
+	const cascade = (currentActions: Action[]): Action[] => {
+		let changed = false
+		const next = currentActions.map((a) => {
+			if (a.isChecked && a.dependsOn?.some((depId) => !currentActions.find((ca) => ca.id === depId)?.isChecked)) {
+				changed = true
+				return { ...a, isChecked: false }
+			}
+			return a
+		})
+		return changed ? cascade(next) : next
 	}
 
 	const allChecked = localActions.every((a) => a.isChecked)
@@ -131,25 +180,45 @@ export const ActionCheckboxes = ({ actions, onActionsChange }: ActionCheckboxesP
 					</button>
 				</div>
 			</div>
-			{sortedActions.map((action) => (
-				<ActionItem className={cn({ "opacity-75": !action.isChecked })} key={action.id}>
-					<div className="pt-0.5">
-						<Switch
-							checked={action.isChecked}
-							id={`action-${action.id}`}
-							onCheckedChange={() => handleToggle(action.id)}
-						/>
-					</div>
-					<ActionDetails onClick={() => handleToggle(action.id)}>
-						<ActionHeader>
-							<ActionLabel htmlFor={`action-${action.id}`}>{action.label}</ActionLabel>
-							<PriorityBadge priority={action.priority} />
-						</ActionHeader>
-						{action.rationale && <ActionRationale>Rationale: {action.rationale}</ActionRationale>}
-						{action.description && <ActionDescription>{action.description}</ActionDescription>}
-					</ActionDetails>
-				</ActionItem>
-			))}
+			{sortedActions.map((action) => {
+				const depMet = isDependencyMet(action)
+				const missingDeps =
+					action.dependsOn?.filter((depId) => !localActions.find((a) => a.id === depId)?.isChecked) || []
+
+				return (
+					<ActionItem
+						className={cn({ "opacity-75": !action.isChecked && depMet })}
+						disabled={!depMet && !action.isChecked}
+						key={action.id}>
+						<div className="pt-0.5">
+							<Switch
+								checked={action.isChecked}
+								disabled={!depMet}
+								id={`action-${action.id}`}
+								onCheckedChange={() => handleToggle(action.id)}
+							/>
+						</div>
+						<ActionDetails onClick={() => depMet && handleToggle(action.id)}>
+							<ActionHeader>
+								<ActionLabel htmlFor={`action-${action.id}`}>{action.label}</ActionLabel>
+								<BadgeContainer>
+									<ImpactBadge impact={action.impact} />
+									<PriorityBadge priority={action.priority} />
+								</BadgeContainer>
+							</ActionHeader>
+							{action.rationale && <ActionRationale>Rationale: {action.rationale}</ActionRationale>}
+							{action.description && <ActionDescription>{action.description}</ActionDescription>}
+							{!depMet && missingDeps.length > 0 && (
+								<DependencyInfo>
+									<span className="codicon codicon-lock mr-1" />
+									Requires:{" "}
+									{missingDeps.map((id) => localActions.find((a) => a.id === id)?.label || id).join(", ")}
+								</DependencyInfo>
+							)}
+						</ActionDetails>
+					</ActionItem>
+				)
+			})}
 		</ActionList>
 	)
 }

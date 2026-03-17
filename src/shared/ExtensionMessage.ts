@@ -335,6 +335,8 @@ export interface CodemariePlanModeResponse {
 		description?: string
 		rationale?: string
 		priority: "critical" | "recommended" | "optional"
+		impact: "low" | "medium" | "high"
+		dependsOn?: string[]
 		isChecked: boolean
 	}>
 	risks?: Array<{
@@ -356,6 +358,8 @@ export interface CodemarieAskQuestion {
 		description?: string
 		rationale?: string
 		priority: "critical" | "recommended" | "optional"
+		impact: "low" | "medium" | "high"
+		dependsOn?: string[]
 		isChecked: boolean
 	}>
 	risks?: Array<{
