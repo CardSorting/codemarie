@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.76.2] - 2026-03-17
+
+### Fixed
+- **Linting & Code Style**: Resolved several linting issues across the codebase:
+  - Renamed storage key `claude-code-path` to `claudeCodePath` in `src/shared/storage/state-keys.ts` for camelCase consistency and to fix parse errors.
+  - Removed unused imports in Gemini and Vertex AI provider implementations (`src/core/api/providers/gemini.ts` and `src/core/api/providers/vertex.ts`).
+  - Synchronized and regenerated state proto and TypeScript definitions.
+
 ## [3.76.1] - 2026-03-15
 
 ### Added
