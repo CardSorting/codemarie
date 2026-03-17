@@ -28,6 +28,18 @@ export const GroundedSpecSchema = z.object({
 		})
 		.optional(),
 	verifiedEntities: z.array(z.string()).optional(),
+	actions: z
+		.array(
+			z.object({
+				id: z.string(),
+				label: z.string(),
+				description: z.string().optional(),
+				rationale: z.string().optional(),
+				priority: z.enum(["critical", "recommended", "optional"]).default("recommended"),
+				isChecked: z.boolean().default(false),
+			}),
+		)
+		.optional(),
 })
 
 export type GroundedSpec = z.infer<typeof GroundedSpecSchema>
@@ -45,7 +57,11 @@ Context: Workspace has src/auth/service.ts and src/auth/utils.ts
   "outputStructure": { "refactoredFiles": "string[]", "testStatus": "boolean" },
   "rules": ["Follow project DRY principles", "Use async/await consistently"],
   "confidenceScore": 0.85,
-  "ambiguityReasoning": "Intent is clear but the specific refactoring goal (performance vs readability) is slightly vague."
+  "ambiguityReasoning": "Intent is clear but the specific refactoring goal (performance vs readability) is slightly vague.",
+  "actions": [
+    { "id": "refactor-auth-service", "label": "Refactor src/auth/service.ts", "description": "Apply DRY principles", "rationale": "High-complexity file matching intent keywords", "priority": "critical" },
+    { "id": "update-auth-tests", "label": "Update auth tests", "description": "Ensure no regressions", "rationale": "Required by project rules for logic changes", "priority": "recommended" }
+  ]
 }
 
 Example 2:
@@ -79,6 +95,13 @@ Decompose the intent into:
 5. Confidence Score: 0.0 to 1.0. Penalize if the intent is vague or contradicts the provided environment context.
 6. Ambiguity Reasoning: Brief explanation of why the confidence score is not 1.0.
 7. Missing Information: Specific questions to ask the user to clear up ambiguity.
+8. Actions: A list of discrete, actionable steps that can be taken to fulfill the intent. These will be presented to the user as checkboxes. Each action MUST have:
+	- 'id': A unique identifier (e.g., "install-deps").
+	- 'label': A short, descriptive title (e.g., "Install @types/node").
+	- 'description': A brief explanation of the step.
+	- 'rationale': Why this step is necessary or how it links to a constraint/variable.
+	- 'priority': One of ["critical", "recommended", "optional"].
+	- Example Actions: [{"id": "cfg-aws", "label": "Configure AWS credentials", "description": "Ensure local profile is set", "rationale": "Required for subsequent S3 access", "priority": "critical"}]
 
 ### OPERATIONAL PRINCIPLES:
 - **USE SEMANTIC CONTEXT**: You are provided with "Discovered Semantic Context" (ripgrep) and "Historical Semantic Affinities" (Knowledge Graph). Use these to verify file existence, understand patterns, identify symbols, and discover "hidden" dependencies that often change together.
@@ -102,5 +125,6 @@ Return the result STRICTLY as a JSON object matching this structure:
   "rules": string[],
   "confidenceScore": number (0.0 to 1.0),
   "ambiguityReasoning": string | undefined,
-  "missingInformation": string[] | undefined
+  "missingInformation": string[] | undefined,
+  "actions": [{ "id": string, "label": string, "description": string | undefined, "rationale": string | undefined, "priority": "critical" | "recommended" | "optional" }] | undefined
 }`

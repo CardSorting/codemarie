@@ -62,6 +62,7 @@ import {
 	CodemarieApiReqCancelReason,
 	CodemarieApiReqInfo,
 	CodemarieAsk,
+	CodemarieAskQuestion,
 	CodemarieMessage,
 	CodemarieSay,
 } from "@shared/ExtensionMessage"
@@ -1490,7 +1491,44 @@ export class Task {
 							`**Verified Entities**: ${verifiedCount} project files/symbols verified\n` +
 							`**Latent Performance**: ${this.taskState.groundedSpec.telemetry?.durationMs || 0}ms`
 
-						await this.say("text", groundedSpecText)
+						if (this.taskState.groundedSpec.actions && this.taskState.groundedSpec.actions.length > 0) {
+							const askPayload: CodemarieAskQuestion = {
+								question:
+									"I've grounded your task into a structured specification. Please review the proposed actions below:",
+								actions: this.taskState.groundedSpec.actions,
+								confidenceScore: this.taskState.groundedSpec.confidenceScore,
+								ambiguityReasoning: this.taskState.groundedSpec.ambiguityReasoning,
+								options: ["Proceed", "Abort"],
+							}
+
+							const choice = await this.ask("followup", JSON.stringify(askPayload))
+							if (choice.response === "messageResponse") {
+								if (choice.text?.startsWith("Abort")) {
+									await this.say("info", "Task aborted by user during grounding.")
+									await this.cancelTask()
+									return
+								}
+								// Process selected actions if any
+								if (choice.text?.includes("[SELECTED_ACTIONS]:")) {
+									try {
+										const selectedActionIds = JSON.parse(
+											choice.text.split("[SELECTED_ACTIONS]:")[1].trim(),
+										) as string[]
+										this.taskState.groundedSpec.actions = this.taskState.groundedSpec.actions.map((a) => ({
+											...a,
+											isChecked: selectedActionIds.includes(a.id),
+										}))
+										Logger.info(
+											`[Task] User selected ${selectedActionIds.length} actions for grounding spec.`,
+										)
+									} catch (e) {
+										Logger.warn("[Task] Failed to parse selected actions from user response:", e)
+									}
+								}
+							}
+						} else {
+							await this.say("text", groundedSpecText)
+						}
 
 						// Add specific tag to the history for the model
 						this.taskState.userMessageContent.push({

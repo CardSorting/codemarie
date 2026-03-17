@@ -38,6 +38,8 @@ import {
 } from "lucide-react"
 import { MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSize } from "react-use"
+import { ActionCheckboxes } from "@/components/chat/ActionCheckboxes"
+import { GroundingHeader } from "@/components/chat/GroundingHeader"
 import { OptionsButtons } from "@/components/chat/OptionsButtons"
 import { CheckmarkControl } from "@/components/common/CheckmarkControl"
 import { WithCopyButton } from "@/components/common/CopyButton"
@@ -98,7 +100,7 @@ const InvisibleSpacer = () => <div aria-hidden className="h-px" />
 
 const ChatRow = memo(
 	(props: ChatRowProps) => {
-		const { isLast, onHeightChange, message } = props
+		const { isLast, onHeightChange } = props
 		// Store the previous height to compare with the current height
 		// This allows us to detect changes without causing re-renders
 		const prevHeightRef = useRef(0)
@@ -164,6 +166,20 @@ export const ChatRowContent = memo(
 			selectedText: "",
 		})
 		const contentRef = useRef<HTMLDivElement>(null)
+
+		const initialActions = useMemo(() => {
+			if (message.ask === "followup") {
+				try {
+					const parsed = JSON.parse(message.text || "{}") as CodemarieAskQuestion
+					return parsed.actions?.filter((a) => a.isChecked).map((a) => a.id) || []
+				} catch {
+					return []
+				}
+			}
+			return []
+		}, [message.ask, message.say, message.text])
+
+		const [selectedActions, setSelectedActions] = useState<string[]>(initialActions)
 
 		// Command output expansion state (for all messages, but only used by command messages)
 		const [isOutputFullyExpanded, setIsOutputFullyExpanded] = useState(false)
@@ -312,30 +328,36 @@ export const ChatRowContent = memo(
 			switch (type) {
 				case "error":
 					return [
-						<span className="codicon codicon-error text-error mb-[-1.5px]" />,
-						<span className="text-error font-bold">Error</span>,
+						<span className="codicon codicon-error text-error mb-[-1.5px]" key="error-icon" />,
+						<span className="text-error font-bold text-sm" key="error-title">
+							Error
+						</span>,
 					]
 				case "mistake_limit_reached":
 					return [
-						<CircleXIcon className="text-error size-2" />,
-						<span className="text-error font-bold">Codemarie is having trouble...</span>,
+						<CircleXIcon className="text-error size-2" key="mistake-icon" />,
+						<span className="text-error font-bold text-sm" key="mistake-title">
+							Codemarie is having trouble...
+						</span>,
 					]
 				case "command":
 					return [
-						<TerminalIcon className="text-foreground size-2" />,
-						<span className="font-bold text-foreground">Codemarie wants to execute this command:</span>,
+						<TerminalIcon className="text-foreground size-2" key="command-icon" />,
+						<span className="font-bold text-foreground text-sm" key="command-title">
+							Codemarie wants to execute this command:
+						</span>,
 					]
 				case "use_mcp_server":
 					const mcpServerUse = JSON.parse(message.text || "{}") as CodemarieAskUseMcpServer
 					return [
 						isMcpServerResponding ? (
-							<ProgressIndicator />
+							<ProgressIndicator key="mcp-progress" />
 						) : (
-							<span className="codicon codicon-server text-foreground mb-[-1.5px]" />
+							<span className="codicon codicon-server text-foreground mb-[-1.5px]" key="mcp-icon" />
 						),
-						<span className="ph-no-capture font-bold text-foreground break-words">
+						<span className="ph-no-capture font-bold text-foreground break-words text-sm" key="mcp-title">
 							Codemarie wants to {mcpServerUse.type === "use_mcp_tool" ? "use a tool" : "access a resource"} on the{" "}
-							<code className="break-all">
+							<code className="break-all text-xs">
 								{getMcpServerDisplayName(mcpServerUse.serverName, mcpMarketplaceCatalog)}
 							</code>{" "}
 							MCP server:
@@ -343,8 +365,10 @@ export const ChatRowContent = memo(
 					]
 				case "completion_result":
 					return [
-						<span className="codicon codicon-check text-success mb-[-1.5px]" />,
-						<span className="text-success font-bold">Task Completed</span>,
+						<span className="codicon codicon-check text-success mb-[-1.5px]" key="completion-icon" />,
+						<span className="text-success font-bold text-sm" key="completion-title">
+							Task Completed
+						</span>,
 					]
 				case "api_req_started":
 					// API request rows no longer render the request payload/cost accordion.
@@ -352,8 +376,10 @@ export const ChatRowContent = memo(
 					return [null, null]
 				case "followup":
 					return [
-						<span className="codicon codicon-question text-foreground mb-[-1.5px]" />,
-						<span className="font-bold text-foreground">Codemarie has a question:</span>,
+						<span className="codicon codicon-question text-foreground mb-[-1.5px]" key="followup-icon" />,
+						<span className="font-bold text-foreground text-sm" key="followup-title">
+							Codemarie has a question:
+						</span>,
 					]
 				default:
 					return [null, null]
@@ -371,7 +397,7 @@ export const ChatRowContent = memo(
 			if (message.say !== "conditional_rules_applied" || !message.text) return null
 			try {
 				const parsed = JSON.parse(message.text) as unknown
-				if (!parsed || typeof parsed !== "object" || !Array.isArray((parsed as any).rules)) {
+				if (!parsed || typeof parsed !== "object" || !("rules" in parsed) || !Array.isArray(parsed.rules)) {
 					return null
 				}
 				return parsed as {
@@ -1114,7 +1140,8 @@ export const ChatRowContent = memo(
 										} catch (error) {
 											console.error("Failed to enable background terminal:", error)
 										}
-									}}>
+									}}
+									type="button">
 									<SettingsIcon className="size-2" />
 									{isBackgroundModeEnabled
 										? "Background Terminal Enabled"
@@ -1168,11 +1195,17 @@ export const ChatRowContent = memo(
 						let question: string | undefined
 						let options: string[] | undefined
 						let selected: string | undefined
+						let actions: CodemarieAskQuestion["actions"] | undefined
+						let confidenceScore: number | undefined
+						let ambiguityReasoning: string | undefined
 						try {
 							const parsedMessage = JSON.parse(message.text || "{}") as CodemarieAskQuestion
 							question = parsedMessage.question
 							options = parsedMessage.options
 							selected = parsedMessage.selected
+							actions = parsedMessage.actions
+							confidenceScore = parsedMessage.confidenceScore
+							ambiguityReasoning = parsedMessage.ambiguityReasoning
 						} catch (_e) {
 							// legacy messages would pass question directly
 							question = message.text
@@ -1203,6 +1236,24 @@ export const ChatRowContent = memo(
 										/>
 									)}
 								</WithCopyButton>
+								{confidenceScore !== undefined && (
+									<GroundingHeader
+										ambiguityReasoning={ambiguityReasoning}
+										confidenceScore={confidenceScore}
+										hasActions={!!actions?.length}
+									/>
+								)}
+								{actions && actions.length > 0 && (
+									<ActionCheckboxes
+										actions={actions.map((a) => ({
+											...a,
+											isChecked: selectedActions.includes(a.id),
+										}))}
+										onActionsChange={(updated) =>
+											setSelectedActions(updated.filter((a) => a.isChecked).map((a) => a.id))
+										}
+									/>
+								)}
 								<div className="pt-3">
 									<OptionsButtons
 										inputValue={inputValue}
@@ -1212,6 +1263,7 @@ export const ChatRowContent = memo(
 										}
 										options={options}
 										selected={selected}
+										selectedActions={selectedActions}
 									/>
 								</div>
 							</div>

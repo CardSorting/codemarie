@@ -28,11 +28,13 @@ export const OptionsButtons = ({
 	selected,
 	isActive,
 	inputValue,
+	selectedActions,
 }: {
 	options?: string[]
 	selected?: string
 	isActive?: boolean
 	inputValue?: string
+	selectedActions?: string[]
 }) => {
 	if (!options?.length) {
 		return null
@@ -62,10 +64,14 @@ export const OptionsButtons = ({
 							return
 						}
 						try {
+							const selectedActionsText =
+								selectedActions && selectedActions.length > 0
+									? `\n\n[SELECTED_ACTIONS]: ${JSON.stringify(selectedActions)}`
+									: ""
 							await TaskServiceClient.askResponse(
 								AskResponseRequest.create({
 									responseType: "messageResponse",
-									text: option + (inputValue ? `: ${inputValue?.trim()}` : ""),
+									text: option + (inputValue ? `: ${inputValue?.trim()}` : "") + selectedActionsText,
 									images: [],
 								}),
 							)

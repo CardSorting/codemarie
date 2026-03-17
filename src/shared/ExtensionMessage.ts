@@ -326,12 +326,32 @@ export interface CodemariePlanModeResponse {
 	response: string
 	options?: string[]
 	selected?: string
+	confidenceScore?: number
+	ambiguityReasoning?: string
+	actions?: Array<{
+		id: string
+		label: string
+		description?: string
+		rationale?: string
+		priority: "critical" | "recommended" | "optional"
+		isChecked: boolean
+	}>
 }
 
 export interface CodemarieAskQuestion {
 	question: string
 	options?: string[]
 	selected?: string
+	confidenceScore?: number
+	ambiguityReasoning?: string
+	actions?: Array<{
+		id: string
+		label: string
+		description?: string
+		rationale?: string
+		priority: "critical" | "recommended" | "optional"
+		isChecked: boolean
+	}>
 }
 
 export interface CodemarieAskNewTask {
