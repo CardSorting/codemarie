@@ -1198,6 +1198,8 @@ export const ChatRowContent = memo(
 						let actions: CodemarieAskQuestion["actions"] | undefined
 						let confidenceScore: number | undefined
 						let ambiguityReasoning: string | undefined
+						let verifiedEntities: string[] | undefined
+						let risks: CodemarieAskQuestion["risks"] | undefined
 						try {
 							const parsedMessage = JSON.parse(message.text || "{}") as CodemarieAskQuestion
 							question = parsedMessage.question
@@ -1206,6 +1208,8 @@ export const ChatRowContent = memo(
 							actions = parsedMessage.actions
 							confidenceScore = parsedMessage.confidenceScore
 							ambiguityReasoning = parsedMessage.ambiguityReasoning
+							verifiedEntities = parsedMessage.verifiedEntities
+							risks = parsedMessage.risks
 						} catch (_e) {
 							// legacy messages would pass question directly
 							question = message.text
@@ -1241,6 +1245,8 @@ export const ChatRowContent = memo(
 										ambiguityReasoning={ambiguityReasoning}
 										confidenceScore={confidenceScore}
 										hasActions={!!actions?.length}
+										risks={risks}
+										verifiedEntities={verifiedEntities}
 									/>
 								)}
 								{actions && actions.length > 0 && (

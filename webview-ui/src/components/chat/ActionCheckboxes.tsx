@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import styled from "styled-components"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -41,6 +41,7 @@ const ActionDetails = styled.div`
 const ActionHeader = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 `
 
@@ -94,21 +95,43 @@ interface ActionCheckboxesProps {
 export const ActionCheckboxes = ({ actions, onActionsChange }: ActionCheckboxesProps) => {
 	const [localActions, setLocalActions] = useState<Action[]>(actions)
 
+	const sortedActions = useMemo(() => {
+		const priorityMap = { critical: 0, recommended: 1, optional: 2 }
+		return [...localActions].sort((a, b) => priorityMap[a.priority] - priorityMap[b.priority])
+	}, [localActions])
+
 	const handleToggle = (id: string) => {
 		const updated = localActions.map((a) => (a.id === id ? { ...a, isChecked: !a.isChecked } : a))
 		setLocalActions(updated)
 		onActionsChange(updated)
 	}
 
+	const handleToggleAll = () => {
+		const allChecked = localActions.every((a) => a.isChecked)
+		const updated = localActions.map((a) => ({ ...a, isChecked: !allChecked }))
+		setLocalActions(updated)
+		onActionsChange(updated)
+	}
+
+	const allChecked = localActions.every((a) => a.isChecked)
+
 	return (
 		<ActionList>
 			<div className="flex items-center justify-between mb-2">
 				<div className="text-[11px] font-bold text-description uppercase tracking-wider">Proposed Actions</div>
-				<div className="text-[11px] text-description italic">
-					{localActions.filter((a) => a.isChecked).length} of {localActions.length} selected
+				<div className="flex items-center gap-3">
+					<div className="text-[11px] text-description italic">
+						{localActions.filter((a) => a.isChecked).length} of {localActions.length} selected
+					</div>
+					<button
+						className="text-[10px] uppercase font-bold text-button-foreground bg-button-background px-2 py-0.5 rounded-xs hover:bg-button-hover cursor-pointer border-none"
+						onClick={handleToggleAll}
+						type="button">
+						{allChecked ? "Deselect All" : "Select All"}
+					</button>
 				</div>
 			</div>
-			{localActions.map((action) => (
+			{sortedActions.map((action) => (
 				<ActionItem className={cn({ "opacity-75": !action.isChecked })} key={action.id}>
 					<div className="pt-0.5">
 						<Switch

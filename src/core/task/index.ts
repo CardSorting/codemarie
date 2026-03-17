@@ -1498,6 +1498,8 @@ export class Task {
 								actions: this.taskState.groundedSpec.actions,
 								confidenceScore: this.taskState.groundedSpec.confidenceScore,
 								ambiguityReasoning: this.taskState.groundedSpec.ambiguityReasoning,
+								verifiedEntities: this.taskState.groundedSpec.verifiedEntities,
+								risks: this.taskState.groundedSpec.risks,
 								options: ["Proceed", "Abort"],
 							}
 

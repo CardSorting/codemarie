@@ -328,6 +328,7 @@ export interface CodemariePlanModeResponse {
 	selected?: string
 	confidenceScore?: number
 	ambiguityReasoning?: string
+	verifiedEntities?: string[]
 	actions?: Array<{
 		id: string
 		label: string
@@ -335,6 +336,10 @@ export interface CodemariePlanModeResponse {
 		rationale?: string
 		priority: "critical" | "recommended" | "optional"
 		isChecked: boolean
+	}>
+	risks?: Array<{
+		impact: "high" | "medium" | "low"
+		description: string
 	}>
 }
 
@@ -344,6 +349,7 @@ export interface CodemarieAskQuestion {
 	selected?: string
 	confidenceScore?: number
 	ambiguityReasoning?: string
+	verifiedEntities?: string[]
 	actions?: Array<{
 		id: string
 		label: string
@@ -351,6 +357,10 @@ export interface CodemarieAskQuestion {
 		rationale?: string
 		priority: "critical" | "recommended" | "optional"
 		isChecked: boolean
+	}>
+	risks?: Array<{
+		impact: "high" | "medium" | "low"
+		description: string
 	}>
 }
 
