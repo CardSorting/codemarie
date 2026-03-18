@@ -38,10 +38,16 @@ MAS is implemented using a progressive optimization strategy:
 - **Adaptive Reprioritization**: `Kaizen` can dynamically freeze or elevate tasks in the queue based on architectural soundness.
 - **Unified Cog-Bus**: Real-time distribution of system context ensuring all agents remain in sync.
 
+### Tier 5: Swarm-Parallel Execution
+- **StreamPool**: A semaphore-based concurrency manager that dispatches Kanban tasks to concurrent `WorkerStreams`. Configurable `maxConcurrency` (default: 3) controls how many build agents run simultaneously.
+- **WorkerStream**: Each task executes within an isolated child stream with its own DB shadow. Workers perform file collision checks before writes. On success, the shadow is committed; on failure, it is rolled back.
+- **StreamCoordinator**: Inter-stream signaling layer managing file-level locks, collision resolution (exponential backoff with jitter), progress aggregation across all active workers, and shutdown coordination.
+- **Isolation Guarantee**: Worker failures are isolated — one crashing worker cannot bring down the pool. The parent stream receives aggregated results from all workers.
+
 ## Integration & Defaults
 - **Default Operation**: MAS is enabled by default (`masEnabled: true`).
 - **User Control**: Users can disable MAS in the global settings if single-agent execution is preferred.
-- **Sequence**: `User Intent` -> `Grounding` -> `MAS Orchestration` -> `Task Execution`.
+- **Sequence**: `User Intent` -> `Grounding` -> `MAS Orchestration` -> `Concurrent Build (StreamPool)` -> `Task Execution`.
 
 ## Webview UI Integration
 
@@ -55,5 +61,8 @@ The MAS architecture is not simply a background CLI process—it fundamentally t
 ## Reference Implementation
 - **Controller**: `src/core/orchestration/OrchestrationController.ts`
 - **Main Flow**: `src/core/orchestration/MultiAgentStreamSystem.ts`
+- **Concurrent Pool**: `src/core/orchestration/StreamPool.ts`
+- **Worker Agent**: `src/core/orchestration/WorkerStream.ts`
+- **Coordinator**: `src/core/orchestration/StreamCoordinator.ts`
 - **Context**: `src/core/broccolidb/agent-context.ts`
 - **Webview Rendering**: `webview-ui/src/components/chat/` (`ChatRow.tsx`, `SubagentStatusRow.tsx`, `RedTeamAlerts.tsx`)

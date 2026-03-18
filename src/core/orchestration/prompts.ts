@@ -33,6 +33,7 @@ Your goal is to produce a list of tasks that can be executed by an autonomous co
 
 Rules:
 - Order tasks logically: Domain/Core first, then Infrastructure, then UI.
+- IMPORTANT: Use the "depends_on" array to define strict architectural dependencies. For example, a UI task MUST depend on the Infrastructure task that provides its data, which in turn MUST depend on the Domain task.
 - Each task should be descriptive and actionable.
 - Ensure tasks are small enough to be completed in one or two turns, but large enough to make significant progress.
 - Respect Joy-Zoning principles: suggest tasks that maintain layer isolation.
@@ -40,8 +41,8 @@ Rules:
 Response Format (JSON ONLY):
 {
   "tasks": [
-    "Task description 1",
-    "Task description 2",
+    { "id": "t1", "description": "Task description 1", "depends_on": [] },
+    { "id": "t2", "description": "Task description 2", "depends_on": ["t1"] },
     ...
   ]
 }`

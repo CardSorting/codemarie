@@ -2,10 +2,11 @@ import { Logger } from "@/shared/services/Logger"
 import { validateJoyZoning } from "@/utils/joy-zoning"
 import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
+import { StreamPool, type StreamPoolResult } from "./StreamPool"
 import { IkigaiSystem } from "./systems/IkigaiSystem"
 import { JoyZoningSystem } from "./systems/JoyZoningSystem"
 import { KaizenSystem } from "./systems/KaizenSystem"
-import { KanbanSystem } from "./systems/KanbanSystem"
+import { KanbanSystem, type KanbanTask } from "./systems/KanbanSystem"
 
 /**
  * MultiAgentStreamSystem: The central controller for the MAS orchestration.
@@ -18,9 +19,13 @@ export class MultiAgentStreamSystem {
 	private kaizen = new KaizenSystem()
 	private joyZoning = new JoyZoningSystem()
 
+	/** Last pool result from concurrent build dispatch */
+	private lastPoolResult?: StreamPoolResult
+
 	constructor(
 		private controller: OrchestrationController,
 		private apiHandler: ApiHandler,
+		private concurrency = 3,
 	) {}
 
 	private isAgentRegistered = false
@@ -80,8 +85,16 @@ export class MultiAgentStreamSystem {
 		await ctx.flush() // 🚀 Proactive flush for high throughput
 
 		// 3. Kanban Pass — Break down into tasks
-		await this.kanban.planFlow(this.controller, this.apiHandler, purpose, scope, archPlan, groundedSpec)
+		const tasks = await this.kanban.planFlow(this.controller, this.apiHandler, purpose, scope, archPlan, groundedSpec)
 		await ctx.flush() // 🚀 Proactive flush for high throughput
+
+		// 4. Concurrent Build Dispatch (Tier 5: Swarm-Parallel Execution)
+		if (tasks.length > 1) {
+			this.lastPoolResult = await this.executeConcurrentBuild(tasks)
+			Logger.info(
+				`[${this.name}] Concurrent build: ${this.lastPoolResult.completed}/${this.lastPoolResult.totalTasks} tasks succeeded in ${this.lastPoolResult.durationMs}ms`,
+			)
+		}
 
 		Logger.info(`[${this.name}] First pass completed. Ready for execution.`)
 		return { success: true }
@@ -105,6 +118,38 @@ export class MultiAgentStreamSystem {
 		await this.kanban.planFlow(this.controller, this.apiHandler, purpose, improvements)
 
 		Logger.info(`[${this.name}] Refinement pass completed. Improvements queued.`)
+	}
+
+	/**
+	 * Dispatches Kanban tasks to a concurrent StreamPool for DAG parallel execution.
+	 * Each task runs in its own isolated child stream with DB shadow.
+	 */
+	public async executeConcurrentBuild(tasks: KanbanTask[]): Promise<StreamPoolResult> {
+		Logger.info(`[${this.name}] Dispatching ${tasks.length} tasks to StreamPool (concurrency: ${this.concurrency})...`)
+
+		const pool = new StreamPool(this.controller, this.apiHandler, {
+			maxConcurrency: this.concurrency,
+			parentStreamId: this.controller.getStreamId(),
+		})
+
+		const result = await pool.dispatch(tasks)
+
+		// Store the aggregated digest for refinement passes
+		try {
+			const aggregatedDigest = await pool.getAggregatedDigest()
+			await this.controller.storeMemory("concurrent_digest", aggregatedDigest)
+		} catch (err) {
+			Logger.warn(`[${this.name}] Failed to store concurrent digest:`, err)
+		}
+
+		return result
+	}
+
+	/**
+	 * Returns the result from the last concurrent build dispatch.
+	 */
+	public getLastPoolResult(): StreamPoolResult | undefined {
+		return this.lastPoolResult
 	}
 
 	/**

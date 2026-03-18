@@ -4,6 +4,12 @@ import { OrchestrationController } from "../OrchestrationController"
 import { KANBAN_SYSTEM_PROMPT } from "../prompts"
 import { executeMASRequest } from "../utils"
 
+export interface KanbanTask {
+	id: string
+	description: string
+	depends_on: string[]
+}
+
 /**
  * KanbanSystem: Manages the "Flow" of work (Task breakdown & tracking).
  * This system takes the product's scope (from Ikigai) and architectural
@@ -23,7 +29,7 @@ export class KanbanSystem {
 		scope: string[],
 		archPlan?: string,
 		groundedSpec?: any,
-	): Promise<string[]> {
+	): Promise<KanbanTask[]> {
 		Logger.info(`[MAS][${this.name}] Planning flow for purpose: ${purpose.slice(0, 50)}...`)
 		Logger.info(`[MAS][${this.name}] Scope: ${scope.join(", ")}`)
 
@@ -39,7 +45,7 @@ export class KanbanSystem {
 				Logger.info(`[MAS][${this.name}] Seeding Kanban with ${groundedSpec.actions.length} grounded actions.`)
 			}
 			const res = await executeMASRequest(apiHandler, KANBAN_SYSTEM_PROMPT, kanbanPrompt)
-			const tasks = res.tasks || []
+			const tasks: KanbanTask[] = res.tasks || []
 
 			// --- BroccoliDB Native Persistence ---
 			const ctx = await controller.getAgentContext()
@@ -50,11 +56,11 @@ export class KanbanSystem {
 			await controller.storeMemory("task_flow", JSON.stringify(tasks))
 
 			// Create each task in the orchestrator AND BroccoliDB (Concurrent Batch)
-			const spawnPromises = tasks.map(async (taskDescription: string, i: number) => {
-				const taskId = `task-${controller.getStreamId()}-${i}`
+			const spawnPromises = tasks.map(async (task, i: number) => {
+				const taskId = `task-${controller.getStreamId()}-${task.id}`
 
 				// Native BroccoliDB Task
-				await ctx.spawnTask(taskId, "mas-orchestrator", taskDescription, [ikigaiId, archId])
+				await ctx.spawnTask(taskId, "mas-orchestrator", task.description, [ikigaiId, archId])
 
 				// Semantic Enrichment: Auto-discover relationships to existing project knowledge
 				try {
@@ -69,7 +75,7 @@ export class KanbanSystem {
 				}
 
 				// Legacy Orchestrator Task (for UI/Stream compatibility)
-				await controller.beginTask(taskDescription)
+				await controller.beginTask(task.description)
 				await controller.updateTaskProgress("pending")
 			})
 
@@ -82,15 +88,19 @@ export class KanbanSystem {
 		} catch (error) {
 			Logger.error(`[MAS][${this.name}] Failed to plan flow:`, error)
 			// Fallback to minimal task
-			const tasks = ["Implement core functionality"]
-			return tasks
+			const fallbackTask: KanbanTask = {
+				id: "t1",
+				description: "Implement core functionality",
+				depends_on: [],
+			}
+			return [fallbackTask]
 		}
 	}
 
 	/**
 	 * Retrieves the current task list from memory.
 	 */
-	public async getStoredTasks(controller: OrchestrationController): Promise<string[]> {
+	public async getStoredTasks(controller: OrchestrationController): Promise<KanbanTask[]> {
 		const tasksRaw = await controller.recallMemory("task_flow")
 		if (!tasksRaw) return []
 

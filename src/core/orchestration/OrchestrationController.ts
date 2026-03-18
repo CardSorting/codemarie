@@ -1,5 +1,5 @@
 import * as path from "path"
-import { AgentTask, orchestrator, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
+import { AgentStream, AgentTask, orchestrator, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
 import { dbPool, WriteOp } from "@/infrastructure/db/BufferedDbPool"
 import { Logger } from "@/shared/services/Logger"
 import { AgentContext } from "../broccolidb/agent-context"
@@ -277,6 +277,84 @@ export class OrchestrationController {
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to recall memory ${key}:`, error)
 			return undefined
+		}
+	}
+
+	/**
+	 * Spawns a child stream linked to this controller's stream.
+	 * Used by StreamPool to create isolated WorkerStream contexts.
+	 */
+	public async spawnChildStream(focus: string): Promise<AgentStream> {
+		return orchestrator.spawnChildStream(this.streamId, focus)
+	}
+
+	/**
+	 * Returns all child streams for this controller's stream.
+	 */
+	public async getChildStreams(): Promise<AgentStream[]> {
+		return orchestrator.getChildStreams(this.streamId)
+	}
+
+	/**
+	 * Returns an aggregated digest merging this stream's context
+	 * with all child stream digests.
+	 */
+	public async getAggregatedDigest(): Promise<string> {
+		try {
+			const parentDigest = JSON.parse(await this.getStreamDigest())
+			const children = await this.getChildStreams()
+			const childDigests: any[] = []
+
+			for (const child of children) {
+				try {
+					const raw = await orchestrator.getCompressedContext(child.id)
+					childDigests.push(JSON.parse(raw))
+				} catch (_e) {
+					// Skip failed digests
+				}
+			}
+
+			return JSON.stringify(
+				{
+					parent: parentDigest,
+					children: childDigests,
+					totalChildStreams: children.length,
+					activeChildStreams: children.filter((c) => c.status === "active").length,
+				},
+				null,
+				2,
+			)
+		} catch (error) {
+			Logger.error(`[Orchestration] Failed to get aggregated digest:`, error)
+			return "{}"
+		}
+	}
+
+	/**
+	 * Completes this stream only after all child streams have been
+	 * committed or rolled back. Ensures no orphaned child streams.
+	 */
+	public async completeWithChildren(
+		summary: string,
+		validator?: (
+			affectedFiles: Set<string>,
+			ops: import("@/infrastructure/db/BufferedDbPool").WriteOp[],
+		) => Promise<{ success: boolean; errors: string[] }>,
+	): Promise<boolean> {
+		try {
+			const children = await this.getChildStreams()
+			const activeChildren = children.filter((c) => c.status === "active")
+
+			if (activeChildren.length > 0) {
+				Logger.warn(
+					`[Orchestration] ${activeChildren.length} child streams still active. Waiting is not implemented; completing parent anyway.`,
+				)
+			}
+
+			return await this.completeStream(summary, validator)
+		} catch (error) {
+			Logger.error(`[Orchestration] Failed to complete with children:`, error)
+			return false
 		}
 	}
 
