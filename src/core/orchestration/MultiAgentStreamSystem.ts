@@ -51,12 +51,17 @@ export class MultiAgentStreamSystem {
 		Logger.info(`[${this.name}] Starting first pass with unified cognitive digest...`)
 
 		// Tier 2: Speculative Cog-Parallelism (Heal while reasoning)
+		const healPromise = ctx.selfHealGraph().catch((e: any) => {
+			Logger.warn(`[${this.name}] Background self-healing failed, ignoring to protect stream:`, e)
+			return { prunedNodes: [] }
+		})
+
 		const [healResult, ikigaiResult] = await Promise.all([
-			ctx.selfHealGraph(),
+			healPromise,
 			this.ikigai.defineScope(this.controller, this.apiHandler, enrichedRequest, groundedSpec),
 		])
 
-		if (healResult.prunedNodes.length > 0) {
+		if (healResult && healResult.prunedNodes && healResult.prunedNodes.length > 0) {
 			Logger.info(
 				`[${this.name}] Self-Healing: Pruned ${healResult.prunedNodes.length} stale/contradictory reasoning nodes.`,
 			)

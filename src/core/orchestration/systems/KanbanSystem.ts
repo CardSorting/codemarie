@@ -73,7 +73,7 @@ export class KanbanSystem {
 				await controller.updateTaskProgress("pending")
 			})
 
-			await Promise.all(spawnPromises)
+			await Promise.allSettled(spawnPromises)
 			// --------------------------------------
 
 			await controller.updateTaskProgress("completed", `Planned ${tasks.length} tasks matching the product scope.`)
