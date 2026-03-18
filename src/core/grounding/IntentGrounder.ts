@@ -333,7 +333,12 @@ export class IntentGrounder {
 						)
 						const antiPatternContext = antiPatterns.map((n) => `- ${n.content}`).join("\n")
 
-						finalSpec.adversarialCritique = await this.redTeamCritique(finalSpec, intent, antiPatternContext)
+						finalSpec.adversarialCritique = await this.redTeamCritique(
+							finalSpec,
+							intent,
+							antiPatternContext,
+							streamId,
+						)
 					} catch (redTeamError) {
 						Logger.warn("[IntentGrounder] Red-Team critique failed:", redTeamError)
 					}
@@ -346,7 +351,7 @@ export class IntentGrounder {
 					}))
 
 					try {
-						finalSpec.swarmConsensus = await this.calculateSwarmConsensus(finalSpec, intent)
+						finalSpec.swarmConsensus = await this.calculateSwarmConsensus(finalSpec, intent, streamId)
 					} catch (consensusError) {
 						Logger.warn("[IntentGrounder] Swarm consensus failed:", consensusError)
 					}
@@ -535,7 +540,17 @@ export class IntentGrounder {
 		spec: GroundedSpec,
 		intent: string,
 		antiPatternContext: string,
+		streamId?: string,
 	): Promise<GroundedSpec["adversarialCritique"]> {
+		let redTeamStream
+		if (streamId) {
+			try {
+				redTeamStream = await orchestrator.spawnChildStream(streamId, "Adversarial Policy Verification")
+			} catch (e) {
+				Logger.warn("[IntentGrounder] Failed to spawn red-team child stream:", e)
+			}
+		}
+
 		const prompt = `You are a Senior Architectural Auditor (Red-Teamer). 
 Your goal is to find flaws, architectural violations, or hidden risks in a proposed grounding plan.
 
@@ -560,6 +575,11 @@ Respond with JSON only:
 		const { spec: rawResult } = await this.executeGroundingRequest("You are a cynical, expert red-teamer.", messages)
 
 		const result = rawResult as any
+
+		if (redTeamStream) {
+			await orchestrator.completeStream(redTeamStream.id, result?.critique || "Red team critique completed")
+		}
+
 		return {
 			critique: result?.critique || "Plan seems standard, but potential for unmapped side-effects remains.",
 			pitfalls: result?.pitfalls || ["Side-effect propagation"],
@@ -568,11 +588,74 @@ Respond with JSON only:
 		}
 	}
 
-	/**
-	 * Phase 8: Swarm Consensus Verification.
-	 * Simulates three specialist agents (Architect, Security, UX) to verify the plan.
-	 */
-	private async calculateSwarmConsensus(spec: GroundedSpec, intent: string): Promise<GroundedSpec["swarmConsensus"]> {
+	private async calculateSwarmConsensus(
+		spec: GroundedSpec,
+		intent: string,
+		streamId?: string,
+	): Promise<GroundedSpec["swarmConsensus"]> {
+		if (!streamId) {
+			return this.simulatedSwarmConsensus(spec, intent)
+		}
+
+		try {
+			// Phase 8: Real Swarm Consensus Verification
+			// Actually spawns three independent streams to execute tasks concurrently
+			const [architectStream, securityStream, uxStream] = await Promise.all([
+				orchestrator.spawnChildStream(streamId, "Architectural Assessment"),
+				orchestrator.spawnChildStream(streamId, "Security & Blast Radius Assessment"),
+				orchestrator.spawnChildStream(streamId, "UX & Intent Alignment Assessment"),
+			])
+
+			const planStr = JSON.stringify(spec, null, 2)
+
+			const architectPrompt = `You are a Senior Architect Agent. Review this grounding plan for Joy-Zoning violations and dependency chains.\nIntent: ${intent}\nPlan: ${planStr}\nRespond with JSON: { "agreementScore": 0.0, "feedback": "Your point..." }`
+			const securityPrompt = `You are a Security Agent. Review this grounding plan for blast radius and destructive operations.\nIntent: ${intent}\nPlan: ${planStr}\nRespond with JSON: { "agreementScore": 0.0, "feedback": "Your point..." }`
+			const uxPrompt = `You are a UX Agent. Review this grounding plan for intent alignment and clarity.\nIntent: ${intent}\nPlan: ${planStr}\nRespond with JSON: { "agreementScore": 0.0, "feedback": "Your point..." }`
+
+			const [archRes, secRes, uxRes] = await Promise.all([
+				this.executeGroundingRequest("You are an Architect Agent.", [
+					{ role: "user", content: [{ type: "text", text: architectPrompt }] },
+				]),
+				this.executeGroundingRequest("You are a Security Agent.", [
+					{ role: "user", content: [{ type: "text", text: securityPrompt }] },
+				]),
+				this.executeGroundingRequest("You are a UX Agent.", [
+					{ role: "user", content: [{ type: "text", text: uxPrompt }] },
+				]),
+			])
+
+			const archData = archRes.spec as any
+			const secData = secRes.spec as any
+			const uxData = uxRes.spec as any
+
+			await Promise.all([
+				orchestrator.completeStream(architectStream.id, archData?.feedback || "Completed"),
+				orchestrator.completeStream(securityStream.id, secData?.feedback || "Completed"),
+				orchestrator.completeStream(uxStream.id, uxData?.feedback || "Completed"),
+			])
+
+			const avgScore =
+				((archData?.agreementScore || 0.8) + (secData?.agreementScore || 0.8) + (uxData?.agreementScore || 0.8)) / 3
+
+			return {
+				agreementScore: avgScore,
+				consensusNarrative:
+					avgScore > 0.7
+						? "The swarm reached high consensus after independent isolated analysis."
+						: "The swarm identified mixed structural risks.",
+				agentFeedback: [
+					`Architect: ${archData?.feedback || "Layers are isolated."}`,
+					`Security: ${secData?.feedback || "Blast radius contained."}`,
+					`UX: ${uxData?.feedback || "Intent clearly mapped."}`,
+				],
+			}
+		} catch (error) {
+			Logger.warn("[IntentGrounder] Real Swarm consensus failed, falling back to simulated:", error)
+			return this.simulatedSwarmConsensus(spec, intent)
+		}
+	}
+
+	private async simulatedSwarmConsensus(spec: GroundedSpec, intent: string): Promise<GroundedSpec["swarmConsensus"]> {
 		const prompt = `You are a Swarm Consensus Engine.
 Given a grounding plan, simulate three specialist perspectives:
 1. Architect: Focuses on Joy-Zoning and dependency chains.

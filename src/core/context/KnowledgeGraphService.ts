@@ -900,29 +900,59 @@ Removed: ${removed.join(", ") || "None"}
 		sourceStreamId: string,
 		targetStreamId: string,
 	): Promise<{ hasConflicts: boolean; affectedPaths: string[] }> {
-		const sourceHistory = await this.getHistory(sourceStreamId, 1)
-		const targetHistory = await this.getHistory(targetStreamId, 1)
+		const sourceHistory = await this.getHistory(sourceStreamId, 50)
+		const targetHistory = await this.getHistory(targetStreamId, 50)
 
 		if (sourceHistory.length === 0 || targetHistory.length === 0) {
 			return { hasConflicts: false, affectedPaths: [] }
 		}
 
-		const sourceTree = sourceHistory[0]?.metadata?.tree || {}
-		const targetTree = targetHistory[0]?.metadata?.tree || {}
+		// Find LCA
+		const sourceIds = new Set(sourceHistory.map((n) => n.id))
+		let lcaId: string | null = null
+		let lcaTree: Record<string, string> = {}
 
-		const affectedPaths: string[] = []
-		const allPaths = new Set([...Object.keys(sourceTree), ...Object.keys(targetTree)])
-
-		for (const path of allPaths) {
-			if (sourceTree[path] !== targetTree[path]) {
-				affectedPaths.push(path)
+		for (const node of targetHistory) {
+			if (sourceIds.has(node.id)) {
+				lcaId = node.id
+				lcaTree = node.metadata?.tree || {}
+				break
 			}
 		}
 
-		// Simple conflict detection: if a path exists in both and has different hashes, it's an affected path.
-		// Real conflict detection would require finding a common ancestor.
+		const sourceTree = sourceHistory[0]?.metadata?.tree || {}
+		const targetTree = targetHistory[0]?.metadata?.tree || {}
+		const affectedPaths: string[] = []
+		let hasConflicts = false
+
+		const allPaths = new Set([...Object.keys(sourceTree), ...Object.keys(targetTree)])
+
+		for (const path of allPaths) {
+			const s = sourceTree[path]
+			const t = targetTree[path]
+			const base = lcaTree[path]
+
+			if (s !== t) {
+				affectedPaths.push(path)
+
+				// Real conflict detection: changed in both relative to LCA
+				if (lcaId) {
+					const changedInSource = s !== base
+					const changedInTarget = t !== base
+					if (changedInSource && changedInTarget) {
+						hasConflicts = true
+					}
+				} else {
+					// If no LCA, any difference is a potential conflict
+					if (s && t) {
+						hasConflicts = true
+					}
+				}
+			}
+		}
+
 		return {
-			hasConflicts: false, // Placeholder
+			hasConflicts,
 			affectedPaths,
 		}
 	}
