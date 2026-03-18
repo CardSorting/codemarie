@@ -572,7 +572,26 @@ Respond with JSON only:
 }`
 
 		const messages: CodemarieStorageMessage[] = [{ role: "user", content: [{ type: "text", text: prompt }] }]
-		const { spec: rawResult } = await this.executeGroundingRequest("You are a cynical, expert red-teamer.", messages)
+		const TIMEOUT_MS = 60000 // 60s timeout to prevent system deadlock
+
+		let rawResult: any
+		try {
+			const res = await Promise.race([
+				this.executeGroundingRequest("You are a cynical, expert red-teamer.", messages),
+				new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout")), TIMEOUT_MS)),
+			])
+			rawResult = res.spec
+		} catch (err) {
+			Logger.warn(
+				`[IntentGrounder] Red-Team Error/Timeout: ${err instanceof Error ? err.message : String(err)}. Degraded to fallback.`,
+			)
+			rawResult = {
+				critique: "Red team evaluation timed out. Plan assumed standard risk.",
+				pitfalls: [],
+				mitigations: [],
+				redTeamScore: 0.5,
+			}
+		}
 
 		const result = rawResult as any
 
@@ -612,16 +631,40 @@ Respond with JSON only:
 			const securityPrompt = `You are a Security Agent. Review this grounding plan for blast radius and destructive operations.\nIntent: ${intent}\nPlan: ${planStr}\nRespond with JSON: { "agreementScore": 0.0, "feedback": "Your point..." }`
 			const uxPrompt = `You are a UX Agent. Review this grounding plan for intent alignment and clarity.\nIntent: ${intent}\nPlan: ${planStr}\nRespond with JSON: { "agreementScore": 0.0, "feedback": "Your point..." }`
 
+			const TIMEOUT_MS = 60000 // 60s timeout to prevent system deadlock
+			const withTimeout = async (promise: Promise<any>, fallback: string) => {
+				try {
+					return await Promise.race([
+						promise,
+						new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout")), TIMEOUT_MS)),
+					])
+				} catch (err) {
+					Logger.warn(
+						`[IntentGrounder] Swarm Agent Error/Timeout: ${err instanceof Error ? err.message : String(err)}. Degraded to fallback.`,
+					)
+					return { spec: { agreementScore: 0.5, feedback: fallback } }
+				}
+			}
+
 			const [archRes, secRes, uxRes] = await Promise.all([
-				this.executeGroundingRequest("You are an Architect Agent.", [
-					{ role: "user", content: [{ type: "text", text: architectPrompt }] },
-				]),
-				this.executeGroundingRequest("You are a Security Agent.", [
-					{ role: "user", content: [{ type: "text", text: securityPrompt }] },
-				]),
-				this.executeGroundingRequest("You are a UX Agent.", [
-					{ role: "user", content: [{ type: "text", text: uxPrompt }] },
-				]),
+				withTimeout(
+					this.executeGroundingRequest("You are an Architect Agent.", [
+						{ role: "user", content: [{ type: "text", text: architectPrompt }] },
+					]),
+					"Architect evaluation timed out. Assumed moderate agreement.",
+				),
+				withTimeout(
+					this.executeGroundingRequest("You are a Security Agent.", [
+						{ role: "user", content: [{ type: "text", text: securityPrompt }] },
+					]),
+					"Security evaluation timed out. Assumed moderate agreement.",
+				),
+				withTimeout(
+					this.executeGroundingRequest("You are a UX Agent.", [
+						{ role: "user", content: [{ type: "text", text: uxPrompt }] },
+					]),
+					"UX evaluation timed out. Assumed moderate agreement.",
+				),
 			])
 
 			const archData = archRes.spec as any
