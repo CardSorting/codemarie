@@ -2,6 +2,9 @@
 
 This document provides a deep dive into the technical implementation of the Multi-Agent System (MAS).
 
+> [!TIP]
+> This is a deep technical reference. For a high-level overview, see the [Multi-Agent System Overview](../multi-agent-system). For the full knowledge map, see the [Knowledge Base Guide](../KNOWLEDGE_BASE_GUIDE).
+
 ## System Topology
 
 ```mermaid

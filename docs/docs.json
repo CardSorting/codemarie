@@ -120,10 +120,23 @@
 						]
 					},
 					{
-						"group": "Features",
+						"group": "Knowledge Base Guide",
+						"pages": [
+							"KNOWLEDGE_BASE_GUIDE"
+						]
+					},
+					{
+						"group": "Cognitive Architecture",
 						"pages": [
 							"features/intent-grounding",
+							"multi-agent-system",
 							"features/memory-bank",
+							"hyper-cognition/MAS_ARCHITECTURE"
+						]
+					},
+					{
+						"group": "Core Features",
+						"pages": [
 							"features/focus-chain",
 							"features/auto-approve",
 							"features/auto-compact",

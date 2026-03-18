@@ -3,6 +3,9 @@
 ## Overview
 The Multi-Agent System (MAS) is a high-level cognitive orchestration layer designed to handle complex, multi-turn tasks that exceed the capacity of a single agent context. It follows a multi-tiered architecture that balances performance, focus, and deep reasoning.
 
+> [!NOTE]
+> This document is part of the [Cognitive Architecture](KNOWLEDGE_BASE_GUIDE) domain. For a deep technical dive, see the [MAS Technical Architecture](hyper-cognition/MAS_ARCHITECTURE).
+
 ## Core Architecture
 
 ### 1. Orchestration Controller
