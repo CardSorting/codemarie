@@ -24,7 +24,15 @@ CodeMarie moves beyond simple context windows via a persistent **Knowledge Graph
 *   **Knowledge Graph (KG) Resilience**: Self-healing graph nodes that automatically repair broken semantic links during repo churn.
 *   **Speculative Pipeline**: Preview multi-hop impact of intent grounded changes (`MEM_BLAST`) before execution.
 
-### 🐝 Swarm Coordination & Adaptive Intelligence
+### 🐝 Multi-Agent System (MAS) & Unified Cognitive Fabric
+CodeMarie v3.76.0 introduces the **Unified Cognitive Fabric**, where sub-agents operate as a single, interconnected mind:
+*   **Default Operational Mode**: MAS is now the default path, providing multi-agent orchestration for all complex grounded tasks (`masEnabled: true`).
+*   **Shared Reasoning Canvas**: Sub-agents like `Ikigai`, `JoyZoning`, and `Kaizen` communicate via native node annotations in BroccoliDB, creating a linked cognitive lineage.
+*   **Adaptive Reprioritization**: Integrated self-correction where the system dynamically adjusts task priorities and queue status based on architectural soundness.
+*   **Unified Cog-Bus**: Real-time system-wide context distribution ensuring all agents remain synchronized during multi-turn refactors.
+*   **Grounded Orchestration**: Seamless flow from `Intent Grounding` directly into sequential MAS execution for high-reliability planning.
+
+### Bee Swarm Coordination & Adaptive Intelligence
 Industrial-grade orchestration for distributed, self-correcting workflows:
 *   **Persistent Swarm Mutexes**: DB-backed locking (`swarm_locks`) that survives process restarts and ensures cross-agent synchronization.
 *   **Adaptive Budgeting**: Token-aware and cost-aware recursion guardrails that automatically prevent runaway subagent executions.

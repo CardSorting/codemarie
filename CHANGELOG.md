@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.77.0] - 2026-03-18
+
+### Added
+- **Multi-Agent System (MAS) & Unified Cognitive Fabric**:
+  - **Interconnected Cognitive Engine**: Sub-agents now operate as a single cognitive unit with shared reasoning via node annotation in BroccoliDB.
+  - **Adaptive Reprioritization**: Integrated self-healing where the system dynamically adjusts task priorities and queue status based on architectural soundness.
+  - **Unified Cognitive Bus**: Real-time system-wide context distribution ensuring all agents (Ikigai, JoyZoning, Kanban, Kaizen) remain synchronized.
+  - **Default Enabling**: MAS is now the default operational path for all complex grounded tasks, with a user-configurable toggle in settings.
+- **Intent Grounding Integration**: Sequential execution pipeline ensuring Intent Grounding results serve as the high-fidelity seed for MAS orchestration.
+- **Shared Reasoning Protocol**: New `annotateKnowledge` system allowing for cross-agent auditing and linked cognitive lineage in the knowledge graph.
+
+### Fixed
+- **MAS Sequential Flow**: Resolved collisions between Intent Grounding and MAS by formalizing a serial execution pipeline.
+- **Orchestration Stability**: Improved task initiation logic to ensure the `groundedSpec` is correctly propagated to all sub-agent systems.
+
 ## [3.76.2] - 2026-03-17
 
 ### Fixed
