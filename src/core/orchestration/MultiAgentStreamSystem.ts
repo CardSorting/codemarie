@@ -28,7 +28,10 @@ export class MultiAgentStreamSystem {
 	/**
 	 * Executes the full MAS pass for a new product/feature.
 	 */
-	public async executeFirstPass(userRequest: string): Promise<{ success: boolean; clarificationNeeded?: string }> {
+	public async executeFirstPass(
+		userRequest: string,
+		groundedSpec?: any,
+	): Promise<{ success: boolean; clarificationNeeded?: string }> {
 		const ctx = await this.controller.getAgentContext()
 
 		// Tier 2: Memoized Agent Registration (Zero DB overhead on repeat calls)
@@ -46,7 +49,7 @@ export class MultiAgentStreamSystem {
 		// Tier 2: Speculative Cog-Parallelism (Heal while reasoning)
 		const [healResult, ikigaiResult] = await Promise.all([
 			ctx.selfHealGraph(),
-			this.ikigai.defineScope(this.controller, this.apiHandler, userRequest),
+			this.ikigai.defineScope(this.controller, this.apiHandler, userRequest, groundedSpec),
 		])
 
 		if (healResult.prunedNodes.length > 0) {
@@ -68,7 +71,7 @@ export class MultiAgentStreamSystem {
 		await ctx.flush() // 🚀 Proactive flush for high throughput
 
 		// 3. Kanban Pass — Break down into tasks
-		await this.kanban.planFlow(this.controller, this.apiHandler, purpose, scope, archPlan)
+		await this.kanban.planFlow(this.controller, this.apiHandler, purpose, scope, archPlan, groundedSpec)
 		await ctx.flush() // 🚀 Proactive flush for high throughput
 
 		Logger.info(`[${this.name}] First pass completed. Ready for execution.`)

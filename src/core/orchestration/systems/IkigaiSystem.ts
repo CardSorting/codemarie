@@ -20,6 +20,7 @@ export class IkigaiSystem {
 		controller: OrchestrationController,
 		apiHandler: ApiHandler,
 		userRequest: string,
+		groundedSpec?: any,
 	): Promise<{ purpose: string; scope: any[]; clarificationNeeded?: string }> {
 		Logger.info(`[MAS][${this.name}] Defining scope for request: ${userRequest.slice(0, 50)}...`)
 
@@ -27,7 +28,18 @@ export class IkigaiSystem {
 		await controller.beginTask("Defining Product Purpose, Scope & Success Criteria (Ikigai)")
 
 		try {
-			const res = await executeMASRequest(apiHandler, IKIGAI_SYSTEM_PROMPT, userRequest)
+			// Tier 3: Context Enrichment (Intent Grounding Handoff)
+			let contextRequest = userRequest
+			if (groundedSpec) {
+				const verifiedEntities = groundedSpec.verifiedEntities?.map((e: any) => e.path || e.name).join(", ") || "None"
+				const constraints = groundedSpec.constraints?.join("; ") || "None"
+				contextRequest = `User Request: ${userRequest}\n\n[Grounded Context]\nVerified Project Entities: ${verifiedEntities}\nConstraints: ${constraints}`
+				Logger.info(
+					`[MAS][${this.name}] Enriched request with grounded context (${groundedSpec.verifiedEntities?.length || 0} entities).`,
+				)
+			}
+
+			const res = await executeMASRequest(apiHandler, IKIGAI_SYSTEM_PROMPT, contextRequest)
 			const purpose = res.purpose || `Fulfill the user request: ${userRequest}`
 			const scope = res.scope || []
 			const nonGoals = res.non_goals || []

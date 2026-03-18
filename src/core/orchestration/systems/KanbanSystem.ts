@@ -22,6 +22,7 @@ export class KanbanSystem {
 		purpose: string,
 		scope: string[],
 		archPlan?: string,
+		groundedSpec?: any,
 	): Promise<string[]> {
 		Logger.info(`[MAS][${this.name}] Planning flow for purpose: ${purpose.slice(0, 50)}...`)
 		Logger.info(`[MAS][${this.name}] Scope: ${scope.join(", ")}`)
@@ -30,8 +31,14 @@ export class KanbanSystem {
 		await controller.beginTask("Planning Task Flow (Kanban)")
 
 		try {
-			const prompt = `Product Purpose: ${purpose}\nScope: ${scope.join(", ")}${archPlan ? `\nArchitectural Plan: ${archPlan}` : ""}`
-			const res = await executeMASRequest(apiHandler, KANBAN_SYSTEM_PROMPT, prompt)
+			// Tier 3: Task-Level Grounding (Using IntentGrounder seeds)
+			let kanbanPrompt = `Product Purpose: ${purpose}\nScope Items: ${scope.join(", ")}\nArchitectural Plan: ${archPlan || "Layered"}`
+			if (groundedSpec?.actions && groundedSpec.actions.length > 0) {
+				const actionSeeds = groundedSpec.actions.map((a: any) => `- [${a.type}] ${a.description}`).join("\n")
+				kanbanPrompt += `\n\n[Grounded Action Seeds]\n${actionSeeds}`
+				Logger.info(`[MAS][${this.name}] Seeding Kanban with ${groundedSpec.actions.length} grounded actions.`)
+			}
+			const res = await executeMASRequest(apiHandler, KANBAN_SYSTEM_PROMPT, kanbanPrompt)
 			const tasks = res.tasks || []
 
 			// --- BroccoliDB Native Persistence ---

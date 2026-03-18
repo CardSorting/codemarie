@@ -1037,20 +1037,8 @@ export class Task {
 
 		await this.say("task", task, images, files)
 
-		// Phase 0: Multi-Agent Stream Initiation (Ikigai & Kanban)
-		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? false
-		if (this.multiAgentSystem && task && masEnabled) {
-			await this.say("info", "Initiating Multi-Agent Stream (Ikigai & Kanban)...")
-			const masResult = await this.multiAgentSystem.executeFirstPass(task)
-			if (masResult && !masResult.success && masResult.clarificationNeeded) {
-				const response = await this.ask(
-					"followup",
-					`The Multi-Agent System requires clarification to proceed:\n\n> ${masResult.clarificationNeeded}\n\nPlease provide more details to refine the product scope.`,
-				)
-				// Re-run first pass with the new context
-				await this.multiAgentSystem.executeFirstPass(`${task}\n\nUser Clarification: ${response.text || ""}`)
-			}
-		}
+		// Phase 0: Multi-Agent Stream Initiation moved to Phase 2 (Intent Grounding Handoff)
+		// in initiateTaskLoop() to ensure grounded context is available.
 
 		this.taskState.isInitialized = true
 
@@ -1459,9 +1447,9 @@ export class Task {
 		let includeFileDetails = true
 
 		// Phase 2: Intent Grounding
+		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? false
 		if (!this.taskState.groundedSpec && !this.taskState.didAttemptGrounding && userContent.length > 0) {
 			// Multi-Agent Refinement (Kaizen) if this is not the first turn
-			const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? false
 			const isFirstTurn = this.messageStateHandler.getCodemarieMessages().length <= 5 // Basic heuristic
 			if (this.multiAgentSystem && !isFirstTurn && masEnabled) {
 				const lastUserMessage = userContent.find((c) => c.type === "text")?.text
@@ -1600,6 +1588,31 @@ export class Task {
 				} catch (error) {
 					Logger.error("[Task] Intent grounding failed critically:", error)
 					await this.say("info", "Minor issue structuring the task. Proceeding with your original intent.")
+				}
+			}
+
+			// Phase 2.5: Multi-Agent Stream Initiation (Grounded Handoff)
+			if (this.multiAgentSystem && masEnabled && !this.taskState.didInitiateMasFirstPass) {
+				const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
+				if (initialTaskBlock && initialTaskBlock.type === "text" && initialTaskBlock.text) {
+					const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)
+					const taskIntent = taskMatch ? taskMatch[1] : initialTaskBlock.text
+
+					await this.say("info", "Initiating Multi-Agent Stream (Ikigai & Kanban) with Grounded Context...")
+					const masResult = await this.multiAgentSystem.executeFirstPass(taskIntent, this.taskState.groundedSpec)
+					this.taskState.didInitiateMasFirstPass = true
+
+					if (masResult && !masResult.success && masResult.clarificationNeeded) {
+						const response = await this.ask(
+							"followup",
+							`The Multi-Agent System requires clarification to proceed:\n\n> ${masResult.clarificationNeeded}\n\nPlease provide more details to refine the product scope.`,
+						)
+						// Re-run first pass with the new context
+						await this.multiAgentSystem.executeFirstPass(
+							`${taskIntent}\n\nUser Clarification: ${response.text || ""}`,
+							this.taskState.groundedSpec,
+						)
+					}
 				}
 			}
 		}

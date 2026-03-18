@@ -9,6 +9,7 @@ export class TaskState {
 	groundedSpec?: GroundedSpec
 	groundedSpecHistory: GroundedSpec[] = []
 	public didAttemptGrounding = false
+	public didInitiateMasFirstPass = false
 	public recursionDepth = 0
 	public maxTokens?: number
 	public maxCost?: number
