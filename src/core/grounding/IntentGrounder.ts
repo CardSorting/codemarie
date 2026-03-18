@@ -596,7 +596,9 @@ Respond with JSON only:
 		const result = rawResult as any
 
 		if (redTeamStream) {
-			await orchestrator.completeStream(redTeamStream.id, result?.critique || "Red team critique completed")
+			await orchestrator
+				.completeStream(redTeamStream.id, result?.critique || "Red team critique completed")
+				.catch((e) => Logger.warn("[IntentGrounder] Failed to save RedTeam stream completion to DB:", e))
 		}
 
 		return {
@@ -671,7 +673,7 @@ Respond with JSON only:
 			const secData = secRes.spec as any
 			const uxData = uxRes.spec as any
 
-			await Promise.all([
+			await Promise.allSettled([
 				orchestrator.completeStream(architectStream.id, archData?.feedback || "Completed"),
 				orchestrator.completeStream(securityStream.id, secData?.feedback || "Completed"),
 				orchestrator.completeStream(uxStream.id, uxData?.feedback || "Completed"),
