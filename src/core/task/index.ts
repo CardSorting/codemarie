@@ -1454,8 +1454,16 @@ export class Task {
 			if (this.multiAgentSystem && !isFirstTurn && masEnabled) {
 				const lastUserMessage = userContent.find((c) => c.type === "text")?.text
 				if (lastUserMessage) {
-					await this.say("info", "Performing Multi-Agent Refinement (Kaizen)...")
-					await this.multiAgentSystem.executeRefinementPass(lastUserMessage)
+					try {
+						await this.say("info", "Performing Multi-Agent Refinement (Kaizen)...")
+						await this.multiAgentSystem.executeRefinementPass(lastUserMessage)
+					} catch (error) {
+						Logger.error("[Task] MAS Refinement Stream failed:", error)
+						await this.say(
+							"info",
+							"Multi-Agent Refinement was interrupted. Falling back to robust single-agent execution.",
+						)
+					}
 				}
 			}
 			const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
@@ -1598,19 +1606,28 @@ export class Task {
 					const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)
 					const taskIntent = taskMatch ? taskMatch[1] : initialTaskBlock.text
 
-					await this.say("info", "Initiating Multi-Agent Stream (Ikigai & Kanban) with Grounded Context...")
-					const masResult = await this.multiAgentSystem.executeFirstPass(taskIntent, this.taskState.groundedSpec)
-					this.taskState.didInitiateMasFirstPass = true
+					try {
+						await this.say("info", "Initiating Multi-Agent Stream (Ikigai & Kanban) with Grounded Context...")
+						const masResult = await this.multiAgentSystem.executeFirstPass(taskIntent, this.taskState.groundedSpec)
+						this.taskState.didInitiateMasFirstPass = true
 
-					if (masResult && !masResult.success && masResult.clarificationNeeded) {
-						const response = await this.ask(
-							"followup",
-							`The Multi-Agent System requires clarification to proceed:\n\n> ${masResult.clarificationNeeded}\n\nPlease provide more details to refine the product scope.`,
-						)
-						// Re-run first pass with the new context
-						await this.multiAgentSystem.executeFirstPass(
-							`${taskIntent}\n\nUser Clarification: ${response.text || ""}`,
-							this.taskState.groundedSpec,
+						if (masResult && !masResult.success && masResult.clarificationNeeded) {
+							const response = await this.ask(
+								"followup",
+								`The Multi-Agent System requires clarification to proceed:\n\n> ${masResult.clarificationNeeded}\n\nPlease provide more details to refine the product scope.`,
+							)
+							// Re-run first pass with the new context
+							await this.multiAgentSystem.executeFirstPass(
+								`${taskIntent}\n\nUser Clarification: ${response.text || ""}`,
+								this.taskState.groundedSpec,
+							)
+						}
+					} catch (error) {
+						this.taskState.didInitiateMasFirstPass = true // Prevent infinite loops
+						Logger.error("[Task] MAS Execution Stream failed:", error)
+						await this.say(
+							"info",
+							"Multi-Agent Stream was structurally interrupted. Nudging system and falling back to robust single-agent execution...",
 						)
 					}
 				}
