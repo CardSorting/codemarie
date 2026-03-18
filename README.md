@@ -81,27 +81,44 @@ CodeMarie provides custom-tuned **Prompt Variants** to extract maximum performan
 ### 1. Core Architectural Layout
 ```mermaid
 graph TD
-    User((User)) --> Webview[VS Code Webview]
-    Webview --> Controller[Core Controller]
-    
-    subgraph "Fluid Policy Engine"
-        Controller --> JoyZoning[Joy-Zoning Guard]
-        JoyZoning --> Mutex[Persistent Mutexes]
-    end
-    
-    subgraph "Knowledge Graph (BroccoliDB)"
-        Controller --> Graph[(Knowledge Graph)]
-        Graph --> Analysis[Blast/Forecast]
-        Graph --> Rocket[Rocket Grounding Index]
-    end
+    classDef primary fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef secondary fill:#1e293b,stroke:#a855f7,stroke-width:2px,color:#fff;
+    classDef database fill:#1e293b,stroke:#10b981,stroke-width:2px,color:#fff;
+    classDef warning fill:#1e293b,stroke:#ef4444,stroke-width:2px,color:#fff;
+
+    User((User Workspace)):::primary --> Extension[VS Code Gateway]:::primary
+    Extension --> Controller[Core Controller / Main Event Loop]:::primary
     
     subgraph "Agentic Swarm Orchestration"
-        Controller --> Orchestrator[MAS Orchestrator]
-        Orchestrator --> Subagents[Spawned Child Streams]
-        Subagents --> SharedMemory[Memory Blackboard]
+        Controller --> MAS[Multi-Agent Orchestrator]:::secondary
+        MAS <--> SignalBus{Cog-Bus / Signaling Layer}:::secondary
+        SignalBus <--> SubA[Architect Stream]:::secondary
+        SignalBus <--> SubB[Security Stream]:::secondary
+        SignalBus <--> SubC[UX Stream]:::secondary
     end
     
-    Controller --> MCP[MCP Hub]
+    subgraph "Hyper-Cognition Engine"
+        Controller --> KGS[Knowledge Graph Service]:::primary
+        KGS --> Rocket[Rocket Grounding Indexer]:::primary
+        KGS --> Predict[Blast-Radius Predictor]:::warning
+    end
+
+    subgraph "Fluid Policy & Enforcement"
+        Controller --> JZ[Joy-Zoning Guard]:::warning
+        JZ <--> Validator[AST Structural Validator]:::warning
+    end
+    
+    subgraph "Transactional Persistence Layer"
+        MAS --> DB[(BroccoliDB / SQLite)]:::database
+        KGS --> DB
+        JZ --> DB
+        DB --> Shadows[Shadow Workspaces]:::database
+        DB --> Mutex[Swarm Mutex Locks]:::database
+        DB --> Nodes[Semantic Knowledge Nodes]:::database
+    end
+    
+    Controller --> MCPHub[Model Context Protocol (MCP) Hub]:::primary
+    MCPHub -.-> ExtTools[External Dev Tools]
 ```
 
 ### 2. Multi-Agent System (MAS) Execution Pipeline
