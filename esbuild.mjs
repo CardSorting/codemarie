@@ -34,6 +34,14 @@ const aliasResolverPlugin = {
 			build.onResolve({ filter: aliasRegex }, (args) => {
 				const importPath = args.path.replace(alias, aliasPath)
 
+				// If it's a file ending in .js/.jsx, try to find the .ts/.tsx equivalent first
+				if (importPath.endsWith(".js") || importPath.endsWith(".jsx")) {
+					const tsPath = importPath.replace(/\.js$/, ".ts").replace(/\.jsx$/, ".tsx")
+					if (fs.existsSync(tsPath)) {
+						return { path: tsPath }
+					}
+				}
+
 				// First, check if the path exists as is
 				if (fs.existsSync(importPath)) {
 					const stats = fs.statSync(importPath)
