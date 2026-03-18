@@ -25,14 +25,18 @@ CodeMarie moves beyond simple context windows via a persistent **Knowledge Graph
 *   **Speculative Pipeline**: Preview multi-hop impact of intent grounded changes (`MEM_BLAST`) before execution.
 
 ### 🐝 Multi-Agent System (MAS) & Unified Cognitive Fabric
-CodeMarie v3.76.0 introduces the **Unified Cognitive Fabric**, where sub-agents operate as a single, interconnected mind:
+CodeMarie v3.78.0 introduces the **Unified Cognitive Fabric** and complete **Production Hardening**, where sub-agents operate as a single, interconnected, and fully verified mind:
 *   **Default Operational Mode**: MAS is now the default path, providing multi-agent orchestration for all complex grounded tasks (`masEnabled: true`).
 *   **Shared Reasoning Canvas**: Sub-agents like `Ikigai`, `JoyZoning`, and `Kaizen` communicate via native node annotations in BroccoliDB, creating a linked cognitive lineage.
-*   **Adaptive Reprioritization**: Integrated self-correction where the system dynamically adjusts task priorities and queue status based on architectural soundness.
-*   **Unified Cog-Bus**: Real-time system-wide context distribution ensuring all agents remain synchronized during multi-turn refactors.
-*   **Grounded Orchestration**: Seamless flow from `Intent Grounding` directly into sequential MAS execution for high-reliability planning.
+*   **Adaptive Reprioritization**: Integrated self-correction where the `Kaizen` system dynamically adjusts task priorities and downgrades features based on strict architectural soundness scores.
+*   **Swarm Consensus Protocol**: Intent grounding is peer-reviewed by true, concurrently spawned sub-agent streams (Architect, Security, UX) before any code execution begins.
+*   **Adversarial Red-Teaming**: Specialized background streams autonomously critique and probe Joy-Zoning architectural plans for isolated vulnerabilities.
+*   **Predictive Merge Forecasting**: Replaces standard overlap checks with a genuine **Dual Blast-Radius Engine**, mapping AST dependencies across both source and target branches to accurately predict multi-hop semantic merge conflicts.
+*   **LCA Graph Resolution**: Implements deep Git-like Least Common Ancestor (LCA) traversals at the AST/Context layer to guarantee accurate conflict detection.
+*   **Stream Resilience & Auto-Recovery**: Automatic retry loops with "System Nudges" seamlessly handle LLM JSON parsing failures, ensuring the agent stream self-corrects without crashing.
+*   **Unified Cog-Bus**: Real-time system-wide context distribution ensures all agents remain flawlessly synchronized during deep multi-turn refactors.
 
-### Bee Swarm Coordination & Adaptive Intelligence
+### 🐝 Bee Swarm Coordination & Adaptive Intelligence
 Industrial-grade orchestration for distributed, self-correcting workflows:
 *   **Persistent Swarm Mutexes**: DB-backed locking (`swarm_locks`) that survives process restarts and ensures cross-agent synchronization.
 *   **Adaptive Budgeting**: Token-aware and cost-aware recursion guardrails that automatically prevent runaway subagent executions.
