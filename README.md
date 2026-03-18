@@ -78,6 +78,7 @@ CodeMarie provides custom-tuned **Prompt Variants** to extract maximum performan
 
 ## 📐 System Architecture
 
+### 1. Core Architectural Layout
 ```mermaid
 graph TD
     User((User)) --> Webview[VS Code Webview]
@@ -85,44 +86,82 @@ graph TD
     
     subgraph "Fluid Policy Engine"
         Controller --> JoyZoning[Joy-Zoning Guard]
-        JoyZoning --> SQLite[(Persistence Layer)]
         JoyZoning --> Mutex[Persistent Mutexes]
     end
     
-    subgraph "Hyper-Cognition"
-        Controller --> Graph[Knowledge Graph]
-        Graph --> Embeddings[Gemini Embeddings]
+    subgraph "Knowledge Graph (BroccoliDB)"
+        Controller --> Graph[(Knowledge Graph)]
         Graph --> Analysis[Blast/Forecast]
         Graph --> Rocket[Rocket Grounding Index]
     end
     
-    subgraph "Agentic Swarm (v3.74.0)"
-        Controller --> ParentStream[Parent Agent]
-        ParentStream --> Subagent1[Subagent A]
-        ParentStream --> Subagent2[Subagent B]
-        Subagent1 & Subagent2 --> Consensus[Consensus Handler]
-        Consensus --> Signaling[Signaling Layer]
-        Signaling --> SharedMemory[Shared Memory Blackboard]
-        Subagent1 & Subagent2 --> SharedMemory
+    subgraph "Agentic Swarm Orchestration"
+        Controller --> Orchestrator[MAS Orchestrator]
+        Orchestrator --> Subagents[Spawned Child Streams]
+        Subagents --> SharedMemory[Memory Blackboard]
     end
     
     Controller --> MCP[MCP Hub]
 ```
 
----
+### 2. Multi-Agent System (MAS) Execution Pipeline
+CodeMarie processes complex tasks through a rigid, peer-reviewed multi-agent gauntlet:
 
----
+```mermaid
+graph TD
+    Start([User Request]) --> Ikigai[1. Ikigai System]
+    Ikigai -- "Extracts Intent & Scope" --> Swarm{Swarm Consensus}
+    
+    subgraph "Peer Review Swarm"
+        Swarm --> ArchAgent[Architect Agent]
+        Swarm --> SecAgent[Security Agent]
+        Swarm --> UXAgent[UX Agent]
+    end
+    
+    ArchAgent & SecAgent & UXAgent --> ConsensusCheck{Consensus Reached?}
+    ConsensusCheck -- No --> Ikigai
+    ConsensusCheck -- Yes --> JoyZoningSys[2. JoyZoning System]
+    
+    JoyZoningSys -- "Generates Architecture Plan" --> RedTeam{Background Red-Team}
+    
+    subgraph "Adversarial Critique"
+        RedTeam --> Probe[Red-Team Subagent]
+        Probe --> Vulns[Report Vulnerabilities]
+    end
+    
+    JoyZoningSys --> Kanban[3. Kanban System]
+    Kanban -- "Generates Task Stream" --> Exec[Task Execution]
+    Exec --> Kaizen[4. Kaizen System]
+    Kaizen -- "Evaluates AST Soundness" --> Reprioritize{Adaptive Reprioritize}
+    Reprioritize -- Low Soundness --> Kanban
+    Reprioritize -- High Quality --> Finish([Turn Complete])
+```
 
-## 📈 Performance & Core Benchmarks
+### 3. Cognitive Fabric & Predictive Forecasting
+Before any merge or branch checkout, CodeMarie uses the AST to forecast semantic overlap across isolated streams:
 
-CodeMarie isn't just more capable; it's faster and more cost-effective.
-
-| Metric | Legacy Baseline | CodeMarie 3.74.0 | Improvement |
-| :--- | :--- | :--- | :--- |
-| **Grounding Latency** | ~45s (Large Repo) | **< 2s** | **99% Faster** |
-| **Swarm Stability** | Frequent Loops | **Atomic Consensus** | **High Reliability** |
-| **Context Recovery** | Manual Re-prompt | **Autonomous Nudges** | **Self-Correction** |
-| **Memory Blast Radius** | Single-Hop | **Global Speculative** | **Full Coverage** |
+```mermaid
+graph LR
+    subgraph "Source Stream"
+        S_Changes[Staged Changes] --> S_AST[AST Parser]
+        S_AST --> S_Blast((Source Blast Radius))
+    end
+    
+    subgraph "Target Stream"
+        T_Base[Historical Base] --> LCA{Least Common Ancestor}
+        T_Head[Current Head] --> LCA
+        LCA --> T_Changes[Target Branch Changes]
+        T_Changes --> T_AST[AST Parser]
+        T_AST --> T_Blast((Target Blast Radius))
+    end
+    
+    S_Blast --> Intersection{Semantic Intersection}
+    T_Blast --> Intersection
+    
+    Intersection -- "Direct Conflict" --> Block[Block/Alert User]
+    Intersection -- "Multi-Hop Overlap" --> Warn[Context Warning]
+    Intersection -- "Clean" --> Merge[Safe Execution]
+```
 
 ---
 
