@@ -32,7 +32,7 @@ export class KaizenSystem {
 			const res = await executeMASRequest(apiHandler, KAIZEN_SYSTEM_PROMPT, prompt)
 			const improvements = res.improvements || []
 
-			// --- BroccoliDB Native Persistence: Soundness Evaluation ---
+			// --- Tier 4: Adaptive Reprioritization (Interconnected Cognitive Fabric) ---
 			const ctx = await controller.getAgentContext()
 			const ikigaiId = `ikigai-${controller.getStreamId()}`
 			const archId = `arch-${controller.getStreamId()}`
@@ -46,8 +46,35 @@ export class KaizenSystem {
 					"pending",
 					`⚠️ Low logical soundness detected (${soundness.toFixed(2)}). Increasing refinement rigor.`,
 				)
+
+				// Native Interconnect: Directly reprioritize existing tasks in BroccoliDB
+				const streamTasks = await controller.getStreamTasks()
+				for (const task of streamTasks) {
+					if (task.status === "pending" || task.status === "running") {
+						// Downgrade existing feature tasks to make room for refinement
+						let metadata: any = {}
+						try {
+							metadata = typeof task.result === "string" ? JSON.parse(task.result) : task.result || {}
+						} catch (_e) {
+							metadata = { rawResult: task.result }
+						}
+
+						await ctx.updateTaskStatus(task.id, "pending", {
+							...metadata,
+							priority: "low",
+							reason: `Downgraded due to low architectural soundness (${soundness.toFixed(2)})`,
+						})
+					}
+				}
+				Logger.info(`[MAS][${this.name}] Downgraded ${streamTasks.length} pending/running tasks due to low soundness.`)
+			} else {
+				// Annotate the Ikigai node with a "Seal of Quality"
+				await controller.annotateKnowledge(ikigaiId, "kaizen", `Cog-Quality Seal: Soundness ${soundness.toFixed(2)}`, {
+					pass: "refinement",
+					soundness,
+				})
 			}
-			// ---------------------------------------------------------
+			// --------------------------------------------------------------------------
 
 			// Store in memory
 			await controller.storeMemory("improvement_plan", JSON.stringify(improvements))

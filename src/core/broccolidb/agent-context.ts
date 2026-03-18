@@ -206,6 +206,9 @@ export class AgentContext {
 	async addKnowledge(kbId: string, type: KnowledgeBaseItem["type"], content: string, options?: any) {
 		return this.graphService.addKnowledge(kbId, type, content, options)
 	}
+	async annotateKnowledge(targetId: string, agentId: string, annotation: string, metadata?: any) {
+		return this.graphService.annotateKnowledge(targetId, agentId, annotation, metadata)
+	}
 	async updateKnowledge(kbId: string, patch: Partial<KnowledgeBaseItem>) {
 		return this.graphService.updateKnowledge(kbId, patch)
 	}

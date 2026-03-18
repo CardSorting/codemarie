@@ -106,6 +106,34 @@ export class GraphService {
 		return id
 	}
 
+	/**
+	 * Annotates an existing knowledge node with additional insights or constraints.
+	 * Tier 4: Unified Cognitive Fabric - Allows agents to link reasoning across nodes.
+	 */
+	async annotateKnowledge(targetId: string, agentId: string, annotation: string, metadata?: any): Promise<void> {
+		const existing = await this.getKnowledge(targetId)
+
+		// Create a separate annotation node for graph traceability
+		const annotationId = `ann-${crypto.randomUUID().slice(0, 8)}`
+		await this.addKnowledge(annotationId, "thought" as any, annotation, {
+			tags: ["annotation", agentId],
+			edges: [{ targetId, type: "ANNOTATES" as any, weight: 1.0 }],
+			metadata: { ...metadata, annotator: agentId, target: targetId },
+		})
+
+		// Also enrich the target node's metadata for high-throughput context retrieval
+		const annotations = existing.metadata?.annotations || []
+		annotations.push({
+			agentId,
+			text: annotation,
+			ts: Date.now(),
+		})
+
+		await this.updateKnowledge(targetId, {
+			metadata: { ...existing.metadata, annotations },
+		})
+	}
+
 	async updateKnowledge(kbId: string, patch: Partial<KnowledgeBaseItem>): Promise<void> {
 		const existing = await this.getKnowledge(kbId)
 		const updatePayload: Record<string, any> = {}

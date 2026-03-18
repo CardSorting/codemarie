@@ -44,12 +44,16 @@ export class MultiAgentStreamSystem {
 			this.isAgentRegistered = true
 		}
 
-		Logger.info(`[${this.name}] Starting first pass for request: ${userRequest.slice(0, 50)}...`)
+		// Tier 4: Unified Cognitive Fabric (Interconnect Digest)
+		const digest = await this.controller.getStreamDigest()
+		const enrichedRequest = `Collective System Context:\n${digest}\n\nUser Request: ${userRequest}`
+
+		Logger.info(`[${this.name}] Starting first pass with unified cognitive digest...`)
 
 		// Tier 2: Speculative Cog-Parallelism (Heal while reasoning)
 		const [healResult, ikigaiResult] = await Promise.all([
 			ctx.selfHealGraph(),
-			this.ikigai.defineScope(this.controller, this.apiHandler, userRequest, groundedSpec),
+			this.ikigai.defineScope(this.controller, this.apiHandler, enrichedRequest, groundedSpec),
 		])
 
 		if (healResult.prunedNodes.length > 0) {
@@ -84,8 +88,12 @@ export class MultiAgentStreamSystem {
 	public async executeRefinementPass(feedback: string): Promise<void> {
 		Logger.info(`[${this.name}] Starting refinement pass for feedback: ${feedback.slice(0, 50)}...`)
 
+		// Tier 4: Unified Cognitive Fabric (Interconnect Digest)
+		const digest = await this.controller.getStreamDigest()
+		const enrichedFeedback = `Collective System Context:\n${digest}\n\nUser Feedback: ${feedback}`
+
 		// 1. Kaizen Pass — Reflect on feedback and output
-		const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, feedback)
+		const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, enrichedFeedback)
 
 		// 2. Kanban Pass — Add refinement tasks to the stream
 		const purpose = (await this.controller.recallMemory("product_purpose")) || "Refining Product"

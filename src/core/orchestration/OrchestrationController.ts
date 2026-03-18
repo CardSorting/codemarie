@@ -255,6 +255,19 @@ export class OrchestrationController {
 	}
 
 	/**
+	 * Annotates a piece of knowledge in the graph.
+	 * Tier 4: Unified Cognitive Fabric.
+	 */
+	public async annotateKnowledge(targetId: string, agentId: string, annotation: string, metadata?: any): Promise<void> {
+		try {
+			const ctx = await this.getAgentContext()
+			await ctx.annotateKnowledge(targetId, agentId, annotation, metadata)
+		} catch (error) {
+			Logger.error(`[Orchestration] Failed to annotate knowledge ${targetId}:`, error)
+		}
+	}
+
+	/**
 	 * Recalls a value from the stream's memory.
 	 */
 	public async recallMemory(key: string): Promise<string | undefined> {
