@@ -1,3 +1,4 @@
+import crypto from "node:crypto"
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { ApiHandler, ApiProviderInfo, buildApiHandler } from "@core/api"
 import { GeminiHandler } from "@core/api/providers/gemini"
@@ -124,6 +125,7 @@ import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { Controller } from "../controller"
 import { IntentGrounder } from "../grounding/IntentGrounder"
 import { executeHook } from "../hooks/hook-executor"
+import { MultiAgentStreamSystem } from "../orchestration/MultiAgentStreamSystem"
 import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { FluidPolicyEngine } from "../policy/FluidPolicyEngine"
 import { StateManager } from "../storage/StateManager"
@@ -275,6 +277,7 @@ export class Task {
 	private commandExecutor!: CommandExecutor
 
 	private orchestrationController?: OrchestrationController
+	private multiAgentSystem?: MultiAgentStreamSystem
 	private policyEngine!: FluidPolicyEngine
 	private streamReadyPromise?: Promise<void>
 
@@ -360,22 +363,30 @@ export class Task {
 		// Initialize Orchestration Stream — store promise for deferred resolution
 		this.streamReadyPromise = (async () => {
 			try {
+				// Resolve identity for BroccoliDB scoping
+				const machineId =
+					((StateManager.get() as any).getGlobalStateKey("codemarie.generatedMachineId") as string) || "anonymous"
+				const userId = machineId
+				const workspaceId = crypto.createHash("sha256").update(params.cwd).digest("hex").slice(0, 12)
+
 				// Check if a stream already exists for this taskId (fluid resumption)
 				const existing = await orchestrator.getStreamByExternalId(taskId)
 				if (existing) {
-					this.orchestrationController = new OrchestrationController(existing.id)
+					this.orchestrationController = new OrchestrationController(existing.id, userId, workspaceId, taskId)
+					this.policyEngine.setController(this.orchestrationController) // Integrate for native persistence
 					await this.orchestrationController.beginDbShadow()
 					this.policyEngine.setStreamId(existing.id)
-					Logger.info(`[Task ${taskId}] Resumed existing orchestration stream: ${existing.id}`)
+					Logger.info(`[Task ${taskId}] Resumed existing orchestration stream: ${existing.id} (WS: ${workspaceId})`)
 					return
 				}
 
 				// Otherwise create new stream mapped to this taskId
 				const stream = await orchestrator.createStream(task || "Resumed Task", null, taskId)
-				this.orchestrationController = new OrchestrationController(stream.id)
+				this.orchestrationController = new OrchestrationController(stream.id, userId, workspaceId, taskId)
+				this.policyEngine.setController(this.orchestrationController) // Integrate for native persistence
 				await this.orchestrationController.beginDbShadow()
 				this.policyEngine.setStreamId(stream.id)
-				Logger.info(`[Task ${taskId}] Registered new orchestration stream: ${stream.id}`)
+				Logger.info(`[Task ${taskId}] Registered new orchestration stream: ${stream.id} (WS: ${workspaceId})`)
 			} catch (err) {
 				Logger.error(`[Task ${taskId}] Failed to initialize orchestration stream:`, err)
 			}
@@ -540,6 +551,13 @@ export class Task {
 		if (currentProvider === "openai" && apiConfiguration.openAiBaseUrl) {
 			openAiCompatibleDomain = extractProviderDomainFromUrl(apiConfiguration.openAiBaseUrl)
 		}
+
+		// Initialize MAS after both API and orchestration stream are ready
+		this.streamReadyPromise?.then(() => {
+			if (this.orchestrationController && this.api) {
+				this.multiAgentSystem = new MultiAgentStreamSystem(this.orchestrationController, this.api)
+			}
+		})
 
 		if (historyItem) {
 			// Open task from history
@@ -1019,6 +1037,21 @@ export class Task {
 
 		await this.say("task", task, images, files)
 
+		// Phase 0: Multi-Agent Stream Initiation (Ikigai & Kanban)
+		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? false
+		if (this.multiAgentSystem && task && masEnabled) {
+			await this.say("info", "Initiating Multi-Agent Stream (Ikigai & Kanban)...")
+			const masResult = await this.multiAgentSystem.executeFirstPass(task)
+			if (masResult && !masResult.success && masResult.clarificationNeeded) {
+				const response = await this.ask(
+					"followup",
+					`The Multi-Agent System requires clarification to proceed:\n\n> ${masResult.clarificationNeeded}\n\nPlease provide more details to refine the product scope.`,
+				)
+				// Re-run first pass with the new context
+				await this.multiAgentSystem.executeFirstPass(`${task}\n\nUser Clarification: ${response.text || ""}`)
+			}
+		}
+
 		this.taskState.isInitialized = true
 
 		const imageBlocks: CodemarieImageContentBlock[] = formatResponse.imageBlocks(images)
@@ -1427,6 +1460,16 @@ export class Task {
 
 		// Phase 2: Intent Grounding
 		if (!this.taskState.groundedSpec && !this.taskState.didAttemptGrounding && userContent.length > 0) {
+			// Multi-Agent Refinement (Kaizen) if this is not the first turn
+			const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? false
+			const isFirstTurn = this.messageStateHandler.getCodemarieMessages().length <= 5 // Basic heuristic
+			if (this.multiAgentSystem && !isFirstTurn && masEnabled) {
+				const lastUserMessage = userContent.find((c) => c.type === "text")?.text
+				if (lastUserMessage) {
+					await this.say("info", "Performing Multi-Agent Refinement (Kaizen)...")
+					await this.multiAgentSystem.executeRefinementPass(lastUserMessage)
+				}
+			}
 			const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
 			if (initialTaskBlock && initialTaskBlock.type === "text" && initialTaskBlock.text) {
 				const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)

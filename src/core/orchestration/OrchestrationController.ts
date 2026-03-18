@@ -2,6 +2,8 @@ import * as path from "path"
 import { AgentTask, orchestrator, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
 import { dbPool, WriteOp } from "@/infrastructure/db/BufferedDbPool"
 import { Logger } from "@/shared/services/Logger"
+import { AgentContext } from "../broccolidb/agent-context"
+import { Workspace } from "../broccolidb/workspace"
 
 /**
  * OrchestrationController: Manages the lifecycle of an agent stream and its tasks.
@@ -11,8 +13,27 @@ import { Logger } from "@/shared/services/Logger"
  */
 export class OrchestrationController {
 	private currentTaskId?: string
+	private agentContext?: AgentContext
 
-	constructor(private streamId: string) {}
+	constructor(
+		private streamId: string,
+		private userId: string,
+		private workspaceId: string,
+		private taskId: string,
+	) {}
+
+	/**
+	 * Returns the native AgentContext for BroccoliDB operations.
+	 */
+	public async getAgentContext(): Promise<AgentContext> {
+		if (this.agentContext) return this.agentContext
+
+		const workspace = new Workspace(dbPool, this.userId, this.workspaceId, this.taskId)
+		await workspace.init()
+
+		this.agentContext = new AgentContext(workspace)
+		return this.agentContext
+	}
 
 	/**
 	 * Creates a new task within the current stream.
@@ -157,6 +178,39 @@ export class OrchestrationController {
 			})
 
 		return latestOp?.values?.content as string | undefined
+	}
+
+	/**
+	 * Publishes high-level architectural stability metrics.
+	 * Version for high-throughput: Fire-and-forget logging.
+	 */
+	public async fastPublishArchitecturalTelemetry(): Promise<void> {
+		try {
+			const state = await this.getCurrentPolicyState()
+			// Tier 2: Fire-and-forget (Don't await the DB push for non-critical telemetry)
+			this.pushDbOp({
+				type: "insert",
+				table: "agent_tasks",
+				values: {
+					id: `telemetry-${this.streamId}-${Date.now()}`,
+					streamId: this.streamId,
+					description: "Architectural Stability Telemetry (High-Volume)",
+					status: "completed",
+					result: `Stability Report: ${state.violations.length} violations, Entropy: ${state.avgEntropy.toFixed(2)}`,
+					metadata: JSON.stringify({
+						violations: state.violations,
+						avgEntropy: state.avgEntropy,
+						timestamp: Date.now(),
+					}),
+					createdAt: Date.now(),
+				},
+				layer: "infrastructure",
+			}).catch((err) => Logger.warn(`[Orchestration] Failed to fire-and-forget telemetry:`, err))
+
+			Logger.info(`[Orchestration] Triggered high-volume telemetry for ${this.streamId}`)
+		} catch (error) {
+			Logger.error(`[Orchestration] Failed to prepare telemetry:`, error)
+		}
 	}
 
 	/**

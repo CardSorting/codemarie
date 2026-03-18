@@ -4,6 +4,7 @@ import { createHash } from "crypto"
 import fs from "fs/promises"
 import * as path from "path"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
+import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { StateManager } from "../storage/StateManager"
 import { TspPolicyPlugin } from "./TspPolicyPlugin"
 
@@ -32,35 +33,60 @@ export class FluidPolicyEngine {
 	private mode: "plan" | "act" = "act"
 	private commitSeal: string | null = null
 	private sealReason: string | null = null
+	private cachedRules: any[] | null = null
+	private layerCache: Map<string, string> = new Map()
 
 	constructor(
 		private cwd: string,
 		private streamId?: string,
 		private stateManager?: StateManager,
 		private virtualResolver?: (path: string) => string | undefined,
+		private controller?: OrchestrationController,
 	) {}
 
 	/**
 	 * Increments and persists the strike count for a file.
 	 */
-	private incrementStrikes(filePath: string): number {
-		if (!this.stateManager) return 0
-		const strikes = { ...(this.stateManager.getGlobalStateKey("architecturalStrikes") || {}) }
-		const newCount = (strikes[filePath] || 0) + 1
-		strikes[filePath] = newCount
-		this.stateManager.setGlobalState("architecturalStrikes", strikes)
+	private async incrementStrikes(filePath: string): Promise<number> {
+		if (!this.streamId) return 0
+		const key = `strikes:${path.basename(filePath)}`
+		const currentRaw = await orchestrator.recallMemory(this.streamId, key)
+		const newCount = (currentRaw ? Number.parseInt(currentRaw) : 0) + 1
+		await orchestrator.storeMemory(this.streamId, key, newCount.toString())
+
+		// --- BroccoliDB Native Persistence ---
+		if (this.controller) {
+			const ctx = await this.controller.getAgentContext()
+			await ctx.appendMemoryLayer(
+				"mas-orchestrator",
+				`⚠️ Strike ${newCount} recorded for architectural violation in: ${path.basename(filePath)}`,
+			)
+		}
+		// --------------------------------------
+
+		// Global project memory (legacy tracking)
+		if (this.stateManager) {
+			const strikes = { ...this.stateManager.getGlobalStateKey("architecturalStrikes") }
+			strikes[filePath] = newCount
+			this.stateManager.setGlobalState("architecturalStrikes", strikes)
+		}
+
 		return newCount
 	}
 
 	/**
 	 * Resets strikes for a file once it's clean.
 	 */
-	private resetStrikes(filePath: string): void {
-		if (!this.stateManager) return
-		const strikes = { ...(this.stateManager.getGlobalStateKey("architecturalStrikes") || {}) }
-		if (strikes[filePath]) {
-			delete strikes[filePath]
-			this.stateManager.setGlobalState("architecturalStrikes", strikes)
+	private async resetStrikes(filePath: string): Promise<void> {
+		if (this.streamId) {
+			await orchestrator.storeMemory(this.streamId, `strikes:${path.basename(filePath)}`, "0")
+		}
+		if (this.stateManager) {
+			const strikes = { ...this.stateManager.getGlobalStateKey("architecturalStrikes") }
+			if (strikes[filePath]) {
+				delete strikes[filePath]
+				this.stateManager.setGlobalState("architecturalStrikes", strikes)
+			}
 		}
 	}
 
@@ -75,6 +101,10 @@ export class FluidPolicyEngine {
 	public setCommitSeal(seal: string, reason: string) {
 		this.commitSeal = seal
 		this.sealReason = reason
+	}
+
+	public setController(controller: OrchestrationController) {
+		this.controller = controller
 	}
 
 	/**
@@ -143,56 +173,63 @@ export class FluidPolicyEngine {
 			}
 		}
 
-		// Architectural Policy: Pre-flight AST validation for write operations
+		// Architectural Policy: AST + BroccoliDB Concurrent Pass
 		if (
 			(block.name === CodemarieDefaultTool.FILE_NEW || block.name === CodemarieDefaultTool.FILE_EDIT) &&
 			block.params?.path &&
 			block.params?.content
 		) {
 			const filePath = path.resolve(this.cwd, block.params.path)
-			const validation = this.tspPlugin.validateSource(filePath, block.params.content, this.virtualResolver)
-			if (!validation.success) {
-				const { getLayer } = require("@/utils/joy-zoning")
-				const layer = getLayer(filePath)
-				const strikes = this.incrementStrikes(filePath)
+			const content = block.params.content!
 
-				// Rule: 'any' warnings and strike-degraded violations
-				const allWarnings = [...(validation.warnings || []), ...validation.errors]
-				const violationSummary = allWarnings.map((e) => `  - ${e}`).join("\n")
+			const [astValidation, supremeCourtResult] = await Promise.all([
+				// 1. AST Validation (TSP)
+				Promise.resolve(this.tspPlugin.validateSource(filePath, content, this.virtualResolver)),
+				// 2. Supreme Court Pass (LLM + BroccoliDB)
+				this.executeSupremeCourtPass(filePath, content),
+			])
 
-				// Strike 1 (domain only): Instruction-based hard block for non-'any' violations
-				if (layer === "domain" && strikes === 1 && validation.errors.length > 0) {
-					const violationSummaryRejection = validation.errors.map((e) => `  - ${e}`).join("\n")
+			// Block on AST Failure (Strike 1 Domain)
+			if (!astValidation.success) {
+				const layer = this.getCachedLayer(filePath)
+				const strikes = await this.incrementStrikes(filePath)
+				const allWarnings = [...(astValidation.warnings || []), ...astValidation.errors]
+				const violationSummary = allWarnings.map((e: string) => `  - ${e}`).join("\n")
+
+				if (layer === "domain" && strikes === 1 && astValidation.errors.length > 0) {
+					const violationSummaryRejection = astValidation.errors.map((e: string) => `  - ${e}`).join("\n")
 					return {
 						success: false,
-						error: `🏗️ ARCHITECTURAL CORRECTION REQUIRED (Strike ${strikes})\nDomain layer file \`${path.basename(filePath)}\` has ${validation.errors.length} violation(s):\n${violationSummaryRejection}\n\n${this.getCorrectionHint(validation.errors)}\n\n💡 Your write was NOT executed. Please address these violations and try again.`,
-						violations: validation.errors,
+						error: `🏗️ ARCHITECTURAL CORRECTION REQUIRED (Strike ${strikes})\nDomain layer file \`${path.basename(filePath)}\` has ${astValidation.errors.length} violation(s):\n${violationSummaryRejection}\n\n${this.getCorrectionHint(astValidation.errors)}\n\n💡 Your write was NOT executed. Please address these violations and try again.`,
+						violations: astValidation.errors,
 					}
 				}
 
-				// Strike 2+ or other layers: Graceful degradation to warning
-				const degradeNotice =
-					layer === "domain"
-						? `⚠️ ARCHITECTURAL WARNING (Strike ${strikes} — enforcement degraded): Domain layer file \`${path.basename(filePath)}\` has ${validation.errors.length} unresolved violation(s):\n${violationSummary}\n\nThe write is ALLOWED to prevent deadlock. You MUST address these in a follow-up change.`
-						: `⚠️ ARCHITECTURAL WARNING: ${layer.toUpperCase()} layer file \`${path.basename(filePath)}\` has ${validation.errors.length} violation(s):\n${violationSummary}\n\nProceed, but address these in a follow-up change.`
-
+				// Strike 2+ or other layers: Warning only
 				return {
 					success: true,
-					warning: degradeNotice,
-					violations: validation.errors,
-					correctionHint: this.getCorrectionHint(validation.errors),
+					warning:
+						layer === "domain"
+							? `⚠️ ARCHITECTURAL WARNING (Strike ${strikes} — enforcement degraded): Domain layer file \`${path.basename(filePath)}\` has ${astValidation.errors.length} unresolved violation(s):\n${violationSummary}\n\nThe write is ALLOWED to prevent deadlock.`
+							: `⚠️ ARCHITECTURAL WARNING: ${layer.toUpperCase()} layer file \`${path.basename(filePath)}\` has ${astValidation.errors.length} violation(s):\n${violationSummary}`,
+					violations: astValidation.errors,
+					correctionHint: this.getCorrectionHint(astValidation.errors),
 				}
 			}
 
-			// Surface 'any' warnings even on successful validation
-			if (validation.warnings && validation.warnings.length > 0) {
-				return {
-					success: true,
-					warning: `⚠️ DISCERNMENT WARNING: Architectural smell(s) detected:\n${validation.warnings.map((w) => `  - ${w}`).join("\n")}`,
-				}
-			}
+			// Block on Supreme Court Failure
+			if (supremeCourtResult) return supremeCourtResult
+
 			// Clean file — reset strikes for this path
-			this.resetStrikes(filePath)
+			await this.resetStrikes(filePath)
+
+			// Surface AST warnings if any
+			if (astValidation.warnings && astValidation.warnings.length > 0) {
+				return {
+					success: true,
+					warning: `⚠️ DISCERNMENT WARNING: Architectural smell(s) detected:\n${astValidation.warnings.map((w: string) => `  - ${w}`).join("\n")}`,
+				}
+			}
 
 			// For new files: proactively suggest the best layer if content doesn't match location
 			if (block.name === CodemarieDefaultTool.FILE_NEW && block.params.content) {
@@ -229,6 +266,63 @@ export class FluidPolicyEngine {
 		}
 
 		return { success: true }
+	}
+
+	/**
+	 * Resolves the architectural layer for a file with in-memory caching.
+	 * Tier 3 optimization for high-volume file batches.
+	 */
+	private getCachedLayer(filePath: string): string {
+		let layer = this.layerCache.get(filePath)
+		if (!layer) {
+			const { getLayer } = require("@/utils/joy-zoning")
+			layer = getLayer(filePath)
+			this.layerCache.set(filePath, layer!)
+		}
+		return layer!
+	}
+
+	private async executeSupremeCourtPass(filePath: string, content: string): Promise<PolicyResult | null> {
+		if (this.controller) {
+			const layer = this.getCachedLayer(filePath)
+
+			if (layer === "domain") {
+				const ctx = await this.controller.getAgentContext()
+
+				// Tier 2: Cached Rule Retrieval (Zero DB overhead on repeat audits in same session)
+				if (!this.cachedRules) {
+					this.cachedRules = await ctx.getLogicalConstraints()
+				}
+
+				const relevantRules = this.cachedRules.filter((r) =>
+					new RegExp(r.pathPattern.replace(/\*\*/g, ".*")).test(filePath),
+				)
+
+				if (relevantRules.length > 0) {
+					// Parallelize Supreme Court auditing for high throughput
+					const auditResults = await Promise.all(
+						relevantRules.map(async (rule) => {
+							const knowledge = await ctx.getKnowledge(rule.knowledgeId)
+							const audit = await ctx.checkConstitutionalViolation(filePath, content, knowledge.content)
+							return { rule, audit, knowledge }
+						}),
+					)
+
+					for (const { audit, knowledge } of auditResults) {
+						if (audit.violated) {
+							const strikes = await this.incrementStrikes(filePath)
+							const rejectionMessage = `🏛️ SUPREME COURT ARCHITECTURAL REJECTION (Strike ${strikes})\n\nViolation: ${audit.reason}\n\nRule: ${knowledge.content}\n\n💡 Please restructure your change to comply with this architectural constraint.`
+
+							if (strikes === 1) {
+								return { success: false, error: rejectionMessage }
+							}
+							return { success: true, warning: `⚠️ SUPREME COURT WARNING (Strike ${strikes}): ${audit.reason}` }
+						}
+					}
+				}
+			}
+		}
+		return null
 	}
 
 	/**

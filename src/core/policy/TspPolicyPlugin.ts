@@ -139,8 +139,13 @@ export class TspPolicyPlugin {
 					if (currentLayer === "plumbing") {
 						if (["domain", "core", "infrastructure", "ui"].includes(targetLayer)) {
 							errors.push(
-								`Plumbing cannot depend on ${targetLayer} layer: '${moduleName}' — utilities must be independent.`,
+								`Plumbing cannot depend on ${targetLayer} layer: '${moduleName}' — utilities must be fully independent.`,
 							)
+						}
+
+						// Additionally block high-level infrastructure modules in plumbing
+						if (["@services", "@integrations", "@api", "@core"].some((alias) => moduleName.startsWith(alias))) {
+							errors.push(`Plumbing layer violation: '${moduleName}' is a high-level dependency.`)
 						}
 					}
 
@@ -212,7 +217,7 @@ export class TspPolicyPlugin {
 	 * Resolves project-specific path aliases to absolute paths.
 	 */
 	private resolveAlias(moduleName: string): string {
-		// Based on tsconfig.json paths
+		// Standard project aliases from tsconfig.json
 		const aliases: Record<string, string> = {
 			"@/": "src/",
 			"@api/": "src/core/api/",
@@ -228,11 +233,16 @@ export class TspPolicyPlugin {
 
 		for (const [alias, replacement] of Object.entries(aliases)) {
 			if (moduleName.startsWith(alias)) {
-				// We assume cwd is the root (cline-main)
-				// TspPolicyPlugin doesn't have cwd access, so we use a relative-to-root assumption or just return enough for getLayer to parse
+				// We return a path that getLayer can understand (starts with src/)
 				return path.join(replacement, moduleName.substring(alias.length))
 			}
 		}
+
+		// Handle direct @ prefix if not in aliases
+		if (moduleName.startsWith("@") && !moduleName.includes("/")) {
+			return `src/${moduleName.substring(1)}`
+		}
+
 		return moduleName
 	}
 

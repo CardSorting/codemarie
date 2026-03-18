@@ -71,6 +71,7 @@ interface TaskOptions {
 	json?: boolean
 	stdinWasPiped?: boolean
 	trace?: boolean
+	mas?: boolean
 }
 
 let telemetryDisposed = false
@@ -220,6 +221,12 @@ function applyTaskOptions(options: TaskOptions): void {
 	if (options.doubleCheckCompletion) {
 		StateManager.get().setGlobalState("doubleCheckCompletionEnabled", true)
 		telemetryService.captureHostEvent("double_check_completion_flag", "true")
+	}
+
+	// Set MAS mode based on flag
+	if (options.mas) {
+		StateManager.get().setGlobalState("masEnabled", true)
+		telemetryService.captureHostEvent("mas_flag", "true")
 	}
 }
 
@@ -1087,6 +1094,7 @@ program
 	.option("--acp", "Run in ACP (Agent Client Protocol) mode for editor integration")
 	.option("-T, --taskId <id>", "Resume an existing task by ID")
 	.option("--trace", "Enable high-verbosity tool execution logging")
+	.option("--mas", "Enable Multi-Agent Stream system (Ikigai, JoyZoning, Kanban, Kaizen)")
 	.action(async (prompt, options) => {
 		// Check for ACP mode first - this takes precedence over everything else
 		if (options.acp) {

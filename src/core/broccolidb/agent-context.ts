@@ -52,14 +52,13 @@ export class AgentContext {
 	private workspace: Workspace
 	private localBuffer: any[] = []
 	private ephemeralState = new Map<string, any>()
-	private autoFlushLimit = 10
+	private autoFlushLimit = 25
 	readonly userId: string
-
-	// Modularity: specialized services
-	private graphService: GraphService
-	private reasoningService: ReasoningService
-	private taskService: TaskService
-	private auditService: AuditService
+	private _graphService?: GraphService
+	private _reasoningService?: ReasoningService
+	private _taskService?: TaskService
+	private _auditService?: AuditService
+	private _serviceContext: ServiceContext
 
 	constructor(workspace: Workspace, _depthLimit = 0, aiService?: AiService) {
 		this.workspace = workspace
@@ -68,7 +67,7 @@ export class AgentContext {
 		this.aiService = aiService || null
 		this.kbCache = new LRUCache<string, KnowledgeBaseItem>(1000)
 
-		const ctx: ServiceContext = {
+		this._serviceContext = {
 			db: this.db,
 			aiService: this.aiService,
 			kbCache: this.kbCache,
@@ -77,11 +76,27 @@ export class AgentContext {
 			push: this._push.bind(this),
 			searchKnowledge: (query: string, limit?: number) => this.searchKnowledge(query, undefined, limit),
 		}
+	}
 
-		this.graphService = new GraphService(ctx)
-		this.reasoningService = new ReasoningService(ctx, this.graphService)
-		this.taskService = new TaskService(ctx, this.graphService)
-		this.auditService = new AuditService(ctx, this.graphService, this.reasoningService)
+	private get graphService(): GraphService {
+		if (!this._graphService) this._graphService = new GraphService(this._serviceContext)
+		return this._graphService
+	}
+
+	private get reasoningService(): ReasoningService {
+		if (!this._reasoningService) this._reasoningService = new ReasoningService(this._serviceContext, this.graphService)
+		return this._reasoningService
+	}
+
+	private get taskService(): TaskService {
+		if (!this._taskService) this._taskService = new TaskService(this._serviceContext, this.graphService)
+		return this._taskService
+	}
+
+	private get auditService(): AuditService {
+		if (!this._auditService)
+			this._auditService = new AuditService(this._serviceContext, this.graphService, this.reasoningService)
+		return this._auditService
 	}
 
 	// ─── OPTIMIZATION WRAPPERS ───
