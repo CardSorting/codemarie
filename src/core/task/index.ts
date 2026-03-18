@@ -1447,7 +1447,7 @@ export class Task {
 		let includeFileDetails = true
 
 		// Phase 2: Intent Grounding
-		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? false
+		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? true
 		if (!this.taskState.groundedSpec && !this.taskState.didAttemptGrounding && userContent.length > 0) {
 			// Multi-Agent Refinement (Kaizen) if this is not the first turn
 			const isFirstTurn = this.messageStateHandler.getCodemarieMessages().length <= 5 // Basic heuristic

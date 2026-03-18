@@ -289,7 +289,7 @@ const USER_SETTINGS_FIELDS = {
 	backgroundEditEnabled: { default: false as boolean },
 	optOutOfRemoteConfig: { default: false as boolean },
 	doubleCheckCompletionEnabled: { default: false as boolean },
-	masEnabled: { default: false as boolean },
+	masEnabled: { default: true as boolean },
 
 	// OpenTelemetry configuration
 	openTelemetryEnabled: { default: true as boolean },
