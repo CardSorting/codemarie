@@ -43,7 +43,17 @@ MAS is implemented using a progressive optimization strategy:
 - **User Control**: Users can disable MAS in the global settings if single-agent execution is preferred.
 - **Sequence**: `User Intent` -> `Grounding` -> `MAS Orchestration` -> `Task Execution`.
 
+## Webview UI Integration
+
+The MAS architecture is not simply a background CLI process—it fundamentally transforms the CodeMarie VS Code Webview UX. A suite of advanced React components in `webview-ui` has been built to surface the multi-agent cognitive process directly to the user:
+
+- **`SubagentStatusRow.tsx`**: Visually renders the real-time execution bounds of orchestrated parallel streams. It displays exactly when the Swarm (`Architect`, `Security`, `UX`) is "running", "completed", or "failed", along with tool usage and cost statistics.
+- **`RedTeamAlerts.tsx`**: Renders the adversarial critique payload. This injects a distinct, red-bordered critical warning block into the chat containing the computed `Risk Score` bar metric, isolated `Pitfalls`, and `Recommended Mitigations`.
+- **`ClarificationHub.tsx` & `IntentDecomposition.tsx`**: Surfaces the `Ikigai` intent analysis visually, allowing users to interactively clarify ambiguous project scopes before the Kanban planner begins.
+- **`ThinkingRow.tsx`**: Captures real-time output from the Cognitive Fabric's internal reasoning engine, giving users a transparent look into how CodeMarie is structurally evaluating the codebase.
+
 ## Reference Implementation
 - **Controller**: `src/core/orchestration/OrchestrationController.ts`
 - **Main Flow**: `src/core/orchestration/MultiAgentStreamSystem.ts`
 - **Context**: `src/core/broccolidb/agent-context.ts`
+- **Webview Rendering**: `webview-ui/src/components/chat/` (`ChatRow.tsx`, `SubagentStatusRow.tsx`, `RedTeamAlerts.tsx`)
