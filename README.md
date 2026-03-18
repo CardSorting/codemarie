@@ -5,7 +5,7 @@
 **CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing distributed agentic workflows, and ensuring transactional stability across your workspace.
 
 > [!IMPORTANT]
-> **State-of-the-Art Production Hardening (v3.78.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and speculative merging leverages authentic LCA graph conflict resolution.
+> **State-of-the-Art Production Hardening (v3.78.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and speculative merging leverages authentic LCA graph conflict resolution and dual-branch blast-radius intersection tracking.
 
 ---
 

@@ -971,32 +971,61 @@ Removed: ${removed.join(", ") || "None"}
 	}> {
 		const mergeSim = await this.simulateMerge(sourceStreamId, targetStreamId)
 		const semanticOverlaps: { path: string; reason: string }[] = []
-		const _seenOverlaps = new Set<string>()
 
-		// Calculate blast radii for all affected files in source
+		// 1. Calculate blast radii for all affected files in source
 		const sourceRadii = new Map<string, number>()
 		for (const path of mergeSim.affectedPaths) {
 			const radius = await this.calculateBlastRadius(sourceStreamId, path, 2)
 			for (const item of radius) sourceRadii.set(item.path, item.depth)
 		}
 
-		// Calculate blast radii for target (simulated as current state if target hidden)
-		// For simplicity, we just check if source changes intersect with known hotspots or other task contexts
+		// 2. Identify files changed in the target stream
+		const targetHistory = await this.getHistory(targetStreamId, 50)
+		const targetChangedPaths = new Set<string>()
+		if (targetHistory.length > 1) {
+			const targetHead = targetHistory[0]?.metadata?.tree || {}
+			const targetBase = targetHistory[targetHistory.length - 1]?.metadata?.tree || {}
+			for (const path of Object.keys(targetHead)) {
+				if (targetHead[path] !== targetBase[path]) {
+					targetChangedPaths.add(path)
+				}
+			}
+		}
+
+		// 3. Calculate full blast radii for target stream changes
+		const targetRadii = new Map<string, number>()
+		for (const path of targetChangedPaths) {
+			const radius = await this.calculateBlastRadius(targetStreamId, path, 2)
+			for (const item of radius) targetRadii.set(item.path, item.depth)
+		}
+
+		// 4. Compute genuine structural intersection of blast radii (Real semantic overlap)
+		for (const [sourcePath, sourceDepth] of sourceRadii.entries()) {
+			if (targetRadii.has(sourcePath)) {
+				const targetDepth = targetRadii.get(sourcePath)!
+				semanticOverlaps.push({
+					path: sourcePath,
+					reason: `Semantic overlap: Multi-hop structural intersection (Source depth: ${sourceDepth}, Target depth: ${targetDepth})`,
+				})
+			}
+		}
+
+		// 5. Also include direct intersections with the active target task context if nodes exist
 		const targetContext = await this.getTaskContext(targetStreamId).catch(() => null)
 		if (targetContext) {
 			for (const node of targetContext.resolvedGraph) {
 				const nodePath = node.content.split("\n")[0]?.trim()
-				if (nodePath && sourceRadii.has(nodePath)) {
+				if (nodePath && sourceRadii.has(nodePath) && !targetRadii.has(nodePath)) {
 					semanticOverlaps.push({
 						path: nodePath,
-						reason: `Semantic overlap with target task context (source depth: ${sourceRadii.get(nodePath)})`,
+						reason: `Semantic overlap: Source radius intersects with locked target context`,
 					})
 				}
 			}
 		}
 
 		return {
-			isHighRisk: semanticOverlaps.length > 0,
+			isHighRisk: semanticOverlaps.length > 0 || mergeSim.hasConflicts,
 			conflicts: mergeSim.affectedPaths, // Direct conflicts
 			semanticOverlaps,
 		}

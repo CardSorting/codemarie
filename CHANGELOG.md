@@ -5,6 +5,7 @@
 ### Added
 - **Production Hardening (MAS):**
   - Replaced placeholder `simulateMerge` logic with true Least Common Ancestor (LCA) semantic conflict resolution in KnowledgeGraph.
+  - Replaced `simulateMergeForecast` mockups with dual-branch, multi-hop blast radius intersection engines.
   - Upgraded Grounding validation by replacing "simulated" prompts with real concurrent Sub-Agent Streams for 'Swarm Consensus' and 'Red-Team Critique'.
 
 ## [3.77.0] - 2026-03-18
