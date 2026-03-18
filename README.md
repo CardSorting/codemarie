@@ -117,7 +117,7 @@ graph TD
         DB --> Nodes[Semantic Knowledge Nodes]:::database
     end
     
-    Controller --> MCPHub[Model Context Protocol (MCP) Hub]:::primary
+    Controller --> MCPHub["Model Context Protocol (MCP) Hub"]:::primary
     MCPHub -.-> ExtTools[External Dev Tools]
 ```
 
