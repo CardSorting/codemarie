@@ -1,6 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { GenerateContentConfig, GoogleGenAI } from "@google/genai"
-import { ModelInfo } from "@shared/api"
+import { aihubmixDefaultModelId, aihubmixDefaultModelInfo, ModelInfo } from "@shared/api"
 import OpenAI from "openai"
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { ApiHandler, CommonApiHandlerOptions } from "../index"
@@ -124,7 +124,7 @@ export class AIhubmixHandler implements ApiHandler {
 
 	@withRetry()
 	async *createMessage(systemPrompt: string, messages: any[]): ApiStream {
-		const modelId = this.options.modelId || ""
+		const modelId = this.options.modelId || aihubmixDefaultModelId
 		const route = this.routeModel(modelId)
 
 		switch (route) {
@@ -147,7 +147,7 @@ export class AIhubmixHandler implements ApiHandler {
 
 	private async *createAnthropicMessage(systemPrompt: string, messages: any[]): ApiStream {
 		const client = this.ensureAnthropicClient()
-		const modelId = this.options.modelId || "claude-3-5-sonnet-20241022"
+		const modelId = this.options.modelId || aihubmixDefaultModelId
 
 		// Sanitize messages to remove Codemarie-specific fields like call_id that are not allowed by Anthropic API
 		const sanitizedMessages = sanitizeAnthropicMessages(messages, false)
@@ -314,14 +314,8 @@ export class AIhubmixHandler implements ApiHandler {
 
 	getModel(): { id: string; info: ModelInfo } {
 		return {
-			id: this.options.modelId || "gpt-4o-mini",
-			info: this.options.modelInfo || {
-				maxTokens: 8192,
-				contextWindow: 128000,
-				supportsImages: true,
-				supportsPromptCache: false,
-				description: "AIhubmix unified model provider",
-			},
+			id: this.options.modelId || aihubmixDefaultModelId,
+			info: this.options.modelInfo || aihubmixDefaultModelInfo,
 		}
 	}
 }

@@ -1,5 +1,5 @@
 import { ApiConfiguration } from "@shared/api"
-import { UpdateApiConfigurationRequest } from "@shared/proto/codemarie/models"
+import { UpdateApiConfigurationPartialRequest } from "@shared/proto/codemarie/models"
 import { convertApiConfigurationToProto } from "@shared/proto-conversions/models/api-configuration-conversion"
 import { Mode } from "@shared/storage/types"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -11,23 +11,22 @@ export const useApiConfigurationHandlers = () => {
 	/**
 	 * Updates a single field in the API configuration.
 	 *
-	 * **Warning**: If this function is called multiple times in rapid succession,
-	 * it can lead to race conditions where later calls may overwrite changes from
-	 * earlier calls. For updating multiple fields, use `handleFieldsChange` instead.
+	 * This function uses `updateApiConfigurationPartial` to avoid race conditions
+	 * where concurrent calls might overwrite each other's changes.
 	 *
 	 * @param field - The field key to update
 	 * @param value - The new value for the field
 	 */
 	const handleFieldChange = async <K extends keyof ApiConfiguration>(field: K, value: ApiConfiguration[K]) => {
-		const updatedConfig = {
+		const protoConfig = convertApiConfigurationToProto({
 			...apiConfiguration,
 			[field]: value,
-		}
+		})
 
-		const protoConfig = convertApiConfigurationToProto(updatedConfig)
-		await ModelsServiceClient.updateApiConfigurationProto(
-			UpdateApiConfigurationRequest.create({
+		await ModelsServiceClient.updateApiConfigurationPartial(
+			UpdateApiConfigurationPartialRequest.create({
 				apiConfiguration: protoConfig,
+				updateMask: [field],
 			}),
 		)
 	}
@@ -42,15 +41,15 @@ export const useApiConfigurationHandlers = () => {
 	 * @param updates - An object containing the fields to update and their new values
 	 */
 	const handleFieldsChange = async (updates: Partial<ApiConfiguration>) => {
-		const updatedConfig = {
+		const protoConfig = convertApiConfigurationToProto({
 			...apiConfiguration,
 			...updates,
-		}
+		})
 
-		const protoConfig = convertApiConfigurationToProto(updatedConfig)
-		await ModelsServiceClient.updateApiConfigurationProto(
-			UpdateApiConfigurationRequest.create({
+		await ModelsServiceClient.updateApiConfigurationPartial(
+			UpdateApiConfigurationPartialRequest.create({
 				apiConfiguration: protoConfig,
+				updateMask: Object.keys(updates),
 			}),
 		)
 	}

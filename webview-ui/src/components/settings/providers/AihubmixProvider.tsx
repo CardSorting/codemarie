@@ -1,7 +1,7 @@
 import { ModelInfo } from "@shared/api"
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { ModelsServiceClient } from "@/services/grpc-client"
 import { ApiKeyField } from "../common/ApiKeyField"
@@ -29,23 +29,21 @@ export const AIhubmixProvider = ({ showModelOptions, isPopup, currentMode }: AIh
 
 	const [models, setModels] = useState<Record<string, ModelInfo>>({})
 
-	const ensureSelectedPresent = (base: Record<string, ModelInfo>): Record<string, ModelInfo> => {
-		if (selectedModelId && !base[selectedModelId]) {
-			const info = (selectedModelInfo as ModelInfo) || {
-				maxTokens: 8192,
-				contextWindow: 128000,
-				supportsImages: true,
-				supportsPromptCache: false,
+	const ensureSelectedPresent = useCallback(
+		(base: Record<string, ModelInfo>): Record<string, ModelInfo> => {
+			if (selectedModelId && !base[selectedModelId]) {
+				const info = (selectedModelInfo as ModelInfo) || {
+					maxTokens: 8192,
+					contextWindow: 128000,
+					supportsImages: true,
+					supportsPromptCache: false,
+				}
+				return { ...base, [selectedModelId]: info }
 			}
-			return { ...base, [selectedModelId]: info }
-		}
-		return base
-	}
-
-	console.log("selectedModelId", selectedModelId)
-	console.log("selectedModelInfo", selectedModelInfo)
-
-	// Get the normalized configuration
+			return base
+		},
+		[selectedModelId, selectedModelInfo],
+	)
 
 	useEffect(() => {
 		try {
@@ -75,8 +73,6 @@ export const AIhubmixProvider = ({ showModelOptions, isPopup, currentMode }: AIh
 				console.error("Failed to fetch AIhubmix models:", error)
 			})
 	}, [ensureSelectedPresent])
-
-	console.log("apiConfiguration", apiConfiguration)
 
 	return (
 		<div>

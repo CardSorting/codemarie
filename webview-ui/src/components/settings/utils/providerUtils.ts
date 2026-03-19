@@ -466,7 +466,7 @@ export function normalizeApiConfiguration(
 				currentMode === "plan" ? apiConfiguration?.planModeOcaModelInfo : apiConfiguration?.actModeOcaModelInfo
 			return {
 				selectedProvider: provider,
-				selectedModelId: ocaModelId || "",
+				selectedModelId: ocaModelId || liteLlmDefaultModelId,
 				selectedModelInfo: ocaModelInfo || liteLlmModelInfoSaneDefaults,
 			}
 		case "aihubmix":
@@ -476,8 +476,8 @@ export function normalizeApiConfiguration(
 				currentMode === "plan" ? apiConfiguration?.planModeAihubmixModelInfo : apiConfiguration?.actModeAihubmixModelInfo
 			return {
 				selectedProvider: provider,
-				selectedModelId: aihubmixModelId || "",
-				selectedModelInfo: aihubmixModelInfo || openAiModelInfoSaneDefaults,
+				selectedModelId: aihubmixModelId || openRouterDefaultModelId,
+				selectedModelInfo: aihubmixModelInfo || openRouterDefaultModelInfo,
 			}
 		case "minimax":
 			return getProviderData(minimaxModels, minimaxDefaultModelId)
