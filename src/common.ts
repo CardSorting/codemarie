@@ -65,8 +65,10 @@ export async function initialize(storageContext: StorageContext): Promise<Webvie
 	const stateManager = StateManager.get()
 	// Non-blocking announcement check and display
 	showVersionUpdateAnnouncement(stateManager)
-	// Check if this workspace was opened from worktree quick launch
-	await checkWorktreeAutoOpen(stateManager)
+	// Check if this workspace was opened from worktree quick launch (non-blocking)
+	checkWorktreeAutoOpen(stateManager).catch((err) => {
+		Logger.error("Failed to check worktree auto-open:", err)
+	})
 
 	// =============== Background sync and cleanup tasks ===============
 	// Use remote config blobStoreConfig if available, otherwise fall back to env vars

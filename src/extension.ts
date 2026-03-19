@@ -67,6 +67,49 @@ export async function activate(context: vscode.ExtensionContext) {
 	// IMPORTANT: This must be done before any service can be registered
 	setupHostProvider(context)
 
+	// 2. Register core command handlers as early as possible so they are available immediately.
+	// These handlers wait for the WebviewProvider to be fully initialized if clicked early.
+	const { commands } = ExtensionRegistryInfo
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.PlusButton, async () => {
+			const sidebarInstance = await WebviewProvider.getInstancePromise()
+			await sidebarInstance.controller.clearTask()
+			await sidebarInstance.controller.postStateToWebview()
+			await sendChatButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.SettingsButton, async () => {
+			await WebviewProvider.getInstancePromise()
+			await sendSettingsButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.HistoryButton, async () => {
+			const sidebarInstance = await WebviewProvider.getInstancePromise()
+			await sidebarInstance.controller.requestTaskHistory()
+			await sendHistoryButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.McpButton, async () => {
+			await WebviewProvider.getInstancePromise()
+			await sendMcpButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.AccountButton, async () => {
+			await WebviewProvider.getInstancePromise()
+			await sendAccountButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.WorktreesButton, async () => {
+			await WebviewProvider.getInstancePromise()
+			await sendWorktreesButtonClickedEvent()
+		}),
+	)
+
 	// 2. Clean up legacy data patterns within VSCode's native storage.
 	// Moves workspace→global keys, task history→file, custom instructions→rules, etc.
 	// Must run BEFORE the file export so we copy clean state.
@@ -78,51 +121,19 @@ export async function activate(context: vscode.ExtensionContext) {
 	const storageContext = createStorageContext({ workspacePath })
 	await exportVSCodeStorageToSharedFiles(context, storageContext)
 
-	// 4. Register core command handlers early so they are available immediately
-	const { commands } = ExtensionRegistryInfo
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.PlusButton, async () => {
-			const sidebarInstance = WebviewProvider.getInstance()
-			await sidebarInstance.controller.clearTask()
-			await sidebarInstance.controller.postStateToWebview()
-			await sendChatButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.SettingsButton, async () => {
-			await sendSettingsButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.HistoryButton, async () => {
-			await sendHistoryButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.McpButton, async () => {
-			await sendMcpButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.AccountButton, async () => {
-			await sendAccountButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.WorktreesButton, async () => {
-			await sendWorktreesButtonClickedEvent()
-		}),
-	)
-
 	// 5. Register services and perform common initialization
 	// IMPORTANT: Must be done after host provider is setup and migrations are complete
 	const webview = (await initialize(storageContext)) as VscodeWebviewProvider
 
 	// 5. Register services and commands specific to VS Code
 	// Initialize test mode and add disposables to context
-	const testModeWatchers = await initializeTestMode(webview)
-	context.subscriptions.push(...testModeWatchers)
-
+	// 6. Initialize test mode if needed (non-blocking)
+	// This sets up file watchers for evals.env which is not required for the initial frame
+	setTimeout(() => {
+		initializeTestMode(webview).catch((err) => {
+			Logger.error("Failed to initialize test mode:", err)
+		})
+	}, 1000)
 	// Initialize hook discovery cache for performance optimization
 	HookDiscoveryCache.getInstance().initialize(
 		context as any, // Adapt VSCode ExtensionContext to generic interface

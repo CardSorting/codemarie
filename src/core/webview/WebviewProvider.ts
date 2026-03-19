@@ -10,6 +10,10 @@ import { getNonce } from "./getNonce"
 
 export abstract class WebviewProvider {
 	private static instance: WebviewProvider | null = null
+	private static instanceResolver: (instance: WebviewProvider) => void
+	private static instancePromise: Promise<WebviewProvider> = new Promise((resolve) => {
+		WebviewProvider.instanceResolver = resolve
+	})
 	controller: Controller
 
 	constructor(readonly context: CodemarieExtensionContext) {
@@ -17,6 +21,9 @@ export abstract class WebviewProvider {
 
 		// Create controller with cache service
 		this.controller = new Controller(context)
+
+		// Resolve the instance promise now that it's fully constructed
+		WebviewProvider.instanceResolver(this)
 	}
 
 	async dispose() {
@@ -29,6 +36,10 @@ export abstract class WebviewProvider {
 			throw new Error("WebviewProvider instance not initialized. Make sure to create a WebviewProvider instance first.")
 		}
 		return WebviewProvider.instance
+	}
+
+	public static getInstancePromise(): Promise<WebviewProvider> {
+		return WebviewProvider.instancePromise
 	}
 
 	public static getVisibleInstance(): WebviewProvider | undefined {
@@ -166,7 +177,7 @@ export abstract class WebviewProvider {
 
 		// Check if local dev server is running.
 		try {
-			await axios.get(`http://${localServerUrl}`)
+			await axios.get(`http://${localServerUrl}`, { timeout: 1000 })
 		} catch (_error) {
 			// Only show the error message when in development mode.
 			if (process.env.IS_DEV) {

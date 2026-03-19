@@ -121,6 +121,12 @@ export class Controller {
 		this.remoteConfigTimer = setInterval(() => fetchRemoteConfig(this), 3600000) // 1 hour
 	}
 
+	private includeHistory = false
+	public async requestTaskHistory() {
+		this.includeHistory = true
+		await this.postStateToWebview()
+	}
+
 	constructor(readonly context: CodemarieExtensionContext) {
 		Session.reset() // Reset session on controller initialization
 		PromptRegistry.getInstance() // Ensure prompts and tools are registered
@@ -538,23 +544,17 @@ export class Controller {
 		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
 		const currentApiConfiguration = this.stateManager.getApiConfiguration()
 
-		const updatedConfig = { ...currentApiConfiguration }
-
-		if (planActSeparateModelsSetting) {
-			// Only update the current mode's provider
-			if (currentMode === "plan") {
-				updatedConfig.planModeApiProvider = provider
-			} else {
-				updatedConfig.actModeApiProvider = provider
-			}
-		} else {
-			// Update both modes to keep them in sync
-			updatedConfig.planModeApiProvider = provider
-			updatedConfig.actModeApiProvider = provider
-		}
-
-		if (apiKeyField && apiKeyValue !== undefined) {
-			;(updatedConfig as any)[apiKeyField] = apiKeyValue
+		const updatedConfig = {
+			...currentApiConfiguration,
+			planModeApiProvider:
+				(planActSeparateModelsSetting && currentMode === "plan") || !planActSeparateModelsSetting
+					? provider
+					: currentApiConfiguration.planModeApiProvider,
+			actModeApiProvider:
+				(planActSeparateModelsSetting && currentMode === "act") || !planActSeparateModelsSetting
+					? provider
+					: currentApiConfiguration.actModeApiProvider,
+			...(apiKeyField && apiKeyValue !== undefined ? { [apiKeyField]: apiKeyValue } : {}),
 		}
 
 		// Update the API configuration through cache service
@@ -802,9 +802,18 @@ export class Controller {
 		return updatedTaskHistory
 	}
 
+	private postStateTimer: NodeJS.Timeout | null = null
+
 	async postStateToWebview() {
-		const state = await this.getStateToPostToWebview()
-		await sendStateUpdate(state)
+		if (this.postStateTimer) {
+			clearTimeout(this.postStateTimer)
+		}
+
+		this.postStateTimer = setTimeout(async () => {
+			const state = await this.getStateToPostToWebview()
+			await sendStateUpdate(state)
+			this.postStateTimer = null
+		}, 50)
 	}
 
 	async getStateToPostToWebview(): Promise<ExtensionState> {
@@ -862,13 +871,15 @@ export class Controller {
 
 		const currentTaskItem = this.task?.taskId ? (taskHistory || []).find((item) => item.id === this.task?.taskId) : undefined
 		// Spread to create new array reference - React needs this to detect changes in useEffect dependencies
-		const codemarieMessages = [...(this.task?.messageStateHandler.getCodemarieMessages() || [])]
+		const codemarieMessages = [...(this.task?.messageStateHandler.getCodemarieMessages() || [])].slice(-20) // Optimization: only send the latest 20 messages for the primary sidebar sync
 		const checkpointManagerErrorMessage = this.task?.taskState.checkpointManagerErrorMessage
 
-		const processedTaskHistory = (taskHistory || [])
-			.filter((item) => item.ts && item.task)
-			.sort((a, b) => b.ts - a.ts)
-			.slice(0, 100) // for now we're only getting the latest 100 tasks, but a better solution here is to only pass in 3 for recent task history, and then get the full task history on demand when going to the task history view (maybe with pagination?)
+		const processedTaskHistory = this.includeHistory
+			? (taskHistory || [])
+					.filter((item) => item.ts && item.task)
+					.sort((a, b) => b.ts - a.ts)
+					.slice(0, 10) // Optimization: only send the latest 10 tasks to the main sidebar UI to reduce serialization overhead
+			: []
 
 		const latestAnnouncementId = getLatestAnnouncementId()
 		const shouldShowAnnouncement = lastShownAnnouncementId !== latestAnnouncementId
