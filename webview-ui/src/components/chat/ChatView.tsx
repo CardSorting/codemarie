@@ -29,6 +29,7 @@ import {
 	useScrollBehavior,
 	WelcomeSection,
 } from "./chat-view"
+import SwarmDashboard from "./SwarmDashboard"
 
 interface ChatViewProps {
 	isHidden: boolean
@@ -54,6 +55,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		currentFocusChainChecklist,
 		focusChainSettings,
 		hooksEnabled,
+		swarmState,
 	} = useExtensionState()
 	const isProdHostedApp = userInfo?.apiBaseUrl === "https://app.codemarie.bot"
 	const shouldShowQuickWins = isProdHostedApp && (!taskHistory || taskHistory.length < QUICK_WINS_HISTORY_THRESHOLD)
@@ -353,14 +355,17 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 					/>
 				)}
 				{task && (
-					<MessagesArea
-						chatState={chatState}
-						groupedMessages={groupedMessages}
-						messageHandlers={messageHandlers}
-						modifiedMessages={modifiedMessages}
-						scrollBehavior={scrollBehavior}
-						task={task}
-					/>
+					<div className="flex-1 relative overflow-hidden flex flex-col">
+						{swarmState && <SwarmDashboard state={swarmState} />}
+						<MessagesArea
+							chatState={chatState}
+							groupedMessages={groupedMessages}
+							messageHandlers={messageHandlers}
+							modifiedMessages={modifiedMessages}
+							scrollBehavior={scrollBehavior}
+							task={task}
+						/>
+					</div>
 				)}
 			</div>
 			<footer className="bg-background" style={{ gridRow: "2" }}>

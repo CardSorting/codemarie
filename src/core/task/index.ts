@@ -66,6 +66,7 @@ import {
 	CodemarieAskQuestion,
 	CodemarieMessage,
 	CodemarieSay,
+	OrchestrationEventMetadata,
 } from "@shared/ExtensionMessage"
 import { HistoryItem } from "@shared/HistoryItem"
 import { DEFAULT_LANGUAGE_SETTINGS, getLanguageKey, LanguageDisplay } from "@shared/Languages"
@@ -376,6 +377,19 @@ export class Task {
 					this.policyEngine.setController(this.orchestrationController) // Integrate for native persistence
 					await this.orchestrationController.beginDbShadow()
 					this.policyEngine.setStreamId(existing.id)
+
+					// Register wave approval callback
+					OrchestrationController.setApprovalCallback(existing.id, async (waveId, metadata) => {
+						const result = await this.ask("wave_approval" as CodemarieAsk, JSON.stringify(metadata))
+						OrchestrationController.removeWaveMetadata(waveId)
+						return result.response === "yesButtonClicked"
+					})
+
+					OrchestrationController.setEventCallback(existing.id, async (metadata) => {
+						await this.updateSwarmState(metadata)
+						await this.say("orchestration_event", JSON.stringify(metadata))
+					})
+
 					Logger.info(`[Task ${taskId}] Resumed existing orchestration stream: ${existing.id} (WS: ${workspaceId})`)
 					return
 				}
@@ -386,6 +400,19 @@ export class Task {
 				this.policyEngine.setController(this.orchestrationController) // Integrate for native persistence
 				await this.orchestrationController.beginDbShadow()
 				this.policyEngine.setStreamId(stream.id)
+
+				// Register wave approval callback
+				OrchestrationController.setApprovalCallback(stream.id, async (waveId, metadata) => {
+					const result = await this.ask("wave_approval" as CodemarieAsk, JSON.stringify(metadata))
+					OrchestrationController.removeWaveMetadata(waveId)
+					return result.response === "yesButtonClicked"
+				})
+
+				OrchestrationController.setEventCallback(stream.id, async (metadata) => {
+					await this.updateSwarmState(metadata)
+					await this.say("orchestration_event", JSON.stringify(metadata))
+				})
+
 				Logger.info(`[Task ${taskId}] Registered new orchestration stream: ${stream.id} (WS: ${workspaceId})`)
 			} catch (err) {
 				Logger.error(`[Task ${taskId}] Failed to initialize orchestration stream:`, err)
@@ -4029,5 +4056,62 @@ export class Task {
 
 		this.knowledgeGraphService = await KnowledgeGraphService.getInstance(embeddingHandler)
 		return this.knowledgeGraphService
+	}
+
+	private async updateSwarmState(metadata: OrchestrationEventMetadata) {
+		if (!this.taskState.swarmState) {
+			this.taskState.swarmState = {
+				activeWorkers: [],
+				overallProgress: 0,
+				totalTasks: 0,
+				completedTasks: 0,
+				isExecuting: false,
+			}
+		}
+
+		const state = this.taskState.swarmState
+
+		switch (metadata.type) {
+			case "wave_start":
+				state.isExecuting = true
+				state.currentWaveId = metadata.event.split(" ")[1] // Wave wave-xxx Started
+				if (metadata.totalTasks) {
+					state.totalTasks = metadata.totalTasks
+					state.completedTasks = 0
+					state.overallProgress = 0
+				}
+				break
+			case "wave_complete":
+				state.isExecuting = false
+				state.activeWorkers = []
+				break
+			case "worker_start":
+				if (metadata.workerName) {
+					if (!state.activeWorkers.find((w) => w.name === metadata.workerName)) {
+						state.activeWorkers.push({
+							id: metadata.workerName,
+							name: metadata.workerName,
+							description: metadata.details || "",
+							status: "acting",
+						})
+					}
+				}
+				break
+			case "worker_complete":
+				state.activeWorkers = state.activeWorkers.filter((w) => w.name !== metadata.workerName)
+				state.completedTasks++
+				state.overallProgress = state.totalTasks > 0 ? (state.completedTasks / state.totalTasks) * 100 : 100
+				break
+			case "error":
+				state.isExecuting = false
+				break
+		}
+
+		await this.postStateToWebview()
+	}
+
+	private async clearSwarmState() {
+		this.taskState.swarmState = undefined
+		await this.postStateToWebview()
 	}
 }

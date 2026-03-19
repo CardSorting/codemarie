@@ -47,6 +47,8 @@ export class WorkerStream {
 
 		try {
 			childStreamId = await this.prepare()
+			await this.parentController.reportEvent(`${this.name} Started`, "worker_start", this.taskDescription)
+
 			const plan = await this.executePlan()
 
 			const affectedFiles = (plan.actions || []).map((a: any) => a.file).filter(Boolean)
@@ -78,13 +80,19 @@ export class WorkerStream {
 				const aggregatedDigest = await subPool.getAggregatedDigest()
 
 				// Finalize as a composite result
-				return await this.finalize(
+				const finalResult = await this.finalize(
 					startTime,
 					childStreamId,
 					plan,
 					[],
 					`Decomposed into ${subResult.completed} sub-tasks. Context: ${aggregatedDigest.slice(0, 100)}...`,
 				)
+				await this.parentController.reportEvent(
+					`${this.name} Completed`,
+					"worker_complete",
+					`Decomposed and finished ${subResult.completed} sub-tasks.`,
+				)
+				return finalResult
 			}
 			// ---------------------------------------------------------------
 
@@ -93,8 +101,15 @@ export class WorkerStream {
 			}
 
 			const reports = await this.executeAct(plan)
-			return await this.finalize(startTime, childStreamId, plan, reports)
+			const result = await this.finalize(startTime, childStreamId, plan, reports)
+			await this.parentController.reportEvent(
+				`${this.name} Completed`,
+				"worker_complete",
+				`Implementation finished: ${this.taskDescription.slice(0, 50)}...`,
+			)
+			return result
 		} catch (error: any) {
+			await this.parentController.reportEvent(`${this.name} Failed`, "error", error.message || String(error))
 			return await this.handleFailure(startTime, childStreamId, error)
 		}
 	}

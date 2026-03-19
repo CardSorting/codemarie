@@ -24,6 +24,7 @@ import {
 	FilePlus2Icon,
 	FoldVerticalIcon,
 	ImageUpIcon,
+	LayersIcon,
 	LightbulbIcon,
 	Link2Icon,
 	LoaderCircleIcon,
@@ -61,6 +62,7 @@ import HookMessage from "./HookMessage"
 import { IntentDecomposition } from "./IntentDecomposition"
 import { MarkdownRow } from "./MarkdownRow"
 import NewTaskPreview from "./NewTaskPreview"
+import OrchestrationEventRow from "./OrchestrationEventRow"
 import { OutcomeMapper } from "./OutcomeMapper"
 import PlanCompletionOutputRow from "./PlanCompletionOutputRow"
 import QuoteButton from "./QuoteButton"
@@ -71,6 +73,7 @@ import SearchResultsDisplay from "./SearchResultsDisplay"
 import SubagentStatusRow from "./SubagentStatusRow"
 import { ThinkingRow } from "./ThinkingRow"
 import UserMessage from "./UserMessage"
+import WaveApprovalRow from "./WaveApprovalRow"
 
 const HEADER_CLASSNAMES = "flex items-center gap-2.5 mb-3"
 
@@ -384,6 +387,13 @@ export const ChatRowContent = memo(
 						<span className="codicon codicon-question text-foreground mb-[-1.5px]" key="followup-icon" />,
 						<span className="font-bold text-foreground text-sm" key="followup-title">
 							Codemarie has a question:
+						</span>,
+					]
+				case "wave_approval":
+					return [
+						<LayersIcon className="text-link size-2" key="wave-approval-icon" />,
+						<span className="font-bold text-foreground text-sm" key="wave-approval-title">
+							Swarm Wave Approval Required
 						</span>,
 					]
 				default:
@@ -1346,6 +1356,10 @@ export const ChatRowContent = memo(
 								<ReportBugPreview data={message.text || ""} />
 							</div>
 						)
+					case "wave_approval":
+						return <WaveApprovalRow isLast={isLast} metadata={JSON.parse(message.text || "{}")} />
+					case "orchestration_event":
+						return <OrchestrationEventRow metadata={JSON.parse(message.text || "{}")} />
 					case "plan_mode_respond": {
 						let response: string | undefined
 						let options: string[] | undefined

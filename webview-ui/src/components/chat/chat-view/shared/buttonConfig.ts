@@ -109,6 +109,14 @@ export const BUTTON_CONFIGS: Record<string, ButtonConfig> = {
 		primaryAction: "approve",
 		secondaryAction: "reject",
 	},
+	wave_approval: {
+		sendingDisabled: false,
+		enableButtons: true,
+		primaryText: "Approve Wave",
+		secondaryText: "Reject Wave",
+		primaryAction: "approve",
+		secondaryAction: "reject",
+	},
 	followup: {
 		sendingDisabled: false,
 		enableButtons: false,
@@ -271,6 +279,8 @@ export function getButtonConfig(message: CodemarieMessage | undefined, _mode: Mo
 				return BUTTON_CONFIGS.use_mcp_server
 			case "use_subagents":
 				return BUTTON_CONFIGS.use_subagents
+			case "wave_approval":
+				return BUTTON_CONFIGS.wave_approval
 			case "plan_mode_respond":
 				return BUTTON_CONFIGS.plan_mode_respond
 

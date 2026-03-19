@@ -1,6 +1,7 @@
 import * as path from "path"
 import { AgentStream, AgentTask, orchestrator, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
 import { dbPool, WriteOp } from "@/infrastructure/db/BufferedDbPool"
+import { OrchestrationEventMetadata, WaveApprovalMetadata } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
 import { AgentContext } from "../broccolidb/agent-context"
 import { Workspace } from "../broccolidb/workspace"
@@ -8,12 +9,16 @@ import { Workspace } from "../broccolidb/workspace"
 /**
  * OrchestrationController: Manages the lifecycle of an agent stream and its tasks.
  * It provides a clean interface for Task and ToolExecutor to report progress.
- *
- * It moves "bolted-on" logic out of the core task loop and into a first-class orchestration layer.
  */
 export class OrchestrationController {
 	private currentTaskId?: string
 	private agentContext?: AgentContext
+
+	// --- Wave Approval Registry (Shared) ---
+	private static pendingWaves = new Map<string, (approved: boolean) => void>()
+	private static pendingWaveMetadata = new Map<string, WaveApprovalMetadata>()
+	private static eventCallbacks = new Map<string, (metadata: OrchestrationEventMetadata) => Promise<void>>()
+	private static approvalCallbacks = new Map<string, (waveId: string, metadata?: WaveApprovalMetadata) => Promise<boolean>>()
 
 	constructor(
 		private streamId: string,
@@ -21,6 +26,97 @@ export class OrchestrationController {
 		private workspaceId: string,
 		private taskId: string,
 	) {}
+
+	/**
+	 * Registers an approval callback for this controller's stream.
+	 */
+	public static setApprovalCallback(
+		streamId: string,
+		callback: (waveId: string, metadata?: WaveApprovalMetadata) => Promise<boolean>,
+	): void {
+		OrchestrationController.approvalCallbacks.set(streamId, callback)
+	}
+
+	/**
+	 * Registers an event callback for this controller's stream.
+	 */
+	public static setEventCallback(streamId: string, callback: (metadata: OrchestrationEventMetadata) => Promise<void>): void {
+		OrchestrationController.eventCallbacks.set(streamId, callback)
+	}
+
+	/**
+	 * Registers a wave as pending approval.
+	 * Returns a promise that resolves when approval is granted or denied.
+	 */
+	public async requestWaveApproval(waveId: string, metadata?: WaveApprovalMetadata): Promise<boolean> {
+		if (metadata) {
+			metadata.streamId = this.streamId
+			OrchestrationController.pendingWaveMetadata.set(waveId, metadata)
+		}
+
+		return new Promise((resolve) => {
+			;(async () => {
+				OrchestrationController.pendingWaves.set(waveId, resolve)
+
+				// Route back to the task UI if a callback is registered
+				const callback = OrchestrationController.approvalCallbacks.get(this.streamId)
+				if (callback) {
+					const approved = await callback(waveId, metadata)
+					// If approval came back through the callback, complete the wave
+					if (OrchestrationController.pendingWaves.has(waveId)) {
+						OrchestrationController.approveWave(waveId, approved)
+					}
+				}
+			})()
+		})
+	}
+
+	public static getWaveMetadata(waveId: string): WaveApprovalMetadata | undefined {
+		return OrchestrationController.pendingWaveMetadata.get(waveId)
+	}
+
+	public static removeWaveMetadata(waveId: string): void {
+		OrchestrationController.pendingWaveMetadata.delete(waveId)
+	}
+
+	/**
+	 * Reports an orchestration event for the current stream.
+	 */
+	public async reportEvent(
+		event: string,
+		type: OrchestrationEventMetadata["type"],
+		details?: string,
+		totalTasks?: number,
+	): Promise<void> {
+		const metadata: OrchestrationEventMetadata = {
+			event,
+			type,
+			details,
+			totalTasks,
+			streamId: this.streamId,
+			taskId: this.taskId,
+			timestamp: Date.now(),
+		}
+
+		// Route back to the task UI if a callback is registered
+		const callback = OrchestrationController.eventCallbacks.get(this.streamId)
+		if (callback) {
+			await callback(metadata)
+		}
+	}
+
+	/**
+	 * Grants or denies approval for a pending wave.
+	 */
+	public static approveWave(waveId: string, approved: boolean): void {
+		const resolve = OrchestrationController.pendingWaves.get(waveId)
+		if (resolve) {
+			resolve(approved)
+			OrchestrationController.pendingWaves.delete(waveId)
+			OrchestrationController.pendingWaveMetadata.delete(waveId)
+		}
+	}
+	// ----------------------------------------------------
 
 	/**
 	 * Returns the native AgentContext for BroccoliDB operations.
@@ -121,30 +217,6 @@ export class OrchestrationController {
 		await this.updateTaskStatus(this.currentTaskId || "", status, result, metadata)
 	}
 
-	// --- Tier 6: Wave Approval Registry (Double Down) ---
-	private static pendingWaves = new Map<string, (approved: boolean) => void>()
-
-	/**
-	 * Registers a wave as needing human approval.
-	 */
-	public static requestWaveApproval(waveId: string): Promise<boolean> {
-		return new Promise((resolve) => {
-			OrchestrationController.pendingWaves.set(waveId, resolve)
-		})
-	}
-
-	/**
-	 * Grants or denies approval for a pending wave.
-	 */
-	public static approveWave(waveId: string, approved: boolean): void {
-		const resolve = OrchestrationController.pendingWaves.get(waveId)
-		if (resolve) {
-			resolve(approved)
-			OrchestrationController.pendingWaves.delete(waveId)
-		}
-	}
-	// ----------------------------------------------------
-
 	/**
 	 * Low-level task status update.
 	 */
@@ -172,11 +244,7 @@ export class OrchestrationController {
 	}
 
 	/**
-	 * Marks the current stream as completed.
-	 */
-	/**
 	 * Marks the current stream as completed and commits database changes.
-	 * Returns true if both the DB commit and the stream completion were successful.
 	 */
 	public async completeStream(
 		summary: string,
@@ -249,7 +317,6 @@ export class OrchestrationController {
 		if (!this.streamId) return undefined
 
 		const shadow = dbPool.getShadowOps(this.streamId)
-		// Find the latest write op for this file in the shadow
 		const latestOp = shadow
 			.filter((op) => op.type === "insert" || op.type === "update")
 			.reverse()
@@ -265,12 +332,10 @@ export class OrchestrationController {
 
 	/**
 	 * Publishes high-level architectural stability metrics.
-	 * Version for high-throughput: Fire-and-forget logging.
 	 */
 	public async fastPublishArchitecturalTelemetry(): Promise<void> {
 		try {
 			const state = await this.getCurrentPolicyState()
-			// Tier 2: Fire-and-forget (Don't await the DB push for non-critical telemetry)
 			this.pushDbOp({
 				type: "insert",
 				table: "agent_tasks",
@@ -289,8 +354,6 @@ export class OrchestrationController {
 				},
 				layer: "infrastructure",
 			}).catch((err) => Logger.warn(`[Orchestration] Failed to fire-and-forget telemetry:`, err))
-
-			Logger.info(`[Orchestration] Triggered high-volume telemetry for ${this.streamId}`)
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to prepare telemetry:`, error)
 		}
@@ -320,7 +383,6 @@ export class OrchestrationController {
 				},
 				layer: "infrastructure",
 			})
-			Logger.info(`[Orchestration] Published architectural telemetry for ${this.streamId}`)
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to publish telemetry:`, error)
 		}
@@ -339,7 +401,6 @@ export class OrchestrationController {
 
 	/**
 	 * Annotates a piece of knowledge in the graph.
-	 * Tier 4: Unified Cognitive Fabric.
 	 */
 	public async annotateKnowledge(targetId: string, agentId: string, annotation: string, metadata?: any): Promise<void> {
 		try {
@@ -365,7 +426,6 @@ export class OrchestrationController {
 
 	/**
 	 * Spawns a child stream linked to this controller's stream.
-	 * Used by StreamPool to create isolated WorkerStream contexts.
 	 */
 	public async spawnChildStream(focus: string): Promise<AgentStream> {
 		return orchestrator.spawnChildStream(this.streamId, focus)
@@ -415,17 +475,14 @@ export class OrchestrationController {
 
 	/**
 	 * Completes this stream only after all child streams have been
-	 * committed or rolled back. Ensures no orphaned child streams.
+	 * committed or rolled back.
 	 */
 	public async completeWithChildren(
 		summary: string,
-		validator?: (
-			affectedFiles: Set<string>,
-			ops: import("@/infrastructure/db/BufferedDbPool").WriteOp[],
-		) => Promise<{ success: boolean; errors: string[] }>,
+		validator?: (affectedFiles: Set<string>, ops: WriteOp[]) => Promise<{ success: boolean; errors: string[] }>,
 	): Promise<boolean> {
 		try {
-			const MAX_WAIT_MS = 5 * 60 * 1000 // 5-minute safety timeout
+			const MAX_WAIT_MS = 5 * 60 * 1000
 			const CHECK_INTERVAL_MS = 2000
 			const startTime = Date.now()
 
@@ -434,19 +491,12 @@ export class OrchestrationController {
 				const activeChildren = children.filter((c) => c.status === "active")
 
 				if (activeChildren.length === 0) {
-					Logger.info(`[Orchestration] All child streams settled. Completing parent stream.`)
 					return await this.completeStream(summary, validator)
 				}
 
-				Logger.info(
-					`[Orchestration] Waiting for ${activeChildren.length} child streams to settle... (${Math.round((Date.now() - startTime) / 1000)}s)`,
-				)
 				await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL_MS))
 			}
 
-			Logger.error(
-				`[Orchestration] Timeout waiting for child streams after ${MAX_WAIT_MS}ms. Completing anyway to avoid deadlock.`,
-			)
 			return await this.completeStream(summary, validator)
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to complete with children:`, error)

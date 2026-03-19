@@ -96,6 +96,7 @@ export interface ExtensionState {
 	primaryRootIndex: number
 	isMultiRootWorkspace: boolean
 	multiRootSetting: CodemarieFeatureSetting
+	swarmState?: SwarmState
 	lastDismissedInfoBannerVersion: number
 	lastDismissedModelBannerVersion: number
 	lastDismissedCliBannerVersion: number
@@ -152,6 +153,53 @@ export type CodemarieAsk =
 	| "summarize_task"
 	| "report_bug"
 	| "use_subagents"
+	| "wave_approval"
+	| "orchestration_event"
+
+export interface WaveApprovalMetadata {
+	waveId: string
+	streamId?: string
+	tasks: Array<{
+		id: string
+		description: string
+		plan: {
+			actions: Array<{ type: string; file: string; description: string }>
+		}
+		audit?: {
+			approved: boolean
+			violations: string[]
+			suggestion?: string
+		}
+	}>
+}
+
+export interface OrchestrationEventMetadata {
+	event: string
+	type: "info" | "success" | "warning" | "error" | "worker_start" | "worker_complete" | "wave_start" | "wave_complete"
+	streamId?: string
+	workerName?: string
+	taskId?: string
+	details?: string
+	totalTasks?: number
+	timestamp: number
+}
+
+export interface SwarmWorker {
+	id: string
+	name: string
+	description: string
+	status: "preparing" | "planning" | "acting" | "finalizing" | "completed" | "failed"
+	progress?: number
+}
+
+export interface SwarmState {
+	activeWorkers: SwarmWorker[]
+	overallProgress: number
+	totalTasks: number
+	completedTasks: number
+	currentWaveId?: string
+	isExecuting: boolean
+}
 
 export type CodemarieSay =
 	| "task"
@@ -192,6 +240,7 @@ export type CodemarieSay =
 	| "use_subagents"
 	| "subagent_usage"
 	| "conditional_rules_applied"
+	| "orchestration_event"
 
 export interface CodemarieSayTool {
 	tool:

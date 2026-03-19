@@ -1,3 +1,4 @@
+import { WaveApprovalMetadata } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
 import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
@@ -203,8 +204,24 @@ export class StreamPool {
 					const waveId = `wave-${this.parentStreamId.slice(0, 8)}-${Date.now()}`
 					Logger.info(`[${this.name}] 🚦 Requesting Human Approval for wave ${waveId}...`)
 
+					// Collect metadata for the UI
+					const metadata: WaveApprovalMetadata = {
+						waveId,
+						tasks: waveWorkers.map((worker, idx) => {
+							const task = wave[idx]!
+							const plan = wavePlans[idx]
+							return {
+								id: task.id,
+								description: task.description,
+								plan: {
+									actions: plan.actions || [],
+								},
+							}
+						}),
+					}
+
 					// Register with the registry and notify the UI
-					const approvalPromise = OrchestrationController.requestWaveApproval(waveId)
+					const approvalPromise = this.controller.requestWaveApproval(waveId, metadata)
 
 					// Simple VS Code notification as a trigger
 					const HostProvider = require("@/hosts/host-provider").HostProvider
@@ -213,8 +230,6 @@ export class StreamPool {
 					HostProvider.get().window.showMessage({
 						type: ShowMessageType.INFO,
 						message: `[MAS] Swarm Wave Ready: ${waveWorkers.length} tasks planned. Review and Approve to proceed.`,
-						// We can't easily add buttons to this specific showMessage via protobuf here without more work,
-						// so we'll rely on our new VS Code command for now.
 					})
 
 					const approved = await approvalPromise
@@ -226,8 +241,20 @@ export class StreamPool {
 				// ----------------------------------------------------------
 
 				// Sub-Stage B: Parallel Act & Finalize
-				// Only proceed with Acting if planning was successful
 				Logger.info(`[${this.name}] 🛠️ Wave Acting Phase (${waveWorkers.length} tasks)...`)
+
+				const isTopLevel = this.controller.getStreamId() === this.parentStreamId
+				const waveId = `wave-${this.parentStreamId.slice(0, 8)}-${Date.now()}`
+
+				if (isTopLevel) {
+					await this.controller.reportEvent(
+						`Wave ${waveId} Started`,
+						"wave_start",
+						`Executing ${wave.length} tasks in parallel.`,
+						wave.length,
+					)
+				}
+
 				const waveResults: WorkerResult[] = []
 				for (let i = 0; i < waveWorkers.length; i += this.maxConcurrency) {
 					const batchIndices = Array.from(
@@ -261,6 +288,14 @@ export class StreamPool {
 						}),
 					)
 					waveResults.push(...batchResults)
+				}
+
+				if (isTopLevel) {
+					await this.controller.reportEvent(
+						`Wave ${waveId} Completed`,
+						"wave_complete",
+						`All ${wave.length} tasks in wave ${waveId} have finished.`,
+					)
 				}
 
 				// Correct bookkeeping:

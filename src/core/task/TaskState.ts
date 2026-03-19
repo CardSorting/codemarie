@@ -1,5 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { AssistantMessageContent } from "@core/assistant-message"
+import { SwarmState } from "@shared/ExtensionMessage"
 import { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { GroundedSpec } from "../grounding/IntentGrounder"
 import type { HookExecution } from "./types/HookExecution"
@@ -98,6 +99,7 @@ export class TaskState {
 	currentTurnUniqueReadCount = 0
 	currentTurnExplorationCount = 0
 	taskReadHistory = new Map<string, number>()
+	swarmState?: SwarmState
 }
 
 export enum PolicyHealth {
