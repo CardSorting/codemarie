@@ -1,4 +1,5 @@
 import { Logger } from "@/shared/services/Logger"
+import { LRUCache } from "@/shared/utils/LRUCache"
 import { validateJoyZoning } from "@/utils/joy-zoning"
 import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
@@ -21,21 +22,19 @@ export class MultiAgentStreamSystem {
 
 	/** Last pool result from concurrent build dispatch */
 	private lastPoolResult?: StreamPoolResult
+	private reflectionCache = new LRUCache<string[]>(10, 3600000) // 1 hour TTL
 
 	constructor(
-		private controller: OrchestrationController,
+		public controller: OrchestrationController,
 		private apiHandler: ApiHandler,
 		private concurrency = 3,
 	) {}
 
 	private isAgentRegistered = false
 
-	/**
-	 * Executes the full MAS pass for a new product/feature.
-	 */
 	public async executeFirstPass(
 		userRequest: string,
-		groundedSpec?: any,
+		groundedSpec?: unknown,
 	): Promise<{ success: boolean; clarificationNeeded?: string }> {
 		const ctx = await this.controller.getAgentContext()
 
@@ -57,7 +56,7 @@ export class MultiAgentStreamSystem {
 		await this.controller.updateTaskProgress("planning")
 
 		// Tier 2: Speculative Cog-Parallelism (Heal while reasoning)
-		const healPromise = ctx.selfHealGraph().catch((e: any) => {
+		const healPromise = ctx.selfHealGraph().catch((e: unknown) => {
 			Logger.warn(`[${this.name}] Background self-healing failed, ignoring to protect stream:`, e)
 			return { prunedNodes: [] }
 		})
@@ -67,7 +66,7 @@ export class MultiAgentStreamSystem {
 			this.ikigai.defineScope(this.controller, this.apiHandler, enrichedRequest, groundedSpec),
 		])
 
-		if (healResult && healResult.prunedNodes && healResult.prunedNodes.length > 0) {
+		if (healResult?.prunedNodes && healResult.prunedNodes.length > 0) {
 			Logger.info(
 				`[${this.name}] Self-Healing: Pruned ${healResult.prunedNodes.length} stale/contradictory reasoning nodes.`,
 			)
@@ -181,5 +180,40 @@ export class MultiAgentStreamSystem {
 			}
 		}
 		return result
+	}
+
+	/**
+	 * Reflects on the current turn's tool outputs and provides high-level insights.
+	 */
+	public async executeTurnReflection(turnSummary: string): Promise<string[] | undefined> {
+		Logger.info(`[${this.name}] Executing turn-based reflection...`)
+		try {
+			const digest = await this.controller.getStreamDigest()
+			const enrichedSummary = `Collective System Context:\n${digest}\n\nTurn Summary: ${turnSummary}`
+			const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, enrichedSummary)
+
+			// High Throughput: Store reflection in local LRU cache
+			if (improvements && improvements.length > 0) {
+				const streamId = this.controller.getStreamId()
+				this.reflectionCache.set(streamId, improvements)
+
+				// Background Persistence: Still store in memory for long-term recovery/audit
+				this.controller.storeMemory("turn_reflection", JSON.stringify(improvements)).catch((err) => {
+					Logger.warn(`[${this.name}] Failed to persist reflection to BroccoliDB:`, err)
+				})
+
+				return improvements
+			}
+		} catch (err) {
+			Logger.warn(`[${this.name}] Turn reflection failed:`, err)
+		}
+		return undefined
+	}
+
+	/**
+	 * Retrieves the latest reflection from the high-throughput cache.
+	 */
+	public getLatestReflection(): string[] | undefined {
+		return this.reflectionCache.get(this.controller.getStreamId())
 	}
 }

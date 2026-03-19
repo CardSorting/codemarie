@@ -1,5 +1,6 @@
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { dbPool } from "@/infrastructure/db/BufferedDbPool"
+import { Logger } from "@/shared/services/Logger"
 import { SystemPromptSection } from "../templates/placeholders"
 import type { PromptVariant, SystemPromptContext } from "../types"
 
@@ -11,10 +12,22 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 	let auditContext = ""
 	try {
 		const contextPromise = (async () => {
-			const activeStreams = await orchestrator.getActiveStreams()
-			if (activeStreams.length === 0) return ""
+			const mas = context?.multiAgentStreamSystem
+			let controller = mas?.controller
 
-			const latestStream = activeStreams[activeStreams.length - 1]
+			// Fallback to searching active streams if no direct MAS instance in context
+			if (!controller) {
+				const activeStreams = await orchestrator.getActiveStreams()
+				if (activeStreams.length === 0) return ""
+				const latestStream = activeStreams[activeStreams.length - 1]
+				const { OrchestrationController: OC } = await import("../../../orchestration/OrchestrationController")
+				// Resolve temporary controller for searched stream
+				const machineId = "system"
+				const workspaceId = "system"
+				controller = new OC(latestStream.id, machineId, workspaceId, "N/A")
+			}
+
+			const streamId = controller.getStreamId()
 
 			// Proactive Layer Awareness: Inject context for the file currently under mutation
 			const affectedFiles = await dbPool.getActiveAffectedFiles()
@@ -26,12 +39,12 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 				layerHint = `\n\n📌 Active layer context:\n${tempEngine.getFileLayerContext(firstFilePath)}\nKeep this in mind for your next change.`
 			}
 
-			const compressed = await orchestrator.getCompressedContext(latestStream.id)
+			const compressed = await orchestrator.getCompressedContext(streamId)
 			const digest = JSON.parse(compressed)
 
 			const parts: string[] = []
 			// Check for recent audit failures to trigger self-correction
-			const tasks = await orchestrator.getStreamTasks(latestStream.id)
+			const tasks = await orchestrator.getStreamTasks(streamId)
 			const lastFailure = [...tasks]
 				.reverse()
 				.find((t) => t.status === "failed" && t.description === "Architectural Audit Failure")
@@ -49,16 +62,40 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 			}
 
 			// Include error history if available
-			const failureReason = await orchestrator.recallMemory(latestStream.id, "failure_reason")
+			const failureReason = await orchestrator.recallMemory(streamId, "failure_reason")
 			if (failureReason) {
 				parts.push(`🔴 Previous Failure: ${failureReason}`)
 			}
 
+			// Swarm Insights: Prioritize high-throughput LRU cache from the MAS instance
+			let reflection: string[] | undefined = mas?.getLatestReflection()
+
+			if (!reflection) {
+				const reflectionRaw = await orchestrator.recallMemory(streamId, "turn_reflection")
+				if (reflectionRaw) {
+					try {
+						const parsed = JSON.parse(reflectionRaw)
+						if (Array.isArray(parsed)) reflection = parsed
+					} catch {
+						reflection = [reflectionRaw]
+					}
+				}
+			}
+
+			if (reflection && reflection.length > 0) {
+				parts.push(`💡 Swarm Insights:\n${reflection.map((r) => `  - ${r}`).join("\n")}`)
+			}
+
 			// Surface last checkpoint
 			const allMemory = await dbPool.selectAllFrom("agent_memory")
-			const checkpoint = allMemory
-				.filter((m: any) => m.streamId === latestStream.id && m.key.startsWith("checkpoint_"))
-				.sort((a: any, b: any) => b.updatedAt - a.updatedAt)[0]
+			interface MemoryEntry {
+				streamId: string
+				key: string
+				updatedAt: number
+			}
+			const checkpoint = (allMemory as unknown as MemoryEntry[])
+				.filter((m) => m.streamId === streamId && m.key.startsWith("checkpoint_"))
+				.sort((a, b) => b.updatedAt - a.updatedAt)[0]
 			if (checkpoint) {
 				parts.push(`📍 Last Checkpoint: ${new Date(checkpoint.updatedAt as number).toLocaleString()}`)
 			}
@@ -70,7 +107,7 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 			}
 
 			if (parts.length > 0) {
-				return `\n\n📊 Live context (Stream ${latestStream.id.slice(0, 8)}…):\n${parts.join("\n")}${layerHint}`
+				return `\n\n📊 Live context (Stream ${streamId.slice(0, 8)}…):\n${parts.join("\n")}${layerHint}`
 			}
 			return layerHint
 		})()
@@ -78,8 +115,8 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 		// 200ms timeout — gracefully degrade if DB is slow
 		const timeoutPromise = new Promise<string>((resolve) => setTimeout(() => resolve(""), 200))
 		auditContext = await Promise.race([contextPromise, timeoutPromise])
-	} catch {
-		// Orchestrator may not be initialized during testing or initial prompt build
+	} catch (err) {
+		Logger.warn("[PromptBuilder][JoyZoning] Failed to inject live context:", err)
 	}
 
 	// Mode-specific guidance section

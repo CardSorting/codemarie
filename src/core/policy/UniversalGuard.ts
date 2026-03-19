@@ -1,4 +1,7 @@
+import { CodemarieDefaultTool } from "@shared/tools"
+import { WriteOp } from "@/infrastructure/db/BufferedDbPool"
 import { ToolUse } from "../assistant-message"
+import { MultiAgentStreamSystem } from "../orchestration/MultiAgentStreamSystem"
 import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { StateManager } from "../storage/StateManager"
 import { FluidPolicyEngine, PolicyResult } from "./FluidPolicyEngine"
@@ -12,7 +15,13 @@ export class UniversalGuard {
 	private readonly engine: FluidPolicyEngine
 	private currentMode: "plan" | "act" = "act"
 
-	constructor(cwd: string, taskId: string, stateManager: StateManager, controller?: OrchestrationController) {
+	constructor(
+		cwd: string,
+		taskId: string,
+		stateManager: StateManager,
+		controller?: OrchestrationController,
+		private readonly mas?: MultiAgentStreamSystem,
+	) {
 		this.engine = new FluidPolicyEngine(
 			cwd,
 			taskId,
@@ -45,8 +54,24 @@ export class UniversalGuard {
 	/**
 	 * Performs all post-execution audits including AST-audit, health-check, and entropy.
 	 */
-	public async guardPostExecution(block: ToolUse, toolOutput: any, prevHash?: string): Promise<PolicyResult> {
-		return this.engine.validatePostExecution(block, toolOutput, prevHash)
+	public async guardPostExecution(block: ToolUse, toolOutput: unknown, prevHash?: string): Promise<PolicyResult> {
+		const result = await this.engine.validatePostExecution(block, toolOutput, prevHash)
+
+		// Deep MAS Integration: Perform real-time architectural audit for file writes
+		const isWrite = block.name === CodemarieDefaultTool.FILE_NEW || block.name === CodemarieDefaultTool.FILE_EDIT
+		if (this.mas && isWrite && block.params.path && block.params.content) {
+			const auditResult = await this.mas.auditFile(block.params.path, block.params.content)
+			if (!auditResult.success) {
+				// Inject MAS findings into the policy result to trigger self-correction
+				return {
+					...result,
+					success: false,
+					error: `Architectural violation detected by MAS: ${auditResult.errors.join("; ")}`,
+				}
+			}
+		}
+
+		return result
 	}
 
 	/**
@@ -72,7 +97,7 @@ export class UniversalGuard {
 	/**
 	 * Performs the final architectural audit before a database commit.
 	 */
-	public async validateCommit(files: Set<string>, ops: any[]): Promise<{ success: boolean; errors: string[] }> {
+	public async validateCommit(files: Set<string>, ops: WriteOp[]): Promise<{ success: boolean; errors: string[] }> {
 		return this.engine.validateCommit(files, ops)
 	}
 

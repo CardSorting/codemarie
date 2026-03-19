@@ -101,7 +101,7 @@ export class ToolExecutor {
 			toolName: CodemarieDefaultTool,
 			paramName: string,
 			relPath?: string,
-		) => Promise<any>,
+		) => Promise<unknown>,
 		private removeLastPartialMessageIfExistsWithType: (
 			type: "ask" | "say",
 			askOrSay: CodemarieAsk | CodemarieSay,
@@ -110,7 +110,7 @@ export class ToolExecutor {
 			command: string,
 			timeoutSeconds: number | undefined,
 			options?: CommandExecutionOptions,
-		) => Promise<[boolean, any]>,
+		) => Promise<[boolean, unknown]>,
 		private cancelRunningCommandTool: () => Promise<boolean>,
 		private doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>,
 		private updateFCListFromToolResponse: (taskProgress: string | undefined) => Promise<void>,
@@ -128,7 +128,13 @@ export class ToolExecutor {
 	) {
 		this.autoApprover = new AutoApprove(this.stateManager)
 		const controller = getOrchestrationController()
-		this.guard = new UniversalGuard(cwd, taskId, this.stateManager, controller)
+		this.guard = new UniversalGuard(
+			this.cwd,
+			this.taskId,
+			this.stateManager,
+			this.getOrchestrationController(),
+			this.taskState.multiAgentStreamSystem,
+		)
 		this.policyObserver = new ReactivePolicyObserver(this.guard as any) // Guard wraps engine
 		this.coordinator = new ToolExecutorCoordinator()
 		this.registerToolHandlers()
@@ -174,6 +180,7 @@ export class ToolExecutor {
 				stateManager: this.stateManager,
 				knowledgeGraphService: kgService,
 				orchestrationController: this.getOrchestrationController(),
+				multiAgentStreamSystem: this.taskState.multiAgentStreamSystem,
 			},
 			callbacks: {
 				say: this.say,

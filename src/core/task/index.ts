@@ -583,6 +583,7 @@ export class Task {
 		this.streamReadyPromise?.then(() => {
 			if (this.orchestrationController && this.api) {
 				this.multiAgentSystem = new MultiAgentStreamSystem(this.orchestrationController, this.api)
+				this.taskState.multiAgentStreamSystem = this.multiAgentSystem
 			}
 		})
 
@@ -1765,6 +1766,13 @@ export class Task {
 				})
 			}
 
+			if (this.multiAgentSystem) {
+				// Ensure MAS is notified of the abort
+				this.multiAgentSystem.controller.failStream("Task aborted by user or system").catch((err) => {
+					Logger.error(`[Task ${this.taskId}] Failed to signal MAS abort:`, err)
+				})
+			}
+
 			// PHASE 3: Cancel any running hook execution
 			const activeHook = await this.getActiveHookExecution()
 			if (activeHook) {
@@ -2218,6 +2226,7 @@ export class Task {
 			enableParallelToolCalling: this.isParallelToolCallingEnabled(),
 			terminalExecutionMode: this.terminalExecutionMode,
 			mode: (providerInfo.mode as "plan" | "act") || "act",
+			multiAgentStreamSystem: this.taskState.multiAgentStreamSystem,
 		}
 
 		// Notify user if any conditional rules were applied for this request
@@ -3398,6 +3407,20 @@ export class Task {
 
 				// Reset auto-retry counter for each new API request
 				this.taskState.autoRetryAttempts = 0
+
+				// Deep MAS Integration: Reflect on turn results and materialize background changes
+				if (this.multiAgentSystem) {
+					try {
+						const turnSummary = this.taskState.userMessageContent
+							.map((c) => (c.type === "text" ? c.text : ""))
+							.filter(Boolean)
+							.join("\n")
+						await this.multiAgentSystem.executeTurnReflection(turnSummary)
+						await this.multiAgentSystem.controller.materialize()
+					} catch (err) {
+						Logger.warn(`[Task ${this.taskId}] MAS turn reflection/materialization failed:`, err)
+					}
+				}
 
 				const recDidEndLoop = await this.recursivelyMakeCodemarieRequests(this.taskState.userMessageContent)
 				didEndLoop = recDidEndLoop

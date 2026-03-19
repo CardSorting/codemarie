@@ -19,6 +19,7 @@ import type { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { WorkspaceRootManager } from "@/core/workspace"
 import type { ContextManager } from "../../../context/context-management/ContextManager"
 import { GroundedSpec } from "../../../grounding/types"
+import { MultiAgentStreamSystem } from "../../../orchestration/MultiAgentStreamSystem"
 import type { OrchestrationController } from "../../../orchestration/OrchestrationController"
 import type { StateManager } from "../../../storage/StateManager"
 import type { MessageStateHandler } from "../../message-state"
@@ -86,6 +87,7 @@ export interface TaskServices {
 	stateManager: StateManager
 	knowledgeGraphService: KnowledgeGraphService
 	orchestrationController?: OrchestrationController
+	multiAgentStreamSystem?: MultiAgentStreamSystem
 }
 
 /**
@@ -113,7 +115,7 @@ export interface TaskCallbacks {
 
 	saveCheckpoint: (isAttemptCompletionMessage?: boolean, completionMessageTs?: number) => Promise<void>
 
-	sayAndCreateMissingParamError: (toolName: CodemarieDefaultTool, paramName: string, relPath?: string) => Promise<any>
+	sayAndCreateMissingParamError: (toolName: CodemarieDefaultTool, paramName: string, relPath?: string) => Promise<unknown>
 
 	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: CodemarieAsk | CodemarieSay) => Promise<void>
 
@@ -121,7 +123,7 @@ export interface TaskCallbacks {
 		command: string,
 		timeoutSeconds: number | undefined,
 		options?: CommandExecutionOptions,
-	) => Promise<[boolean, any]>
+	) => Promise<[boolean, unknown]>
 	cancelRunningCommandTool?: () => Promise<boolean>
 
 	doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>
@@ -135,7 +137,7 @@ export interface TaskCallbacks {
 	postStateToWebview: () => Promise<void>
 	reinitExistingTaskFromId: (taskId: string) => Promise<void>
 	cancelTask: () => Promise<void>
-	updateTaskHistory: (update: any) => Promise<any[]>
+	updateTaskHistory: (update: unknown) => Promise<unknown[]>
 
 	applyLatestBrowserSettings: () => Promise<BrowserSession>
 
@@ -157,36 +159,39 @@ export interface TaskCallbacks {
  * Runtime validation function to ensure config has all required properties
  * Automatically derives expected keys from the interface definitions
  */
-export function validateTaskConfig(config: any): asserts config is TaskConfig {
+export function validateTaskConfig(config: unknown): asserts config is TaskConfig {
 	if (!config) {
 		throw new Error("TaskConfig is null or undefined")
 	}
 
 	// Validate all expected keys exist
+	const configObj = config as Record<string, unknown>
 	for (const key of TASK_CONFIG_KEYS) {
-		if (!(key in config)) {
+		if (!(key in configObj)) {
 			throw new Error(`Missing ${key} in TaskConfig`)
 		}
 	}
 
 	// Special validation for boolean type
-	if (typeof config.strictPlanModeEnabled !== "boolean") {
+	if (typeof configObj.strictPlanModeEnabled !== "boolean") {
 		throw new Error("strictPlanModeEnabled must be a boolean in TaskConfig")
 	}
 
 	// Validate services object
-	if (config.services) {
+	if (configObj.services && typeof configObj.services === "object") {
+		const services = configObj.services as Record<string, unknown>
 		for (const key of TASK_SERVICES_KEYS) {
-			if (!(key in config.services)) {
+			if (!(key in services)) {
 				throw new Error(`Missing services.${key} in TaskConfig`)
 			}
 		}
 	}
 
 	// Validate callbacks object
-	if (config.callbacks) {
+	if (configObj.callbacks && typeof configObj.callbacks === "object") {
+		const callbacks = configObj.callbacks as Record<string, unknown>
 		for (const key of TASK_CALLBACKS_KEYS) {
-			if (typeof config.callbacks[key] !== "function") {
+			if (typeof callbacks[key] !== "function") {
 				throw new Error(`Missing or invalid callbacks.${key} in TaskConfig (must be a function)`)
 			}
 		}

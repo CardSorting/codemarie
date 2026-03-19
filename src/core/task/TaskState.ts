@@ -3,6 +3,7 @@ import { AssistantMessageContent } from "@core/assistant-message"
 import { SwarmState } from "@shared/ExtensionMessage"
 import { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { GroundedSpec } from "../grounding/IntentGrounder"
+import { MultiAgentStreamSystem } from "../orchestration/MultiAgentStreamSystem"
 import type { HookExecution } from "./types/HookExecution"
 
 export class TaskState {
@@ -11,6 +12,7 @@ export class TaskState {
 	groundedSpecHistory: GroundedSpec[] = []
 	public didAttemptGrounding = false
 	public didInitiateMasFirstPass = false
+	public multiAgentStreamSystem?: MultiAgentStreamSystem
 	public recursionDepth = 0
 	public maxTokens?: number
 	public maxCost?: number
