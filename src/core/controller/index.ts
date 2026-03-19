@@ -8,7 +8,7 @@ import type { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import { cleanupLegacyCheckpoints } from "@integrations/checkpoints/CheckpointMigration"
 import { CodemarieAccountService } from "@services/account/CodemarieAccountService"
 import { McpHub } from "@services/mcp/McpHub"
-import type { ApiProvider, ModelInfo } from "@shared/api"
+import type { ApiConfiguration, ApiProvider, ModelInfo } from "@shared/api"
 import type { ChatContent } from "@shared/ChatContent"
 import type { ExtensionState, Platform } from "@shared/ExtensionMessage"
 import type { HistoryItem } from "@shared/HistoryItem"
@@ -522,48 +522,69 @@ export class Controller {
 		}
 	}
 
+	private async updateApiConfigurationWithProvider({
+		provider,
+		apiKeyField,
+		apiKeyValue,
+		setWelcomeViewCompleted = false,
+	}: {
+		provider: ApiProvider
+		apiKeyField?: keyof ApiConfiguration
+		apiKeyValue?: string
+		setWelcomeViewCompleted?: boolean
+	}) {
+		const planActSeparateModelsSetting = this.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
+		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
+		const currentApiConfiguration = this.stateManager.getApiConfiguration()
+
+		const updatedConfig = { ...currentApiConfiguration }
+
+		if (planActSeparateModelsSetting) {
+			// Only update the current mode's provider
+			if (currentMode === "plan") {
+				updatedConfig.planModeApiProvider = provider
+			} else {
+				updatedConfig.actModeApiProvider = provider
+			}
+		} else {
+			// Update both modes to keep them in sync
+			updatedConfig.planModeApiProvider = provider
+			updatedConfig.actModeApiProvider = provider
+		}
+
+		if (apiKeyField && apiKeyValue !== undefined) {
+			;(updatedConfig as any)[apiKeyField] = apiKeyValue
+		}
+
+		// Update the API configuration through cache service
+		this.stateManager.setApiConfiguration(updatedConfig)
+
+		if (setWelcomeViewCompleted) {
+			// Mark welcome view as completed
+			this.stateManager.setGlobalState("welcomeViewCompleted", true)
+		}
+
+		// Update the task's API handler if there's an active task
+		if (this.task) {
+			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
+		}
+
+		// Post updated state to webview
+		await this.postStateToWebview()
+
+		return updatedConfig
+	}
+
 	async handleAuthCallback(customToken: string, provider: string | null = null) {
 		try {
 			await this.authService.handleAuthCallback(customToken, provider ? provider : "google")
 
-			const codemarieProvider: ApiProvider = "codemarie"
-
-			// Get current settings to determine how to update providers
-			const planActSeparateModelsSetting = this.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
-
-			const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-
-			// Get current API configuration from cache
-			const currentApiConfiguration = this.stateManager.getApiConfiguration()
-
-			const updatedConfig = { ...currentApiConfiguration }
-
-			if (planActSeparateModelsSetting) {
-				// Only update the current mode's provider
-				if (currentMode === "plan") {
-					updatedConfig.planModeApiProvider = codemarieProvider
-				} else {
-					updatedConfig.actModeApiProvider = codemarieProvider
-				}
-			} else {
-				// Update both modes to keep them in sync
-				updatedConfig.planModeApiProvider = codemarieProvider
-				updatedConfig.actModeApiProvider = codemarieProvider
-			}
-
-			// Update the API configuration through cache service
-			this.stateManager.setApiConfiguration(updatedConfig)
-
-			// Mark welcome view as completed since user has successfully logged in
-			this.stateManager.setGlobalState("welcomeViewCompleted", true)
+			await this.updateApiConfigurationWithProvider({
+				provider: "codemarie",
+				setWelcomeViewCompleted: true,
+			})
 
 			await fetchRemoteConfig(this)
-
-			if (this.task) {
-				this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-			}
-
-			await this.postStateToWebview()
 		} catch (error) {
 			Logger.error("Failed to handle auth callback:", error)
 			HostProvider.window.showMessage({
@@ -579,50 +600,16 @@ export class Controller {
 		try {
 			await this.ocaAuthService.handleAuthCallback(code, state)
 
-			const ocaProvider: ApiProvider = "oca"
-
-			// Get current settings to determine how to update providers
-			const planActSeparateModelsSetting = this.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
-
-			const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-
-			// Get current API configuration from cache
-			const currentApiConfiguration = this.stateManager.getApiConfiguration()
-
-			const updatedConfig = { ...currentApiConfiguration }
-
-			if (planActSeparateModelsSetting) {
-				// Only update the current mode's provider
-				if (currentMode === "plan") {
-					updatedConfig.planModeApiProvider = ocaProvider
-				} else {
-					updatedConfig.actModeApiProvider = ocaProvider
-				}
-			} else {
-				// Update both modes to keep them in sync
-				updatedConfig.planModeApiProvider = ocaProvider
-				updatedConfig.actModeApiProvider = ocaProvider
-			}
-
-			// Update the API configuration through cache service
-			this.stateManager.setApiConfiguration(updatedConfig)
-
-			// Mark welcome view as completed since user has successfully logged in
-			this.stateManager.setGlobalState("welcomeViewCompleted", true)
-
-			if (this.task) {
-				this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-			}
-
-			await this.postStateToWebview()
+			await this.updateApiConfigurationWithProvider({
+				provider: "oca",
+				setWelcomeViewCompleted: true,
+			})
 		} catch (error) {
 			Logger.error("Failed to handle auth callback:", error)
 			HostProvider.window.showMessage({
 				type: ShowMessageType.ERROR,
 				message: "Failed to log in to OCA",
 			})
-			// Even on login failure, we preserve any existing tokens
-			// Only clear tokens on explicit logout
 		}
 	}
 
@@ -714,43 +701,22 @@ export class Controller {
 			throw error
 		}
 
-		const openrouter: ApiProvider = "openrouter"
-		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-
-		// Update API configuration through cache service
-		const currentApiConfiguration = this.stateManager.getApiConfiguration()
-		const updatedConfig = {
-			...currentApiConfiguration,
-			planModeApiProvider: openrouter,
-			actModeApiProvider: openrouter,
-			openRouterApiKey: apiKey,
-		}
-		this.stateManager.setApiConfiguration(updatedConfig)
-
-		await this.postStateToWebview()
-		if (this.task) {
-			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-		}
+		await this.updateApiConfigurationWithProvider({
+			provider: "openrouter",
+			apiKeyField: "openRouterApiKey",
+			apiKeyValue: apiKey,
+		})
 		// Dont send settingsButtonClicked because its bad ux if user is on welcome
 	}
 
 	// Requesty
 
 	async handleRequestyCallback(code: string) {
-		const requesty: ApiProvider = "requesty"
-		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-		const currentApiConfiguration = this.stateManager.getApiConfiguration()
-		const updatedConfig = {
-			...currentApiConfiguration,
-			planModeApiProvider: requesty,
-			actModeApiProvider: requesty,
-			requestyApiKey: code,
-		}
-		this.stateManager.setApiConfiguration(updatedConfig)
-		await this.postStateToWebview()
-		if (this.task) {
-			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-		}
+		await this.updateApiConfigurationWithProvider({
+			provider: "requesty",
+			apiKeyField: "requestyApiKey",
+			apiKeyValue: code,
+		})
 	}
 
 	// Read OpenRouter models from disk cache
@@ -771,26 +737,11 @@ export class Controller {
 
 	// Hicap
 	async handleHicapCallback(code: string) {
-		const apiKey: string = code
-
-		const hicap: ApiProvider = "hicap"
-		const currentMode = this.stateManager.getGlobalSettingsKey("mode")
-
-		// Update API configuration through cache service
-		const currentApiConfiguration = this.stateManager.getApiConfiguration()
-		const updatedConfig = {
-			...currentApiConfiguration,
-			planModeApiProvider: hicap,
-			actModeApiProvider: hicap,
-			hicapApiKey: apiKey,
-		}
-		this.stateManager.setApiConfiguration(updatedConfig)
-
-		await this.postStateToWebview()
-		this.accountService
-		if (this.task) {
-			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
-		}
+		await this.updateApiConfigurationWithProvider({
+			provider: "hicap",
+			apiKeyField: "hicapApiKey",
+			apiKeyValue: code,
+		})
 	}
 
 	// Task history
