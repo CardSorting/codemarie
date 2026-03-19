@@ -110,6 +110,9 @@ export class BufferedDbPool {
 	}
 
 	public async push(op: WriteOp, agentId?: string, affectedFile?: string) {
+		if (agentId && op.table === "files" && op.values) {
+			op.values.streamId = agentId
+		}
 		return this.pushBatch([op], agentId, affectedFile ? [affectedFile] : undefined)
 	}
 

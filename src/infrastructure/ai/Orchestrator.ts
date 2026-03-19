@@ -246,8 +246,8 @@ export class AgentOrchestrator {
 		const shadowOps = dbPool.getShadowOps(streamId)
 		const touchedFiles = new Set<string>()
 		for (const op of shadowOps) {
-			const opPath = (op.values as any)?.path || (op.where as any)?.path
-			if (opPath) touchedFiles.add(opPath)
+			const opPath = (op.values as any)?.path || (op.where as any)?.path?.[0]?.value || (op.where as any)?.path
+			if (opPath && typeof opPath === "string") touchedFiles.add(opPath)
 		}
 
 		const digest = {
@@ -258,7 +258,7 @@ export class AgentOrchestrator {
 			completedTasks,
 			failedTasks,
 			touchedFilesCount: touchedFiles.size,
-			touchedFiles: Array.from(touchedFiles),
+			touchedFiles: this.compressTouchedFiles(touchedFiles),
 			childStreamCount: childStreams.length,
 			activeChildStreams: childStreams.filter((s) => s.status === "active").length,
 			uniqueViolations: [...new Set(violations)],
@@ -267,6 +267,42 @@ export class AgentOrchestrator {
 		}
 
 		return JSON.stringify(digest, null, 2)
+	}
+
+	/**
+	 * Intelligently compress a large list of touched files by grouping them by directory.
+	 */
+	private compressTouchedFiles(touchedFiles: Set<string>): string[] {
+		const MAX_INDIVIDUAL_FILES = 15
+		if (touchedFiles.size <= MAX_INDIVIDUAL_FILES) {
+			return Array.from(touchedFiles)
+		}
+
+		// Group by directory
+		const groups = new Map<string, string[]>()
+		for (const file of touchedFiles) {
+			const dir = path.dirname(file)
+			if (!groups.has(dir)) groups.set(dir, [])
+			groups.get(dir)!.push(path.basename(file))
+		}
+
+		const compressed: string[] = []
+		for (const [dir, files] of groups.entries()) {
+			if (files.length > 3) {
+				compressed.push(`${dir}/* (${files.length} files)`)
+			} else {
+				files.forEach((f) => compressed.push(path.join(dir, f)))
+			}
+		}
+
+		// Final safeguard against massive number of directories
+		if (compressed.length > MAX_INDIVIDUAL_FILES) {
+			return compressed
+				.slice(0, MAX_INDIVIDUAL_FILES)
+				.concat([`... and ${compressed.length - MAX_INDIVIDUAL_FILES} more groups`])
+		}
+
+		return compressed
 	}
 
 	// ── Fluid Coordination Hooks ─────────────────────────────────────

@@ -85,19 +85,25 @@ export class FileTree {
 
 		return TaskMutex.runExclusive(`repo:${this.repo.getBasePath()}:branch:${branch}`, async () => {
 			await this.db.runTransaction(async () => {
-				// 1. Check if blob exists in Global CAS
-				const blob = await this.db.selectOne("files", [{ column: "id", value: fileDocId }])
-				if (!blob) {
-					await this.db.push({
-						type: "insert",
+				// Tier 7: MAS Virtual FS Write (with Path/Stream Isolation)
+				// Use upsert on (path, streamId) to ensure high-fidelity virtualization
+				await this.db.push(
+					{
+						type: "upsert",
 						table: "files",
+						where: [
+							{ column: "path", value: normalizedPath },
+							{ column: "streamId", value: author },
+						],
 						values: {
 							id: fileDocId,
 							...fileEntry,
 						},
 						layer: "domain",
-					})
-				}
+					},
+					author,
+					normalizedPath,
+				)
 
 				// 2. Resolve current head
 				const currentNode = await this.repo.checkout(branch, { resolveTree: false })
@@ -281,6 +287,22 @@ export class FileTree {
 				}
 
 				const newRootHash = await this.writeHierarchy(rootHash, normalizedPath, null)
+
+				// Tier 7: MAS Virtual Deletion
+				// Explicitly push a delete op to 'files' for virtual-to-physical materialization
+				await this.db.push(
+					{
+						type: "delete",
+						table: "files",
+						where: [
+							{ column: "path", value: normalizedPath },
+							{ column: "streamId", value: author }, // author here is the agentId/streamId in MAS context
+						],
+						layer: "infrastructure",
+					},
+					author,
+					normalizedPath,
+				)
 
 				await this.repo.commitInTransaction(this.db, branch, nodeId, {}, author, message, {
 					metadata: {

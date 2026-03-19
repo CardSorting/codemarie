@@ -65,6 +65,7 @@ export interface Schema {
 		size: number
 		updatedAt: number
 		author: string
+		streamId: string | null
 	}
 	reflog: {
 		id: string
@@ -349,13 +350,15 @@ export async function getDb(): Promise<Kysely<Schema>> {
   )`)
 
 	await execute(`CREATE TABLE IF NOT EXISTS files (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     path TEXT NOT NULL,
     content TEXT NOT NULL,
     encoding TEXT NOT NULL,
     size INTEGER NOT NULL,
     updatedAt BIGINT NOT NULL,
-    author TEXT NOT NULL
+    author TEXT NOT NULL,
+    streamId TEXT NOT NULL,
+    PRIMARY KEY(path, streamId)
   )`)
 
 	await execute(`CREATE TABLE IF NOT EXISTS reflog (

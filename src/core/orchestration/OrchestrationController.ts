@@ -162,6 +162,20 @@ export class OrchestrationController {
 	 */
 	public async pushDbOp(op: WriteOp, affectedFile?: string): Promise<void> {
 		try {
+			// Auto-inject streamId for files table ops to ensure precise materialization
+			if (op.table === "files") {
+				if (op.values) op.values.streamId = this.streamId
+				if (Array.isArray(op.where)) {
+					const hasStreamId = op.where.some((w) => w.column === "streamId")
+					if (!hasStreamId) op.where.push({ column: "streamId", value: this.streamId })
+				} else if (op.where) {
+					// Convert single where to array if needed or handle object
+					const where = op.where as any
+					if (where.column !== "streamId") {
+						op.where = [{ column: "streamId", value: this.streamId }, where]
+					}
+				}
+			}
 			await dbPool.push(op, this.streamId, affectedFile)
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to push DB op:`, error)
@@ -354,14 +368,37 @@ export class OrchestrationController {
 			{
 				type: "upsert",
 				table: "files",
-				where: [{ column: "path", value: relPath }],
+				where: [
+					{ column: "path", value: relPath },
+					{ column: "streamId", value: this.streamId },
+				],
 				values: {
 					path: relPath,
 					content: content,
 					author: `MainAgent-${this.streamId.slice(0, 8)}`,
+					streamId: this.streamId,
 					repoPath: `workspaces/${this.workspaceId}`,
-					id: `main-${Buffer.from(relPath).toString("hex")}`,
+					id: `main-${Buffer.from(relPath).toString("hex")}-${this.streamId.slice(0, 8)}`,
 				},
+				layer: "infrastructure",
+			},
+			filePath,
+		)
+	}
+
+	/**
+	 * Deletes a file from the virtual filesystem.
+	 */
+	public async deleteVirtualFile(filePath: string): Promise<void> {
+		const relPath = path.relative(process.cwd(), filePath)
+		await this.pushDbOp(
+			{
+				type: "delete",
+				table: "files",
+				where: [
+					{ column: "path", value: relPath },
+					{ column: "streamId", value: this.streamId },
+				],
 				layer: "infrastructure",
 			},
 			filePath,
@@ -665,21 +702,41 @@ export class OrchestrationController {
 	 */
 	public async materialize(): Promise<void> {
 		try {
-			const files = await dbPool.selectWhere("files", [
-				{ column: "author", value: `%Worker-${this.streamId.slice(0, 8)}%`, operator: "like" } as any,
-			])
+			// 1. Query files belonging to this stream
+			const files = await dbPool.selectWhere("files", [{ column: "streamId", value: this.streamId }])
 
-			// If no files found by author, try fetching ALL if this is a parent stream
-			let targetFiles = files
-			if (targetFiles.length === 0) {
-				const allFiles = await dbPool.selectAllFrom("files")
-				// Filter by paths touched in this stream context if possible
-				targetFiles = allFiles
+			// 2. Identify deletions (files modified in shadow and no longer in DB)
+			const shadow = dbPool.getShadowOps(this.streamId)
+			const deletedPaths = new Set<string>()
+			for (const op of shadow) {
+				if (op.table === "files" && op.type === "delete") {
+					const where = op.where as any
+					const opPath = Array.isArray(where) ? where.find((w) => w.column === "path")?.value : where?.path
+					if (opPath) {
+						deletedPaths.add(path.isAbsolute(opPath) ? opPath : path.resolve(process.cwd(), opPath))
+					}
+				}
 			}
 
-			Logger.info(`[Orchestration] Materializing ${targetFiles.length} files to disk...`)
+			Logger.info(
+				`[Orchestration] Materializing ${files.length} files to disk (and handling ${deletedPaths.size} deletions)...`,
+			)
 
-			for (const file of targetFiles) {
+			// 3. Perform deletions
+			for (const delPath of deletedPaths) {
+				try {
+					const stats = await fs.stat(delPath).catch(() => null)
+					if (stats) {
+						await fs.unlink(delPath)
+						Logger.info(`[Orchestration] Materialized Deletion: ${delPath}`)
+					}
+				} catch (err) {
+					Logger.warn(`[Orchestration] Failed to delete file during materialization: ${delPath}`, err)
+				}
+			}
+
+			// 4. Perform writes/updates
+			for (const file of files) {
 				const absolutePath = path.isAbsolute(file.path) ? file.path : path.resolve(process.cwd(), file.path)
 				const dir = path.dirname(absolutePath)
 
