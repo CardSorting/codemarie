@@ -4,6 +4,7 @@ import { Logger } from "@/shared/services/Logger"
 import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
 import { StreamCoordinator } from "./StreamCoordinator"
+import { JoyZoningSystem } from "./systems/JoyZoningSystem"
 import type { KanbanTask } from "./systems/KanbanSystem"
 import { executeMASRequest, WORKER_ACT_SYSTEM_PROMPT, WORKER_PLAN_SYSTEM_PROMPT } from "./utils"
 export interface WorkerResult {
@@ -115,6 +116,33 @@ export class WorkerStream {
 			milliseconds: 3 * 60 * 1000,
 			message: `Planning phase timed out after 3 minutes`,
 		})
+
+		// --- Tier 5: Real-time Architectural Audit (Double Down) ---
+		const joyZoning = new JoyZoningSystem()
+		const auditResult = await joyZoning.auditPlan(this.childController!, this.apiHandler, this.taskDescription, plan)
+
+		if (!auditResult.approved) {
+			Logger.warn(
+				`[${this.name}] ⚠️ Architectural Audit Failed: ${auditResult.violations.join("; ")}. Attempting self-correction...`,
+			)
+
+			// Nudge the architect with the auditor's feedback for a one-time self-correction
+			const correctionPrompt =
+				enrichedPrompt +
+				`\n\n[Architectural Audit Violation!]\nYour previous plan was REJECTED by JoyZoning for the following reasons:\n- ${auditResult.violations.join("\n- ")}\n\nAuditor's Suggestion: ${auditResult.suggestion}\n\nPlease RE-PLAN this task to strictly adhere to the architectural constraints.`
+
+			const correctedPlan = await pTimeout(
+				executeMASRequest(this.apiHandler, WORKER_PLAN_SYSTEM_PROMPT, correctionPrompt),
+				{
+					milliseconds: 3 * 60 * 1000,
+					message: `Self-correction planning phase timed out`,
+				},
+			)
+
+			await this.childController?.commitPlan(this.task.id, correctedPlan)
+			return correctedPlan
+		}
+		// ----------------------------------------------------------
 
 		await this.childController?.commitPlan(this.task.id, plan)
 		return plan

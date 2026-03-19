@@ -53,7 +53,8 @@ export class MultiAgentStreamSystem {
 		const digest = await this.controller.getStreamDigest()
 		const enrichedRequest = `Collective System Context:\n${digest}\n\nUser Request: ${userRequest}`
 
-		Logger.info(`[${this.name}] Starting first pass with unified cognitive digest...`)
+		Logger.info(`[${this.name}] Starting first pass (PLANNING phase)...`)
+		await this.controller.updateTaskProgress("planning")
 
 		// Tier 2: Speculative Cog-Parallelism (Heal while reasoning)
 		const healPromise = ctx.selfHealGraph().catch((e: any) => {
@@ -87,6 +88,9 @@ export class MultiAgentStreamSystem {
 		// 3. Kanban Pass — Break down into tasks
 		const tasks = await this.kanban.planFlow(this.controller, this.apiHandler, purpose, scope, archPlan, groundedSpec)
 		await ctx.flush() // 🚀 Proactive flush for high throughput
+
+		Logger.info(`[${this.name}] Planning phase complete. ${tasks.length} tasks ready.`)
+		await this.controller.updateTaskProgress("planned")
 
 		// 4. Concurrent Build Dispatch (Tier 5: Swarm-Parallel Execution)
 		if (tasks.length > 1) {
@@ -126,6 +130,7 @@ export class MultiAgentStreamSystem {
 	 */
 	public async executeConcurrentBuild(tasks: KanbanTask[]): Promise<StreamPoolResult> {
 		Logger.info(`[${this.name}] Dispatching ${tasks.length} tasks to StreamPool (concurrency: ${this.concurrency})...`)
+		await this.controller.updateTaskProgress("acting")
 
 		const pool = new StreamPool(this.controller, this.apiHandler, {
 			maxConcurrency: this.concurrency,

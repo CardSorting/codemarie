@@ -91,4 +91,45 @@ export class JoyZoningSystem {
 			return "Standard layered architecture (Fallback)"
 		}
 	}
+
+	/**
+	 * Performs a real-time architectural audit on a proposed plan.
+	 * Used by workers to validate their intent before committing to Implementation.
+	 */
+	public async auditPlan(
+		controller: OrchestrationController,
+		apiHandler: ApiHandler,
+		taskDescription: string,
+		plan: any,
+	): Promise<{ approved: boolean; violations: string[]; suggestion?: string }> {
+		Logger.info(`[MAS][${this.name}] Auditing worker plan for task: ${taskDescription.slice(0, 50)}...`)
+
+		const auditPrompt = `You are an Architectural Auditor. Review the proposed plan against the project's layered architecture.
+Task Description: ${taskDescription}
+Proposed Plan: ${JSON.stringify(plan, null, 2)}
+
+Identify if the plan:
+1. Violates layer boundaries (e.g., UI touching Infrastructure directly).
+2. Misses critical dependencies.
+3. Proposes structural changes that are too risky for a single worker.
+
+Response Format (JSON ONLY):
+{
+  "approved": true|false,
+  "violations": ["Violation 1", ...],
+  "suggestion": "How to fix the plan"
+}`
+
+		try {
+			const res = await executeMASRequest(apiHandler, JOYZONING_ADVERSARY_PROMPT, auditPrompt)
+			return {
+				approved: res.approved ?? true,
+				violations: res.violations || [],
+				suggestion: res.suggestion,
+			}
+		} catch (err) {
+			Logger.warn(`[MAS][${this.name}] Audit failed, defaulting to approval:`, err)
+			return { approved: true, violations: [] }
+		}
+	}
 }

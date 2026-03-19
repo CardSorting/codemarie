@@ -2,6 +2,7 @@ import { Logger } from "@/shared/services/Logger"
 import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
 import { StreamCoordinator } from "./StreamCoordinator"
+import { KaizenSystem } from "./systems/KaizenSystem"
 import type { KanbanTask } from "./systems/KanbanSystem"
 import { type WorkerResult, WorkerStream } from "./WorkerStream"
 
@@ -155,6 +156,24 @@ export class StreamPool {
 					)
 					wavePlans.push(...batchPlans)
 				}
+
+				// --- Tier 5: Wave-Wide Soundness Check (Double Down) ---
+				const successPlans = wavePlans.filter((p) => !p.error)
+				if (successPlans.length > 0) {
+					const kaizen = new KaizenSystem()
+					const ctx = await this.controller.getAgentContext()
+					const soundness = await ctx.getLogicalSoundness(successPlans.map((_, i) => `plan-${i}`))
+
+					if (soundness < 0.7) {
+						Logger.warn(
+							`[${this.name}] ⚠️ Wave Architectural Soundness is LOW (${soundness.toFixed(2)}). Collective plans may be inconsistent!`,
+						)
+						// We could trigger a Kaizen reflection pass here in a future update
+					} else {
+						Logger.info(`[${this.name}] ✅ Wave Architectural Soundness: ${soundness.toFixed(2)}`)
+					}
+				}
+				// ------------------------------------------------------
 
 				// Sub-Stage A.1: Wave-Wide Collision Pre-Scan
 				// Check if any two successfully planned tasks in this wave target the same file.
