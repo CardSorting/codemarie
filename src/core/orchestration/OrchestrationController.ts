@@ -115,12 +115,35 @@ export class OrchestrationController {
 	 */
 	public async updateTaskProgress(
 		status: AgentTask["status"],
-		result: string | null = null,
-		metadata?: TaskAuditMetadata,
+		result?: string,
+		metadata?: Partial<TaskAuditMetadata>,
 	): Promise<void> {
-		if (!this.currentTaskId) return
-		await this.updateTaskStatus(this.currentTaskId, status, result, metadata)
+		await this.updateTaskStatus(this.currentTaskId || "", status, result, metadata)
 	}
+
+	// --- Tier 6: Wave Approval Registry (Double Down) ---
+	private static pendingWaves = new Map<string, (approved: boolean) => void>()
+
+	/**
+	 * Registers a wave as needing human approval.
+	 */
+	public static requestWaveApproval(waveId: string): Promise<boolean> {
+		return new Promise((resolve) => {
+			OrchestrationController.pendingWaves.set(waveId, resolve)
+		})
+	}
+
+	/**
+	 * Grants or denies approval for a pending wave.
+	 */
+	public static approveWave(waveId: string, approved: boolean): void {
+		const resolve = OrchestrationController.pendingWaves.get(waveId)
+		if (resolve) {
+			resolve(approved)
+			OrchestrationController.pendingWaves.delete(waveId)
+		}
+	}
+	// ----------------------------------------------------
 
 	/**
 	 * Low-level task status update.

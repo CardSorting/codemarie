@@ -138,6 +138,23 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand(commands.AccountButton, () => sendAccountButtonClickedEvent()))
 	context.subscriptions.push(vscode.commands.registerCommand(commands.WorktreesButton, () => sendWorktreesButtonClickedEvent()))
 
+	// --- Tier 6: Swarm Governance Commands ---
+	context.subscriptions.push(
+		vscode.commands.registerCommand("codemarie.approveWave", async (waveId: string) => {
+			const OrchestrationController = (await import("./core/orchestration/OrchestrationController")).OrchestrationController
+			OrchestrationController.approveWave(waveId, true)
+			vscode.window.showInformationMessage(`Swarm Wave Approved.`)
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand("codemarie.rejectWave", async (waveId: string) => {
+			const OrchestrationController = (await import("./core/orchestration/OrchestrationController")).OrchestrationController
+			OrchestrationController.approveWave(waveId, false)
+			vscode.window.showErrorMessage(`Swarm Wave Rejected.`)
+		}),
+	)
+	// -----------------------------------------
+
 	/*
 	We use the text document content provider API to show the left side for diff view by creating a
 	virtual document for the original content. This makes it readonly so users know to edit the right

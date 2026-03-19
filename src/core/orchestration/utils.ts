@@ -67,9 +67,10 @@ Your goal is to produce a structured JSON object with:
 3. "verification": How to verify this task was completed correctly.
 
 Rules:
-- Focus ONLY on your assigned task. Do not attempt to complete other tasks.
-- Be specific about file paths and code changes.
-- Respect architectural layer boundaries.
+- FOCUS: Focus ONLY on your assigned task. Do not attempt to complete other tasks.
+- SPECIFICITY: Be specific about file paths and code changes.
+- ARCHITECTURE: Respect architectural layer boundaries.
+- RECURSIVE POTENTIAL: If the task is too large or complex for a single pass (> 5 distinct file changes), explicitly state in the description that it should be "decomposed into sub-tasks".
 
 Response Format (JSON ONLY):
 {

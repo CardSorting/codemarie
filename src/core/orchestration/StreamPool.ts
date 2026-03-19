@@ -197,6 +197,34 @@ export class StreamPool {
 					}
 				}
 
+				// --- Tier 6: Human-in-the-Loop Governance (Double Down) ---
+				if (this.controller.getStreamId() === this.parentStreamId) {
+					// Only for top-level waves for now to prevent spam
+					const waveId = `wave-${this.parentStreamId.slice(0, 8)}-${Date.now()}`
+					Logger.info(`[${this.name}] 🚦 Requesting Human Approval for wave ${waveId}...`)
+
+					// Register with the registry and notify the UI
+					const approvalPromise = OrchestrationController.requestWaveApproval(waveId)
+
+					// Simple VS Code notification as a trigger
+					const HostProvider = require("@/hosts/host-provider").HostProvider
+					const { ShowMessageType } = require("@/shared/proto/host/window")
+
+					HostProvider.get().window.showMessage({
+						type: ShowMessageType.INFO,
+						message: `[MAS] Swarm Wave Ready: ${waveWorkers.length} tasks planned. Review and Approve to proceed.`,
+						// We can't easily add buttons to this specific showMessage via protobuf here without more work,
+						// so we'll rely on our new VS Code command for now.
+					})
+
+					const approved = await approvalPromise
+					if (!approved) {
+						throw new Error(`Wave ${waveId} was REJECTED by the user. Aborting swarm execution.`)
+					}
+					Logger.info(`[${this.name}] ✅ Wave ${waveId} APPROVED. Proceeding to Act phase.`)
+				}
+				// ----------------------------------------------------------
+
 				// Sub-Stage B: Parallel Act & Finalize
 				// Only proceed with Acting if planning was successful
 				Logger.info(`[${this.name}] 🛠️ Wave Acting Phase (${waveWorkers.length} tasks)...`)

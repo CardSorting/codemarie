@@ -4,6 +4,7 @@ import { Logger } from "@/shared/services/Logger"
 import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
 import { StreamCoordinator } from "./StreamCoordinator"
+import { StreamPool } from "./StreamPool"
 import { JoyZoningSystem } from "./systems/JoyZoningSystem"
 import type { KanbanTask } from "./systems/KanbanSystem"
 import { executeMASRequest, WORKER_ACT_SYSTEM_PROMPT, WORKER_PLAN_SYSTEM_PROMPT } from "./utils"
@@ -49,6 +50,44 @@ export class WorkerStream {
 			const plan = await this.executePlan()
 
 			const affectedFiles = (plan.actions || []).map((a: any) => a.file).filter(Boolean)
+
+			// --- Tier 6: Hierarchical Swarm Decomposition (Double Down) ---
+			// If the plan is complex (e.g. > 5 actions), we promote this worker
+			// to an Orchestrator and spawn a sub-pool.
+			const DECOMPOSITION_THRESHOLD = 5
+			if (plan.actions && plan.actions.length > DECOMPOSITION_THRESHOLD) {
+				Logger.info(
+					`[${this.name}] 🚀 Complex plan detected (${plan.actions.length} actions). Decomposing into sub-pool...`,
+				)
+
+				const subPool = new StreamPool(this.childController!, this.apiHandler, {
+					maxConcurrency: 2, // Sub-pools are more conservative
+					parentStreamId: childStreamId,
+					userId: this.userId,
+					workspaceId: this.workspaceId,
+				})
+
+				// Transform plan actions into KanbanTasks
+				const subTasks: KanbanTask[] = plan.actions.map((action: any, i: number) => ({
+					id: `sub-${i}`,
+					description: `Action: ${action.type} on ${action.file} - ${action.description}`,
+					depends_on: i > 0 ? [`sub-${i - 1}`] : [], // Sequential by default for sub-tasks
+				}))
+
+				const subResult = await subPool.dispatch(subTasks)
+				const aggregatedDigest = await subPool.getAggregatedDigest()
+
+				// Finalize as a composite result
+				return await this.finalize(
+					startTime,
+					childStreamId,
+					plan,
+					[],
+					`Decomposed into ${subResult.completed} sub-tasks. Context: ${aggregatedDigest.slice(0, 100)}...`,
+				)
+			}
+			// ---------------------------------------------------------------
+
 			if (affectedFiles.length > 0) {
 				await this.acquireLocksWithRetry(childStreamId, affectedFiles)
 			}
@@ -223,12 +262,18 @@ ${currentContent || "(New File)"}`
 	/**
 	 * Finalize: Commit and return results.
 	 */
-	public async finalize(startTime: number, childStreamId: string, plan: any, reports: any[]): Promise<WorkerResult> {
-		const finalResult = { ...plan, executionReports: reports }
+	public async finalize(
+		startTime: number,
+		childStreamId: string,
+		plan: any,
+		reports: any[],
+		compositeSummary?: string,
+	): Promise<WorkerResult> {
+		const finalResult = { ...plan, executionReports: reports, compositeSummary }
 		await this.childController!.storeMemory("worker_result", JSON.stringify(finalResult))
-		await this.childController!.updateTaskProgress("completed", JSON.stringify(finalResult))
+		await this.childController!.updateTaskProgress("completed", compositeSummary || JSON.stringify(finalResult))
 
-		const resultSummary = `Completed: ${this.taskDescription.slice(0, 80)}`
+		const resultSummary = compositeSummary || `Completed: ${this.taskDescription.slice(0, 80)}`
 		await this.childController!.completeStream(resultSummary)
 
 		this.coordinator.deregisterWorker(childStreamId)
