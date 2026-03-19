@@ -78,7 +78,43 @@ export async function activate(context: vscode.ExtensionContext) {
 	const storageContext = createStorageContext({ workspacePath })
 	await exportVSCodeStorageToSharedFiles(context, storageContext)
 
-	// 4. Register services and perform common initialization
+	// 4. Register core command handlers early so they are available immediately
+	const { commands } = ExtensionRegistryInfo
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.PlusButton, async () => {
+			const sidebarInstance = WebviewProvider.getInstance()
+			await sidebarInstance.controller.clearTask()
+			await sidebarInstance.controller.postStateToWebview()
+			await sendChatButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.SettingsButton, async () => {
+			await sendSettingsButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.HistoryButton, async () => {
+			await sendHistoryButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.McpButton, async () => {
+			await sendMcpButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.AccountButton, async () => {
+			await sendAccountButtonClickedEvent()
+		}),
+	)
+	context.subscriptions.push(
+		vscode.commands.registerCommand(commands.WorktreesButton, async () => {
+			await sendWorktreesButtonClickedEvent()
+		}),
+	)
+
+	// 5. Register services and perform common initialization
 	// IMPORTANT: Must be done after host provider is setup and migrations are complete
 	const webview = (await initialize(storageContext)) as VscodeWebviewProvider
 
@@ -122,21 +158,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	)
 
 	// NOTE: Commands must be added to the internal registry before registering them with VSCode
-	const { commands } = ExtensionRegistryInfo
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.PlusButton, async () => {
-			const sidebarInstance = WebviewProvider.getInstance()
-			await sidebarInstance.controller.clearTask()
-			await sidebarInstance.controller.postStateToWebview()
-			await sendChatButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(vscode.commands.registerCommand(commands.McpButton, () => sendMcpButtonClickedEvent()))
-	context.subscriptions.push(vscode.commands.registerCommand(commands.SettingsButton, () => sendSettingsButtonClickedEvent()))
-	context.subscriptions.push(vscode.commands.registerCommand(commands.HistoryButton, () => sendHistoryButtonClickedEvent()))
-	context.subscriptions.push(vscode.commands.registerCommand(commands.AccountButton, () => sendAccountButtonClickedEvent()))
-	context.subscriptions.push(vscode.commands.registerCommand(commands.WorktreesButton, () => sendWorktreesButtonClickedEvent()))
+	// Registrations moved to start of activate for better responsiveness
 
 	// --- Tier 6: Swarm Governance Commands ---
 	context.subscriptions.push(

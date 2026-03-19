@@ -883,7 +883,7 @@ export class Controller {
 		// Check OpenAI Codex authentication status
 		let openAiCodexIsAuthenticated = false
 		try {
-			openAiCodexIsAuthenticated = await openAiCodexOAuthManager.isAuthenticated()
+			openAiCodexIsAuthenticated = openAiCodexOAuthManager.isAuthenticated()
 		} catch (error) {
 			Logger.error("[Controller] Failed to check OpenAI Codex auth status:", error)
 		}

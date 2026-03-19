@@ -349,7 +349,7 @@ export class OpenAiCodexOAuthManager {
 	 */
 	async forceRefreshAccessToken(): Promise<string | null> {
 		if (!this.credentials) {
-			await this.loadCredentials()
+			this.loadCredentials()
 		}
 
 		if (!this.credentials) {
@@ -380,7 +380,7 @@ export class OpenAiCodexOAuthManager {
 	/**
 	 * Load credentials from storage via StateManager.
 	 */
-	async loadCredentials(): Promise<OpenAiCodexCredentials | null> {
+	loadCredentials(): OpenAiCodexCredentials | null {
 		try {
 			const stateManager = StateManager.get()
 			const credentialsJson = stateManager.getSecretKey("openai-codex-oauth-credentials")
@@ -424,7 +424,7 @@ export class OpenAiCodexOAuthManager {
 	async getAccessToken(): Promise<string | null> {
 		// Try to load credentials if not already loaded
 		if (!this.credentials) {
-			await this.loadCredentials()
+			this.loadCredentials()
 		}
 
 		if (!this.credentials) {
@@ -463,7 +463,7 @@ export class OpenAiCodexOAuthManager {
 	 */
 	async getEmail(): Promise<string | null> {
 		if (!this.credentials) {
-			await this.loadCredentials()
+			this.loadCredentials()
 		}
 		return this.credentials?.email || null
 	}
@@ -474,7 +474,7 @@ export class OpenAiCodexOAuthManager {
 	 */
 	async getAccountId(): Promise<string | null> {
 		if (!this.credentials) {
-			await this.loadCredentials()
+			this.loadCredentials()
 		}
 		return this.credentials?.accountId || null
 	}
@@ -485,9 +485,9 @@ export class OpenAiCodexOAuthManager {
 	 * network failures or expired-but-refreshable tokens don't cause the
 	 * CLI to bounce the user back to the onboarding flow.
 	 */
-	async isAuthenticated(): Promise<boolean> {
+	isAuthenticated(): boolean {
 		if (!this.credentials) {
-			await this.loadCredentials()
+			this.loadCredentials()
 		}
 		return this.credentials !== null
 	}
