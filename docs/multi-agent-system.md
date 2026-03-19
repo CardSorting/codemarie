@@ -1,7 +1,7 @@
 # Multi-Agent System (MAS) Documentation
 
 ## Overview
-The Multi-Agent System (MAS) is a high-level cognitive orchestration layer designed to handle complex, multi-turn tasks that exceed the capacity of a single agent context. It follows a multi-tiered architecture that balances performance, focus, and deep reasoning.
+The Multi-Agent System (MAS) is the **Authoritative Orchestration Layer** of CodeMarie. It moves beyond simple task execution to serve as a high-fidelity cognitive guardian, ensuring that every multi-turn mission maintains uncompromising architectural integrity and logical soundness. 
 
 > [!NOTE]
 > This document is part of the [Cognitive Architecture](KNOWLEDGE_BASE_GUIDE) domain. For a deep technical dive, see the [MAS Technical Architecture](hyper-cognition/MAS_ARCHITECTURE).
@@ -45,17 +45,18 @@ MAS is implemented using a progressive optimization strategy:
 - **Recursive Swarm Architecture**: For massive features, `WorkerStream` can automatically **Self-Decompose**. If a task's plan is too complex (5+ actions), the worker spawns a child `StreamPool` to execute its tasks in parallel, creating a hierarchical swarm tree. 
 - **StreamCoordinator**: Inter-stream signaling layer managing file-level locks, collision resolution, progress aggregation, and swarm-wide concurrency.
 
-### Tier 6: Autonomous Authoritativeness & Swarm Persistence
-- **Reflection Adherence Tracking**: MAS monitors if agents ignore "Sticky Insights." Repeated neglect increases `adherenceFailures`, escalating mission risk levels.
-- **Predictive Mission Termination**: If architectural `soundnessTrend` shows unrecoverable logic drift (below 0.6), the MAS autonomously aborts the mission to prevent cascading errors.
-- **Cross-Stream Knowledge Grafting**: Active streams receive real-time "Global Swarm Updates" when sibling missions complete tasks and store "handoff" nodes in BroccoliDB.
-- **Deep Semantic Auditing**: Transitioned `auditFile` to MAS-driven deep semantic validation using the `KaizenSystem` for all tool writes.
-- **Risk-Based Safeguards**: Proactive system-led suggestions for `@checkpoint` and specialist **Tool-Doctor** advice for repeated execution mistakes.
+### Tier 6: The Authoritative Swarm (Autonomous Hardening)
+Tier 6 elevates the MAS from a collaborator to a guardian. It introduces:
+- **Autonomous Course Correction**: Real-time tracking of **Reflection Adherence**. If an agent ignores "Sticky Insights" from the swarm, the system penalizes the session with `adherenceFailures`, escalating risk and eventually triggering protective measures.
+- **Predictive Mission Termination**: A breakthrough safeguard against **Logic Drift**. The MAS monitors the `soundnessTrend` over multiple turns; if soundness consistently declines below unrecoverable thresholds (0.6), the mission is autonomously aborted to prevent workspace corruption.
+- **Live Swarm Grafting**: Parallel streams are no longer isolated. Through global BroccoliDB notifications, active missions receive real-time "Global Swarm Updates" when sibling streams reach critical handoff milestones.
+- **Deep Semantic Auditing**: The `auditFile` hook is now powered by the **Kaizen System**, providing full semantic validation against project-specific architectural rules for every write.
+- **Diagnostic Tool-Doctor**: When tools fail repeatedly, the MAS injects specialized **Tool-Doctor** guidance into the prompt to break failure loops and harden implementation strategies.
 
 ## Integration & Defaults
-- **Default Operation**: MAS is enabled by default (`masEnabled: true`).
-- **User Control**: Users can disable MAS in the global settings if single-agent execution is preferred.
-- **Sequence**: `User Intent` -> `Grounding` -> `MAS Orchestration` -> `Concurrent Build (StreamPool)` -> `Task Execution`.
+- **Default Operation**: MAS is the default, authoritative path (`masEnabled: true`).
+- **Control Interface**: Users maintain governance through the **Wave-Level Approval** system and the glassmorphism **Swarm Dashboard**.
+- **Sequence**: `User Intent` -> `Grounding` -> `Authoritative Swarm Orchestration` -> `Concurrent Build (StreamPool)` -> `Deep Semantic Audit` -> `Task Finalization`.
 
 ## Webview UI Integration
 

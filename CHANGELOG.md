@@ -1,6 +1,6 @@
 # Changelog
  
-## [3.79.0] - 2026-03-19
+## [3.80.0] - 2026-03-19 - *The Autonomous Hardening Milestone*
 
 ### Added
 - **Deep MAS Infrastructure Hardening (Phase 3 - 6):**
