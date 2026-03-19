@@ -52,7 +52,7 @@ export class WorkerStream {
 				await this.acquireLocksWithRetry(childStreamId, affectedFiles)
 			}
 
-			const reports = await this.executeAct(plan.actions || [])
+			const reports = await this.executeAct(plan)
 			return await this.finalize(startTime, childStreamId, plan, reports)
 		} catch (error: any) {
 			return await this.handleFailure(startTime, childStreamId, error)
@@ -123,20 +123,40 @@ export class WorkerStream {
 	/**
 	 * Stage 2: Acting (Public for Pool Coordination)
 	 */
-	public async executeAct(actions: any[]): Promise<any[]> {
-		if (!actions || actions.length === 0) return []
+	public async executeAct(fullPlan: any): Promise<any[]> {
+		const actions = fullPlan?.actions || []
+		if (actions.length === 0) return []
 
 		await this.childController?.beginAct(this.task.id)
-		Logger.info(`[${this.name}] Acting phase (implementing ${actions.length} actions)...`)
+
+		// Resilience: Resume from specific action if partially completed
+		const tasks = await orchestrator.getStreamTasks(this.parentController.getStreamId())
+		const currentTask = tasks.find((t) => t.id === this.task.id)
+		const completedCount = (currentTask?.metadata as any)?.completed_actions_count || 0
+
+		if (completedCount > 0) {
+			Logger.info(`[${this.name}] RESUMING Act phase from action index ${completedCount}.`)
+		}
+
+		Logger.info(`[${this.name}] Acting phase (implementing ${actions.length - completedCount}/${actions.length} actions)...`)
 
 		const reports: any[] = []
-		for (const action of actions) {
-			Logger.info(`[${this.name}] Implementing action: ${action.type} ${action.file}`)
+		// Initialize reports from existing metadata if resuming?
+		// For now, we'll just implement the remaining ones.
+
+		for (let i = 0; i < actions.length; i++) {
+			if (i < completedCount) continue // Skip already done
+
+			const action = actions[i]
+			Logger.info(`[${this.name}] [Action ${i + 1}/${actions.length}] Implementing: ${action.type} ${action.file}`)
 			const currentContent = action.file ? this.childController?.resolveVirtualContent(action.file) : ""
 
 			const actPrompt = `Task Objectives: ${this.taskDescription}
-Requested Action: ${action.type} on ${action.file}
-Instruction: ${action.description}
+[Full Execution Plan for Architectural Context]
+${JSON.stringify(fullPlan, null, 2)}
+
+Target Action (${i + 1}/${actions.length}): ${action.type} on ${action.file}
+Action Description: ${action.description}
 
 Current File Content (if any):
 ${currentContent || "(New File)"}`
@@ -164,6 +184,9 @@ ${currentContent || "(New File)"}`
 			}
 
 			reports.push({ file: result.file, explanation: result.explanation, status: "applied" })
+
+			// Commit progress after each successful action
+			await this.childController?.updateActionProgress(this.task.id, i + 1)
 		}
 
 		return reports

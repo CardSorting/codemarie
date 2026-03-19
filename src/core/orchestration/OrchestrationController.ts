@@ -99,6 +99,18 @@ export class OrchestrationController {
 	}
 
 	/**
+	 * Records the completion of a specific action within a task's plan.
+	 */
+	public async updateActionProgress(taskId: string, completedCount: number): Promise<void> {
+		const metadata: TaskAuditMetadata = {
+			...(await this.getTaskMetadata(taskId)),
+			// @ts-expect-error - dynamic extension for tracking
+			completed_actions_count: completedCount,
+		}
+		await this.updateTaskStatus(taskId, "acting", null, metadata)
+	}
+
+	/**
 	 * Updates the status and metadata of the current task.
 	 */
 	public async updateTaskProgress(

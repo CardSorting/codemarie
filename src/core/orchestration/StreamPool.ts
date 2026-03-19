@@ -206,7 +206,7 @@ export class StreamPool {
 									await worker.acquireLocksWithRetry(childStreamId, affectedFiles)
 								}
 
-								const reports = await worker.executeAct(plan.actions || [])
+								const reports = await worker.executeAct(plan)
 								return await worker.finalize(startTime, childStreamId, plan, reports)
 							} catch (e) {
 								return await worker.handleFailure(startTime, childStreamId, e)
