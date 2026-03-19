@@ -910,7 +910,11 @@ export class Task {
 		return sayTs
 	}
 
-	async sayAndCreateMissingParamError(toolName: CodemarieDefaultTool, paramName: string, relPath?: string) {
+	async sayAndCreateMissingParamError(
+		toolName: CodemarieDefaultTool,
+		paramName: string,
+		relPath?: string,
+	): Promise<CodemarieToolResponseContent> {
 		await this.say(
 			"error",
 			`Codemarie tried to use ${toolName}${

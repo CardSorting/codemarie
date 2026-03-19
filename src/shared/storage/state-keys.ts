@@ -139,6 +139,7 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	sapAiResourceGroup: { default: undefined as string | undefined },
 	sapAiCoreTokenUrl: { default: undefined as string | undefined },
 	sapAiCoreBaseUrl: { default: undefined as string | undefined },
+	vertexApiKey: { default: undefined as string | undefined },
 	sapAiCoreUseOrchestrationMode: { default: true as boolean },
 	difyBaseUrl: { default: undefined as string | undefined },
 	zaiApiLine: { default: undefined as string | undefined },

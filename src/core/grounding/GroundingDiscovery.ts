@@ -6,8 +6,8 @@ import * as path from "path"
 import { FileSnippet, searchFilesWithSnippetsBatch } from "@/services/search/file-search"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
+import { LRUCache } from "@/shared/utils/LRUCache"
 import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
-import { LRUCache } from "./GroundingCache"
 import { InterfaceSummarizer } from "./InterfaceSummarizer"
 
 export class GroundingDiscovery {

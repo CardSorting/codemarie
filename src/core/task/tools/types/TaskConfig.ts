@@ -12,7 +12,7 @@ import type { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
 import type { BrowserSettings } from "@shared/BrowserSettings"
 import type { CodemarieAsk, CodemarieSay } from "@shared/ExtensionMessage"
 import type { FocusChainSettings } from "@shared/FocusChainSettings"
-import type { CodemarieContent } from "@shared/messages/content"
+import type { CodemarieContent, CodemarieToolResponseContent } from "@shared/messages/content"
 import type { Mode } from "@shared/storage/types"
 import type { CodemarieDefaultTool } from "@shared/tools"
 import type { CodemarieAskResponse } from "@shared/WebviewMessage"
@@ -115,7 +115,11 @@ export interface TaskCallbacks {
 
 	saveCheckpoint: (isAttemptCompletionMessage?: boolean, completionMessageTs?: number) => Promise<void>
 
-	sayAndCreateMissingParamError: (toolName: CodemarieDefaultTool, paramName: string, relPath?: string) => Promise<unknown>
+	sayAndCreateMissingParamError: (
+		toolName: CodemarieDefaultTool,
+		paramName: string,
+		relPath?: string,
+	) => Promise<CodemarieToolResponseContent>
 
 	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: CodemarieAsk | CodemarieSay) => Promise<void>
 
@@ -123,7 +127,7 @@ export interface TaskCallbacks {
 		command: string,
 		timeoutSeconds: number | undefined,
 		options?: CommandExecutionOptions,
-	) => Promise<[boolean, unknown]>
+	) => Promise<[boolean, CodemarieToolResponseContent]>
 	cancelRunningCommandTool?: () => Promise<boolean>
 
 	doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>

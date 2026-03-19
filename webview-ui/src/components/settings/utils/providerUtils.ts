@@ -34,6 +34,7 @@ import {
 	internationalQwenModels,
 	internationalZAiDefaultModelId,
 	internationalZAiModels,
+	liteLlmDefaultModelId,
 	liteLlmModelInfoSaneDefaults,
 	ModelInfo,
 	mainlandQwenDefaultModelId,

@@ -3,7 +3,7 @@ import * as path from "path"
 import { searchSymbolInFiles } from "@/services/search/file-search"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
-import { LRUCache } from "./GroundingCache"
+import { LRUCache } from "@/shared/utils/LRUCache"
 import { GroundedSpec, GroundedSpecSchema } from "./types"
 
 export class GroundingValidator {

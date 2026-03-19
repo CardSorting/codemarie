@@ -9,7 +9,7 @@ import { BrowserSession } from "@services/browser/BrowserSession"
 import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { McpHub } from "@services/mcp/McpHub"
 import { CodemarieAsk, CodemarieSay } from "@shared/ExtensionMessage"
-import { CodemarieContent } from "@shared/messages/content"
+import { CodemarieContent, CodemarieToolResponseContent } from "@shared/messages/content"
 import { Logger } from "@shared/services/Logger"
 import { CodemarieDefaultTool, toolUseNames } from "@shared/tools"
 import { CodemarieAskResponse } from "@shared/WebviewMessage"
@@ -102,7 +102,7 @@ export class ToolExecutor {
 			toolName: CodemarieDefaultTool,
 			paramName: string,
 			relPath?: string,
-		) => Promise<unknown>,
+		) => Promise<CodemarieToolResponseContent>,
 		private removeLastPartialMessageIfExistsWithType: (
 			type: "ask" | "say",
 			askOrSay: CodemarieAsk | CodemarieSay,
@@ -111,7 +111,7 @@ export class ToolExecutor {
 			command: string,
 			timeoutSeconds: number | undefined,
 			options?: CommandExecutionOptions,
-		) => Promise<[boolean, unknown]>,
+		) => Promise<[boolean, CodemarieToolResponseContent]>,
 		private cancelRunningCommandTool: () => Promise<boolean>,
 		private doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>,
 		private updateFCListFromToolResponse: (taskProgress: string | undefined) => Promise<void>,

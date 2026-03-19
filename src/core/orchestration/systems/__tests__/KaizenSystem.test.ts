@@ -72,18 +72,19 @@ describe("KaizenSystem", () => {
 
 	it("should evaluate task completion successfully", async () => {
 		const apiHandler = new MockApiHandler({
-			improvements: ["Add more logging"],
+			categorizedImprovements: { GENERAL: ["Add more logging"] },
 		}) as unknown as ApiHandler
 
 		const result = await kaizen.reflect(mockController as unknown as OrchestrationController, apiHandler, "Added LRU Cache")
 
-		should(result).be.Array()
-		should(result[0]).equal("Add more logging")
+		should(result).be.Object()
+		should(result.GENERAL).be.Array()
+		should(result.GENERAL[0]).equal("Add more logging")
 	})
 
 	it("should adjust reprioritization logic when soundness is low", async () => {
 		const handler = new MockApiHandler({
-			improvements: ["Fix tests"],
+			categorizedImprovements: { GENERAL: ["Fix tests"] },
 		}) as unknown as ApiHandler
 
 		// Mock `getLogicalSoundness` inside getAgentContext to return a low score
@@ -101,15 +102,17 @@ describe("KaizenSystem", () => {
 		// Mock getStreamTasks to simulate existing tasks
 		;(mockController as any).getStreamTasks = async () => [{ id: "T1", status: "pending", result: "{}" }]
 
-		const improvements = await kaizen.reflect(
+		const result = await kaizen.reflect(
 			mockController as unknown as OrchestrationController,
 			handler as unknown as ApiHandler,
 			"Fail Cache Setup",
 		)
 
+		const improvements = Object.values(result).flat()
+
 		// Due to low soundness, Kaizen pushes a refinement improvement automatically
 		should(improvements).containEql("Fix tests")
-		should(improvements[improvements.length - 1]).containEql("Perform a secondary architectural audit")
+		should(improvements.some((imp: string) => imp.includes("Perform a secondary architectural audit"))).be.True()
 	})
 
 	it("should provide graceful fallback if evaluation throws", async () => {
