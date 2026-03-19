@@ -115,14 +115,14 @@ export abstract class WebviewProvider {
 					font-src ${this.getCspSource()} data:; 
 					style-src ${this.getCspSource()} 'unsafe-inline'; 
 					img-src ${this.getCspSource()} https: data:; 
-					script-src 'nonce-${nonce}' 'unsafe-eval';">
+					script-src ${this.getCspSource()} 'nonce-${nonce}' 'unsafe-eval';">
 				<title>Codemarie</title>
 			</head>
 			<body>
 				<noscript>You need to enable JavaScript to run this app.</noscript>
 				<div id="root"></div>
 				<script type="module" nonce="${nonce}" src="${scriptUrl}"></script>
-				<script src="http://localhost:8097"></script> 
+				${process.env.IS_DEV ? `<script nonce="${nonce}" src="http://localhost:8097"></script>` : ""}
 			</body>
 		</html>
 		`
@@ -202,7 +202,7 @@ export abstract class WebviewProvider {
 			`font-src ${this.getCspSource()}`,
 			`style-src ${this.getCspSource()} 'unsafe-inline' https://* http://${localServerUrl} http://0.0.0.0:${localPort}`,
 			`img-src ${this.getCspSource()} https: data:`,
-			`script-src 'unsafe-eval' https://* http://${localServerUrl} http://0.0.0.0:${localPort} 'nonce-${nonce}'`,
+			`script-src ${this.getCspSource()} 'unsafe-eval' https://* http://${localServerUrl} http://0.0.0.0:${localPort} 'nonce-${nonce}'`,
 			`connect-src https://* ws://${localServerUrl} ws://0.0.0.0:${localPort} http://${localServerUrl} http://0.0.0.0:${localPort}`,
 		]
 
@@ -210,7 +210,7 @@ export abstract class WebviewProvider {
 			<!DOCTYPE html>
 			<html lang="en">
 				<head>
-					${process.env.IS_DEV ? '<script src="http://localhost:8097"></script>' : ""}
+					${process.env.IS_DEV ? `<script nonce="${nonce}" src="http://localhost:8097"></script>` : ""}
 					<meta charset="utf-8">
 					<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
 					<meta http-equiv="Content-Security-Policy" content="${csp.join("; ")}">
@@ -221,7 +221,7 @@ export abstract class WebviewProvider {
 				<body>
 					<div id="root"></div>
 					${reactRefresh}
-					<script type="module" src="${scriptUrl}"></script>
+					<script type="module" nonce="${nonce}" src="${scriptUrl}"></script>
 				</body>
 			</html>
 		`

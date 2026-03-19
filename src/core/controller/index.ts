@@ -28,6 +28,7 @@ import type { FolderLockWithRetryResult } from "@/core/locks/types"
 import { HostProvider } from "@/hosts/host-provider"
 import { dbPool } from "@/infrastructure/db/BufferedDbPool"
 import { getDb, setDbPath } from "@/infrastructure/db/Config"
+import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
 import { ExtensionRegistryInfo } from "@/registry"
 import { AuthService } from "@/services/auth/AuthService"
 import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
@@ -880,8 +881,12 @@ export class Controller {
 		const welcomeBanners = BannerService.get().getWelcomeBanners() ?? []
 
 		// Check OpenAI Codex authentication status
-		const { openAiCodexOAuthManager } = await import("@/integrations/openai-codex/oauth")
-		const openAiCodexIsAuthenticated = await openAiCodexOAuthManager.isAuthenticated()
+		let openAiCodexIsAuthenticated = false
+		try {
+			openAiCodexIsAuthenticated = await openAiCodexOAuthManager.isAuthenticated()
+		} catch (error) {
+			Logger.error("[Controller] Failed to check OpenAI Codex auth status:", error)
+		}
 
 		return {
 			version,
