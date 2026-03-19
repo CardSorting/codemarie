@@ -31,70 +31,58 @@ export class KanbanSystem {
 		groundedSpec?: any,
 	): Promise<KanbanTask[]> {
 		Logger.info(`[MAS][${this.name}] Planning flow for purpose: ${purpose.slice(0, 50)}...`)
-		Logger.info(`[MAS][${this.name}] Scope: ${scope.join(", ")}`)
+		const tasks = await this.generateTasks(apiHandler, purpose, scope, archPlan, groundedSpec)
+		await this.spawnTasks(controller, tasks)
+		return tasks
+	}
 
-		// Start a new task for flow planning
-		await controller.beginTask("Planning Task Flow (Kanban)")
-
-		try {
-			// Tier 3: Task-Level Grounding (Using IntentGrounder seeds)
-			let kanbanPrompt = `Product Purpose: ${purpose}\nScope Items: ${scope.join(", ")}\nArchitectural Plan: ${archPlan || "Layered"}`
-			if (groundedSpec?.actions && groundedSpec.actions.length > 0) {
-				const actionSeeds = groundedSpec.actions.map((a: any) => `- [${a.type}] ${a.description}`).join("\n")
-				kanbanPrompt += `\n\n[Grounded Action Seeds]\n${actionSeeds}`
-				Logger.info(`[MAS][${this.name}] Seeding Kanban with ${groundedSpec.actions.length} grounded actions.`)
-			}
-			const res = await executeMASRequest(apiHandler, KANBAN_SYSTEM_PROMPT, kanbanPrompt)
-			const tasks: KanbanTask[] = res.tasks || []
-
-			// --- BroccoliDB Native Persistence ---
-			const ctx = await controller.getAgentContext()
-			const ikigaiId = `ikigai-${controller.getStreamId()}`
-			const archId = `arch-${controller.getStreamId()}`
-
-			// Store in memory (legacy/fallback)
-			await controller.storeMemory("task_flow", JSON.stringify(tasks))
-
-			// Create each task in the orchestrator AND BroccoliDB (Concurrent Batch)
-			const spawnPromises = tasks.map(async (task, i: number) => {
-				const taskId = `task-${controller.getStreamId()}-${task.id}`
-
-				// Native BroccoliDB Task
-				await ctx.spawnTask(taskId, "mas-orchestrator", task.description, [ikigaiId, archId])
-
-				// Semantic Enrichment: Auto-discover relationships to existing project knowledge
-				try {
-					const { discovered } = await ctx.autoDiscoverRelationships(taskId, 3)
-					if (discovered > 0) {
-						Logger.info(
-							`[MAS][${this.name}] Semantic grounding: Auto-linked task ${taskId} to ${discovered} related nodes.`,
-						)
-					}
-				} catch (discoveryError) {
-					Logger.warn(`[MAS][${this.name}] Semantic discovery failed for task ${taskId}:`, discoveryError)
-				}
-
-				// Legacy Orchestrator Task (for UI/Stream compatibility)
-				await controller.beginTask(task.description)
-				await controller.updateTaskProgress("pending")
-			})
-
-			await Promise.allSettled(spawnPromises)
-			// --------------------------------------
-
-			await controller.updateTaskProgress("completed", `Planned ${tasks.length} tasks matching the product scope.`)
-
-			return tasks
-		} catch (error) {
-			Logger.error(`[MAS][${this.name}] Failed to plan flow:`, error)
-			// Fallback to minimal task
-			const fallbackTask: KanbanTask = {
-				id: "t1",
-				description: "Implement core functionality",
-				depends_on: [],
-			}
-			return [fallbackTask]
+	private async generateTasks(
+		apiHandler: ApiHandler,
+		purpose: string,
+		scope: string[],
+		archPlan?: string,
+		groundedSpec?: any,
+	): Promise<KanbanTask[]> {
+		let kanbanPrompt = `Product Purpose: ${purpose}\nScope Items: ${scope.join(", ")}\nArchitectural Plan: ${archPlan || "Layered"}`
+		if (groundedSpec?.actions && groundedSpec.actions.length > 0) {
+			const actionSeeds = groundedSpec.actions.map((a: any) => `- [${a.type}] ${a.description}`).join("\n")
+			kanbanPrompt += `\n\n[Grounded Action Seeds]\n${actionSeeds}`
 		}
+		const res = await executeMASRequest(apiHandler, KANBAN_SYSTEM_PROMPT, kanbanPrompt)
+		return res.tasks || []
+	}
+
+	private async spawnTasks(controller: OrchestrationController, tasks: KanbanTask[]): Promise<void> {
+		const ctx = await controller.getAgentContext()
+		const ikigaiId = `ikigai-${controller.getStreamId()}`
+		const archId = `arch-${controller.getStreamId()}`
+
+		const spawnPromises = tasks.map(async (task) => {
+			const taskId = `task-${controller.getStreamId()}-${task.id}`
+			await ctx.spawnTask(taskId, "mas-orchestrator", task.description, [ikigaiId, archId])
+			try {
+				await ctx.autoDiscoverRelationships(taskId, 3)
+			} catch {}
+			await controller.beginTask(task.description)
+			await controller.updateTaskProgress("pending")
+		})
+		await Promise.allSettled(spawnPromises)
+	}
+
+	/**
+	 * Injects refinement tasks into the existing flow.
+	 */
+	public async injectRefinementTasks(controller: OrchestrationController, descriptions: string[]): Promise<void> {
+		if (descriptions.length === 0) return
+		Logger.info(`[MAS][${this.name}] Injecting ${descriptions.length} refinement tasks into the stream...`)
+
+		const tasks: KanbanTask[] = descriptions.map((desc, i) => ({
+			id: `refine-${Date.now()}-${i}`,
+			description: `[REFINEMENT] ${desc}`,
+			depends_on: [],
+		}))
+
+		await this.spawnTasks(controller, tasks)
 	}
 
 	/**

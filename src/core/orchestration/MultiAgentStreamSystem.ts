@@ -23,6 +23,8 @@ export class MultiAgentStreamSystem {
 	/** Last pool result from concurrent build dispatch */
 	private lastPoolResult?: StreamPoolResult
 	private reflectionCache = new LRUCache<string[]>(10, 3600000) // 1 hour TTL
+	private stickyReflectionCache = new Map<string, string[]>() // Long-term unaddressed insights
+	private lastSoundnessScore = 1.0
 
 	constructor(
 		public controller: OrchestrationController,
@@ -192,15 +194,37 @@ export class MultiAgentStreamSystem {
 			const enrichedSummary = `Collective System Context:\n${digest}\n\nTurn Summary: ${turnSummary}`
 			const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, enrichedSummary)
 
+			// Update soundness score from Kaizen's internal assessment if possible
+			// For now, we'll pull it from the agent context as Kaizen does
+			const ctx = await this.controller.getAgentContext()
+			const ikigaiId = `ikigai-${this.controller.getStreamId()}`
+			const archId = `arch-${this.controller.getStreamId()}`
+			this.lastSoundnessScore = await ctx.getLogicalSoundness([ikigaiId, archId])
+
 			// High Throughput: Store reflection in local LRU cache
 			if (improvements && improvements.length > 0) {
 				const streamId = this.controller.getStreamId()
 				this.reflectionCache.set(streamId, improvements)
 
-				// Background Persistence: Still store in memory for long-term recovery/audit
-				this.controller.storeMemory("turn_reflection", JSON.stringify(improvements)).catch((err) => {
-					Logger.warn(`[${this.name}] Failed to persist reflection to BroccoliDB:`, err)
-				})
+				// Phase 4: Sticky Insights & Auto-Stabilization
+				const isCritical = improvements.some(
+					(imp) => imp.toUpperCase().includes("CRITICAL") || imp.toUpperCase().includes("VIOLATION"),
+				)
+				if (isCritical || this.lastSoundnessScore < 0.5) {
+					const stickyKey = `sticky-${streamId}`
+					const existing = this.stickyReflectionCache.get(stickyKey) || []
+					this.stickyReflectionCache.set(stickyKey, [...new Set([...existing, ...improvements])])
+
+					// Auto-Stabilization: Inject tasks if soundness is critical
+					if (this.lastSoundnessScore < 0.5) {
+						await this.kanban.injectRefinementTasks(this.controller, [
+							"Mandatory Stabilization Pass: Resolve architectural debt and low soundness score.",
+						])
+					}
+				} else {
+					// Auto-Pruning: Clear sticky insights if the MAS no longer sees them as critical
+					this.stickyReflectionCache.delete(`sticky-${streamId}`)
+				}
 
 				return improvements
 			}
@@ -218,6 +242,37 @@ export class MultiAgentStreamSystem {
 	}
 
 	/**
+	 * Returns the sticky (unaddressed) insights for the current stream.
+	 */
+	public getStickyInsights(): string[] {
+		return this.stickyReflectionCache.get(`sticky-${this.controller.getStreamId()}`) || []
+	}
+
+	/**
+	 * Manually resolves a specific sticky insight.
+	 */
+	public resolveStickyInsight(insightIndex: number): void {
+		const streamId = this.controller.getStreamId()
+		const stickyKey = `sticky-${streamId}`
+		const insights = this.stickyReflectionCache.get(stickyKey) || []
+		if (insightIndex >= 0 && insightIndex < insights.length) {
+			insights.splice(insightIndex, 1)
+			if (insights.length === 0) {
+				this.stickyReflectionCache.delete(stickyKey)
+			} else {
+				this.stickyReflectionCache.set(stickyKey, insights)
+			}
+		}
+	}
+
+	/**
+	 * Returns the latest architectural soundness score calculated by the MAS.
+	 */
+	public getSoundnessScore(): number {
+		return this.lastSoundnessScore
+	}
+
+	/**
 	 * Executes a final architectural audit of the entire stream.
 	 * Aggregates all turn reflections into a "Handoff Digest" in BroccoliDB.
 	 */
@@ -228,7 +283,10 @@ export class MultiAgentStreamSystem {
 			const digest = await this.controller.getStreamDigest()
 			const reflections = await this.controller.recallMemory("turn_reflection")
 
-			const postMortem = `Final Post-Mortem for Stream ${streamId}:\nStatus: Completed\nReflections: ${reflections || "None"}\nSystem Digest: ${digest}`
+			// Phase 3: Specialized Kaizen Post-Mortem
+			const postMortemReflection = await this.executePostMortem()
+
+			const postMortem = `Final Post-Mortem for Stream ${streamId}:\nStatus: Completed\nReflections: ${reflections || "None"}\nSwarm Insight: ${postMortemReflection || "N/A"}\nSystem Digest: ${digest}`
 
 			// Store as a formal "handoff" node in BroccoliDB
 			const ctx = await this.controller.getAgentContext()
@@ -238,6 +296,24 @@ export class MultiAgentStreamSystem {
 			return postMortem
 		} catch (err) {
 			Logger.warn(`[${this.name}] Final audit failed:`, err)
+		}
+		return undefined
+	}
+
+	/**
+	 * Perfroms a specialized "Post-Mortem" reflection to summarize architectural debt.
+	 */
+	public async executePostMortem(): Promise<string | undefined> {
+		Logger.info(`[${this.name}] Generating post-mortem reflection...`)
+		try {
+			const digest = await this.controller.getStreamDigest()
+			const prompt = `Perform a FINAL ARCHITECTURAL AUDIT of this stream. Identify any remaining technical debt, JoyZoning violations, or stability risks:\n${digest}`
+			const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, prompt)
+			if (improvements && improvements.length > 0) {
+				return improvements.join("; ")
+			}
+		} catch (err) {
+			Logger.warn(`[${this.name}] Post-mortem reflection failed:`, err)
 		}
 		return undefined
 	}
@@ -289,6 +365,24 @@ export class MultiAgentStreamSystem {
 			}
 		} catch (err) {
 			Logger.warn(`[${this.name}] Failed to generate lifeline:`, err)
+		}
+		return undefined
+	}
+
+	/**
+	 * Generates coordination advice when a file collision is detected.
+	 */
+	public async getCollisionAdvice(filePath: string): Promise<string | undefined> {
+		Logger.info(`[${this.name}] Generating collision advice for ${filePath}...`)
+		try {
+			const digest = await this.controller.getStreamDigest()
+			const prompt = `A file collision was detected on ${filePath}. Suggest a coordination strategy based on the current swarm state:\n${digest}`
+			const strategies = await this.kaizen.reflect(this.controller, this.apiHandler, prompt)
+			if (strategies && strategies.length > 0) {
+				return `🧱 Swarm Coordination: ${strategies[0]}`
+			}
+		} catch (err) {
+			Logger.warn(`[${this.name}] Failed to generate collision advice:`, err)
 		}
 		return undefined
 	}

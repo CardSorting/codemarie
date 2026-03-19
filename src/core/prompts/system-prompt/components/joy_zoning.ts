@@ -86,6 +86,12 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 				parts.push(`💡 Swarm Insights:\n${reflection.map((r) => `  - ${r}`).join("\n")}`)
 			}
 
+			// Phase 4: Sticky (Unresolved) Insights
+			const sticky = mas?.getStickyInsights()
+			if (sticky && sticky.length > 0) {
+				parts.push(`🧠 Persistent Swarm Guidance (Unresolved):\n${sticky.map((s) => `  - ${s}`).join("\n")}`)
+			}
+
 			// Surface last checkpoint
 			const allMemory = await dbPool.selectAllFrom("agent_memory")
 			interface MemoryEntry {
@@ -104,6 +110,11 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 				parts.push(
 					`📉 HIGH ENTROPY: This stream is showing significant tool result divergence (Score: ${digest.avgEntropy}). Proceed with caution and perform deeper verification.`,
 				)
+			}
+
+			const soundness = mas?.getSoundnessScore() ?? 1.0
+			if (soundness < 0.9) {
+				parts.push(`📏 Architectural Soundness: ${soundness.toFixed(2)} / 1.00`)
 			}
 
 			if (parts.length > 0) {

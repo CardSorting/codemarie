@@ -3440,12 +3440,15 @@ export class Task {
 				// Deep MAS Integration: Reflect on turn results and materialize background changes
 				if (this.multiAgentSystem) {
 					try {
-						const turnSummary = this.taskState.userMessageContent
+						const resultsSummary = this.taskState.userMessageContent
 							.map((c) => (c.type === "text" ? c.text : ""))
 							.filter(Boolean)
 							.join("\n")
-						await this.multiAgentSystem.executeTurnReflection(turnSummary)
-						await this.multiAgentSystem.controller.materialize()
+						const turnSummary = `Assistant Attempted: ${assistantTextOnly}\n\nTool Results: ${resultsSummary}`
+						await Promise.all([
+							this.multiAgentSystem.executeTurnReflection(turnSummary),
+							this.multiAgentSystem.controller.materialize(),
+						])
 					} catch (err) {
 						Logger.warn(`[Task ${this.taskId}] MAS turn reflection/materialization failed:`, err)
 					}

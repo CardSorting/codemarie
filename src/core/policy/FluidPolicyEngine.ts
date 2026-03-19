@@ -35,6 +35,8 @@ export class FluidPolicyEngine {
 	private sealReason: string | null = null
 	private cachedRules: any[] | null = null
 	private layerCache: Map<string, string> = new Map()
+	private soundnessScore = 1.0
+	private collisionAdvisor?: (filePath: string) => Promise<string | undefined>
 
 	constructor(
 		private cwd: string,
@@ -108,6 +110,21 @@ export class FluidPolicyEngine {
 	}
 
 	/**
+	 * Sets the architectural soundness score for the current turn.
+	 * Lower scores ( < 0.7) trigger more rigorous enforcement.
+	 */
+	public setSoundnessScore(score: number) {
+		this.soundnessScore = score
+	}
+
+	/**
+	 * Sets the advisor function for swarm-aware collision mitigation.
+	 */
+	public setCollisionAdvisor(advisor: (filePath: string) => Promise<string | undefined>) {
+		this.collisionAdvisor = advisor
+	}
+
+	/**
 	 * Returns proactive architectural guidance for a given file's layer.
 	 */
 	public getFileLayerContext(filePath: string): string {
@@ -161,9 +178,14 @@ export class FluidPolicyEngine {
 			// Predictive Collision Check: Warn early if another stream has a lock
 			const collision = await orchestrator.checkCollision(this.streamId || "viewer", [filePath])
 			if (collision) {
+				let msg = `⚠️ PREDICTIVE COLLISION: You are planning to edit \`${path.basename(filePath)}\`, but it's currently LOCKED by a sibling stream. Coordination is required before acting.`
+				if (this.collisionAdvisor) {
+					const advice = await this.collisionAdvisor(filePath)
+					if (advice) msg += `\n${advice}`
+				}
 				return {
 					success: true,
-					warning: `⚠️ PREDICTIVE COLLISION: You are planning to edit \`${path.basename(filePath)}\`, but it's currently LOCKED by a sibling stream. Coordination is required before acting.`,
+					warning: msg,
 				}
 			}
 
@@ -257,9 +279,14 @@ export class FluidPolicyEngine {
 			if (files.length > 0) {
 				const collision = await orchestrator.checkCollision(this.streamId, files)
 				if (collision) {
+					let error = `🛑 FLUID COORDINATION ERROR: ${collision}\nYOUR COMMIT HAS BEEN BLOCKED TO PREVENT DATA CORRUPTION. Coordinate with the sibling stream or wait for its completion before proceeding.`
+					if (this.collisionAdvisor) {
+						const advice = await this.collisionAdvisor(Array.from(files)[0])
+						if (advice) error += `\n${advice}`
+					}
 					return {
 						success: false,
-						error: `🛑 FLUID COORDINATION ERROR: ${collision}\nYOUR COMMIT HAS BEEN BLOCKED TO PREVENT DATA CORRUPTION. Coordinate with the sibling stream or wait for its completion before proceeding.`,
+						error,
 					}
 				}
 			}
@@ -429,6 +456,9 @@ export class FluidPolicyEngine {
 	public async validatePostExecution(block: ToolUse, toolOutput: any, prevResultHash?: string): Promise<PolicyResult> {
 		const result: PolicyResult = { success: true }
 
+		// Adaptive Rigor: If soundness is low, increase verification intensity
+		const isLowSoundness = this.soundnessScore < 0.7
+
 		// Architectural Policy: Audit file changes via AST (warning-only, never blocks post-execution)
 		if (block.name === CodemarieDefaultTool.FILE_NEW || block.name === CodemarieDefaultTool.FILE_EDIT) {
 			const filePath = block.params?.path ? path.resolve(this.cwd, block.params.path) : null
@@ -441,6 +471,10 @@ export class FluidPolicyEngine {
 						result.violations = validation.errors
 						result.warning = `⚠️ ${path.basename(filePath)}:\n${allIssues.map((v) => `  - ${v}`).join("\n")}`
 						result.correctionHint = this.getCorrectionHint(validation.errors)
+
+						if (isLowSoundness) {
+							result.warning = `🚨 CRITICAL ARCHITECTURAL SMELL (Soundness: ${this.soundnessScore.toFixed(2)})\n${result.warning}\nMAS Insight: Architectural stability is low. Immediate correction is STRONGLY advised.`
+						}
 					}
 				} catch {
 					// File might not exist yet

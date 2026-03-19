@@ -28,6 +28,10 @@ export class UniversalGuard {
 			stateManager,
 			controller ? (p: string) => controller.resolveVirtualContent(p) : undefined,
 		)
+
+		if (this.mas) {
+			this.engine.setCollisionAdvisor((p) => this.mas!.getCollisionAdvice(p))
+		}
 	}
 
 	/**
@@ -45,6 +49,13 @@ export class UniversalGuard {
 	}
 
 	/**
+	 * Propagates the MAS soundness score to the underlying engine.
+	 */
+	public setSoundnessScore(score: number) {
+		this.engine.setSoundnessScore(score)
+	}
+
+	/**
 	 * Single "Execute" call that performs all pre-flight audits.
 	 */
 	public async guardPreExecution(block: ToolUse): Promise<PolicyResult> {
@@ -59,14 +70,19 @@ export class UniversalGuard {
 
 		// Deep MAS Integration: Perform real-time architectural audit for file writes
 		const isWrite = block.name === CodemarieDefaultTool.FILE_NEW || block.name === CodemarieDefaultTool.FILE_EDIT
-		if (this.mas && isWrite && block.params.path && block.params.content) {
-			const auditResult = await this.mas.auditFile(block.params.path, block.params.content)
-			if (!auditResult.success) {
-				// Inject MAS findings into the policy result to trigger self-correction
-				return {
-					...result,
-					success: false,
-					error: `Architectural violation detected by MAS: ${auditResult.errors.join("; ")}`,
+		if (this.mas) {
+			const soundness = this.mas.getSoundnessScore()
+			this.setSoundnessScore(soundness)
+
+			if (isWrite && block.params.path && block.params.content) {
+				const auditResult = await this.mas.auditFile(block.params.path, block.params.content)
+				if (!auditResult.success) {
+					// Inject MAS findings into the policy result to trigger self-correction
+					return {
+						...result,
+						success: false,
+						error: `Architectural violation detected by MAS: ${auditResult.errors.join("; ")}`,
+					}
 				}
 			}
 		}

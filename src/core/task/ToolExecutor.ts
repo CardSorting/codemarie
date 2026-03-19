@@ -128,7 +128,7 @@ export class ToolExecutor {
 		private getKnowledgeGraphService: () => Promise<KnowledgeGraphService | undefined>,
 	) {
 		this.autoApprover = new AutoApprove(this.stateManager)
-		const controller = getOrchestrationController()
+		const _controller = getOrchestrationController()
 		this.guard = new UniversalGuard(
 			this.cwd,
 			this.taskId,
