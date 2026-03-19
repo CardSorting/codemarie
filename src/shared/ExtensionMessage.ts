@@ -132,6 +132,8 @@ export interface CodemarieMessage {
 	conversationHistoryIndex?: number
 	conversationHistoryDeletedRange?: [number, number] // for when conversation history is truncated for API requests
 	modelInfo?: CodemarieMessageModelInfo
+	waveApprovalMetadata?: WaveApprovalMetadata
+	orchestrationEventMetadata?: OrchestrationEventMetadata
 }
 
 export type CodemarieAsk =

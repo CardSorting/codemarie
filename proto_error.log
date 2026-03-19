@@ -1,0 +1,23 @@
+
+> marie-coder@3.76.4 protos
+> node scripts/build-proto.mjs
+
+Compiling Protocol Buffers...
+Processing 21 proto files from /Users/bozoegg/Downloads/cline-main/proto
+codemarie/ui.proto:80:3: "ORCHESTRATION_EVENT" is already defined in "codemarie".
+codemarie/ui.proto:80:3: Note that enum values use C++ scoping rules, meaning that enum values are siblings of their type, not children of it.  Therefore, "ORCHESTRATION_EVENT" must be unique within "codemarie", not just within "CodemarieSay".
+Error generating TypeScript for proto files: Error: Command failed: /Users/bozoegg/Downloads/cline-main/node_modules/grpc-tools/bin/protoc --proto_path="/Users/bozoegg/Downloads/cline-main/proto" --plugin=protoc-gen-ts_proto="/Users/bozoegg/Downloads/cline-main/node_modules/ts-proto/protoc-gen-ts_proto" --ts_proto_out="/Users/bozoegg/Downloads/cline-main/src/shared/proto" --ts_proto_opt=env=both,esModuleInterop=true,outputServices=generic-definitions,outputIndex=true,useOptionals=none,useDate=false  "codemarie/account.proto" "codemarie/browser.proto" "codemarie/checkpoints.proto" "codemarie/commands.proto" "codemarie/common.proto" "codemarie/file.proto" "codemarie/hooks.proto" "codemarie/mcp.proto" "codemarie/models.proto" "codemarie/oca_account.proto" "codemarie/slash.proto" "codemarie/state.proto" "codemarie/task.proto" "codemarie/ui.proto" "codemarie/web.proto" "codemarie/worktree.proto" "host/diff.proto" "host/env.proto" "host/testing.proto" "host/window.proto" "host/workspace.proto"
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at checkExecSyncError (node:child_process:882:11)
+    at execSync (node:child_process:954:15)
+    at tsProtoc (file:///Users/bozoegg/Downloads/cline-main/scripts/build-proto.mjs:97:3)
+    at compileProtos (file:///Users/bozoegg/Downloads/cline-main/scripts/build-proto.mjs:58:2)
+    at async main (file:///Users/bozoegg/Downloads/cline-main/scripts/build-proto.mjs:39:2) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 95242,
+  stdout: null,
+  stderr: null
+}

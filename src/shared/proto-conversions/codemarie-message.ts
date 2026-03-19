@@ -35,6 +35,8 @@ function convertCodemarieAskToProtoEnum(ask: AppCodemarieAsk | undefined): Codem
 		summarize_task: CodemarieAsk.SUMMARIZE_TASK,
 		report_bug: CodemarieAsk.REPORT_BUG,
 		use_subagents: CodemarieAsk.USE_SUBAGENTS,
+		wave_approval: CodemarieAsk.WAVE_APPROVAL,
+		orchestration_event: CodemarieAsk.FOLLOWUP,
 	}
 
 	const result = mapping[ask]
@@ -68,6 +70,7 @@ function convertProtoEnumToCodemarieAsk(ask: CodemarieAsk): AppCodemarieAsk | un
 		[CodemarieAsk.SUMMARIZE_TASK]: "summarize_task",
 		[CodemarieAsk.REPORT_BUG]: "report_bug",
 		[CodemarieAsk.USE_SUBAGENTS]: "use_subagents",
+		[CodemarieAsk.WAVE_APPROVAL]: "wave_approval",
 	}
 
 	return mapping[ask]
@@ -118,6 +121,7 @@ function convertCodemarieSayToProtoEnum(say: AppCodemarieSay | undefined): Codem
 		use_subagents: CodemarieSay.USE_SUBAGENTS_SAY,
 		subagent_usage: CodemarieSay.SUBAGENT_USAGE,
 		generate_explanation: CodemarieSay.GENERATE_EXPLANATION,
+		orchestration_event: CodemarieSay.ORCHESTRATION_EVENT,
 	}
 
 	const result = mapping[say]
@@ -169,6 +173,7 @@ function convertProtoEnumToCodemarieSay(say: CodemarieSay): AppCodemarieSay | un
 		[CodemarieSay.SUBAGENT_STATUS]: "subagent",
 		[CodemarieSay.USE_SUBAGENTS_SAY]: "use_subagents",
 		[CodemarieSay.SUBAGENT_USAGE]: "subagent_usage",
+		[CodemarieSay.ORCHESTRATION_EVENT]: "orchestration_event",
 	}
 
 	return mapping[say]
@@ -222,6 +227,42 @@ export function convertCodemarieMessageToProto(message: AppCodemarieMessage): Pr
 		askNewTask: undefined,
 		apiReqInfo: undefined,
 		modelInfo: message.modelInfo ?? undefined,
+		waveApprovalMetadata: message.waveApprovalMetadata
+			? {
+					waveId: message.waveApprovalMetadata.waveId,
+					streamId: message.waveApprovalMetadata.streamId,
+					tasks: message.waveApprovalMetadata.tasks.map((task) => ({
+						id: task.id,
+						description: task.description,
+						plan: {
+							actions: task.plan.actions.map((action) => ({
+								type: action.type,
+								file: action.file,
+								description: action.description,
+							})),
+						},
+						audit: task.audit
+							? {
+									approved: task.audit.approved,
+									violations: task.audit.violations,
+									suggestion: task.audit.suggestion,
+								}
+							: undefined,
+					})),
+				}
+			: undefined,
+		orchestrationEventMetadata: message.orchestrationEventMetadata
+			? {
+					event: message.orchestrationEventMetadata.event,
+					type: message.orchestrationEventMetadata.type,
+					streamId: message.orchestrationEventMetadata.streamId,
+					workerName: message.orchestrationEventMetadata.workerName,
+					taskId: message.orchestrationEventMetadata.taskId,
+					details: message.orchestrationEventMetadata.details,
+					totalTasks: message.orchestrationEventMetadata.totalTasks,
+					timestamp: message.orchestrationEventMetadata.timestamp,
+				}
+			: undefined,
 	}
 
 	return protoMessage
@@ -287,6 +328,47 @@ export function convertProtoToCodemarieMessage(protoMessage: ProtoCodemarieMessa
 			protoMessage.conversationHistoryDeletedRange.startIndex,
 			protoMessage.conversationHistoryDeletedRange.endIndex,
 		]
+	}
+
+	// Convert waveApprovalMetadata
+	if (protoMessage.waveApprovalMetadata) {
+		message.waveApprovalMetadata = {
+			waveId: protoMessage.waveApprovalMetadata.waveId,
+			streamId: protoMessage.waveApprovalMetadata.streamId,
+			tasks: protoMessage.waveApprovalMetadata.tasks.map((task) => ({
+				id: task.id,
+				description: task.description,
+				plan: {
+					actions:
+						task.plan?.actions.map((action) => ({
+							type: action.type,
+							file: action.file,
+							description: action.description,
+						})) || [],
+				},
+				audit: task.audit
+					? {
+							approved: task.audit.approved,
+							violations: task.audit.violations,
+							suggestion: task.audit.suggestion,
+						}
+					: undefined,
+			})),
+		}
+	}
+
+	// Convert orchestrationEventMetadata
+	if (protoMessage.orchestrationEventMetadata) {
+		message.orchestrationEventMetadata = {
+			event: protoMessage.orchestrationEventMetadata.event,
+			type: protoMessage.orchestrationEventMetadata.type as any,
+			streamId: protoMessage.orchestrationEventMetadata.streamId,
+			workerName: protoMessage.orchestrationEventMetadata.workerName,
+			taskId: protoMessage.orchestrationEventMetadata.taskId,
+			details: protoMessage.orchestrationEventMetadata.details,
+			totalTasks: protoMessage.orchestrationEventMetadata.totalTasks,
+			timestamp: protoMessage.orchestrationEventMetadata.timestamp,
+		}
 	}
 
 	return message

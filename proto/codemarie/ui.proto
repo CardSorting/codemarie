@@ -34,6 +34,7 @@ enum CodemarieAsk {
   SUMMARIZE_TASK = 15;
   ACT_MODE_RESPOND = 16;
   USE_SUBAGENTS = 17;
+  WAVE_APPROVAL = 18;
 }
 
 // Enum for CodemarieSay types
@@ -75,6 +76,7 @@ enum CodemarieSay {
   SUBAGENT_STATUS = 34;
   USE_SUBAGENTS_SAY = 35;
   SUBAGENT_USAGE = 36;
+  ORCHESTRATION_EVENT = 37;
 }
 
 // Enum for CodemarieSayTool tool types
@@ -215,6 +217,8 @@ message CodemarieMessage {
   bool is_operation_outside_workspace = 12;
   int32 conversation_history_index = 13;
   ConversationHistoryDeletedRange conversation_history_deleted_range = 14;
+  WaveApprovalMetadata wave_approval_metadata = 24;
+  OrchestrationEventMetadata orchestration_event_metadata = 25;
 
   // Additional fields for specific ask/say types
   CodemarieSayTool say_tool = 15;
@@ -226,6 +230,49 @@ message CodemarieMessage {
   CodemarieAskNewTask ask_new_task = 21;
   CodemarieApiReqInfo api_req_info = 22;
   CodemarieModelInfo model_info = 23;
+}
+
+// Nested messages for WaveApprovalMetadata
+message WaveApprovalAction {
+  string type = 1;
+  string file = 2;
+  string description = 3;
+}
+
+message WaveApprovalAudit {
+  bool approved = 1;
+  repeated string violations = 2;
+  optional string suggestion = 3;
+}
+
+message WaveApprovalTaskPlan {
+  repeated WaveApprovalAction actions = 1;
+}
+
+message WaveApprovalTask {
+  string id = 1;
+  string description = 2;
+  WaveApprovalTaskPlan plan = 3;
+  optional WaveApprovalAudit audit = 4;
+}
+
+// Metadata for wave approval
+message WaveApprovalMetadata {
+  string wave_id = 1;
+  optional string stream_id = 2;
+  repeated WaveApprovalTask tasks = 3;
+}
+
+// Metadata for orchestration events
+message OrchestrationEventMetadata {
+  string event = 1;
+  string type = 2; // "info", "success", "worker_start", etc.
+  optional string stream_id = 3;
+  optional string worker_name = 4;
+  optional string task_id = 5;
+  optional string details = 6;
+  optional int32 total_tasks = 7;
+  double timestamp = 8;
 }
 
 message ShowWebviewEvent {
