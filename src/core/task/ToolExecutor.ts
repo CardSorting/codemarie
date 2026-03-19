@@ -10,6 +10,7 @@ import { UrlContentFetcher } from "@services/browser/UrlContentFetcher"
 import { McpHub } from "@services/mcp/McpHub"
 import { CodemarieAsk, CodemarieSay } from "@shared/ExtensionMessage"
 import { CodemarieContent } from "@shared/messages/content"
+import { Logger } from "@shared/services/Logger"
 import { CodemarieDefaultTool, toolUseNames } from "@shared/tools"
 import { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { createHash } from "crypto"
@@ -720,6 +721,13 @@ export class ToolExecutor {
 				orchestrationController
 					.completeStream(String(res), (files, ops) => this.guard.validateCommit(files, ops))
 					.catch(() => {})
+
+				// Phase 2: Completion-time Swarm Audit
+				if (this.taskState.multiAgentStreamSystem) {
+					this.taskState.multiAgentStreamSystem.executeFinalAudit().catch((err) => {
+						Logger.warn(`[ToolExecutor] Final MAS audit failed:`, err)
+					})
+				}
 			}
 
 			if (orchestrationController && orchestratorTaskId) {

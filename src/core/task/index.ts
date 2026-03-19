@@ -1065,6 +1065,15 @@ export class Task {
 
 		await this.say("task", task, images, files)
 
+		// Phase 1: Ingest task into MAS for context enrichment
+		this.streamReadyPromise?.then(() => {
+			if (this.multiAgentSystem && task) {
+				this.multiAgentSystem.processUserFeedback(task).catch((err) => {
+					Logger.error(`[Task ${this.taskId}] Failed to ingest task into MAS:`, err)
+				})
+			}
+		})
+
 		// Phase 0: Multi-Agent Stream Initiation moved to Phase 2 (Intent Grounding Handoff)
 		// in initiateTaskLoop() to ensure grounded context is available.
 
@@ -1209,6 +1218,16 @@ export class Task {
 
 		await this.messageStateHandler.overwriteCodemarieMessages(savedCodemarieMessages)
 		this.messageStateHandler.setCodemarieMessages(await getSavedCodemarieMessages(this.taskId))
+
+		// Phase 1: Ingest resumption feedback into MAS
+		if (this.multiAgentSystem && savedCodemarieMessages.length > 0) {
+			const lastMessage = savedCodemarieMessages.at(-1)
+			if (lastMessage?.type === "say" && lastMessage.text) {
+				this.multiAgentSystem.processUserFeedback(`Resuming Task. Last State: ${lastMessage.text}`).catch((err) => {
+					Logger.error(`[Task ${this.taskId}] Failed to ingest resumption into MAS:`, err)
+				})
+			}
+		}
 
 		// Now present the codemarie messages to the user and ask if they want to resume (NOTE: we ran into a bug before where the apiconversationhistory wouldn't be initialized when opening a old task, and it was because we were waiting for resume)
 		// This is important in case the user deletes messages without resuming the task first
@@ -1767,8 +1786,8 @@ export class Task {
 			}
 
 			if (this.multiAgentSystem) {
-				// Ensure MAS is notified of the abort
-				this.multiAgentSystem.controller.failStream("Task aborted by user or system").catch((err) => {
+				// Ensure MAS is notified of the abort and records the reason
+				this.multiAgentSystem.reportAbort("Task aborted by user or system").catch((err) => {
 					Logger.error(`[Task ${this.taskId}] Failed to signal MAS abort:`, err)
 				})
 			}
@@ -2832,6 +2851,16 @@ export class Task {
 		let parsedUserContent: CodemarieContent[]
 		let environmentDetails: string
 		let codemarierulesError: boolean
+
+		// Phase 2: Inject MAS "Lifeline" if agent is stuck
+		if (this.multiAgentSystem && this.taskState.consecutiveMistakeCount >= 2) {
+			const lifeline = await this.multiAgentSystem.getStuckLifeline()
+			if (lifeline) {
+				userContent.push({ type: "text", text: lifeline })
+				// Reset count after injecting lifeline to give the agent a fresh start with the new advice
+				this.taskState.consecutiveMistakeCount = 0
+			}
+		}
 
 		if (shouldCompact) {
 			// When compacting, skip full context loading (use summarize_task instead)
@@ -4133,11 +4162,6 @@ export class Task {
 				break
 		}
 
-		await this.postStateToWebview()
-	}
-
-	private async clearSwarmState() {
-		this.taskState.swarmState = undefined
 		await this.postStateToWebview()
 	}
 }

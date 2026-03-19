@@ -216,4 +216,80 @@ export class MultiAgentStreamSystem {
 	public getLatestReflection(): string[] | undefined {
 		return this.reflectionCache.get(this.controller.getStreamId())
 	}
+
+	/**
+	 * Executes a final architectural audit of the entire stream.
+	 * Aggregates all turn reflections into a "Handoff Digest" in BroccoliDB.
+	 */
+	public async executeFinalAudit(): Promise<string | undefined> {
+		Logger.info(`[${this.name}] Executing final architectural audit...`)
+		try {
+			const streamId = this.controller.getStreamId()
+			const digest = await this.controller.getStreamDigest()
+			const reflections = await this.controller.recallMemory("turn_reflection")
+
+			const postMortem = `Final Post-Mortem for Stream ${streamId}:\nStatus: Completed\nReflections: ${reflections || "None"}\nSystem Digest: ${digest}`
+
+			// Store as a formal "handoff" node in BroccoliDB
+			const ctx = await this.controller.getAgentContext()
+			await ctx.addKnowledge(`handoff-${streamId}`, "conclusion", postMortem, { agentId: "mas-orchestrator" })
+			await ctx.flush()
+
+			return postMortem
+		} catch (err) {
+			Logger.warn(`[${this.name}] Final audit failed:`, err)
+		}
+		return undefined
+	}
+
+	/**
+	 * Synchronizes the MAS with a task abort event.
+	 */
+	public async reportAbort(reason: string): Promise<void> {
+		Logger.info(`[${this.name}] Reporting task abort: ${reason}`)
+		try {
+			const streamId = this.controller.getStreamId()
+			await this.controller.storeMemory("abort_reason", reason)
+
+			// Mark current stream as failed in MAS architecture
+			const ctx = await this.controller.getAgentContext()
+			await ctx.addKnowledge(`abort-${streamId}-${Date.now()}`, "fact", reason, { agentId: "mas-orchestrator" })
+			await ctx.flush()
+		} catch (err) {
+			Logger.warn(`[${this.name}] Failed to report abort to MAS:`, err)
+		}
+	}
+
+	/**
+	 * Ingests user feedback into the MAS context to refine planning.
+	 */
+	public async processUserFeedback(feedback: string): Promise<void> {
+		Logger.info(`[${this.name}] Ingesting user feedback: ${feedback.slice(0, 50)}...`)
+		try {
+			await this.controller.storeMemory("user_feedback_enrichment", feedback)
+			// Trigger a proactive reflection on the feedback
+			await this.executeTurnReflection(`User Feedback Received: ${feedback}`)
+		} catch (err) {
+			Logger.warn(`[${this.name}] Failed to process user feedback:`, err)
+		}
+	}
+
+	/**
+	 * Generates a "Lifeline" (pivot suggestion) when the agent is stuck.
+	 */
+	public async getStuckLifeline(): Promise<string | undefined> {
+		Logger.info(`[${this.name}] Generating stuck agent lifeline...`)
+		try {
+			const digest = await this.controller.getStreamDigest()
+			const prompt = `The agent appears stuck (consecutive mistakes/failures). Based on the following context, suggest a DRAMATIC PIVOT or a different tool approach:\n${digest}`
+
+			const suggestions = await this.kaizen.reflect(this.controller, this.apiHandler, prompt)
+			if (suggestions && suggestions.length > 0) {
+				return `💡 Swarm Lifeline: ${suggestions[0]}`
+			}
+		} catch (err) {
+			Logger.warn(`[${this.name}] Failed to generate lifeline:`, err)
+		}
+		return undefined
+	}
 }
