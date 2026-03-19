@@ -4,6 +4,9 @@
 
 ### Added
 - **Production Hardening (MAS):**
+  - **Recursive Swarm Architecture**: Implemented automated hierarchical decomposition where workers self-spawn child stream pools for infinite depth scaling.
+  - **Wave-Level Governance**: Introduced human-in-the-loop approval barriers between planning and acting phases with native UI integration.
+  - **Predictive Swarm Dashboard**: Developed a persistent, real-time "cockpit" UI with glassmorphism aesthetics for monitoring wave progress and active workers.
   - Replaced placeholder `simulateMerge` logic with true Least Common Ancestor (LCA) semantic conflict resolution in KnowledgeGraph.
   - Replaced `simulateMergeForecast` mockups with dual-branch, multi-hop blast radius intersection engines.
   - Upgraded Grounding validation by replacing "simulated" prompts with real concurrent Sub-Agent Streams for 'Swarm Consensus' and 'Red-Team Critique'.

@@ -38,11 +38,12 @@ MAS is implemented using a progressive optimization strategy:
 - **Adaptive Reprioritization**: `Kaizen` can dynamically freeze or elevate tasks in the queue based on architectural soundness.
 - **Unified Cog-Bus**: Real-time distribution of system context ensuring all agents remain in sync.
 
-### Tier 5: Swarm-Parallel Execution
+### Tier 5: Swarm-Parallel & Recursive Execution
 - **StreamPool**: A semaphore-based concurrency manager that dispatches Kanban tasks to concurrent `WorkerStreams`. Configurable `maxConcurrency` (default: 3) controls how many build agents run simultaneously.
+- **Wave Approval Governance**: To maintain high-trust during large-scale execution, `StreamPool` implements a **Wave Barrier**. Execution pauses after the planning phase of each wave, requiring explicit user approval via `codemarie.approveWave` before entering the acting phase.
 - **WorkerStream**: Each task executes within an isolated child stream with its own DB shadow. Workers perform file collision checks before writes. On success, the shadow is committed; on failure, it is rolled back.
-- **StreamCoordinator**: Inter-stream signaling layer managing file-level locks, collision resolution (exponential backoff with jitter), progress aggregation across all active workers, and shutdown coordination.
-- **Isolation Guarantee**: Worker failures are isolated — one crashing worker cannot bring down the pool. The parent stream receives aggregated results from all workers.
+- **Recursive Swarm Architecture**: For massive features, `WorkerStream` can automatically **Self-Decompose**. If a task's plan is too complex (5+ actions), the worker spawns a child `StreamPool` to execute its tasks in parallel, creating a hierarchical swarm tree. 
+- **StreamCoordinator**: Inter-stream signaling layer managing file-level locks, collision resolution, progress aggregation, and swarm-wide concurrency.
 
 ## Integration & Defaults
 - **Default Operation**: MAS is enabled by default (`masEnabled: true`).
@@ -53,10 +54,13 @@ MAS is implemented using a progressive optimization strategy:
 
 The MAS architecture is not simply a background CLI process—it fundamentally transforms the CodeMarie VS Code Webview UX. A suite of advanced React components in `webview-ui` has been built to surface the multi-agent cognitive process directly to the user:
 
-- **`SubagentStatusRow.tsx`**: Visually renders the real-time execution bounds of orchestrated parallel streams. It displays exactly when the Swarm (`Architect`, `Security`, `UX`) is "running", "completed", or "failed", along with tool usage and cost statistics.
-- **`RedTeamAlerts.tsx`**: Renders the adversarial critique payload. This injects a distinct, red-bordered critical warning block into the chat containing the computed `Risk Score` bar metric, isolated `Pitfalls`, and `Recommended Mitigations`.
-- **`ClarificationHub.tsx` & `IntentDecomposition.tsx`**: Surfaces the `Ikigai` intent analysis visually, allowing users to interactively clarify ambiguous project scopes before the Kanban planner begins.
-- **`ThinkingRow.tsx`**: Captures real-time output from the Cognitive Fabric's internal reasoning engine, giving users a transparent look into how CodeMarie is structurally evaluating the codebase.
+- **`SwarmDashboard.tsx`**: A persistent, sticky "cockpit" overlay that tracks real-time wave progress and active worker status using the `swarmState` synchronization protocol.
+- **`OrchestrationEventRow.tsx`**: High-fidelity event logging for the swarm, providing real-time feedback on worker starts, completions, and results with specialized icons.
+- **`WaveApprovalRow.tsx`**: A native governance UI that surfaces planned actions and architectural audit results for user review during wave transitions.
+- **`SubagentStatusRow.tsx`**: Visually renders the real-time execution bounds of orchestrated parallel streams.
+- **`RedTeamAlerts.tsx`**: Renders the adversarial critique payload from background red-teaming streams.
+- **`ClarificationHub.tsx` & `IntentDecomposition.tsx`**: Surfaces the `Ikigai` intent analysis visually, allowing users to interactively clarify ambiguous project scopes.
+- **`ThinkingRow.tsx`**: Captures real-time output from the Cognitive Fabric's internal reasoning engine.
 
 ## Reference Implementation
 - **Controller**: `src/core/orchestration/OrchestrationController.ts`

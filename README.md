@@ -27,6 +27,9 @@ CodeMarie moves beyond simple context windows via a persistent **Knowledge Graph
 ### 🐝 Multi-Agent System (MAS) & Unified Cognitive Fabric
 CodeMarie v3.78.0 introduces the **Unified Cognitive Fabric** and complete **Production Hardening**, where sub-agents operate as a single, interconnected, and fully verified mind:
 *   **Default Operational Mode**: MAS is now the default path, providing multi-agent orchestration for all complex grounded tasks (`masEnabled: true`).
+*   **Recursive Swarm Architecture**: Automated hierarchical decomposition where workers self-spawn child stream pools for complex sub-tasks, enabling infinite depth scaling.
+*   **Wave-Level Governance**: Human-in-the-loop approval barriers between planning and acting phases, ensuring collective intent is verified before any code is written.
+*   **Predictive Swarm Dashboard**: A persistent, real-time UI "cockpit" with glassmorphism aesthetics, providing total visibility into wave progress and active worker status.
 *   **Shared Reasoning Canvas**: Sub-agents like `Ikigai`, `JoyZoning`, and `Kaizen` communicate via native node annotations in BroccoliDB, creating a linked cognitive lineage.
 *   **Adaptive Reprioritization**: Integrated self-correction where the `Kaizen` system dynamically adjusts task priorities and downgrades features based on strict architectural soundness scores.
 *   **Swarm Consensus Protocol**: Intent grounding is peer-reviewed by true, concurrently spawned sub-agent streams (Architect, Security, UX) before any code execution begins.
