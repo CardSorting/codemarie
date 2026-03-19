@@ -208,6 +208,7 @@ When contributing features that interact with the Multi-Agent System (MAS):
 - **Virtual Filesystem Isolation**: Always use `BufferedDbPool` for file operations within an orchestration stream. The system enforces strict isolation via `(path, streamId)` primary keys to prevent cross-agent collisions.
 - **High-Fidelity Materialization**: Virtual changes are staged in BroccoliDB. Ensure your flow triggers `OrchestrationController.materialize()` to synchronize virtual state to the physical disk (including deletions).
 - **Context Optimization**: The system uses an intelligent directory-grouping algorithm for large "touched file" lists. Avoid manually injecting raw file paths into context windows.
+- **Deep Semantic Auditing**: All tool writes are now subject to deep semantic validation via the `KaizenSystem`. The Multi-Agent System acts as an **Authoritative Guardian**; persistent logic drift or failure to adhere to "Sticky Insights" will result in autonomous mission termination.
 
 ## Contribution Agreement
 

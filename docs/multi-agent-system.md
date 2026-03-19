@@ -45,6 +45,13 @@ MAS is implemented using a progressive optimization strategy:
 - **Recursive Swarm Architecture**: For massive features, `WorkerStream` can automatically **Self-Decompose**. If a task's plan is too complex (5+ actions), the worker spawns a child `StreamPool` to execute its tasks in parallel, creating a hierarchical swarm tree. 
 - **StreamCoordinator**: Inter-stream signaling layer managing file-level locks, collision resolution, progress aggregation, and swarm-wide concurrency.
 
+### Tier 6: Autonomous Authoritativeness & Swarm Persistence
+- **Reflection Adherence Tracking**: MAS monitors if agents ignore "Sticky Insights." Repeated neglect increases `adherenceFailures`, escalating mission risk levels.
+- **Predictive Mission Termination**: If architectural `soundnessTrend` shows unrecoverable logic drift (below 0.6), the MAS autonomously aborts the mission to prevent cascading errors.
+- **Cross-Stream Knowledge Grafting**: Active streams receive real-time "Global Swarm Updates" when sibling missions complete tasks and store "handoff" nodes in BroccoliDB.
+- **Deep Semantic Auditing**: Transitioned `auditFile` to MAS-driven deep semantic validation using the `KaizenSystem` for all tool writes.
+- **Risk-Based Safeguards**: Proactive system-led suggestions for `@checkpoint` and specialist **Tool-Doctor** advice for repeated execution mistakes.
+
 ## Integration & Defaults
 - **Default Operation**: MAS is enabled by default (`masEnabled: true`).
 - **User Control**: Users can disable MAS in the global settings if single-agent execution is preferred.

@@ -36,5 +36,13 @@ A new monitoring layer was added to `FluidPolicyEngine`:
 - **`ToolExecutor.ts`**: Integrated with `error_retry` logic to handle architectural corrections gracefully.
 - **`responses.ts`**: Added specific `architecturalCorrection` response formats for clear agent guidance.
 
+## 4. Deep Semantic Auditing & Mission Authority (v3.79.0)
+
+Phase 6 elevates the enforcement engine from localized AST checks to global semantic awareness:
+
+- **MAS-Driven Auditing**: The `auditFile` hook now invokes the `KaizenSystem` to perform deep reasoning on every write, ensuring changes align with the project's long-term architectural vision.
+- **Mission Authority**: The Multi-Agent System now acts as the authoritative guardian of mission health, tracking **Reflection Adherence** and terminating missions that exhibit signs of unrecoverable **Logic Drift**.
+- **Global Swarm Grafting**: Real-time cross-mission awareness ensures that all active agents remain synchronized with the latest architectural commitments made by sibling streams.
+
 ---
 *Last Updated: 2026-03-06*

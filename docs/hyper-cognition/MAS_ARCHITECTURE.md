@@ -49,7 +49,15 @@ The system maintains high quality through dynamic task queue management.
 ### 3. Predictive Handoff (The Cognitive Bus)
 To prevent context drift, the `MultiAgentStreamSystem` generates a `StreamDigest` at the start of every pass.
 - **Inclusion**: The digest is injected into the prompt of every sub-agent.
-- **Context**: Includes total task counts, failures, architectural violations (Strikes), and average result entropy.
+- **Context**: Includes total task counts, failures, architectural violations (Strikes), adherence failures, and average result entropy.
+
+## Swarm Evolution Phases
+
+### Phase 10: Autonomous Hardening & Swarm Continuity
+- **Authoritative Guardian**: Implementation of `adherenceFailures` and `soundnessTrend` to monitor mission health.
+- **Predictive Abort**: Autonomous mission termination logic for high-entropy/low-soundness streams.
+- **Cross-Stream Grafting**: Global notification system for sibling stream completion alerts.
+- **Deep Semantic Auditing**: MAS-driven validation replaces purely static/regex-based logic in the `auditFile` hook.
 
 ## Implementation Details
 

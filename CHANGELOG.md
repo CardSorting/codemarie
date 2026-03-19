@@ -3,11 +3,16 @@
 ## [3.79.0] - 2026-03-19
 
 ### Added
-- **Deep MAS Infrastructure Hardening (Phase 3 & 4):**
-  - **High-Fidelity Virtualization**: Implemented `(path, streamId)` composite primary keys in BroccoliDB to prevent CAS content collisions and ensure total isolation between concurrent agent streams.
-  - **Bi-Directional Materialization**: Enhanced the materialization engine to support **physical deletions**, ensuring that virtual filesystem removals are correctly synchronized to the physical disk.
-  - **Intelligent Context Compression**: Developed a sophisticated directory-grouping algorithm in `Orchestrator.ts` to prevent agent context window bloat during large-scale refactors while maintaining full situational awareness.
-  - **Automated Stream Isolation**: Injected automatic `streamId` propagation into `BufferedDbPool` to ensure all database operations are correctly traced and isolated.
+- **Deep MAS Infrastructure Hardening (Phase 3 - 6):**
+  - **Autonomous Course Correction**: MAS now enforces agent adherence to "Sticky Insights," with `adherenceFailures` escalating mission risk levels.
+  - **Predictive Mission Termination**: Implemented autonomous abort logic for unrecoverable logic drift based on declining `soundnessTrend`.
+  - **Cross-Stream Knowledge Grafting**: Active streams receive real-time "Global Swarm Updates" from sibling missions via BroccoliDB.
+  - **Deep Semantic Auditing**: Integrated Kaizen-driven semantic validation into the `auditFile` hook for all tool writes.
+  - **Risk-Based Checkpointing**: Proactive system-led suggestions for `@checkpoint` based on tool volatility and mission risk levels.
+  - **Tool-Doctor Advice**: Diagnostic hardening suggestions for agents encountering repeated tool failures.
+  - **High-Fidelity Virtualization**: Implemented `(path, streamId)` isolation in BroccoliDB to prevent CAS content collisions.
+  - **Bi-Directional Materialization**: Support for **physical deletions** during virtual filesystem synchronization.
+  - **Intelligent Context Compression**: Sophisticated directory-grouping to prevent context bloat during large refactors.
 
 ## [3.78.0] - 2026-03-18
 

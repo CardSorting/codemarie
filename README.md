@@ -5,7 +5,7 @@
 **CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing distributed agentic workflows, and ensuring transactional stability across your workspace.
 
 > [!IMPORTANT]
-> **State-of-the-Art Production Hardening (v3.78.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and speculative merging leverages authentic LCA graph conflict resolution and dual-branch blast-radius intersection tracking.
+> **State-of-the-Art Production Hardening (v3.79.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and the MAS has been elevated to an **Authoritative Guardian** with autonomous course correction and predictive mission termination.
 
 ---
 
@@ -38,6 +38,10 @@ CodeMarie v3.78.0 introduces the **Unified Cognitive Fabric** and complete **Pro
 *   **LCA Graph Resolution**: Implements deep Git-like Least Common Ancestor (LCA) traversals at the AST/Context layer to guarantee accurate conflict detection.
 *   **Stream Resilience & Auto-Recovery**: Automatic retry loops with "System Nudges" seamlessly handle LLM JSON parsing failures, ensuring the agent stream self-corrects without crashing.
 *   **Unified Cog-Bus**: Real-time system-wide context distribution ensures all agents remain flawlessly synchronized during deep multi-turn refactors.
+*   **Autonomous Course Correction**: MAS monitors agent adherence to "Sticky Insights" and provides **Tool-Doctor** diagnostic advice for repeated failures.
+*   **Predictive Mission Termination**: Autonomously aborts missions exhibiting unrecoverable "Logic Drift" based on declining architectural soundness trends.
+*   **Cross-Stream Knowledge Grafting**: Active missions receive real-time alerts from sibling streams via global BroccoliDB handoff notifications.
+*   **Deep Semantic Auditing**: Every tool write is audited for semantic architectural integrity by the MAS before commitment.
 *   **High-Fidelity Virtualization**: Intelligent BroccoliDB-backed virtual filesystem that uses `(path, streamId)` isolation to prevent content collisions and enable precise physical-to-virtual materialization (including deletions).
 *   **Intelligent Context Compression**: Sophisticated directory-grouping algorithm that prevents LLM context bloat in massive orchestration streams while preserving situational awareness across the swarm.
 
