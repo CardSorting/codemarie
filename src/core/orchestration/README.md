@@ -20,6 +20,8 @@ manages the lifecycle of an individual agent task.
 The bridge between the core orchestration logic and the user interface.
 - **Event Dispatching**: Routes lifecycle events to registered task callbacks.
 - **State Management**: Tracks `SwarmState` (active workers, progress) for the `SwarmDashboard`.
+- **Virtual Filesystem Overlay**: Implements an isolated BroccoliDB shadow buffer for all file operations during a stream.
+- **High-Fidelity Materialization**: Synchronizes virtual changes to the physical disk upon completion, with full support for file creations, updates, and physical deletions.
 
 ## Swarm Lifecycle Events
 The system emits structured `orchestration_event` messages via `CodemarieSay`:

@@ -1,4 +1,13 @@
 # Changelog
+ 
+## [3.79.0] - 2026-03-19
+
+### Added
+- **Deep MAS Infrastructure Hardening (Phase 3 & 4):**
+  - **High-Fidelity Virtualization**: Implemented `(path, streamId)` composite primary keys in BroccoliDB to prevent CAS content collisions and ensure total isolation between concurrent agent streams.
+  - **Bi-Directional Materialization**: Enhanced the materialization engine to support **physical deletions**, ensuring that virtual filesystem removals are correctly synchronized to the physical disk.
+  - **Intelligent Context Compression**: Developed a sophisticated directory-grouping algorithm in `Orchestrator.ts` to prevent agent context window bloat during large-scale refactors while maintaining full situational awareness.
+  - **Automated Stream Isolation**: Injected automatic `streamId` propagation into `BufferedDbPool` to ensure all database operations are correctly traced and isolated.
 
 ## [3.78.0] - 2026-03-18
 

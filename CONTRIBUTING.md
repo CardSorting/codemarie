@@ -202,6 +202,13 @@ Anyone can contribute code to Cline, but we ask that you follow these guidelines
     - List any breaking changes
     - Add screenshots for UI changes
 
+## MAS & Architectural Integrity
+
+When contributing features that interact with the Multi-Agent System (MAS):
+- **Virtual Filesystem Isolation**: Always use `BufferedDbPool` for file operations within an orchestration stream. The system enforces strict isolation via `(path, streamId)` primary keys to prevent cross-agent collisions.
+- **High-Fidelity Materialization**: Virtual changes are staged in BroccoliDB. Ensure your flow triggers `OrchestrationController.materialize()` to synchronize virtual state to the physical disk (including deletions).
+- **Context Optimization**: The system uses an intelligent directory-grouping algorithm for large "touched file" lists. Avoid manually injecting raw file paths into context windows.
+
 ## Contribution Agreement
 
 By submitting a pull request, you agree that your contributions will be licensed under the same license as the project ([Apache 2.0](LICENSE)).

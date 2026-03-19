@@ -38,6 +38,8 @@ CodeMarie v3.78.0 introduces the **Unified Cognitive Fabric** and complete **Pro
 *   **LCA Graph Resolution**: Implements deep Git-like Least Common Ancestor (LCA) traversals at the AST/Context layer to guarantee accurate conflict detection.
 *   **Stream Resilience & Auto-Recovery**: Automatic retry loops with "System Nudges" seamlessly handle LLM JSON parsing failures, ensuring the agent stream self-corrects without crashing.
 *   **Unified Cog-Bus**: Real-time system-wide context distribution ensures all agents remain flawlessly synchronized during deep multi-turn refactors.
+*   **High-Fidelity Virtualization**: Intelligent BroccoliDB-backed virtual filesystem that uses `(path, streamId)` isolation to prevent content collisions and enable precise physical-to-virtual materialization (including deletions).
+*   **Intelligent Context Compression**: Sophisticated directory-grouping algorithm that prevents LLM context bloat in massive orchestration streams while preserving situational awareness across the swarm.
 
 ### 🐝 Bee Swarm Coordination & Adaptive Intelligence
 Industrial-grade orchestration for distributed, self-correcting workflows:
@@ -96,8 +98,8 @@ graph TD
         Controller --> MAS[Multi-Agent Orchestrator]:::secondary
         MAS <--> SignalBus{Cog-Bus / Signaling Layer}:::secondary
         SignalBus <--> SubA[Architect Stream]:::secondary
-        SignalBus <--> SubB[Security Stream]:::secondary
-        SignalBus <--> SubC[UX Stream]:::secondary
+        SignalBus <--> Compressor[Context Compressor]:::secondary
+        MAS --> Materializer[High-Fidelity Materializer]:::secondary
     end
     
     subgraph "Hyper-Cognition Engine"
@@ -115,7 +117,7 @@ graph TD
         MAS --> DB[(BroccoliDB / SQLite)]:::database
         KGS --> DB
         JZ --> DB
-        DB --> Shadows[Shadow Workspaces]:::database
+        DB --> Shadows["Shadow Workspaces (path, streamId Isolation)"]:::database
         DB --> Mutex[Swarm Mutex Locks]:::database
         DB --> Nodes[Semantic Knowledge Nodes]:::database
     end
@@ -152,9 +154,8 @@ graph TD
     JoyZoningSys --> Kanban[3. Kanban System]
     Kanban -- "Generates Task Stream" --> Exec[Task Execution]
     Exec --> Kaizen[4. Kaizen System]
-    Kaizen -- "Evaluates AST Soundness" --> Reprioritize{Adaptive Reprioritize}
-    Reprioritize -- Low Soundness --> Kanban
-    Reprioritize -- High Quality --> Finish([Turn Complete])
+    Kaizen -- "Evaluates AST Soundness" --> Materialize[5. Materialize & Sync]
+    Materialize -- "Disk Consistent" --> Finish([Turn Complete])
 ```
 
 ### 3. Cognitive Fabric & Predictive Forecasting
