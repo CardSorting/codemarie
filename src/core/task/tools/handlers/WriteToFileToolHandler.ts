@@ -322,6 +322,12 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 				{ concurrencyGroup: "fs" },
 			)
 
+			// Tier 7: MAS Virtual File System Sync
+			// Ensure the orchestration controller's shadow reflects the newly written content
+			if (config.services.orchestrationController && finalContent !== undefined) {
+				await config.services.orchestrationController.updateVirtualContent(absolutePath, finalContent)
+			}
+
 			// Reset consecutive mistake counter on successful file operation
 			config.taskState.consecutiveMistakeCount = 0
 

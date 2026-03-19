@@ -41,6 +41,13 @@ const agentFeatures: FeatureToggle[] = [
 		settingKey: "subagentsEnabled",
 	},
 	{
+		id: "mas",
+		label: "Multi-Agent System (MAS)",
+		description: "Use orchestration stream for complex task planning and execution.",
+		stateKey: "masEnabled",
+		settingKey: "masEnabled",
+	},
+	{
 		id: "native-tool-call",
 		label: "Native Tool Call",
 		description: "Use native function calling when available",
@@ -200,6 +207,7 @@ const FeatureSettingsSection = ({ renderSectionHeader }: FeatureSettingsSectionP
 		enableParallelToolCalling,
 		backgroundEditEnabled,
 		doubleCheckCompletionEnabled,
+		masEnabled,
 	} = useExtensionState()
 
 	const handleFocusChainIntervalChange = useCallback(
@@ -224,6 +232,7 @@ const FeatureSettingsSection = ({ renderSectionHeader }: FeatureSettingsSectionP
 		enableParallelToolCalling,
 		backgroundEditEnabled,
 		doubleCheckCompletionEnabled,
+		masEnabled,
 		yoloModeToggled: isYoloRemoteLocked ? remoteConfigSettings?.yoloModeToggled : yoloModeToggled,
 	}
 

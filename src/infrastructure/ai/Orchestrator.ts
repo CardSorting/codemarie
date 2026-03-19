@@ -242,6 +242,14 @@ export class AgentOrchestrator {
 				.reduce((acc, t) => acc + (t.metadata?.entropy_score || 0), 0) /
 			(tasks.filter((t) => t.metadata?.entropy_score !== undefined).length || 1)
 
+		// Get touched files from the virtual filesystem (shadow ops)
+		const shadowOps = dbPool.getShadowOps(streamId)
+		const touchedFiles = new Set<string>()
+		for (const op of shadowOps) {
+			const opPath = (op.values as any)?.path || (op.where as any)?.path
+			if (opPath) touchedFiles.add(opPath)
+		}
+
 		const digest = {
 			streamId,
 			summary: summary || "No summary available",
@@ -249,6 +257,8 @@ export class AgentOrchestrator {
 			taskCount: tasks.length,
 			completedTasks,
 			failedTasks,
+			touchedFilesCount: touchedFiles.size,
+			touchedFiles: Array.from(touchedFiles),
 			childStreamCount: childStreams.length,
 			activeChildStreams: childStreams.filter((s) => s.status === "active").length,
 			uniqueViolations: [...new Set(violations)],

@@ -19,6 +19,7 @@ import type { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { WorkspaceRootManager } from "@/core/workspace"
 import type { ContextManager } from "../../../context/context-management/ContextManager"
 import { GroundedSpec } from "../../../grounding/types"
+import type { OrchestrationController } from "../../../orchestration/OrchestrationController"
 import type { StateManager } from "../../../storage/StateManager"
 import type { MessageStateHandler } from "../../message-state"
 import type { TaskState } from "../../TaskState"
@@ -84,6 +85,7 @@ export interface TaskServices {
 	contextManager: ContextManager
 	stateManager: StateManager
 	knowledgeGraphService: KnowledgeGraphService
+	orchestrationController?: OrchestrationController
 }
 
 /**

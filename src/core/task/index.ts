@@ -1473,6 +1473,9 @@ export class Task {
 		let nextUserContent = userContent
 		let includeFileDetails = true
 
+		// Ensure MAS and orchestration stream are initialized
+		await this.streamReadyPromise
+
 		// Phase 2: Intent Grounding
 		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? true
 		if (!this.taskState.groundedSpec && !this.taskState.didAttemptGrounding && userContent.length > 0) {

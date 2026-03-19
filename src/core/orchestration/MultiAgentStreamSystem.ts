@@ -93,11 +93,16 @@ export class MultiAgentStreamSystem {
 		await this.controller.updateTaskProgress("planned")
 
 		// 4. Concurrent Build Dispatch (Tier 5: Swarm-Parallel Execution)
-		if (tasks.length > 1) {
+		if (tasks.length > 0) {
 			this.lastPoolResult = await this.executeConcurrentBuild(tasks)
 			Logger.info(
-				`[${this.name}] Concurrent build: ${this.lastPoolResult.completed}/${this.lastPoolResult.totalTasks} tasks succeeded in ${this.lastPoolResult.durationMs}ms`,
+				`[${this.name}] Build: ${this.lastPoolResult.completed}/${this.lastPoolResult.totalTasks} tasks succeeded in ${this.lastPoolResult.durationMs}ms`,
 			)
+
+			// 5. Final Materialization (Sync DB to Physical Disk)
+			if (this.lastPoolResult.completed > 0) {
+				await this.controller.materialize()
+			}
 		}
 
 		Logger.info(`[${this.name}] First pass completed. Ready for execution.`)

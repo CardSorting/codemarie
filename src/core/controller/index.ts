@@ -900,6 +900,7 @@ export class Controller {
 		const lastDismissedCliBannerVersion = this.stateManager.getGlobalStateKey("lastDismissedCliBannerVersion") || 0
 		const dismissedBanners = this.stateManager.getGlobalStateKey("dismissedBanners")
 		const doubleCheckCompletionEnabled = this.stateManager.getGlobalSettingsKey("doubleCheckCompletionEnabled")
+		const masEnabled = this.stateManager.getGlobalSettingsKey("masEnabled") ?? true
 
 		const localCodemarieRulesToggles = this.stateManager.getWorkspaceStateKey("localCodemarieRulesToggles")
 		const localWindsurfRulesToggles = this.stateManager.getWorkspaceStateKey("localWindsurfRulesToggles")
@@ -1010,6 +1011,8 @@ export class Controller {
 			backgroundEditEnabled: this.stateManager.getGlobalSettingsKey("backgroundEditEnabled"),
 			optOutOfRemoteConfig: this.stateManager.getGlobalSettingsKey("optOutOfRemoteConfig"),
 			doubleCheckCompletionEnabled,
+			masEnabled,
+			swarmState: this.task?.taskState.swarmState,
 			banners,
 			welcomeBanners,
 			openAiCodexIsAuthenticated,

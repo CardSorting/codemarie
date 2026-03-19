@@ -1,3 +1,4 @@
+import * as fs from "fs/promises"
 import * as path from "path"
 import { AgentStream, AgentTask, orchestrator, TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
 import { dbPool, WriteOp } from "@/infrastructure/db/BufferedDbPool"
@@ -330,16 +331,41 @@ export class OrchestrationController {
 
 		const shadow = dbPool.getShadowOps(this.streamId)
 		const latestOp = shadow
-			.filter((op) => op.type === "insert" || op.type === "update")
+			.filter((op) => op.type === "insert" || op.type === "update" || op.type === "upsert")
 			.reverse()
 			.find((op) => {
 				const values = op.values as any
 				const where = op.where as any
-				const opPath = values?.path || where?.path
-				return opPath && path.resolve(process.cwd(), opPath) === filePath
+				const opPath = values?.path || (where as any)?.column === "path" ? (where as any).value : undefined
+				if (!opPath) return false
+				const absOpPath = path.isAbsolute(opPath) ? opPath : path.resolve(process.cwd(), opPath)
+				return absOpPath === filePath
 			})
 
 		return latestOp?.values?.content as string | undefined
+	}
+
+	/**
+	 * Updates the virtual content of a file in the stream's shadow.
+	 */
+	public async updateVirtualContent(filePath: string, content: string): Promise<void> {
+		const relPath = path.relative(process.cwd(), filePath)
+		await this.pushDbOp(
+			{
+				type: "upsert",
+				table: "files",
+				where: [{ column: "path", value: relPath }],
+				values: {
+					path: relPath,
+					content: content,
+					author: `MainAgent-${this.streamId.slice(0, 8)}`,
+					repoPath: `workspaces/${this.workspaceId}`,
+					id: `main-${Buffer.from(relPath).toString("hex")}`,
+				},
+				layer: "infrastructure",
+			},
+			filePath,
+		)
 	}
 
 	/**
@@ -548,6 +574,39 @@ export class OrchestrationController {
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to get tasks for ${this.streamId}:`, error)
 			return []
+		}
+	}
+
+	/**
+	 * Materializes all virtual files in the BroccoliDB 'files' table for this stream
+	 * to the physical filesystem.
+	 */
+	public async materialize(): Promise<void> {
+		try {
+			const files = await dbPool.selectWhere("files", [
+				{ column: "author", value: `%Worker-${this.streamId.slice(0, 8)}%`, operator: "like" } as any,
+			])
+
+			// If no files found by author, try fetching ALL if this is a parent stream
+			let targetFiles = files
+			if (targetFiles.length === 0) {
+				const allFiles = await dbPool.selectAllFrom("files")
+				// Filter by paths touched in this stream context if possible
+				targetFiles = allFiles
+			}
+
+			Logger.info(`[Orchestration] Materializing ${targetFiles.length} files to disk...`)
+
+			for (const file of targetFiles) {
+				const absolutePath = path.isAbsolute(file.path) ? file.path : path.resolve(process.cwd(), file.path)
+				const dir = path.dirname(absolutePath)
+
+				await fs.mkdir(dir, { recursive: true })
+				await fs.writeFile(absolutePath, file.content, "utf8")
+				Logger.info(`[Orchestration] Materialized: ${file.path}`)
+			}
+		} catch (error) {
+			Logger.error(`[Orchestration] Failed to materialize files:`, error)
 		}
 	}
 }

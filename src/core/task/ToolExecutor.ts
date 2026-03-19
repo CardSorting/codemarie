@@ -173,6 +173,7 @@ export class ToolExecutor {
 				contextManager: this.contextManager,
 				stateManager: this.stateManager,
 				knowledgeGraphService: kgService,
+				orchestrationController: this.getOrchestrationController(),
 			},
 			callbacks: {
 				say: this.say,
