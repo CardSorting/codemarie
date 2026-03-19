@@ -86,7 +86,6 @@ export class StateManager {
 		requestyModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		huaweiCloudMaasModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		hicapModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		aihubmixModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		liteLlmModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		vercelModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 	} = {
@@ -98,7 +97,6 @@ export class StateManager {
 		requestyModels: null,
 		huaweiCloudMaasModels: null,
 		hicapModels: null,
-		aihubmixModels: null,
 		liteLlmModels: null,
 		vercelModels: null,
 	}
@@ -450,7 +448,6 @@ export class StateManager {
 			| "requesty"
 			| "huaweiCloudMaas"
 			| "hicap"
-			| "aihubmix"
 			| "liteLlm"
 			| "vercel",
 		models: Record<string, ModelInfo>,
@@ -469,7 +466,6 @@ export class StateManager {
 			| "requesty"
 			| "huaweiCloudMaas"
 			| "hicap"
-			| "aihubmix"
 			| "liteLlm"
 			| "vercel",
 	): Record<string, ModelInfo> | null {
@@ -493,16 +489,7 @@ export class StateManager {
 	 * Get model info by provider and model ID (from in-memory cache)
 	 */
 	getModelInfo(
-		provider:
-			| "openRouter"
-			| "groq"
-			| "baseten"
-			| "huggingFace"
-			| "requesty"
-			| "huaweiCloudMaas"
-			| "hicap"
-			| "aihubmix"
-			| "liteLlm",
+		provider: "openRouter" | "groq" | "baseten" | "huggingFace" | "requesty" | "huaweiCloudMaas" | "hicap" | "liteLlm",
 		modelId: string,
 	): ModelInfo | undefined {
 		const cacheKey = `${provider}Models` as keyof typeof this.modelInfoCache

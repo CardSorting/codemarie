@@ -87,8 +87,6 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 			return !!config.huaweiCloudMaasApiKey
 		case "vercel-ai-gateway":
 			return !!config.vercelAiGatewayApiKey
-		case "aihubmix":
-			return !!config.aihubmixApiKey
 		case "nousResearch":
 			return !!config.nousResearchApiKey
 		case "openai":

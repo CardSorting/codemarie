@@ -725,7 +725,6 @@
 ## [3.36.0]
 
 - Add: Hooks allow you to inject custom logic into Cline's workflow
-- Add: new provider AIhubmix
 - Add: Use http_proxy, https_proxy and no_proxy in JetBrains
 - Fix: Oca Token Refresh logic
 - Fix: issues where assistant message with empty content is added to conversation history

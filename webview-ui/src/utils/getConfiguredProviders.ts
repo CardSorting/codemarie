@@ -176,11 +176,6 @@ export function getConfiguredProviders(
 		configured.push("vercel-ai-gateway")
 	}
 
-	// AIHubMix - requires API key
-	if (apiConfiguration.aihubmixApiKey) {
-		configured.push("aihubmix")
-	}
-
 	// NousResearch - requires API key
 	if (apiConfiguration.nousResearchApiKey) {
 		configured.push("nousResearch")

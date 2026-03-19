@@ -211,7 +211,6 @@
 							{
 								"group": "Advanced Configuration",
 								"pages": [
-									"provider-config/aihubmix",
 									"provider-config/dify",
 									"provider-config/hicap",
 									"provider-config/litellm-and-cline-using-codestral",

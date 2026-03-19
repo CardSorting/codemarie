@@ -470,16 +470,6 @@ export function normalizeApiConfiguration(
 				selectedModelId: ocaModelId || liteLlmDefaultModelId,
 				selectedModelInfo: ocaModelInfo || liteLlmModelInfoSaneDefaults,
 			}
-		case "aihubmix":
-			const aihubmixModelId =
-				currentMode === "plan" ? apiConfiguration?.planModeAihubmixModelId : apiConfiguration?.actModeAihubmixModelId
-			const aihubmixModelInfo =
-				currentMode === "plan" ? apiConfiguration?.planModeAihubmixModelInfo : apiConfiguration?.actModeAihubmixModelInfo
-			return {
-				selectedProvider: provider,
-				selectedModelId: aihubmixModelId || openRouterDefaultModelId,
-				selectedModelInfo: aihubmixModelInfo || openRouterDefaultModelInfo,
-			}
 		case "minimax":
 			return getProviderData(minimaxModels, minimaxDefaultModelId)
 		case "nousResearch":
@@ -528,7 +518,6 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			huggingFaceModelId: undefined,
 			huaweiCloudMaasModelId: undefined,
 			hicapModelId: undefined,
-			aihubmixModelId: undefined,
 			nousResearchModelId: undefined,
 			vercelAiGatewayModelId: undefined,
 
@@ -542,7 +531,6 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			basetenModelInfo: undefined,
 			huggingFaceModelInfo: undefined,
 			vsCodeLmModelSelector: undefined,
-			aihubmixModelInfo: undefined,
 
 			// AWS Bedrock fields
 			awsBedrockCustomSelected: undefined,
@@ -593,7 +581,6 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			mode === "plan" ? apiConfiguration.planModeHuaweiCloudMaasModelId : apiConfiguration.actModeHuaweiCloudMaasModelId,
 		ocaModelId: mode === "plan" ? apiConfiguration.planModeOcaModelId : apiConfiguration.actModeOcaModelId,
 		hicapModelId: mode === "plan" ? apiConfiguration.planModeHicapModelId : apiConfiguration.actModeHicapModelId,
-		aihubmixModelId: mode === "plan" ? apiConfiguration.planModeAihubmixModelId : apiConfiguration.actModeAihubmixModelId,
 		nousResearchModelId:
 			mode === "plan" ? apiConfiguration.planModeNousResearchModelId : apiConfiguration.actModeNousResearchModelId,
 		vercelAiGatewayModelId:
@@ -613,8 +600,6 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 		vsCodeLmModelSelector:
 			mode === "plan" ? apiConfiguration.planModeVsCodeLmModelSelector : apiConfiguration.actModeVsCodeLmModelSelector,
 		hicapModelInfo: mode === "plan" ? apiConfiguration.planModeHicapModelInfo : apiConfiguration.actModeHicapModelInfo,
-		aihubmixModelInfo:
-			mode === "plan" ? apiConfiguration.planModeAihubmixModelInfo : apiConfiguration.actModeAihubmixModelInfo,
 		vercelAiGatewayModelInfo:
 			mode === "plan"
 				? apiConfiguration.planModeVercelAiGatewayModelInfo
@@ -804,12 +789,6 @@ export async function syncModeConfigurations(
 			updates.actModeNousResearchModelId = sourceFields.nousResearchModelId
 			break
 
-		case "aihubmix":
-			updates.planModeAihubmixModelId = sourceFields.aihubmixModelId
-			updates.planModeAihubmixModelInfo = sourceFields.aihubmixModelInfo
-			updates.actModeAihubmixModelId = sourceFields.aihubmixModelId
-			updates.actModeAihubmixModelInfo = sourceFields.aihubmixModelInfo
-			break
 		default:
 			updates.planModeApiModelId = sourceFields.apiModelId
 			updates.actModeApiModelId = sourceFields.apiModelId
@@ -901,13 +880,6 @@ export const getProviderInfo = (
 				modelId: effectiveMode === "plan" ? apiConfiguration.planModeOcaModelId : apiConfiguration.actModeOcaModelId,
 				baseUrl: apiConfiguration.ocaBaseUrl,
 				helpText: "Configure your OCA endpoint in settings",
-			}
-		case "aihubmix":
-			return {
-				modelId:
-					effectiveMode === "plan" ? apiConfiguration.planModeAihubmixModelId : apiConfiguration.actModeAihubmixModelId,
-				baseUrl: apiConfiguration.aihubmixBaseUrl,
-				helpText: "Add your AIHubMix API key in settings",
 			}
 		default:
 			return {

@@ -24,7 +24,6 @@ FILES = [
     "remote-ui/src/components/settings/providers/RequestyProvider.tsx",
     "remote-ui/src/components/settings/providers/OpenRouterProvider.tsx",
     "remote-ui/src/components/settings/providers/VSCodeLmProvider.tsx",
-    "remote-ui/src/components/settings/providers/AihubmixProvider.tsx",
     "remote-ui/src/components/settings/providers/OllamaProvider.tsx",
     "remote-ui/src/components/settings/providers/OpenAiCodexProvider.tsx",
     "remote-ui/src/components/settings/providers/OcaProvider.tsx",

@@ -39,7 +39,6 @@ export type ApiProvider =
 	| "vercel-ai-gateway"
 	| "zai"
 	| "oca"
-	| "aihubmix"
 	| "minimax"
 	| "hicap"
 	| "nousResearch"
@@ -1994,17 +1993,6 @@ export const deepSeekModels = {
 		cacheReadsPrice: 0.14,
 	},
 } as const satisfies Record<string, ModelInfo>
-
-export const aihubmixDefaultModelId = "claude-3-5-sonnet-20241022"
-export const aihubmixDefaultModelInfo: ModelInfo = {
-	maxTokens: 8192,
-	contextWindow: 128000,
-	supportsImages: true,
-	supportsPromptCache: false,
-	inputPrice: 3.0,
-	outputPrice: 15.0,
-	description: "AIhubmix default model",
-}
 
 // Hugging Face Inference Providers
 // https://huggingface.co/docs/inference-providers/en/index

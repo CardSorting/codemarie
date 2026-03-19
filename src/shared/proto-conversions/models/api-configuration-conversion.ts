@@ -316,8 +316,6 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.DIFY
 		case "oca":
 			return ProtoApiProvider.OCA
-		case "aihubmix":
-			return ProtoApiProvider.AIHUBMIX
 		case "minimax":
 			return ProtoApiProvider.MINIMAX
 		case "hicap":
@@ -410,8 +408,6 @@ export function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvid
 			return "dify"
 		case ProtoApiProvider.OCA:
 			return "oca"
-		case ProtoApiProvider.AIHUBMIX:
-			return "aihubmix"
 		case ProtoApiProvider.MINIMAX:
 			return "minimax"
 		case ProtoApiProvider.NOUSRESEARCH:
@@ -506,9 +502,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		nousResearchApiKey: config.nousResearchApiKey,
 		codemarieApiKey: config.codemarieApiKey,
 		ocaMode: config.ocaMode,
-		aihubmixApiKey: config.aihubmixApiKey,
-		aihubmixBaseUrl: config.aihubmixBaseUrl,
-		aihubmixAppCode: config.aihubmixAppCode,
 		hicapApiKey: config.hicapApiKey,
 		hicapModelId: config.hicapModelId,
 		embeddingProvider: config.embeddingProvider ? convertApiProviderToProto(config.embeddingProvider) : undefined,
@@ -554,8 +547,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		planModeOcaModelId: config.planModeOcaModelId,
 		planModeOcaModelInfo: convertOcaModelInfoToProtoOcaModelInfo(config.planModeOcaModelInfo),
 		planModeOcaReasoningEffort: config.planModeOcaReasoningEffort,
-		planModeAihubmixModelId: config.planModeAihubmixModelId,
-		planModeAihubmixModelInfo: convertOpenAiCompatibleModelInfoToProto(config.planModeAihubmixModelInfo),
 		planModeHicapModelId: config.planModeHicapModelId,
 		planModeHicapModelInfo: convertModelInfoToProtoOpenRouter(config.planModeHicapModelInfo),
 		planModeNousResearchModelId: config.planModeNousResearchModelId,
@@ -598,8 +589,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		actModeOcaModelId: config.actModeOcaModelId,
 		actModeOcaModelInfo: convertOcaModelInfoToProtoOcaModelInfo(config.actModeOcaModelInfo),
 		actModeOcaReasoningEffort: config.actModeOcaReasoningEffort,
-		actModeAihubmixModelId: config.actModeAihubmixModelId,
-		actModeAihubmixModelInfo: convertOpenAiCompatibleModelInfoToProto(config.actModeAihubmixModelInfo),
 		actModeHicapModelId: config.actModeHicapModelId,
 		actModeHicapModelInfo: convertModelInfoToProtoOpenRouter(config.actModeHicapModelInfo),
 		actModeNousResearchModelId: config.actModeNousResearchModelId,
@@ -685,9 +674,6 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		difyBaseUrl: protoConfig.difyBaseUrl,
 		ocaBaseUrl: protoConfig.ocaBaseUrl,
 		ocaMode: protoConfig.ocaMode,
-		aihubmixApiKey: protoConfig.aihubmixApiKey,
-		aihubmixBaseUrl: protoConfig.aihubmixBaseUrl,
-		aihubmixAppCode: protoConfig.aihubmixAppCode,
 		minimaxApiKey: protoConfig.minimaxApiKey,
 		minimaxApiLine: protoConfig.minimaxApiLine,
 		hicapApiKey: protoConfig.hicapApiKey,
@@ -741,8 +727,6 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		planModeOcaModelId: protoConfig.planModeOcaModelId,
 		planModeOcaModelInfo: convertProtoOcaModelInfoToOcaModelInfo(protoConfig.planModeOcaModelInfo),
 		planModeOcaReasoningEffort: protoConfig.planModeOcaReasoningEffort,
-		planModeAihubmixModelId: protoConfig.planModeAihubmixModelId,
-		planModeAihubmixModelInfo: convertProtoToOpenAiCompatibleModelInfo(protoConfig.planModeAihubmixModelInfo),
 		planModeHicapModelId: protoConfig.planModeHicapModelId,
 		planModeHicapModelInfo: convertProtoToModelInfo(protoConfig.planModeHicapModelInfo),
 		planModeNousResearchModelId: protoConfig.planModeNousResearchModelId,
@@ -786,8 +770,6 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		actModeOcaModelId: protoConfig.actModeOcaModelId,
 		actModeOcaModelInfo: convertProtoOcaModelInfoToOcaModelInfo(protoConfig.actModeOcaModelInfo),
 		actModeOcaReasoningEffort: protoConfig.actModeOcaReasoningEffort,
-		actModeAihubmixModelId: protoConfig.actModeAihubmixModelId,
-		actModeAihubmixModelInfo: convertProtoToOpenAiCompatibleModelInfo(protoConfig.actModeAihubmixModelInfo),
 		actModeHicapModelId: protoConfig.actModeHicapModelId,
 		actModeHicapModelInfo: convertProtoToModelInfo(protoConfig.actModeHicapModelInfo),
 		actModeNousResearchModelId: protoConfig.actModeNousResearchModelId,
