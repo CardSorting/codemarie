@@ -222,10 +222,11 @@ export class WorkerStream {
 
 		Logger.info(`[${this.name}] Acting phase (implementing ${actions.length - completedCount}/${actions.length} actions)...`)
 
-		const reports: any[] = []
-		// Initialize reports from existing metadata if resuming?
-		// For now, we'll just implement the remaining ones.
-
+		let reports: any[] = []
+		if (completedCount > 0 && currentTask?.metadata) {
+			const existingReports = (currentTask.metadata as any).execution_reports || []
+			reports = existingReports.slice(0, completedCount)
+		}
 		for (let i = 0; i < actions.length; i++) {
 			if (i < completedCount) continue // Skip already done
 
@@ -268,7 +269,7 @@ ${currentContent || "(New File)"}`
 			reports.push({ file: result.file, explanation: result.explanation, status: "applied" })
 
 			// Commit progress after each successful action
-			await this.childController?.updateActionProgress(this.task.id, i + 1)
+			await this.childController?.updateActionProgress(this.task.id, i + 1, reports)
 		}
 
 		return reports

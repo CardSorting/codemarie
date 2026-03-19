@@ -177,12 +177,7 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 
 	/**
 	 * Restore checkpoint for workspace roots
-	 * For now, this restores the primary root only for simplicity
-	 * Future enhancement: restore all roots to their respective checkpoints
-	 */
-	/**
-	 * Restore checkpoint for workspace roots
-	 * Restores all workspace trackers to the checkpoint hash associated with the message.
+	 * Restores all workspace trackers to their specific checkpoint hashes associated with the message.
 	 */
 	async restoreCheckpoint(
 		messageTs: number,
@@ -201,13 +196,31 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 			return { error: "No checkpoint hash found" }
 		}
 
-		const hash = message.lastCheckpointHash
-		Logger.log(`[MultiRootCheckpointManager] Restoring ${this.trackers.size} trackers to ${hash}`)
+		const hashStr = message.lastCheckpointHash
+		let compositeHash: Record<string, string> = {}
+		try {
+			const parsed = JSON.parse(hashStr)
+			if (parsed && typeof parsed === "object") {
+				compositeHash = parsed
+			}
+		} catch (e) {
+			// Fallback: use the same string for all (legacy mode)
+			for (const path of this.trackers.keys()) {
+				compositeHash[path] = hashStr
+			}
+		}
+
+		Logger.log(`[MultiRootCheckpointManager] Restoring ${this.trackers.size} trackers using composite hash`)
 
 		// Restore all trackers in parallel
-		const restorePromises = Array.from(this.trackers.values()).map(async (tracker) => {
+		const restorePromises = Array.from(this.trackers.entries()).map(async ([path, tracker]) => {
 			try {
-				await tracker.resetHead(hash)
+				const workspaceHash = compositeHash[path]
+				if (!workspaceHash) {
+					Logger.log(`[MultiRootCheckpointManager] No hash for path ${path}, skipping restore for this root`)
+					return false
+				}
+				await tracker.resetHead(workspaceHash)
 				return true
 			} catch (error) {
 				Logger.error(`[MultiRootCheckpointManager] Failed to restore tracker at ${tracker.getWorkingDirectory()}:`, error)
@@ -270,40 +283,36 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 
 	/**
 	 * Commit changes across all workspaces
-	 * Returns the primary root's commit hash for backward compatibility
+	 * Returns a composite JSON map of hashes for multi-root compatibility
 	 */
 	async commit(): Promise<string | undefined> {
 		if (!this.initialized || this.trackers.size === 0) {
 			return undefined
 		}
 
-		const primaryRoot = this.workspaceManager.getPrimaryRoot()
-		if (!primaryRoot) {
-			Logger.warn("[MultiRootCheckpointManager] No primary root found, committing all roots")
-			// Just commit all roots and return undefined
-			const commitPromises = Array.from(this.trackers.values()).map((tracker) =>
-				tracker.commit().catch((error) => {
-					Logger.error("[MultiRootCheckpointManager] Commit error:", error)
-					return undefined
-				}),
-			)
-			await Promise.all(commitPromises)
-			return undefined
-		}
-
 		// Commit all roots in parallel
-		const commitPromises = Array.from(this.trackers.values()).map((tracker) =>
-			tracker.commit().catch((error) => {
+		const commitPromises = Array.from(this.trackers.entries()).map(async ([path, tracker]) => {
+			const hash = await tracker.commit().catch((error) => {
 				Logger.error("[MultiRootCheckpointManager] Commit error:", error)
 				return undefined
-			}),
-		)
+			})
+			return { path, hash }
+		})
 
 		const results = await Promise.all(commitPromises)
+		const compositeHash: Record<string, string> = {}
+		let hasAnyHash = false
+		for (const { path, hash } of results) {
+			if (hash) {
+				compositeHash[path] = hash
+				hasAnyHash = true
+			}
+		}
 
-		// Return primary root's hash for compatibility with existing code
-		const primaryIndex = Array.from(this.trackers.keys()).indexOf(primaryRoot.path)
-		return results[primaryIndex]
+		if (!hasAnyHash) {
+			return undefined
+		}
+		return JSON.stringify(compositeHash)
 	}
 
 	/**

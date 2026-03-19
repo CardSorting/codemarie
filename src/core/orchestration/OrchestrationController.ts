@@ -197,11 +197,15 @@ export class OrchestrationController {
 	/**
 	 * Records the completion of a specific action within a task's plan.
 	 */
-	public async updateActionProgress(taskId: string, completedCount: number): Promise<void> {
+	public async updateActionProgress(taskId: string, completedCount: number, reports?: any[]): Promise<void> {
 		const metadata: TaskAuditMetadata = {
 			...(await this.getTaskMetadata(taskId)),
 			// @ts-expect-error - dynamic extension for tracking
 			completed_actions_count: completedCount,
+		}
+		if (reports) {
+			// @ts-expect-error - dynamic extension
+			metadata.execution_reports = reports
 		}
 		await this.updateTaskStatus(taskId, "acting", null, metadata)
 	}
@@ -304,6 +308,14 @@ export class OrchestrationController {
 	 */
 	public getStreamId(): string {
 		return this.streamId
+	}
+
+	public getUserId(): string {
+		return this.userId
+	}
+
+	public getWorkspaceId(): string {
+		return this.workspaceId
 	}
 
 	public getCurrentTaskId(): string | undefined {
@@ -483,21 +495,44 @@ export class OrchestrationController {
 	): Promise<boolean> {
 		try {
 			const MAX_WAIT_MS = 5 * 60 * 1000
-			const CHECK_INTERVAL_MS = 2000
-			const startTime = Date.now()
 
-			while (Date.now() - startTime < MAX_WAIT_MS) {
-				const children = await this.getChildStreams()
-				const activeChildren = children.filter((c) => c.status === "active")
+			return await new Promise<boolean>((resolve) => {
+				const timeoutId = setTimeout(async () => {
+					cleanup()
+					Logger.warn(
+						`[Orchestration] completeWithChildren timed out after ${MAX_WAIT_MS}ms for stream ${this.streamId}`,
+					)
+					resolve(await this.completeStream(summary, validator))
+				}, MAX_WAIT_MS)
 
-				if (activeChildren.length === 0) {
-					return await this.completeStream(summary, validator)
+				const checkChildren = async () => {
+					try {
+						const children = await this.getChildStreams()
+						const activeChildren = children.filter((c) => c.status === "active")
+
+						if (activeChildren.length === 0) {
+							cleanup()
+							resolve(await this.completeStream(summary, validator))
+						}
+					} catch (err) {
+						Logger.error(`[Orchestration] Error checking child streams during completeWithChildren:`, err)
+					}
 				}
 
-				await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL_MS))
-			}
+				const onStatusChanged = () => {
+					checkChildren()
+				}
 
-			return await this.completeStream(summary, validator)
+				const cleanup = () => {
+					clearTimeout(timeoutId)
+					orchestrator.events.removeListener("streamStatusChanged", onStatusChanged)
+				}
+
+				orchestrator.events.on("streamStatusChanged", onStatusChanged)
+
+				// Fire an initial check in case children are already finished
+				checkChildren()
+			})
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to complete with children:`, error)
 			return false

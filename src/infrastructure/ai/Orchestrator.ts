@@ -1,3 +1,4 @@
+import { EventEmitter } from "events"
 import * as path from "path"
 import { v4 as uuidv4 } from "uuid"
 import { dbPool } from "../db/BufferedDbPool"
@@ -30,6 +31,8 @@ export interface AgentTask {
 }
 
 export class AgentOrchestrator {
+	public readonly events = new EventEmitter()
+
 	public async createStream(
 		focus: string,
 		parentId: string | null = null,
@@ -192,6 +195,7 @@ export class AgentOrchestrator {
 			values: { streamId, key: "stream_summary", value: summary, updatedAt: Date.now() },
 			layer: "domain",
 		})
+		this.events.emit("streamStatusChanged", { streamId, status: "completed" })
 	}
 
 	/**
@@ -206,6 +210,7 @@ export class AgentOrchestrator {
 			layer: "infrastructure",
 		})
 		await this.storeMemory(streamId, "failure_reason", reason)
+		this.events.emit("streamStatusChanged", { streamId, status: "failed" })
 	}
 
 	// ── Context-Window Compression ──────────────────────────────────

@@ -50,8 +50,8 @@ export class StreamPool {
 	) {
 		this.maxConcurrency = options.maxConcurrency ?? 3
 		this.parentStreamId = options.parentStreamId
-		this.userId = options.userId ?? "anonymous"
-		this.workspaceId = options.workspaceId ?? "default"
+		this.userId = options.userId!
+		this.workspaceId = options.workspaceId!
 		this.coordinator = new StreamCoordinator(this.parentStreamId)
 
 		Logger.info(

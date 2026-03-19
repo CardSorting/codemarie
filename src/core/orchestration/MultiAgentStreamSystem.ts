@@ -135,6 +135,8 @@ export class MultiAgentStreamSystem {
 		const pool = new StreamPool(this.controller, this.apiHandler, {
 			maxConcurrency: this.concurrency,
 			parentStreamId: this.controller.getStreamId(),
+			userId: this.controller.getUserId(),
+			workspaceId: this.controller.getWorkspaceId(),
 		})
 
 		const result = await pool.dispatch(tasks)
