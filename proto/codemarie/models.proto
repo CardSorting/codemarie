@@ -323,8 +323,7 @@ message ModelsApiOptions {
   optional OcaModelInfo act_mode_oca_model_info = 232;
   optional string act_mode_codemarie_model_id = 235;
   optional OpenRouterModelInfo act_mode_codemarie_model_info = 236;
-  }
-
+}
 
 // Request for updating API configuration (legacy - uses combined configuration)
 message UpdateApiConfigurationRequest {
