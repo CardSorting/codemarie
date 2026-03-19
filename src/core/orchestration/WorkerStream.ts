@@ -69,11 +69,21 @@ export class WorkerStream {
 
 		Logger.info(`[${this.name}] Preparing child stream: ${childStreamId.slice(0, 8)}`)
 
-		this.childController = new OrchestrationController(childStreamId, this.userId, this.workspaceId, `worker-${this.task.id}`)
+		this.childController = new OrchestrationController(childStreamId, this.userId, this.workspaceId, this.task.id)
 		await this.childController.beginDbShadow()
 		this.coordinator.registerWorker(childStreamId)
-		await this.childController.beginTask(this.taskDescription)
-		await this.childController.updateTaskProgress("running")
+
+		// check if task already has a plan (Resilience/Restart)
+		const tasks = await orchestrator.getStreamTasks(parentStreamId)
+		const currentTask = tasks.find((t) => t.id === this.task.id)
+		if (currentTask?.status === "planned" && currentTask.metadata) {
+			const metadata = currentTask.metadata as any
+			if (metadata.task_plan) {
+				Logger.info(`[${this.name}] RESUMING from existing plan found in task metadata.`)
+				// We still transition to 'running' or similar for visual feedback,
+				// but executePlan will return this plan immediately.
+			}
+		}
 
 		return childStreamId
 	}
@@ -82,6 +92,17 @@ export class WorkerStream {
 	 * Stage 1: Planning (Public for Pool Coordination)
 	 */
 	public async executePlan(): Promise<any> {
+		// Resilience: Check if we already have a plan
+		const tasks = await orchestrator.getStreamTasks(this.parentController.getStreamId())
+		const currentTask = tasks.find((t) => t.id === this.task.id)
+		if (currentTask?.status === "planned" && currentTask.metadata) {
+			const metadata = currentTask.metadata as any
+			if (metadata.task_plan) {
+				return metadata.task_plan
+			}
+		}
+
+		await this.childController?.beginPlan(this.task.id)
 		Logger.info(`[${this.name}] Planning phase...`)
 		const parentDigest = await this.parentController.getStreamDigest()
 		let enrichedPrompt = `Parent Stream Context:\n${parentDigest}\n\nAssigned Task: ${this.taskDescription}`
@@ -90,10 +111,13 @@ export class WorkerStream {
 			enrichedPrompt += `\n\n[Context from Direct Dependencies]\n${this.dependencyContext}`
 		}
 
-		return await pTimeout(executeMASRequest(this.apiHandler, WORKER_PLAN_SYSTEM_PROMPT, enrichedPrompt), {
+		const plan = await pTimeout(executeMASRequest(this.apiHandler, WORKER_PLAN_SYSTEM_PROMPT, enrichedPrompt), {
 			milliseconds: 3 * 60 * 1000,
 			message: `Planning phase timed out after 3 minutes`,
 		})
+
+		await this.childController?.commitPlan(this.task.id, plan)
+		return plan
 	}
 
 	/**
@@ -101,6 +125,8 @@ export class WorkerStream {
 	 */
 	public async executeAct(actions: any[]): Promise<any[]> {
 		if (!actions || actions.length === 0) return []
+
+		await this.childController?.beginAct(this.task.id)
 		Logger.info(`[${this.name}] Acting phase (implementing ${actions.length} actions)...`)
 
 		const reports: any[] = []

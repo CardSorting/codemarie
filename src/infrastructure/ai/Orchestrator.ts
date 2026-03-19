@@ -23,7 +23,7 @@ export interface AgentTask {
 	id: string
 	streamId: string
 	description: string
-	status: "pending" | "running" | "completed" | "failed"
+	status: "pending" | "planning" | "planned" | "acting" | "running" | "completed" | "failed"
 	result: string | null
 	metadata?: TaskAuditMetadata
 	createdAt: number

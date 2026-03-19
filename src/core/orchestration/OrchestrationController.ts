@@ -72,6 +72,33 @@ export class OrchestrationController {
 	}
 
 	/**
+	 * Transitions the task to the planning phase.
+	 */
+	public async beginPlan(taskId: string): Promise<void> {
+		this.currentTaskId = taskId
+		await this.updateTaskProgress("planning")
+	}
+
+	/**
+	 * Commits a generated plan to the task metadata and transitions to 'planned'.
+	 */
+	public async commitPlan(taskId: string, plan: any): Promise<void> {
+		const metadata: TaskAuditMetadata = {
+			...(await this.getTaskMetadata(taskId)),
+			// @ts-expect-error - dynamic extension for plan storage
+			task_plan: plan,
+		}
+		await this.updateTaskStatus(taskId, "planned", null, metadata)
+	}
+
+	/**
+	 * Transitions the task to the acting phase.
+	 */
+	public async beginAct(taskId: string): Promise<void> {
+		await this.updateTaskProgress("acting")
+	}
+
+	/**
 	 * Updates the status and metadata of the current task.
 	 */
 	public async updateTaskProgress(
@@ -80,11 +107,32 @@ export class OrchestrationController {
 		metadata?: TaskAuditMetadata,
 	): Promise<void> {
 		if (!this.currentTaskId) return
+		await this.updateTaskStatus(this.currentTaskId, status, result, metadata)
+	}
 
+	/**
+	 * Low-level task status update.
+	 */
+	public async updateTaskStatus(
+		taskId: string,
+		status: AgentTask["status"],
+		result: string | null = null,
+		metadata?: TaskAuditMetadata,
+	): Promise<void> {
 		try {
-			await orchestrator.updateTaskStatus(this.currentTaskId, status, result, metadata)
+			await orchestrator.updateTaskStatus(taskId, status, result, metadata)
 		} catch (error) {
-			Logger.error(`[Orchestration] Failed to update task ${this.currentTaskId}:`, error)
+			Logger.error(`[Orchestration] Failed to update task ${taskId}:`, error)
+		}
+	}
+
+	private async getTaskMetadata(taskId: string): Promise<TaskAuditMetadata | undefined> {
+		try {
+			const tasks = await orchestrator.getStreamTasks(this.streamId)
+			const task = tasks.find((t) => t.id === taskId)
+			return task?.metadata
+		} catch (_e) {
+			return undefined
 		}
 	}
 

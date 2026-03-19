@@ -139,7 +139,7 @@ export class StreamPool {
 				})
 
 				// Sub-Stage A: Parallel Plan (ALL tasks in the wave)
-				// We process them in batches of maxConcurrency to avoid overwhelming the provider
+				Logger.info(`[${this.name}] 📝 Wave Planning Phase (${waveWorkers.length} tasks)...`)
 				const wavePlans: any[] = []
 				for (let i = 0; i < waveWorkers.length; i += this.maxConcurrency) {
 					const batch = waveWorkers.slice(i, i + this.maxConcurrency)
@@ -180,6 +180,7 @@ export class StreamPool {
 
 				// Sub-Stage B: Parallel Act & Finalize
 				// Only proceed with Acting if planning was successful
+				Logger.info(`[${this.name}] 🛠️ Wave Acting Phase (${waveWorkers.length} tasks)...`)
 				const waveResults: WorkerResult[] = []
 				for (let i = 0; i < waveWorkers.length; i += this.maxConcurrency) {
 					const batchIndices = Array.from(
