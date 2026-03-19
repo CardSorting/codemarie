@@ -369,6 +369,88 @@ export class OrchestrationController {
 	}
 
 	/**
+	 * Resolves all virtual files in a directory, including recursively if specified.
+	 */
+	public resolveVirtualDirectoryContent(dirPath: string, recursive = false): string[] {
+		if (!this.streamId) return []
+
+		const shadow = dbPool.getShadowOps(this.streamId)
+		const virtualFiles = new Map<string, string>() // path -> final_status (exists/deleted)
+
+		// Process ops in order to track current state
+		for (const op of shadow) {
+			if (op.table !== "files") continue
+
+			const values = op.values as any
+			const where = op.where as any
+			const opPath = values?.path || (Array.isArray(where) ? where.find((w) => w.column === "path")?.value : where?.path)
+			if (!opPath) continue
+
+			const absOpPath = path.isAbsolute(opPath) ? opPath : path.resolve(process.cwd(), opPath)
+
+			// Check if file is in the target directory
+			const isMatch = recursive
+				? absOpPath.startsWith(dirPath + path.sep) || absOpPath === dirPath
+				: path.dirname(absOpPath) === dirPath
+
+			if (isMatch) {
+				if (op.type === "delete") {
+					virtualFiles.set(absOpPath, "deleted")
+				} else {
+					virtualFiles.set(absOpPath, "exists")
+				}
+			}
+		}
+
+		return Array.from(virtualFiles.entries())
+			.filter(([_, status]) => status === "exists")
+			.map(([filePath]) => path.relative(dirPath, filePath))
+	}
+
+	/**
+	 * Searches virtual content for a regex pattern.
+	 */
+	public searchVirtualContent(regexStr: string, filePattern?: string): Array<{ path: string; line: number; content: string }> {
+		if (!this.streamId) return []
+
+		const shadow = dbPool.getShadowOps(this.streamId)
+		const results: Array<{ path: string; line: number; content: string }> = []
+		const regex = new RegExp(regexStr, "g")
+		const fileRegex = filePattern ? new RegExp(filePattern.replace(/\*/g, ".*")) : null
+
+		// Get the latest content for all files in shadow
+		const latestContents = new Map<string, string>()
+		for (const op of shadow) {
+			if (op.table !== "files") continue
+			const values = op.values as any
+			const opPath = values?.path
+			if (opPath && (op.type === "insert" || op.type === "update" || op.type === "upsert")) {
+				latestContents.set(opPath, values.content)
+			} else if (opPath && op.type === "delete") {
+				latestContents.delete(opPath)
+			}
+		}
+
+		for (const [relPath, content] of latestContents.entries()) {
+			if (fileRegex && !fileRegex.test(relPath)) continue
+
+			const lines = content.split("\n")
+			for (let i = 0; i < lines.length; i++) {
+				if (regex.test(lines[i])) {
+					results.push({
+						path: relPath,
+						line: i + 1,
+						content: lines[i].trim(),
+					})
+					regex.lastIndex = 0 // Reset for next match if using global
+				}
+			}
+		}
+
+		return results
+	}
+
+	/**
 	 * Publishes high-level architectural stability metrics.
 	 */
 	public async fastPublishArchitecturalTelemetry(): Promise<void> {

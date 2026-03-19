@@ -96,7 +96,20 @@ export class ListFilesToolHandler implements IFullyManagedTool {
 		}
 
 		// Execute the actual list files operation
-		const [files, didHitLimit] = await listFiles(absolutePath, recursive, 200)
+		let [files, didHitLimit] = await listFiles(absolutePath, recursive, 200)
+
+		// Tier 7: MAS Virtual Directory Listing
+		// Merge virtual files from the orchestration controller
+		if (config.services.orchestrationController) {
+			const virtualFiles = config.services.orchestrationController.resolveVirtualDirectoryContent(absolutePath, recursive)
+			if (virtualFiles.length > 0) {
+				const fileSet = new Set(files)
+				for (const vf of virtualFiles) {
+					fileSet.add(vf)
+				}
+				files = Array.from(fileSet).sort()
+			}
+		}
 
 		const result = formatResponse.formatFilesList(absolutePath, files, didHitLimit, config.services.codemarieIgnoreController)
 

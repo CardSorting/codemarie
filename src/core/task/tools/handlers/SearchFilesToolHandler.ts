@@ -96,10 +96,30 @@ export class SearchFilesToolHandler implements IFullyManagedTool {
 			const resultMatch = firstLine.match(/Found (\d+) result/)
 			const resultCount = resultMatch ? Number.parseInt(resultMatch[1], 10) : 0
 
+			// Tier 7: MAS Virtual Search
+			// Merge virtual search results from the orchestration controller
+			let finalResults = workspaceResults
+			let finalResultCount = resultCount
+
+			if (config.services.orchestrationController && regex) {
+				const virtualResults = config.services.orchestrationController.searchVirtualContent(regex, filePattern)
+				if (virtualResults.length > 0) {
+					const virtualFormatted = virtualResults.map((r) => `${r.path}:${r.line}:${r.content}`).join("\n")
+
+					// If we already have results, append. Otherwise create new format
+					if (finalResultCount > 0) {
+						finalResults += `\n${virtualFormatted}`
+					} else {
+						finalResults = `Found ${virtualResults.length} results.\n\n${virtualFormatted}`
+					}
+					finalResultCount += virtualResults.length
+				}
+			}
+
 			return {
 				workspaceName,
-				workspaceResults,
-				resultCount,
+				workspaceResults: finalResults,
+				resultCount: finalResultCount,
 				success: true,
 			}
 		} catch (error) {
