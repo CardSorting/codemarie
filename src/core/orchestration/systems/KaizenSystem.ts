@@ -16,7 +16,11 @@ export class KaizenSystem {
 	 * Analyzes the completed tasks and stream summary to identify
 	 * improvement areas.
 	 */
-	public async reflect(controller: OrchestrationController, apiHandler: ApiHandler, feedback: string): Promise<string[]> {
+	public async reflect(
+		controller: OrchestrationController,
+		apiHandler: ApiHandler,
+		feedback: string,
+	): Promise<Record<string, string[]>> {
 		Logger.info(`[MAS][${this.name}] Reflecting on feedback: ${feedback.slice(0, 50)}...`)
 
 		// Start a new task for reflection
@@ -28,9 +32,11 @@ export class KaizenSystem {
 			const tasksRaw = await controller.recallMemory("task_flow")
 			const tasks = tasksRaw ? JSON.parse(tasksRaw) : []
 
-			const prompt = `Product Purpose: ${purpose}\nPlanned Tasks: ${tasks.join(", ")}\nUser Feedback: ${feedback}`
+			const prompt = `Product Purpose: ${purpose}\nPlanned Tasks: ${tasks.join(", ")}\nUser Feedback: ${feedback}\n\nCategorize your improvements into: ARCHITECTURE, STABILITY, SECURITY, or GENERAL.`
 			const res = await executeMASRequest(apiHandler, KAIZEN_SYSTEM_PROMPT, prompt)
-			const improvements = res.improvements || []
+
+			// Support both legacy array and categorized object
+			const improvements: any = res.categorizedImprovements || { GENERAL: res.improvements || [] }
 
 			// --- Tier 4: Adaptive Reprioritization (Interconnected Cognitive Fabric) ---
 			const ctx = await controller.getAgentContext()
@@ -41,7 +47,9 @@ export class KaizenSystem {
 			Logger.info(`[MAS][${this.name}] Current Pass Soundness Score: ${soundness.toFixed(2)}`)
 
 			if (soundness < 0.7) {
-				improvements.push("Perform a secondary architectural audit to resolve low soundness score.")
+				const archFixes = improvements.ARCHITECTURE || []
+				archFixes.push("Perform a secondary architectural audit to resolve low soundness score.")
+				improvements.ARCHITECTURE = archFixes
 				await controller.updateTaskProgress(
 					"pending",
 					`⚠️ Low logical soundness detected (${soundness.toFixed(2)}). Increasing refinement rigor.`,
@@ -79,13 +87,13 @@ export class KaizenSystem {
 			// Store in memory
 			await controller.storeMemory("improvement_plan", JSON.stringify(improvements))
 
-			await controller.updateTaskProgress("completed", `Identified ${improvements.length} improvements based on feedback.`)
+			const count = Object.values(improvements).flat().length
+			await controller.updateTaskProgress("completed", `Identified ${count} improvements based on feedback.`)
 
 			return improvements
 		} catch (error) {
 			Logger.error(`[MAS][${this.name}] Failed to reflect on feedback:`, error)
-			// Fallback to minimal improvement
-			const improvements = ["Refine implementation based on feedback"]
+			const improvements: Record<string, string[]> = { GENERAL: ["Refine implementation based on feedback"] }
 			return improvements
 		}
 	}
@@ -103,5 +111,20 @@ export class KaizenSystem {
 			Logger.error(`[MAS][${this.name}] Failed to parse stored improvement plan:`, error)
 			return []
 		}
+	}
+
+	/**
+	 * Performs a deep semantic architectural audit on a file.
+	 */
+	public async audit(
+		controller: OrchestrationController,
+		apiHandler: ApiHandler,
+		filePath: string,
+		content: string,
+	): Promise<{ violations: string[] }> {
+		Logger.info(`[MAS][${this.name}] Auditing file: ${filePath}`)
+		const prompt = `Perform a DEEP ARCHITECTURAL AUDIT on this file: ${filePath}\nContent:\n${content}`
+		const res = await executeMASRequest(apiHandler, KAIZEN_SYSTEM_PROMPT, prompt)
+		return { violations: res.violations || [] }
 	}
 }

@@ -67,10 +67,23 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 				parts.push(`🔴 Previous Failure: ${failureReason}`)
 			}
 
-			// Swarm Insights: Prioritize high-throughput LRU cache from the MAS instance
-			let reflection: string[] | undefined = mas?.getLatestReflection()
+			// Swarm Insights: Prioritize specialized categories based on mode
+			const categorized: Record<string, string[]> | undefined = mas?.getLatestReflection()
+			let reflection: string[] = []
 
-			if (!reflection) {
+			if (categorized) {
+				const keys = Object.keys(categorized)
+				// Mode-based prioritization
+				if (mode === "plan" && categorized.ARCHITECTURE) {
+					reflection = [...categorized.ARCHITECTURE, ...(categorized.GENERAL || [])]
+				} else if (mode === "act" && categorized.STABILITY) {
+					reflection = [...categorized.STABILITY, ...(categorized.GENERAL || [])]
+				} else {
+					reflection = Object.values(categorized).flat()
+				}
+			}
+
+			if (reflection.length === 0) {
 				const reflectionRaw = await orchestrator.recallMemory(streamId, "turn_reflection")
 				if (reflectionRaw) {
 					try {
@@ -115,6 +128,26 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 			const soundness = mas?.getSoundnessScore() ?? 1.0
 			if (soundness < 0.9) {
 				parts.push(`📏 Architectural Soundness: ${soundness.toFixed(2)} / 1.00`)
+			}
+
+			// Phase 5: Risk-based Safeguards
+			if (mas) {
+				const risk = await mas.calculateRiskLevel()
+				if (risk === "HIGH") {
+					parts.push(`🚨 HIGH MISSION RISK: Significant volatility detected. CONSIDER @checkpoint SOON.`)
+				}
+
+				// Tool Doctor advice
+				const lastMemory = allMemory[allMemory.length - 1] as any
+				const lastTool = lastMemory?.tool_name || lastMemory?.key?.split(":")[1]
+				if (lastTool) {
+					const doctor = mas.getToolDoctorAdvice(lastTool)
+					if (doctor) parts.push(doctor)
+				}
+
+				// Phase 6: Global Swarm Updates
+				const swarmUpdate = await mas.checkGlobalSwarmUpdates()
+				if (swarmUpdate) parts.push(swarmUpdate)
 			}
 
 			if (parts.length > 0) {

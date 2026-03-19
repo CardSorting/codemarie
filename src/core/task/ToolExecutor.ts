@@ -750,6 +750,11 @@ export class ToolExecutor {
 			const errorMsg = `Tool execution failed: ${error}`
 			toolResult = formatResponse.toolError(errorMsg)
 
+			// MAS Tool Failure Tracking
+			if (this.taskState.multiAgentStreamSystem) {
+				this.taskState.multiAgentStreamSystem.trackToolFailure(block.name)
+			}
+
 			if (orchestrationController) {
 				orchestrationController.updateTaskProgress("failed", errorMsg).catch(() => {})
 			}

@@ -56,15 +56,19 @@ Rules:
 - Prioritize improvements that add the most value to the user.
 - Suggest "small changes for the better" (Kaizen).
 - Look for architectural smells or Joy-Zoning violations that need fixing.
+- When performing a DEEP ARCHITECTURAL AUDIT, provide specific "violations".
 
 Response Format (JSON ONLY):
 {
-  "improvements": [
-    "Improvement suggestion 1",
-    "Improvement suggestion 2",
-    ...
-  ],
-  "reasoning": "Brief explanation of why these improvements are suggested"
+  "improvements": ["suggestion 1", ...],
+  "categorizedImprovements": {
+    "ARCHITECTURE": ["..."],
+    "STABILITY": ["..."],
+    "SECURITY": ["..."],
+    "GENERAL": ["..."]
+  },
+  "violations": ["Description of architectural violation 1", ...],
+  "reasoning": "Brief explanation"
 }
 `
 

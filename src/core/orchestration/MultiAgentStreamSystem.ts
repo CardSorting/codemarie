@@ -22,8 +22,11 @@ export class MultiAgentStreamSystem {
 
 	/** Last pool result from concurrent build dispatch */
 	private lastPoolResult?: StreamPoolResult
-	private reflectionCache = new LRUCache<string[]>(10, 3600000) // 1 hour TTL
+	private reflectionCache = new LRUCache<Record<string, string[]>>(10, 3600000) // Categorized
 	private stickyReflectionCache = new Map<string, string[]>() // Long-term unaddressed insights
+	private toolFailureTracker = new Map<string, number>()
+	private adherenceFailures = 0
+	private soundnessTrend: number[] = []
 	private lastSoundnessScore = 1.0
 
 	constructor(
@@ -125,7 +128,8 @@ export class MultiAgentStreamSystem {
 
 		// 2. Kanban Pass — Add refinement tasks to the stream
 		const purpose = (await this.controller.recallMemory("product_purpose")) || "Refining Product"
-		await this.kanban.planFlow(this.controller, this.apiHandler, purpose, improvements)
+		const flattened = Object.values(improvements).flat()
+		await this.kanban.planFlow(this.controller, this.apiHandler, purpose, flattened)
 
 		Logger.info(`[${this.name}] Refinement pass completed. Improvements queued.`)
 	}
@@ -170,6 +174,18 @@ export class MultiAgentStreamSystem {
 	 */
 	public async auditFile(filePath: string, content: string): Promise<{ success: boolean; errors: string[] }> {
 		const result = validateJoyZoning(filePath, content)
+
+		// Phase 6: Deep Semantic Auditing
+		try {
+			const auditResult = await this.kaizen.audit(this.controller, this.apiHandler, filePath, content)
+			if (auditResult.violations.length > 0) {
+				result.success = false
+				result.errors = [...new Set([...result.errors, ...auditResult.violations])]
+			}
+		} catch (err) {
+			Logger.warn(`[${this.name}] Deep semantic audit failed:`, err)
+		}
+
 		if (!result.success) {
 			Logger.warn(`[${this.name}][JoyZoning] Violation detected in ${filePath}:`, result.errors)
 			// Report violation to the current task metadata
@@ -192,7 +208,7 @@ export class MultiAgentStreamSystem {
 		try {
 			const digest = await this.controller.getStreamDigest()
 			const enrichedSummary = `Collective System Context:\n${digest}\n\nTurn Summary: ${turnSummary}`
-			const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, enrichedSummary)
+			const categorizedImprovements = await this.kaizen.reflect(this.controller, this.apiHandler, enrichedSummary)
 
 			// Update soundness score from Kaizen's internal assessment if possible
 			// For now, we'll pull it from the agent context as Kaizen does
@@ -202,31 +218,67 @@ export class MultiAgentStreamSystem {
 			this.lastSoundnessScore = await ctx.getLogicalSoundness([ikigaiId, archId])
 
 			// High Throughput: Store reflection in local LRU cache
-			if (improvements && improvements.length > 0) {
-				const streamId = this.controller.getStreamId()
-				this.reflectionCache.set(streamId, improvements)
+			if (categorizedImprovements && Object.keys(categorizedImprovements).length > 0) {
+				// Flatten for sticky checks
+				const allImprovements = Object.values(categorizedImprovements).flat()
 
-				// Phase 4: Sticky Insights & Auto-Stabilization
-				const isCritical = improvements.some(
+				// Update soundness trend
+				this.soundnessTrend.push(this.lastSoundnessScore)
+				if (this.soundnessTrend.length > 5) this.soundnessTrend.shift()
+
+				// Phase 6: Reflection Adherence Tracking
+				const streamId = this.controller.getStreamId()
+				const stickyKey = `sticky-${streamId}`
+				const existingSticky = this.stickyReflectionCache.get(stickyKey) || []
+
+				if (existingSticky.length > 0) {
+					// Check if any existing sticky insight is still mentioned in the new reflection
+					const stillPresent = allImprovements.some((imp) =>
+						existingSticky.some((sticky) => imp.includes(sticky.slice(0, 20))),
+					)
+					if (stillPresent) {
+						this.adherenceFailures++
+						Logger.warn(`[${this.name}] Adherence failure detected (${this.adherenceFailures}/2). Guidance ignored.`)
+					} else {
+						// Recovering adherence
+						this.adherenceFailures = Math.max(0, this.adherenceFailures - 1)
+					}
+				}
+
+				// Phase 4 & 6: Sticky Insights, Auto-Stabilization, and Predictive Abort
+				const isCritical = allImprovements.some(
 					(imp) => imp.toUpperCase().includes("CRITICAL") || imp.toUpperCase().includes("VIOLATION"),
 				)
-				if (isCritical || this.lastSoundnessScore < 0.5) {
-					const stickyKey = `sticky-${streamId}`
-					const existing = this.stickyReflectionCache.get(stickyKey) || []
-					this.stickyReflectionCache.set(stickyKey, [...new Set([...existing, ...improvements])])
+
+				// Predictive Mission Termination: Declining soundness trend
+				if (this.soundnessTrend.length >= 3) {
+					const isDeclining = this.soundnessTrend.slice(-3).every((val, i, arr) => i === 0 || val < arr[i - 1])
+					if (isDeclining && this.lastSoundnessScore < 0.6) {
+						await this.reportAbort(
+							"Predictive Termination: Extreme logical soundness decline detected over multiple turns.",
+						)
+						// Trigger abort in task state via controller if possible
+						return undefined
+					}
+				}
+
+				if (isCritical || this.lastSoundnessScore < 0.5 || this.adherenceFailures > 1) {
+					this.stickyReflectionCache.set(stickyKey, [...new Set([...existingSticky, ...allImprovements])])
 
 					// Auto-Stabilization: Inject tasks if soundness is critical
-					if (this.lastSoundnessScore < 0.5) {
+					if (this.lastSoundnessScore < 0.5 || this.adherenceFailures > 1) {
 						await this.kanban.injectRefinementTasks(this.controller, [
-							"Mandatory Stabilization Pass: Resolve architectural debt and low soundness score.",
+							this.adherenceFailures > 1
+								? "Mandatory Alignment Pass: Resolve persistent architectural guidance violations."
+								: "Mandatory Stabilization Pass: Resolve architectural debt and low soundness score.",
 						])
 					}
 				} else {
 					// Auto-Pruning: Clear sticky insights if the MAS no longer sees them as critical
-					this.stickyReflectionCache.delete(`sticky-${streamId}`)
+					this.stickyReflectionCache.delete(stickyKey)
 				}
 
-				return improvements
+				return allImprovements
 			}
 		} catch (err) {
 			Logger.warn(`[${this.name}] Turn reflection failed:`, err)
@@ -237,7 +289,7 @@ export class MultiAgentStreamSystem {
 	/**
 	 * Retrieves the latest reflection from the high-throughput cache.
 	 */
-	public getLatestReflection(): string[] | undefined {
+	public getLatestReflection(): Record<string, string[]> | undefined {
 		return this.reflectionCache.get(this.controller.getStreamId())
 	}
 
@@ -245,11 +297,12 @@ export class MultiAgentStreamSystem {
 	 * Returns the sticky (unaddressed) insights for the current stream.
 	 */
 	public getStickyInsights(): string[] {
-		return this.stickyReflectionCache.get(`sticky-${this.controller.getStreamId()}`) || []
+		const streamId = this.controller.getStreamId()
+		return this.stickyReflectionCache.get(`sticky-${streamId}`) || []
 	}
 
 	/**
-	 * Manually resolves a specific sticky insight.
+	 * Resolves a sticky insight.
 	 */
 	public resolveStickyInsight(insightIndex: number): void {
 		const streamId = this.controller.getStreamId()
@@ -286,14 +339,37 @@ export class MultiAgentStreamSystem {
 			// Phase 3: Specialized Kaizen Post-Mortem
 			const postMortemReflection = await this.executePostMortem()
 
-			const postMortem = `Final Post-Mortem for Stream ${streamId}:\nStatus: Completed\nReflections: ${reflections || "None"}\nSwarm Insight: ${postMortemReflection || "N/A"}\nSystem Digest: ${digest}`
+			// Phase 5: Consumer-First Handoff Digest
+			const handoff = `
+# 🏁 Swarm Handoff Digest (Stream ${streamId})
+				
+## 📊 Success Metrics
+- **Architectural Soundness**: ${this.getSoundnessScore().toFixed(2)} / 1.00
+- **Status**: ${postMortemReflection ? "COMPLETED WITH DEBT" : "CLEAN COMPLETION"}
+				
+## 🧠 Critical Context for the Next Agent
+${postMortemReflection || "No significant architectural debt detected."}
+				
+## 🛠️ Tool Volatility Report
+${
+	Array.from(this.toolFailureTracker.entries())
+		.map(([tool, count]) => `- ${tool}: ${count} failures`)
+		.join("\n") || "No tool usage issues detected."
+}
+
+## 📥 Operational Digest
+${digest.slice(0, 1000)}...
+`.trim()
 
 			// Store as a formal "handoff" node in BroccoliDB
 			const ctx = await this.controller.getAgentContext()
-			await ctx.addKnowledge(`handoff-${streamId}`, "conclusion", postMortem, { agentId: "mas-orchestrator" })
+			await ctx.addKnowledge(`handoff-${streamId}`, "conclusion", handoff, {
+				agentId: "mas-orchestrator",
+				tags: ["handoff"],
+			})
 			await ctx.flush()
 
-			return postMortem
+			return handoff
 		} catch (err) {
 			Logger.warn(`[${this.name}] Final audit failed:`, err)
 		}
@@ -309,8 +385,9 @@ export class MultiAgentStreamSystem {
 			const digest = await this.controller.getStreamDigest()
 			const prompt = `Perform a FINAL ARCHITECTURAL AUDIT of this stream. Identify any remaining technical debt, JoyZoning violations, or stability risks:\n${digest}`
 			const improvements = await this.kaizen.reflect(this.controller, this.apiHandler, prompt)
-			if (improvements && improvements.length > 0) {
-				return improvements.join("; ")
+			const flattened = Object.values(improvements).flat()
+			if (flattened.length > 0) {
+				return flattened.join("; ")
 			}
 		} catch (err) {
 			Logger.warn(`[${this.name}] Post-mortem reflection failed:`, err)
@@ -360,8 +437,9 @@ export class MultiAgentStreamSystem {
 			const prompt = `The agent appears stuck (consecutive mistakes/failures). Based on the following context, suggest a DRAMATIC PIVOT or a different tool approach:\n${digest}`
 
 			const suggestions = await this.kaizen.reflect(this.controller, this.apiHandler, prompt)
-			if (suggestions && suggestions.length > 0) {
-				return `💡 Swarm Lifeline: ${suggestions[0]}`
+			const flattened = Object.values(suggestions).flat()
+			if (flattened.length > 0) {
+				return `💡 Swarm Lifeline: ${flattened[0]}`
 			}
 		} catch (err) {
 			Logger.warn(`[${this.name}] Failed to generate lifeline:`, err)
@@ -378,11 +456,63 @@ export class MultiAgentStreamSystem {
 			const digest = await this.controller.getStreamDigest()
 			const prompt = `A file collision was detected on ${filePath}. Suggest a coordination strategy based on the current swarm state:\n${digest}`
 			const strategies = await this.kaizen.reflect(this.controller, this.apiHandler, prompt)
-			if (strategies && strategies.length > 0) {
-				return `🧱 Swarm Coordination: ${strategies[0]}`
+			const flattened = Object.values(strategies).flat()
+			if (flattened.length > 0) {
+				return `🧱 Swarm Coordination: ${flattened[0]}`
 			}
 		} catch (err) {
 			Logger.warn(`[${this.name}] Failed to generate collision advice:`, err)
+		}
+		return undefined
+	}
+
+	/**
+	 * Checks for global swarm updates (handoffs from sibling streams).
+	 */
+	public async checkGlobalSwarmUpdates(): Promise<string | undefined> {
+		try {
+			const ctx = await this.controller.getAgentContext()
+			const latestHandoffs = await ctx.searchKnowledge("handoff", ["handoff"], 1)
+			if (latestHandoffs.length > 0) {
+				const handoff = latestHandoffs[0]
+				const streamId = this.controller.getStreamId()
+				if (handoff && !handoff.itemId.includes(streamId)) {
+					return `🌐 Global Swarm Update: A sibling stream has completed a mission. Key Insight: ${handoff.content.slice(0, 100)}...`
+				}
+			}
+		} catch (err) {
+			Logger.warn(`[${this.name}] Failed to check global swarm updates:`, err)
+		}
+		return undefined
+	}
+
+	/**
+	 * Tracks a tool failure to provide specialized hardening advice.
+	 */
+	public trackToolFailure(toolName: string): void {
+		const count = (this.toolFailureTracker.get(toolName) || 0) + 1
+		this.toolFailureTracker.set(toolName, count)
+	}
+
+	/**
+	 * Calculates the mission risk level based on tool volatility and soundness.
+	 */
+	public async calculateRiskLevel(): Promise<"LOW" | "MEDIUM" | "HIGH"> {
+		const soundness = this.getSoundnessScore()
+		const failureCount = Array.from(this.toolFailureTracker.values()).reduce((a, b) => a + b, 0)
+
+		if (soundness < 0.4 || failureCount > 5 || this.adherenceFailures > 1) return "HIGH"
+		if (soundness < 0.7 || failureCount > 2 || this.adherenceFailures > 0) return "MEDIUM"
+		return "LOW"
+	}
+
+	/**
+	 * Returns specialized "Tool-Doctor" advice if a tool is failing repeatedly.
+	 */
+	public getToolDoctorAdvice(toolName: string): string | undefined {
+		const failures = this.toolFailureTracker.get(toolName) || 0
+		if (failures > 2) {
+			return `🩺 Tool Doctor: You have failed \`${toolName}\` ${failures} times. Try simplifying the parameters or checking the file path existence before retrying.`
 		}
 		return undefined
 	}
