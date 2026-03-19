@@ -25,6 +25,8 @@ import { MessageStateHandler } from "@core/task/message-state"
 import { showChangedFilesDiff } from "@core/task/multifile-diff"
 import { WorkspaceRootManager } from "@core/workspace"
 import { telemetryService } from "@services/telemetry"
+import { CodemarieMessage } from "@shared/ExtensionMessage"
+import { CodemarieCheckpointRestore } from "@shared/WebviewMessage"
 import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/host/window"
 import { Logger } from "@/shared/services/Logger"
@@ -178,27 +180,49 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 	 * For now, this restores the primary root only for simplicity
 	 * Future enhancement: restore all roots to their respective checkpoints
 	 */
-	async restoreCheckpoint(): Promise<any> {
-		const primaryRoot = this.workspaceManager.getPrimaryRoot()
-		if (!primaryRoot) {
-			Logger.error("[MultiRootCheckpointManager] No primary root found")
-			return { error: "No primary workspace found" }
+	/**
+	 * Restore checkpoint for workspace roots
+	 * Restores all workspace trackers to the checkpoint hash associated with the message.
+	 */
+	async restoreCheckpoint(
+		messageTs: number,
+		_restoreType: CodemarieCheckpointRestore,
+		_offset?: number,
+	): Promise<{ success: boolean; restoredCount: number } | { error: string }> {
+		if (!this.initialized) {
+			await this.initialize()
 		}
 
-		const tracker = this.trackers.get(primaryRoot.path)
+		const codemarieMessages = this.messageStateHandler.getCodemarieMessages()
+		const message = codemarieMessages.find((m) => m.ts === messageTs)
 
-		if (!tracker) {
-			Logger.error(`[MultiRootCheckpointManager] No tracker found for primary root: ${primaryRoot.path}`)
-			return { error: "No checkpoint tracker for primary workspace" }
+		if (!message || !message.lastCheckpointHash) {
+			Logger.error(`[MultiRootCheckpointManager] No checkpoint hash found for message ${messageTs}`)
+			return { error: "No checkpoint hash found" }
 		}
 
-		Logger.log(`[MultiRootCheckpointManager] Restoring checkpoint for primary root: ${primaryRoot.name}`)
+		const hash = message.lastCheckpointHash
+		Logger.log(`[MultiRootCheckpointManager] Restoring ${this.trackers.size} trackers to ${hash}`)
 
-		// TODO: Implement full restore logic similar to TaskCheckpointManager
-		// For now, this is a placeholder that would delegate to the existing restore logic
-		// In a full implementation, we'd restore all roots or provide options to the user
+		// Restore all trackers in parallel
+		const restorePromises = Array.from(this.trackers.values()).map(async (tracker) => {
+			try {
+				await tracker.resetHead(hash)
+				return true
+			} catch (error) {
+				Logger.error(`[MultiRootCheckpointManager] Failed to restore tracker at ${tracker.getWorkingDirectory()}:`, error)
+				return false
+			}
+		})
 
-		return {}
+		const results = await Promise.all(restorePromises)
+		const successCount = results.filter((r) => r).length
+
+		if (successCount === 0) {
+			return { error: "Failed to restore any trackers" }
+		}
+
+		return { success: true, restoredCount: successCount }
 	}
 
 	/**
@@ -210,20 +234,38 @@ export class MultiRootCheckpointManager implements ICheckpointManager {
 			return false
 		}
 
-		// Check if any root has changes
-		for (const [path] of this.trackers.entries()) {
-			try {
-				// TODO: Implement proper diff checking logic
-				// This would need to track checkpoint hashes per root
-				// For now, return false as a safe default
-				const rootName = this.workspaceManager.getRoots().find((r) => r.path === path)?.name || path
-				Logger.log(`[MultiRootCheckpointManager] Checking for changes in ${rootName}`)
-			} catch (error) {
-				Logger.error(`[MultiRootCheckpointManager] Error checking changes for ${path}:`, error)
+		const codemarieMessages = this.messageStateHandler.getCodemarieMessages()
+		let message: CodemarieMessage | undefined
+		for (let i = codemarieMessages.length - 1; i >= 0; i--) {
+			if (codemarieMessages[i]?.say === "completion_result") {
+				message = codemarieMessages[i]
+				break
 			}
 		}
 
-		return false
+		const hash = message?.lastCheckpointHash
+
+		if (!hash) {
+			return false
+		}
+
+		// Check if any root has changes since the last hash
+		const results = await Promise.all(
+			Array.from(this.trackers.values()).map(async (tracker) => {
+				try {
+					const count = await tracker.getDiffCount(hash)
+					return (count || 0) > 0
+				} catch (error) {
+					Logger.error(
+						`[MultiRootCheckpointManager] Error checking changes for ${tracker.getWorkingDirectory()}:`,
+						error,
+					)
+					return false
+				}
+			}),
+		)
+
+		return results.some((r) => r)
 	}
 
 	/**

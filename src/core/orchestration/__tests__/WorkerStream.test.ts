@@ -70,6 +70,12 @@ class MockController {
 		}
 	}
 
+	resolveVirtualContent(_path: string) {
+		return "mock content"
+	}
+
+	async pushDbOp() {}
+
 	async getStreamDigest() {
 		return "{}"
 	}

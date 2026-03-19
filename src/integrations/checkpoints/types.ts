@@ -1,3 +1,6 @@
+import { CodemarieCheckpointRestore } from "@shared/WebviewMessage"
+import type CheckpointTracker from "./CheckpointTracker"
+
 /**
  * Common interface for checkpoint managers
  * Allows single-root and multi-root managers to be used interchangeably
@@ -5,7 +8,7 @@
 export interface ICheckpointManager {
 	saveCheckpoint(isAttemptCompletionMessage?: boolean, completionMessageTs?: number): Promise<void>
 
-	restoreCheckpoint(messageTs: number, restoreType: any, offset?: number): Promise<any>
+	restoreCheckpoint(messageTs: number, restoreType: CodemarieCheckpointRestore, offset?: number): Promise<any>
 
 	doesLatestTaskCompletionHaveNewChanges(): Promise<boolean>
 
@@ -17,5 +20,5 @@ export interface ICheckpointManager {
 	initialize?(): Promise<void>
 
 	// Optional method for checking and initializing checkpoint tracker
-	checkpointTrackerCheckAndInit?(): Promise<any>
+	checkpointTrackerCheckAndInit?(): Promise<CheckpointTracker | undefined>
 }

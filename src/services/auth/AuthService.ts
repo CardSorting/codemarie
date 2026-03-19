@@ -230,19 +230,20 @@ export class AuthService {
 	}
 
 	getInfo(): AuthState {
-		// TODO: this logic should be cleaner, but this will determine the authentication state for the webview -- if a user object is returned then the webview assumes authenticated, otherwise it assumes logged out (we previously returned a UserInfo object with empty fields, and this represented a broken logged in state)
-		let user: any = null
-		if (this._codemarieAuthInfo && this._authenticated) {
+		let user: UserInfo | undefined
+
+		// If authenticated and we have valid user info, populate the UserInfo object
+		if (this._authenticated && this._codemarieAuthInfo?.userInfo) {
 			const userInfo = this._codemarieAuthInfo.userInfo
-			this._codemarieAuthInfo.userInfo.appBaseUrl = CodemarieEnv.config()?.appBaseUrl
+			// Ensure appBaseUrl is up to date from config
+			userInfo.appBaseUrl = CodemarieEnv.config()?.appBaseUrl
 
 			user = UserInfo.create({
-				// TODO: create proto for new user info type
-				uid: userInfo?.id,
-				displayName: userInfo?.displayName,
-				email: userInfo?.email,
+				uid: userInfo.id,
+				displayName: userInfo.displayName,
+				email: userInfo.email,
 				photoUrl: undefined,
-				appBaseUrl: userInfo?.appBaseUrl,
+				appBaseUrl: userInfo.appBaseUrl,
 			})
 		}
 

@@ -88,97 +88,152 @@ export class StreamPool {
 		const taskResults = new Map<string, string>()
 
 		while (pendingTasks.size > 0 || inFlight.size > 0) {
-			// Phase 4: Synchronous I/O Flush BEFORE dispatching new workers.
-			// This guarantees parent file mutations are physically written to SQLite/disk
-			// before child workers spin up and read the file space.
+			// Phase 4: Synchronous I/O Flush BEFORE finding next wave
 			try {
 				const ctx = await this.controller.getAgentContext()
 				await ctx.flush()
 			} catch (flushErr) {
-				Logger.warn(`[${this.name}] Failed to synchronously flush I/O buffer before DAG wave:`, flushErr)
+				Logger.warn(`[${this.name}] I/O flush failed:`, flushErr)
 			}
 
-			// Find tasks whose dependencies are fully met
-			const readyTasks = Array.from(pendingTasks).filter((task) =>
-				task.depends_on.every((depId) => completedTaskIds.has(depId)),
-			)
+			// 1. Identify the 'Next Wave': All tasks whose dependencies are met.
+			const wave = Array.from(pendingTasks).filter((task) => task.depends_on.every((depId) => completedTaskIds.has(depId)))
 
 			// Deadlock / Cascade failure detection
-			if (readyTasks.length === 0 && inFlight.size === 0 && pendingTasks.size > 0) {
+			if (wave.length === 0 && inFlight.size === 0 && pendingTasks.size > 0) {
 				const stalledIds = Array.from(pendingTasks)
 					.map((t) => t.id)
 					.join(", ")
-				Logger.warn(
-					`[${this.name}] DAG Execution halted. Remaining tasks missing dependencies or skipped due to parent failure: ${stalledIds}`,
-				)
-
-				// Mark remaining as failed/skipped
+				Logger.warn(`[${this.name}] DAG Halted. Stalled: ${stalledIds}`)
 				for (const stalled of pendingTasks) {
 					results.push({
 						streamId: "skipped",
 						taskDescription: stalled.description,
 						status: "failed",
-						error: "Skipped due to unmet dependencies or DAG deadlock",
+						error: "DAG deadlock",
 						durationMs: 0,
 					})
 				}
 				break
 			}
 
-			// Dispatch ready tasks up to the concurrency limit
-			for (const task of readyTasks) {
-				if (inFlight.size >= this.maxConcurrency) {
-					break // Wait for a slot to free up
+			if (wave.length > 0) {
+				Logger.info(`[${this.name}] 🌊 Starting wave of ${wave.length} tasks...`)
+
+				// Stage 1: Parallel Preparation & Planning for the entire wave
+				const waveWorkers = wave.map((task) => {
+					pendingTasks.delete(task)
+					const depResults = task.depends_on
+						.map((depId) => `[Dependency Task: ${depId}]\n${taskResults.get(depId) || "No result"}`)
+						.join("\n\n")
+
+					return new WorkerStream(
+						this.controller,
+						this.apiHandler,
+						this.coordinator,
+						task,
+						depResults,
+						this.userId,
+						this.workspaceId,
+					)
+				})
+
+				// Sub-Stage A: Parallel Plan (ALL tasks in the wave)
+				// We process them in batches of maxConcurrency to avoid overwhelming the provider
+				const wavePlans: any[] = []
+				for (let i = 0; i < waveWorkers.length; i += this.maxConcurrency) {
+					const batch = waveWorkers.slice(i, i + this.maxConcurrency)
+					const batchPlans = await Promise.all(
+						batch.map(async (worker) => {
+							try {
+								await worker.prepare()
+								return await worker.executePlan()
+							} catch (e) {
+								return { error: e }
+							}
+						}),
+					)
+					wavePlans.push(...batchPlans)
 				}
 
-				pendingTasks.delete(task)
-
-				// Phase 4: Context Baton Pass (Aggregate dependency LLM outcomes)
-				const depResults = task.depends_on
-					.map((depId) => `[Dependency Task: ${depId}]\n${taskResults.get(depId) || "No result"}`)
-					.join("\n\n")
-
-				const worker = new WorkerStream(
-					this.controller,
-					this.apiHandler,
-					this.coordinator,
-					task,
-					depResults,
-					this.userId,
-					this.workspaceId,
-				)
-
-				const workerPromise = (async () => {
-					try {
-						const result = await worker.execute()
-						results.push(result)
-
-						if (result.status === "completed") {
-							completedTaskIds.add(task.id)
-							taskResults.set(task.id, result.result || "Success")
+				// Sub-Stage A.1: Wave-Wide Collision Pre-Scan
+				// Check if any two successfully planned tasks in this wave target the same file.
+				// This doubles down on collision safety at the planning level.
+				const fileToTaskMap = new Map<string, string>()
+				for (let i = 0; i < waveWorkers.length; i++) {
+					const plan = wavePlans[i]
+					if (plan && !plan.error && plan.actions) {
+						for (const action of plan.actions) {
+							if (action.file) {
+								if (fileToTaskMap.has(action.file)) {
+									const otherTaskId = fileToTaskMap.get(action.file)
+									Logger.warn(
+										`[${this.name}] ⚠️ WAVE COLLISION DETECTED: Task ${wave[i]!.id} and Task ${otherTaskId} both plan to mutate '${action.file}'. One will be deferred/retried.`,
+									)
+								} else {
+									fileToTaskMap.set(action.file, wave[i]!.id)
+								}
+							}
 						}
-
-						Logger.info(
-							`[${this.name}] Worker for task ${task.id} finished (${result.status}). Progress: ${results.length}/${total}`,
-						)
-					} catch (err: any) {
-						Logger.error(`[${this.name}] Unexpected worker error for task ${task.id}:`, err)
-						results.push({
-							streamId: "unknown",
-							taskDescription: task.description,
-							status: "failed",
-							error: err.message || String(err),
-							durationMs: Date.now() - startTime,
-						})
 					}
-				})()
+				}
 
-				inFlight.add(workerPromise)
-				workerPromise.finally(() => inFlight.delete(workerPromise))
-			}
+				// Sub-Stage B: Parallel Act & Finalize
+				// Only proceed with Acting if planning was successful
+				const waveResults: WorkerResult[] = []
+				for (let i = 0; i < waveWorkers.length; i += this.maxConcurrency) {
+					const batchIndices = Array.from(
+						{ length: Math.min(this.maxConcurrency, waveWorkers.length - i) },
+						(_, k) => i + k,
+					)
 
-			// Wait for at least one flight to finish before making another DAG evaluation pass
-			if (inFlight.size > 0 && (inFlight.size >= this.maxConcurrency || readyTasks.length === 0)) {
+					const batchResults = await Promise.all(
+						batchIndices.map(async (idx) => {
+							const worker = waveWorkers[idx]!
+							const plan = wavePlans[idx]
+							const startTime = Date.now()
+							const childStreamId = worker.getChildStreamId() || "unknown"
+
+							if (plan.error) {
+								return await worker.handleFailure(startTime, childStreamId, plan.error)
+							}
+
+							try {
+								// Collision Check (Planning-phase lock acquisition)
+								const affectedFiles = (plan.actions || []).map((a: any) => a.file).filter(Boolean)
+								if (affectedFiles.length > 0) {
+									await worker.acquireLocksWithRetry(childStreamId, affectedFiles)
+								}
+
+								const reports = await worker.executeAct(plan.actions || [])
+								return await worker.finalize(startTime, childStreamId, plan, reports)
+							} catch (e) {
+								return await worker.handleFailure(startTime, childStreamId, e)
+							}
+						}),
+					)
+					waveResults.push(...batchResults)
+				}
+
+				// Correct bookkeeping:
+				waveWorkers.forEach((_w, idx) => {
+					const res = waveResults[idx]!
+					if (res.status === "completed") {
+						completedTaskIds.add(wave[idx]!.id)
+						taskResults.set(wave[idx]!.id, res.result || "Success")
+						results.push(res)
+					} else {
+						// Result should still be tracked even if failed
+						results.push(res)
+					}
+				})
+
+				Logger.info(
+					`[${this.name}] 🌊 Wave complete. ${waveResults.filter((r) => r.status === "completed").length}/${wave.length} succeeded.`,
+				)
+			} else if (inFlight.size > 0) {
+				// This shouldn't happen with the new wave-sync logic unless I refactor inFlight back in.
+				// For now, wave-sync is blocking per wave.
 				await Promise.race(inFlight)
 			}
 		}

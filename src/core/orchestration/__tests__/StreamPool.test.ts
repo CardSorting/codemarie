@@ -19,6 +19,9 @@ class MockApiHandler implements Partial<ApiHandler> {
 			type: "text",
 			text: JSON.stringify({
 				actions: [{ type: "create", file: `src/task-${this.callCount}.ts`, description: "Create file" }],
+				file: `src/task-${this.callCount}.ts`,
+				content: `// Content for task ${this.callCount}`,
+				explanation: "Implemented successfully",
 				dependencies: [],
 				verification: "Unit test",
 			}),

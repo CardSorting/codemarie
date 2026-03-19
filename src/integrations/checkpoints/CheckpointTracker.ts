@@ -102,6 +102,10 @@ class CheckpointTracker {
 		this.gitOperations = new GitOperations(cwd)
 	}
 
+	public getWorkingDirectory(): string {
+		return this.cwd
+	}
+
 	/**
 	 * Creates a new CheckpointTracker instance for tracking changes in a task.
 	 * Handles initialization of the shadow git repository.

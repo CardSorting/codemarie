@@ -62,15 +62,15 @@ async function execRipgrep(args: string[]): Promise<string> {
 
 	return new Promise((resolve, reject) => {
 		const rgProcess = childProcess.spawn(binPath, args)
-		// cross-platform alternative to head, which is ripgrep author's recommendation for limiting output.
 		const rl = readline.createInterface({
 			input: rgProcess.stdout,
-			crlfDelay: Number.POSITIVE_INFINITY, // treat \r\n as a single line break even if it's split across chunks. This ensures consistent behavior across different operating systems.
+			crlfDelay: Number.POSITIVE_INFINITY,
 		})
 
 		let output = ""
+		let errorOutput = ""
 		let lineCount = 0
-		const maxLines = MAX_RESULTS * 5 // limiting ripgrep output with max lines since there's no other way to limit results. it's okay that we're outputting as json, since we're parsing it line by line and ignore anything that's not part of a match. This assumes each result is at most 5 lines.
+		const maxLines = MAX_RESULTS * 5
 
 		rl.on("line", (line) => {
 			if (lineCount < maxLines) {
@@ -82,19 +82,27 @@ async function execRipgrep(args: string[]): Promise<string> {
 			}
 		})
 
-		let errorOutput = ""
 		rgProcess.stderr.on("data", (data) => {
 			errorOutput += data.toString()
 		})
-		rl.on("close", () => {
-			if (errorOutput) {
-				reject(new Error(`ripgrep process error: ${errorOutput}`))
-			} else {
-				resolve(output)
+
+		rgProcess.on("exit", (code) => {
+			rl.close()
+			if (code !== 0 && code !== null) {
+				// rg returns 1 if no matches found, which isn't an error for our purposes
+				if (code === 1 && !errorOutput) {
+					resolve("")
+					return
+				}
+				reject(new Error(`ripgrep failed with code ${code}. Stderr: ${errorOutput.trim()}`))
+				return
 			}
+			resolve(output)
 		})
+
 		rgProcess.on("error", (error) => {
-			reject(new Error(`ripgrep process error: ${error.message}`))
+			rl.close()
+			reject(new Error(`ripgrep spawn error: ${error.message}`))
 		})
 	})
 }

@@ -342,15 +342,28 @@ export class OrchestrationController {
 		) => Promise<{ success: boolean; errors: string[] }>,
 	): Promise<boolean> {
 		try {
-			const children = await this.getChildStreams()
-			const activeChildren = children.filter((c) => c.status === "active")
+			const MAX_WAIT_MS = 5 * 60 * 1000 // 5-minute safety timeout
+			const CHECK_INTERVAL_MS = 2000
+			const startTime = Date.now()
 
-			if (activeChildren.length > 0) {
-				Logger.warn(
-					`[Orchestration] ${activeChildren.length} child streams still active. Waiting is not implemented; completing parent anyway.`,
+			while (Date.now() - startTime < MAX_WAIT_MS) {
+				const children = await this.getChildStreams()
+				const activeChildren = children.filter((c) => c.status === "active")
+
+				if (activeChildren.length === 0) {
+					Logger.info(`[Orchestration] All child streams settled. Completing parent stream.`)
+					return await this.completeStream(summary, validator)
+				}
+
+				Logger.info(
+					`[Orchestration] Waiting for ${activeChildren.length} child streams to settle... (${Math.round((Date.now() - startTime) / 1000)}s)`,
 				)
+				await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL_MS))
 			}
 
+			Logger.error(
+				`[Orchestration] Timeout waiting for child streams after ${MAX_WAIT_MS}ms. Completing anyway to avoid deadlock.`,
+			)
 			return await this.completeStream(summary, validator)
 		} catch (error) {
 			Logger.error(`[Orchestration] Failed to complete with children:`, error)

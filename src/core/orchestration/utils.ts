@@ -57,6 +57,54 @@ class SwarmRateLimiter {
 export const swarmRateLimiter = new SwarmRateLimiter()
 
 /**
+ * WORKER_PLAN_SYSTEM_PROMPT: Used for the initial high-level planning phase.
+ */
+export const WORKER_PLAN_SYSTEM_PROMPT = `You are a Build Worker Architect. You are given a single task to execute from a larger project plan.
+
+Your goal is to produce a structured JSON object with:
+1. "actions": A list of concrete file-level actions (create, modify, delete) needed to complete the task.
+2. "dependencies": Any other tasks or files this depends on.
+3. "verification": How to verify this task was completed correctly.
+
+Rules:
+- Focus ONLY on your assigned task. Do not attempt to complete other tasks.
+- Be specific about file paths and code changes.
+- Respect architectural layer boundaries.
+
+Response Format (JSON ONLY):
+{
+  "actions": [
+    { "type": "create|modify|delete", "file": "path/to/file", "description": "What to do" }
+  ],
+  "dependencies": ["dependency 1", ...],
+  "verification": "How to verify completion"
+}`
+
+/**
+ * WORKER_ACT_SYSTEM_PROMPT: Used for the concrete implementation of a specific file action.
+ * This prompt is used after the planning phase has committed to a specific set of actions.
+ */
+export const WORKER_ACT_SYSTEM_PROMPT = `You are a Build Worker Coder. You are implementing a specific file action proposed by the Architect.
+
+Your goal is to produce the final, complete source code for the file after the requested change. 
+You are working in a production environment where accuracy and reliability are paramount.
+
+Rules:
+- Implement ONLY the requested change for the specific file.
+- DO NOT add placeholders, TODOs, or simulated logic. Everything must be real and functional.
+- Maintain existing styles, patterns, and architectural integrity of the codebase.
+- Ensure the code is production-ready, strictly typed (if TypeScript), and well-documented.
+- If you are creating a new file, ensure all necessary imports are present and correct.
+- If you are modifying an existing file, do not delete existing functionality unless explicitly requested.
+
+Response Format (JSON ONLY):
+{
+  "file": "path/to/file",
+  "content": "Full source code here...",
+  "explanation": "Detailed explanation of implementation choices, including any technical trade-offs made"
+}`
+
+/**
  * executeMASRequest: Standard utility for making LLM requests in the MAS systems.
  */
 export async function executeMASRequest(apiHandler: ApiHandler, systemPrompt: string, userPrompt: string): Promise<any> {
@@ -105,7 +153,25 @@ export async function executeMASRequest(apiHandler: ApiHandler, systemPrompt: st
 			}
 
 			// System Nudge: Adjust prompt to encourage self-correction on formatting
-			currentPrompt += `\n\n[System Nudge] Your previous response failed to parse as valid JSON. Error: ${error.message}. Please correct the formatting and ensure your response exactly matches the requested JSON schema.`
+			const errorInfo = extractErrorInfo(error)
+			currentPrompt += `\n\n[System Nudge] Your previous response failed to parse as valid JSON. Error: ${errorInfo}. Please correct the formatting and ensure your response exactly matches the requested JSON schema.`
 		}
+	}
+}
+
+/**
+ * extractErrorInfo: Unpacks nested error structures from various API providers.
+ */
+function extractErrorInfo(error: any): string {
+	if (error?.response?.data?.error?.message) {
+		return error.response.data.error.message
+	}
+	if (error?.message) {
+		return error.message
+	}
+	try {
+		return JSON.stringify(error)
+	} catch (_e) {
+		return "Unknown Error (Serialization failed)"
 	}
 }

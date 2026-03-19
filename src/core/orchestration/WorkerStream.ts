@@ -5,19 +5,7 @@ import { ApiHandler } from "../api"
 import { OrchestrationController } from "./OrchestrationController"
 import { StreamCoordinator } from "./StreamCoordinator"
 import type { KanbanTask } from "./systems/KanbanSystem"
-import { executeMASRequest } from "./utils"
-
-/**
- * WorkerStream: An individual build agent that executes a single task
- * within its own isolated orchestration context (child stream + DB shadow).
- *
- * Each WorkerStream:
- * 1. Creates a child stream linked to the parent.
- * 2. Begins an isolated DB shadow for its writes.
- * 3. Performs file collision checks before mutating state.
- * 4. Reports progress to the parent via stream memory.
- * 5. Commits on success / rolls back on failure.
- */
+import { executeMASRequest, WORKER_ACT_SYSTEM_PROMPT, WORKER_PLAN_SYSTEM_PROMPT } from "./utils"
 export interface WorkerResult {
 	streamId: string
 	taskDescription: string
@@ -26,27 +14,6 @@ export interface WorkerResult {
 	error?: string
 	durationMs: number
 }
-
-const WORKER_SYSTEM_PROMPT = `You are a Build Worker Agent. You are given a single task to execute from a larger project plan.
-
-Your goal is to produce a structured JSON object with:
-1. "actions": A list of concrete file-level actions (create, modify, delete) needed to complete the task.
-2. "dependencies": Any other tasks or files this depends on.
-3. "verification": How to verify this task was completed correctly.
-
-Rules:
-- Focus ONLY on your assigned task. Do not attempt to complete other tasks.
-- Be specific about file paths and code changes.
-- Respect architectural layer boundaries.
-
-Response Format (JSON ONLY):
-{
-  "actions": [
-    { "type": "create|modify|delete", "file": "path/to/file", "description": "What to do" }
-  ],
-  "dependencies": ["dependency 1", ...],
-  "verification": "How to verify completion"
-}`
 
 export class WorkerStream {
 	private name: string
@@ -69,141 +36,198 @@ export class WorkerStream {
 	}
 
 	/**
-	 * Executes the worker's assigned task within an isolated child stream.
-	 * Returns a WorkerResult with status, result, and timing information.
+	 * High-level orchestration.
+	 * Can be used as a standalone single-call execution or as part of a Pool wave.
 	 */
 	public async execute(): Promise<WorkerResult> {
 		const startTime = Date.now()
-		const parentStreamId = this.parentController.getStreamId()
 		let childStreamId = "unknown"
 
 		try {
-			// 1. Spawn a child stream linked to the parent
-			this.childStream = await orchestrator.spawnChildStream(parentStreamId, `Worker: ${this.taskDescription.slice(0, 60)}`)
-			childStreamId = this.childStream.id
+			childStreamId = await this.prepare()
+			const plan = await this.executePlan()
 
-			Logger.info(
-				`[${this.name}] Spawned child stream: ${childStreamId.slice(0, 8)} for task: ${this.taskDescription.slice(0, 50)}...`,
-			)
-
-			// 2. Create an isolated controller + begin DB shadow
-			this.childController = new OrchestrationController(
-				childStreamId,
-				this.userId,
-				this.workspaceId,
-				`worker-${this.task.id}`,
-			)
-			await this.childController.beginDbShadow()
-
-			// 3. Register with coordinator
-			this.coordinator.registerWorker(childStreamId)
-
-			// 4. Begin the task
-			await this.childController.beginTask(this.taskDescription)
-			await this.childController.updateTaskProgress("running")
-
-			// 5. Execute the LLM request for this task with a 5-minute timeout (Deadlock Prevention)
-			const parentDigest = await this.parentController.getStreamDigest()
-			let enrichedPrompt = `Parent Stream Context:\n${parentDigest}\n\nAssigned Task: ${this.taskDescription}`
-
-			if (this.dependencyContext && this.dependencyContext.trim().length > 0) {
-				enrichedPrompt += `\n\n[Context from Direct Dependencies]\nThe tasks this task depends on produced the following results and files. Use this context to guarantee architectural harmony:\n${this.dependencyContext}`
+			const affectedFiles = (plan.actions || []).map((a: any) => a.file).filter(Boolean)
+			if (affectedFiles.length > 0) {
+				await this.acquireLocksWithRetry(childStreamId, affectedFiles)
 			}
 
-			const masRequestPromise = executeMASRequest(this.apiHandler, WORKER_SYSTEM_PROMPT, enrichedPrompt)
+			const reports = await this.executeAct(plan.actions || [])
+			return await this.finalize(startTime, childStreamId, plan, reports)
+		} catch (error: any) {
+			return await this.handleFailure(startTime, childStreamId, error)
+		}
+	}
 
-			const result = (await pTimeout(masRequestPromise, {
-				milliseconds: 5 * 60 * 1000,
-				message: `Task execution timed out after 5 minutes`,
+	/**
+	 * Step 0: Prepare environment (Stream, Shadow, Coordinator registration)
+	 */
+	public async prepare(): Promise<string> {
+		const parentStreamId = this.parentController.getStreamId()
+		this.childStream = await orchestrator.spawnChildStream(parentStreamId, `Worker: ${this.taskDescription.slice(0, 60)}`)
+		const childStreamId = this.childStream.id
+
+		Logger.info(`[${this.name}] Preparing child stream: ${childStreamId.slice(0, 8)}`)
+
+		this.childController = new OrchestrationController(childStreamId, this.userId, this.workspaceId, `worker-${this.task.id}`)
+		await this.childController.beginDbShadow()
+		this.coordinator.registerWorker(childStreamId)
+		await this.childController.beginTask(this.taskDescription)
+		await this.childController.updateTaskProgress("running")
+
+		return childStreamId
+	}
+
+	/**
+	 * Stage 1: Planning (Public for Pool Coordination)
+	 */
+	public async executePlan(): Promise<any> {
+		Logger.info(`[${this.name}] Planning phase...`)
+		const parentDigest = await this.parentController.getStreamDigest()
+		let enrichedPrompt = `Parent Stream Context:\n${parentDigest}\n\nAssigned Task: ${this.taskDescription}`
+
+		if (this.dependencyContext && this.dependencyContext.trim().length > 0) {
+			enrichedPrompt += `\n\n[Context from Direct Dependencies]\n${this.dependencyContext}`
+		}
+
+		return await pTimeout(executeMASRequest(this.apiHandler, WORKER_PLAN_SYSTEM_PROMPT, enrichedPrompt), {
+			milliseconds: 3 * 60 * 1000,
+			message: `Planning phase timed out after 3 minutes`,
+		})
+	}
+
+	/**
+	 * Stage 2: Acting (Public for Pool Coordination)
+	 */
+	public async executeAct(actions: any[]): Promise<any[]> {
+		if (!actions || actions.length === 0) return []
+		Logger.info(`[${this.name}] Acting phase (implementing ${actions.length} actions)...`)
+
+		const reports: any[] = []
+		for (const action of actions) {
+			Logger.info(`[${this.name}] Implementing action: ${action.type} ${action.file}`)
+			const currentContent = action.file ? this.childController?.resolveVirtualContent(action.file) : ""
+
+			const actPrompt = `Task Objectives: ${this.taskDescription}
+Requested Action: ${action.type} on ${action.file}
+Instruction: ${action.description}
+
+Current File Content (if any):
+${currentContent || "(New File)"}`
+
+			const result = (await pTimeout(executeMASRequest(this.apiHandler, WORKER_ACT_SYSTEM_PROMPT, actPrompt), {
+				milliseconds: 4 * 60 * 1000,
+				message: `Implementation of ${action.file} timed out`,
 			})) as any
 
-			// 6. Check for file collisions before committing (Robust Lock Acquisition)
-			const affectedFiles = (result.actions || []).map((a: any) => a.file).filter(Boolean)
+			if (result.file && result.content) {
+				await this.childController?.pushDbOp(
+					{
+						type: result.file === action.file && currentContent ? "update" : "upsert",
+						table: "files",
+						values: {
+							path: result.file,
+							content: result.content,
+							updatedAt: Date.now(),
+							author: this.name,
+						},
+						where: [{ column: "path", value: result.file }],
+					},
+					result.file,
+				)
+			}
 
-			if (affectedFiles.length > 0) {
-				const MAX_ATTEMPTS = 5
-				let attempts = 0
-				let acquiredLocks = false
+			reports.push({ file: result.file, explanation: result.explanation, status: "applied" })
+		}
 
-				while (!acquiredLocks && attempts < MAX_ATTEMPTS) {
-					// Check collisions globally first
-					const collision = await this.coordinator.checkCollision(childStreamId, affectedFiles)
+		return reports
+	}
 
-					if (!collision) {
-						// Attempt to acquire all locks atomically (test-and-set)
-						let allAcquired = true
-						for (const file of affectedFiles) {
-							if (!this.coordinator.tryAcquireFileLock(file, childStreamId)) {
-								allAcquired = false
-								break
-							}
-						}
+	/**
+	 * Finalize: Commit and return results.
+	 */
+	public async finalize(startTime: number, childStreamId: string, plan: any, reports: any[]): Promise<WorkerResult> {
+		const finalResult = { ...plan, executionReports: reports }
+		await this.childController!.storeMemory("worker_result", JSON.stringify(finalResult))
+		await this.childController!.updateTaskProgress("completed", JSON.stringify(finalResult))
 
-						if (allAcquired) {
-							acquiredLocks = true
-							break
-						}
-						// Release any partially acquired locks so we don't deadlock
-						this.coordinator.releaseWorkerLocks(childStreamId)
+		const resultSummary = `Completed: ${this.taskDescription.slice(0, 80)}`
+		await this.childController!.completeStream(resultSummary)
+
+		this.coordinator.deregisterWorker(childStreamId)
+		Logger.info(`[${this.name}] Completed successfully in ${Date.now() - startTime}ms`)
+
+		return {
+			streamId: childStreamId,
+			taskDescription: this.taskDescription,
+			status: "completed",
+			result: JSON.stringify(finalResult),
+			durationMs: Date.now() - startTime,
+		}
+	}
+
+	/**
+	 * Handle failure with safe rollback and deregistration.
+	 */
+	public async handleFailure(startTime: number, childStreamId: string, error: any): Promise<WorkerResult> {
+		Logger.error(`[${this.name}] Failed:`, error)
+
+		if (this.childController) {
+			try {
+				await this.childController.failStream(error.message || String(error))
+			} catch (rollbackErr) {
+				Logger.error(`[${this.name}] Rollback also failed:`, rollbackErr)
+			}
+		}
+
+		if (childStreamId !== "unknown") {
+			this.coordinator.deregisterWorker(childStreamId)
+		}
+
+		return {
+			streamId: childStreamId,
+			taskDescription: this.taskDescription,
+			status: "failed",
+			error: error.message || String(error),
+			durationMs: Date.now() - startTime,
+		}
+	}
+
+	/**
+	 * Robust lock acquisition with backoff.
+	 */
+	public async acquireLocksWithRetry(childStreamId: string, affectedFiles: string[]): Promise<void> {
+		const MAX_ATTEMPTS = 5
+		let attempts = 0
+		let acquiredLocks = false
+
+		while (!acquiredLocks && attempts < MAX_ATTEMPTS) {
+			const collision = await this.coordinator.checkCollision(childStreamId, affectedFiles)
+
+			if (!collision) {
+				let allAcquired = true
+				for (const file of affectedFiles) {
+					if (!this.coordinator.tryAcquireFileLock(file, childStreamId)) {
+						allAcquired = false
+						break
 					}
-
-					// Collision or lock contention occurred, applying backoff
-					attempts++
-					if (attempts >= MAX_ATTEMPTS) {
-						throw new Error(
-							`Persistent file collision after ${MAX_ATTEMPTS} attempts. Aborting task to prevent corruption.`,
-						)
-					}
-
-					Logger.warn(
-						`[${this.name}] File collision detected — applying backoff (attempt ${attempts}/${MAX_ATTEMPTS})...`,
-					)
-					const backoffMs = Math.min(1000 * 2 ** attempts, 5000) + Math.random() * 1000
-					await new Promise((resolve) => setTimeout(resolve, backoffMs))
 				}
-			}
 
-			// 7. Store worker results in the child stream's memory
-			await this.childController.storeMemory("worker_result", JSON.stringify(result))
-			await this.childController.updateTaskProgress("completed", JSON.stringify(result))
-
-			// 8. Commit the child stream
-			const resultSummary = `Completed: ${this.taskDescription.slice(0, 80)}`
-			await this.childController.completeStream(resultSummary)
-
-			Logger.info(`[${this.name}] Completed successfully in ${Date.now() - startTime}ms`)
-
-			return {
-				streamId: childStreamId,
-				taskDescription: this.taskDescription,
-				status: "completed",
-				result: JSON.stringify(result),
-				durationMs: Date.now() - startTime,
-			}
-		} catch (error: any) {
-			Logger.error(`[${this.name}] Failed:`, error)
-
-			// Rollback on failure
-			if (this.childController) {
-				try {
-					await this.childController.failStream(error.message || String(error))
-				} catch (rollbackErr) {
-					Logger.error(`[${this.name}] Rollback also failed:`, rollbackErr)
+				if (allAcquired) {
+					acquiredLocks = true
+					break
 				}
+				this.coordinator.releaseWorkerLocks(childStreamId)
 			}
 
-			return {
-				streamId: childStreamId,
-				taskDescription: this.taskDescription,
-				status: "failed",
-				error: error.message || String(error),
-				durationMs: Date.now() - startTime,
+			attempts++
+			if (attempts >= MAX_ATTEMPTS) {
+				throw new Error(`Persistent file collision after ${MAX_ATTEMPTS} attempts. Aborting task to prevent corruption.`)
 			}
-		} finally {
-			// 9. Guarantee deregistration from coordinator (Cleanup Guarantee)
-			if (childStreamId !== "unknown") {
-				this.coordinator.deregisterWorker(childStreamId)
-			}
+
+			Logger.warn(`[${this.name}] File collision detected — applying backoff (attempt ${attempts}/${MAX_ATTEMPTS})...`)
+			const backoffMs = Math.min(1000 * 2 ** attempts, 5000) + Math.random() * 1000
+			await new Promise((resolve) => setTimeout(resolve, backoffMs))
 		}
 	}
 
