@@ -14,7 +14,7 @@
 import type { CodemarieMessage, ExtensionState } from "@shared/ExtensionMessage"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import type { Controller } from "@/core/controller"
-import { getRequestRegistry } from "@/core/controller/grpc-handler"
+import { getProtobusRequestRegistry } from "@/core/controller/protobus-handler"
 import { subscribeToState } from "@/core/controller/state/subscribeToState"
 import { showTaskWithId } from "@/core/controller/task/showTaskWithId"
 import { emitTaskStartedMessage } from "./task-start-output"
@@ -170,7 +170,7 @@ export async function runPlainTextTask(options: PlainTextTaskOptions): Promise<b
 		}
 		hasError = true
 	} finally {
-		getRequestRegistry().cancelRequest(requestId)
+		getProtobusRequestRegistry().cancelRequest(requestId)
 	}
 
 	// non json mode outputs only the final complete message

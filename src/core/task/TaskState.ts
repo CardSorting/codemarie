@@ -94,6 +94,10 @@ export class TaskState {
 	currentTurnUniqueReadCount = 0
 	currentTurnExplorationCount = 0
 	swarmState?: SwarmState
+	isAwaitingPlanResponse = false
+	apiRequestsSinceLastTodoUpdate = 0
+	askResponseText?: string
+	taskReadHistory: Map<string, number> = new Map()
 }
 
 export enum PolicyHealth {

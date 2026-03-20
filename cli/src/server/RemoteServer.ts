@@ -3,7 +3,7 @@ import { createServer, Server } from "http"
 import path from "path"
 import { WebSocket, WebSocketServer } from "ws"
 import { Controller } from "@/core/controller"
-import { handleGrpcRequest } from "@/core/controller/grpc-handler"
+import { handleProtobusRequest } from "@/core/controller/protobus-handler"
 import { RemoteWebviewProvider } from "@/core/webview/RemoteWebviewProvider"
 import { Logger } from "@/shared/services/Logger"
 
@@ -96,11 +96,21 @@ export class RemoteServer {
 					const message = JSON.parse(messageStr)
 					Logger.debug("[RemoteServer] Received message:", message.command)
 
-					if (message.type === "grpc_request") {
-						// Bridge gRPC requests from webapp to the controller
-						await handleGrpcRequest(
+					if (message.type === "protobus_request") {
+						// Bridge Protobus requests from webapp to the controller
+						await handleProtobusRequest(
 							this.controller,
-							(msg) => {
+							(msg: any) => {
+								ws.send(JSON.stringify(msg))
+								return Promise.resolve(true)
+							},
+							message.protobus_request,
+						)
+					} else if (message.type === "grpc_request") {
+						// Bridge gRPC requests from webapp to the controller (fallback/legacy)
+						await handleProtobusRequest(
+							this.controller,
+							(msg: any) => {
 								ws.send(JSON.stringify(msg))
 								return Promise.resolve(true)
 							},

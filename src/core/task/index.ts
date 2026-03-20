@@ -80,6 +80,7 @@ type TaskParams = {
 	historyItem?: HistoryItem
 	taskId: string
 	taskLockAcquired: boolean
+	reinitExistingTaskFromId: (taskId: string, initialState?: Partial<TaskState>) => Promise<void>
 	initialTaskState?: Partial<TaskState>
 }
 

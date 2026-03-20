@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 import { StreamingCallbacks } from "@/hosts/host-provider-types"
-import { ProtobusHandler } from "@/hosts/vscode/hostbridge-handler"
+import { ProtobusHandler } from "@/hosts/vscode/hostbridge-protobus-handler"
 import { Logger } from "@/shared/services/Logger"
 
 // Generic type for any protobuf service definition

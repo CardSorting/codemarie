@@ -1,4 +1,4 @@
-import { StreamingResponseHandler } from "./hostbridge-handler"
+import { StreamingResponseHandler } from "./hostbridge-protobus-handler"
 
 /**
  * Generic type for service method handlers
