@@ -4,14 +4,13 @@ import { describe, expect, it, vi } from "vitest"
 import ErrorRow from "./ErrorRow"
 
 // Mock the auth context
-vi.mock("@/context/CodemarieAuthContext", () => ({
-	useCodemarieAuth: () => ({
-		codemarieUser: null,
-	}),
-	useCodemarieSignIn: () => ({
+vi.mock("@/context/AuthContext", () => ({
+	useAuth: () => ({
+		user: null,
 		isLoginLoading: false,
+		handleSignIn: vi.fn(),
+		handleSignOut: vi.fn(),
 	}),
-	handleSignOut: vi.fn(),
 }))
 
 // Mock CreditLimitError component

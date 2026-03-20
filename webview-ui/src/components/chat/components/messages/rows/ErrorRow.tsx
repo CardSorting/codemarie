@@ -2,7 +2,7 @@ import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { memo } from "react"
 import CreditLimitError from "@/components/chat/components/messages/rows/CreditLimitError"
 import { Button } from "@/components/ui/button"
-import { useCodemarieAuth, useCodemarieSignIn } from "@/context/CodemarieAuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { CodemarieError, CodemarieErrorType } from "../../../../../../../src/services/error/CodemarieError"
 
 const _errorColor = "var(--vscode-errorForeground)"
@@ -15,10 +15,8 @@ interface ErrorRowProps {
 }
 
 const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStreamingFailedMessage }: ErrorRowProps) => {
-	const { codemarieUser } = useCodemarieAuth()
+	const { user: codemarieUser, isLoginLoading, handleSignIn } = useAuth()
 	const rawApiError = apiRequestFailedMessage || apiReqStreamingFailedMessage
-
-	const { isLoginLoading, handleSignIn } = useCodemarieSignIn()
 
 	const renderErrorContent = () => {
 		switch (errorType) {

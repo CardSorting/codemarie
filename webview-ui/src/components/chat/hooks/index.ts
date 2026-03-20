@@ -2,6 +2,15 @@
  * Export all custom hooks for the chat view
  */
 
-export { useChatState } from "./useChatState"
-export { useMessageHandlers } from "./useMessageHandlers"
-export { useScrollBehavior } from "./useScrollBehavior"
+export * from "./useAutoExpand"
+export * from "./useChatState"
+export * from "./useChatSubscriptions"
+export * from "./useClipboardHandler"
+export * from "./useFileDragAndDrop"
+export * from "./useFilePaste"
+export * from "./useMentions"
+export * from "./useMessageHandlers"
+export * from "./useQuoteButton"
+export * from "./useScrollBehavior"
+export * from "./useSlashCommands"
+export * from "./useTextAreaHeight"

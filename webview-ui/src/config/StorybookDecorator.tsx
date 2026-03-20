@@ -4,18 +4,11 @@ import "../../src/index.css"
 
 import type { Decorator } from "@storybook/react-vite"
 import React from "react"
-import {
-	CodemarieAuthContext,
-	CodemarieAuthContextType,
-	CodemarieAuthProvider,
-	useCodemarieAuth,
-} from "@/context/CodemarieAuthContext"
-import {
-	ExtensionStateContext,
-	ExtensionStateContextProvider,
-	ExtensionStateContextType,
-	useExtensionState,
-} from "@/context/ExtensionStateContext"
+import { AuthContext, type AuthContextType, AuthProvider, useAuth } from "@/context/AuthContext"
+import { GlobalStateProvider } from "@/context/GlobalStateContext"
+import { ModelStateProvider } from "@/context/ModelStateContext"
+import { NavigationProvider } from "@/context/NavigationContext"
+import { NotificationProvider } from "@/context/NotificationContext"
 import { cn } from "@/lib/utils"
 import { StorybookThemes } from "../../.storybook/themes"
 
@@ -49,47 +42,50 @@ function StorybookDecoratorProvider(className = "relative"): Decorator {
 	return (story, parameters) => {
 		return (
 			<div className={className}>
-				<ExtensionStateContextProvider>
-					<CodemarieAuthProvider>
-						<ThemeHandler theme={parameters?.globals?.theme}>{React.createElement(story)}</ThemeHandler>
-					</CodemarieAuthProvider>
-				</ExtensionStateContextProvider>
+				<GlobalStateProvider>
+					<ModelStateProvider>
+						<NotificationProvider>
+							<NavigationProvider>
+								<AuthProvider>
+									<ThemeHandler theme={parameters?.globals?.theme}>{React.createElement(story)}</ThemeHandler>
+								</AuthProvider>
+							</NavigationProvider>
+						</NotificationProvider>
+					</ModelStateProvider>
+				</GlobalStateProvider>
 			</div>
 		)
 	}
 }
 
-// Wrapper component to safely use useExtensionState inside the provider
-const ExtensionStateProviderWithOverrides: React.FC<{
-	overrides?: Partial<ExtensionStateContextType>
+const AuthProviderWithOverrides: React.FC<{
+	overrides?: Partial<AuthContextType>
 	children: React.ReactNode
 }> = ({ overrides, children }) => {
-	const extensionState = useExtensionState()
-	return <ExtensionStateContext.Provider value={{ ...extensionState, ...overrides }}>{children}</ExtensionStateContext.Provider>
-}
-
-const CodemarieAuthProviderWithOverrides: React.FC<{
-	overrides?: Partial<CodemarieAuthContextType>
-	children: React.ReactNode
-}> = ({ overrides, children }) => {
-	const authContext = useCodemarieAuth()
-	return <CodemarieAuthContext.Provider value={{ ...authContext, ...overrides }}>{children}</CodemarieAuthContext.Provider>
+	const authContext = useAuth()
+	return <AuthContext.Provider value={{ ...authContext, ...overrides }}>{children}</AuthContext.Provider>
 }
 
 export const createStorybookDecorator =
 	(
-		overrideStates?: Partial<ExtensionStateContextType>,
+		overrideStates?: any, // ExtensionState Partial
 		classNames?: string,
-		authOverrides?: Partial<CodemarieAuthContextType>,
+		authOverrides?: Partial<AuthContextType>,
 	) =>
 	(Story: any) => (
-		<ExtensionStateProviderWithOverrides overrides={overrideStates}>
-			<CodemarieAuthProviderWithOverrides overrides={authOverrides}>
-				<div className={cn("max-w-lg mx-auto", classNames)}>
-					<Story />
-				</div>
-			</CodemarieAuthProviderWithOverrides>
-		</ExtensionStateProviderWithOverrides>
+		<GlobalStateProvider initialState={overrideStates}>
+			<ModelStateProvider>
+				<NotificationProvider>
+					<NavigationProvider>
+						<AuthProviderWithOverrides overrides={authOverrides}>
+							<div className={cn("max-w-lg mx-auto", classNames)}>
+								<Story />
+							</div>
+						</AuthProviderWithOverrides>
+					</NavigationProvider>
+				</NotificationProvider>
+			</ModelStateProvider>
+		</GlobalStateProvider>
 	)
 
 export const StorybookWebview = StorybookDecoratorProvider()

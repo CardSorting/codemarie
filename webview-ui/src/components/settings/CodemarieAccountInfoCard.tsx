@@ -1,12 +1,12 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useState } from "react"
-import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { AccountServiceClient } from "@/services/protobus-client"
 
 export const CodemarieAccountInfoCard = () => {
-	const { codemarieUser } = useCodemarieAuth()
+	const { user: codemarieUser } = useAuth()
 	const { navigateToAccount } = useExtensionState()
 	const [isLoading, setIsLoading] = useState(false)
 

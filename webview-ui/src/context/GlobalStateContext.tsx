@@ -37,7 +37,10 @@ export interface GlobalStateContextType extends ExtensionState {
 
 const GlobalStateContext = createContext<GlobalStateContextType | undefined>(undefined)
 
-export const GlobalStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const GlobalStateProvider: React.FC<{
+	children: React.ReactNode
+	initialState?: Partial<ExtensionState>
+}> = ({ children, initialState }) => {
 	const [state, setState] = useState<ExtensionState>({
 		version: "",
 		codemarieMessages: [],
@@ -100,6 +103,7 @@ export const GlobalStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
 		hooksEnabled: false,
 		nativeToolCallSetting: false,
 		enableParallelToolCalling: false,
+		...initialState,
 	})
 
 	const [mcpServers, setMcpServers] = useState<McpServer[]>([])

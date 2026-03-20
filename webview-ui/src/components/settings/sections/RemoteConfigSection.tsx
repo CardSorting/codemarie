@@ -2,7 +2,7 @@ import { EmptyRequest } from "@shared/proto/index.codemarie"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
 import { RemoteConfigToggle } from "@/components/account/RemoteConfigToggle"
-import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
+import { useAuth } from "@/context/AuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
@@ -270,7 +270,7 @@ function PromptUploadingSection() {
 
 export function RemoteConfigSection({ renderSectionHeader }: RemoteConfigSectionProps) {
 	const { remoteConfigSettings, optOutOfRemoteConfig } = useExtensionState()
-	const { activeOrganization } = useCodemarieAuth()
+	const { activeOrganization } = useAuth()
 
 	if (optOutOfRemoteConfig) {
 		return (

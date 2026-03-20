@@ -3,22 +3,21 @@ import { combineCommandSequences } from "@shared/combineCommandSequences"
 import { combineErrorRetryMessages } from "@shared/combineErrorRetryMessages"
 import { combineHookSequences } from "@shared/combineHookSequences"
 import { getApiMetrics, getLastApiReqTotalTokens } from "@shared/getApiMetrics"
-import { BooleanRequest, StringRequest } from "@shared/proto/codemarie/common"
+import { BooleanRequest } from "@shared/proto/codemarie/common"
 import { useCallback, useEffect, useMemo } from "react"
 import { normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
 import { PLATFORM_CONFIG } from "@/config/platform.config"
+import { useAuth } from "@/context/AuthContext"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useMount } from "@/hooks/useLifecycle"
-import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
+import { FileServiceClient } from "@/services/protobus-client"
 import { Navbar } from "../menu/Navbar"
 import AutoApproveBar from "./components/layout/auto-approve-menu/AutoApproveBar"
 import SwarmDashboard from "./components/messages/rows/SwarmDashboard"
-// Import utilities and hooks from the new structure
 import {
 	ActionButtons,
 	CHAT_CONSTANTS,
 	ChatLayout,
-	convertHtmlToMarkdown,
 	filterVisibleMessages,
 	groupLowStakesTools,
 	groupMessages,
@@ -26,6 +25,8 @@ import {
 	MessagesArea,
 	TaskSection,
 	useChatState,
+	useChatSubscriptions,
+	useClipboardHandler,
 	useMessageHandlers,
 	useScrollBehavior,
 	WelcomeSection,
@@ -51,13 +52,14 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		apiConfiguration,
 		telemetrySetting,
 		mode,
-		userInfo,
 		currentFocusChainChecklist,
 		focusChainSettings,
 		hooksEnabled,
 		swarmState,
 	} = useGlobalState()
-	const isProdHostedApp = userInfo?.apiBaseUrl === "https://app.codemarie.bot"
+
+	const { user: userInfo } = useAuth()
+	const isProdHostedApp = userInfo?.appBaseUrl === "https://app.codemarie.bot"
 	const shouldShowQuickWins = isProdHostedApp && (!taskHistory || taskHistory.length < QUICK_WINS_HISTORY_THRESHOLD)
 
 	//const task = messages.length > 0 ? (messages[0].say === "task" ? messages[0] : undefined) : undefined) : undefined
@@ -88,95 +90,9 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		textAreaRef,
 	} = chatState
 
-	useEffect(() => {
-		const handleCopy = async (e: ClipboardEvent) => {
-			const targetElement = e.target as HTMLElement | null
-			// If the copy event originated from an input or textarea,
-			// let the default browser behavior handle it.
-			if (
-				targetElement &&
-				(targetElement.tagName === "INPUT" || targetElement.tagName === "TEXTAREA" || targetElement.isContentEditable)
-			) {
-				return
-			}
-
-			if (window.getSelection) {
-				const selection = window.getSelection()
-				if (selection && selection.rangeCount > 0) {
-					const range = selection.getRangeAt(0)
-					const commonAncestor = range.commonAncestorContainer
-					let textToCopy: string | null = null
-
-					// Check if the selection is inside an element where plain text copy is preferred
-					let currentElement =
-						commonAncestor.nodeType === Node.ELEMENT_NODE
-							? (commonAncestor as HTMLElement)
-							: commonAncestor.parentElement
-					let preferPlainTextCopy = false
-					while (currentElement) {
-						if (currentElement.tagName === "PRE" && currentElement.querySelector("code")) {
-							preferPlainTextCopy = true
-							break
-						}
-						// Check computed white-space style
-						const computedStyle = window.getComputedStyle(currentElement)
-						if (
-							computedStyle.whiteSpace === "pre" ||
-							computedStyle.whiteSpace === "pre-wrap" ||
-							computedStyle.whiteSpace === "pre-line"
-						) {
-							// If the element itself or an ancestor has pre-like white-space,
-							// and the selection is likely contained within it, prefer plain text.
-							// This helps with elements like the TaskHeader's text display.
-							preferPlainTextCopy = true
-							break
-						}
-
-						// Stop searching if we reach a known chat message boundary or body
-						if (
-							currentElement.classList.contains("chat-row-assistant-message-container") ||
-							currentElement.classList.contains("chat-row-user-message-container") ||
-							currentElement.tagName === "BODY"
-						) {
-							break
-						}
-						currentElement = currentElement.parentElement
-					}
-
-					if (preferPlainTextCopy) {
-						// For code blocks or elements with pre-formatted white-space, get plain text.
-						textToCopy = selection.toString()
-					} else {
-						// For other content, use the existing HTML-to-Markdown conversion
-						const clonedSelection = range.cloneContents()
-						const div = document.createElement("div")
-						div.appendChild(clonedSelection)
-						const selectedHtml = div.innerHTML
-						textToCopy = await convertHtmlToMarkdown(selectedHtml)
-					}
-
-					if (textToCopy !== null) {
-						try {
-							FileServiceClient.copyToClipboard(StringRequest.create({ value: textToCopy })).catch((err) => {
-								console.error("Error copying to clipboard:", err)
-							})
-							e.preventDefault()
-						} catch (error) {
-							console.error("Error copying to clipboard:", error)
-						}
-					}
-				}
-			}
-		}
-		document.addEventListener("copy", handleCopy)
-
-		return () => {
-			document.removeEventListener("copy", handleCopy)
-		}
-	}, [])
-	// Button state is now managed by useButtonState hook
-
-	// handleFocusChange is already provided by chatState
+	// Use the new simplified hooks
+	useClipboardHandler()
+	useChatSubscriptions(isHidden, chatState, setInputValue)
 
 	// Use message handlers hook
 	const messageHandlers = useMessageHandlers(messages, chatState)
@@ -216,63 +132,6 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 	}, [selectedModelInfo.supportsImages, selectedFiles.length, selectedImages.length, setSelectedFiles, setSelectedImages])
 
 	const shouldDisableFilesAndImages = selectedImages.length + selectedFiles.length >= MAX_IMAGES_AND_FILES_PER_MESSAGE
-
-	// Subscribe to show webview events from the backend
-	useEffect(() => {
-		const cleanup = UiServiceClient.subscribeToShowWebview(
-			{},
-			{
-				onResponse: (event) => {
-					// Only focus if not hidden and preserveEditorFocus is false
-					if (!isHidden && !event.preserveEditorFocus) {
-						textAreaRef.current?.focus()
-					}
-				},
-				onError: (error) => {
-					console.error("Error in showWebview subscription:", error)
-				},
-				onComplete: () => {
-					console.log("showWebview subscription completed")
-				},
-			},
-		)
-
-		return cleanup
-	}, [isHidden, textAreaRef.current])
-
-	// Set up addToInput subscription
-	useEffect(() => {
-		const cleanup = UiServiceClient.subscribeToAddToInput(
-			{},
-			{
-				onResponse: (event) => {
-					if (event.value) {
-						setInputValue((prevValue) => {
-							const newText = event.value
-							const newTextWithNewline = `${newText}\n`
-							return prevValue ? `${prevValue}\n${newTextWithNewline}` : newTextWithNewline
-						})
-						// Add scroll to bottom after state update
-						// Auto focus the input and start the cursor on a new line for easy typing
-						setTimeout(() => {
-							if (textAreaRef.current) {
-								textAreaRef.current.scrollTop = textAreaRef.current.scrollHeight
-								textAreaRef.current.focus()
-							}
-						}, 0)
-					}
-				},
-				onError: (error) => {
-					console.error("Error in addToInput subscription:", error)
-				},
-				onComplete: () => {
-					console.log("addToInput subscription completed")
-				},
-			},
-		)
-
-		return cleanup
-	}, [setInputValue, textAreaRef.current])
 
 	useMount(() => {
 		// NOTE: the vscode window needs to be focused for this to work
@@ -361,6 +220,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 							chatState={chatState}
 							groupedMessages={groupedMessages}
 							messageHandlers={messageHandlers}
+							messages={messages}
 							modifiedMessages={modifiedMessages}
 							scrollBehavior={scrollBehavior}
 							task={task}
