@@ -1,5 +1,5 @@
-import type { Repository } from "./repository.js"
-import type { AgentContext } from "./agent-context.js"
+import type { Repository } from "./repository"
+import type { AgentContext } from "./agent-context"
 export declare class AgentGitMCP {
 	private server
 	private repo

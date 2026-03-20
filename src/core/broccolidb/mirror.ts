@@ -1,6 +1,6 @@
 import { type SimpleGit, simpleGit } from "simple-git"
 import { Logger } from "@/shared/services/Logger"
-import { Repository } from "./repository.js"
+import { Repository } from "./repository"
 
 /**
  * LocalMirror Prototype

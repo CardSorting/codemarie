@@ -1,5 +1,5 @@
-import { Connection } from "./connection.js"
-import { Repository } from "./repository.js"
+import { Connection } from "./connection"
+import { Repository } from "./repository"
 import * as admin from "firebase-admin"
 export interface WorkspaceInfo {
 	userId: string

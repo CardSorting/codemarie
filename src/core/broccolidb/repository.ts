@@ -1,14 +1,14 @@
 import * as crypto from "node:crypto"
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
+import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
 import { Logger } from "@/shared/services/Logger"
-import { Connection } from "./connection.js"
-import { AgentGitError } from "./errors.js"
-import { executor } from "./executor.js"
-import type { FileEntry } from "./file-tree.js"
-import { FileTree } from "./file-tree.js"
-import { LRUCache } from "./lru-cache.js"
-import { TaskMutex } from "./mutex.js"
-import { EnvironmentTracker, telemetryQueue } from "./tracker.js"
+import { Connection } from "./connection"
+import { AgentGitError } from "./errors"
+import { executor } from "./executor"
+import type { FileEntry } from "./file-tree"
+import { FileTree } from "./file-tree"
+import { LRUCache } from "./lru-cache"
+import { TaskMutex } from "./mutex"
+import { EnvironmentTracker, telemetryQueue } from "./tracker"
 
 // ─── Interfaces ───
 

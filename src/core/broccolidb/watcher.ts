@@ -2,8 +2,8 @@ import * as chokidar from "chokidar"
 import * as fs from "fs/promises"
 import * as path from "path"
 import { Logger } from "@/shared/services/Logger"
-import { AgentGitError } from "./errors.js"
-import { Repository } from "./repository.js"
+import { AgentGitError } from "./errors"
+import { Repository } from "./repository"
 
 export class LocalWatcher {
 	private watcher: chokidar.FSWatcher | null = null

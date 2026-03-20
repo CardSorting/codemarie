@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin"
-import { Repository } from "./repository.js"
+import { Repository } from "./repository"
 /**
  * FirestorePool manages shared instances of Firestore and Repositories.
  * This prevents resource leak and ensuring consistent connection state for an agent.

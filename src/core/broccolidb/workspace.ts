@@ -1,9 +1,9 @@
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
-import type { Schema } from "@/infrastructure/db/Config.js"
-import { Connection } from "./connection.js"
-import { AgentGitError } from "./errors.js"
-import { executor } from "./executor.js"
-import { Repository } from "./repository.js"
+import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
+import type { Schema } from "@/infrastructure/db/Config"
+import { Connection } from "./connection"
+import { AgentGitError } from "./errors"
+import { executor } from "./executor"
+import { Repository } from "./repository"
 
 export interface WorkspaceInfo {
 	userId: string

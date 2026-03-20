@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto"
-import { GraphService } from "./GraphService.js"
-import { ReasoningService } from "./ReasoningService.js"
-import type { ImpactReport, ServiceContext } from "./types.js"
+import { GraphService } from "./GraphService"
+import { ReasoningService } from "./ReasoningService"
+import type { ImpactReport, ServiceContext } from "./types"
 
 export class AuditService {
 	constructor(

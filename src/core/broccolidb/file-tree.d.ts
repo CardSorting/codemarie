@@ -1,4 +1,4 @@
-import type { Repository } from "./repository.js"
+import type { Repository } from "./repository"
 import admin from "firebase-admin"
 export interface FileEntry {
 	path: string

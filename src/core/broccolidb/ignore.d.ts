@@ -1,4 +1,4 @@
-import type { FileTree } from "./file-tree.js"
+import type { FileTree } from "./file-tree"
 export declare class AgentIgnore {
 	private ig
 	constructor(rules: string)

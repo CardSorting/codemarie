@@ -1,5 +1,5 @@
 import ignore, { type Ignore } from "ignore"
-import type { FileTree } from "./file-tree.js"
+import type { FileTree } from "./file-tree"
 
 export class AgentIgnore {
 	private ig: Ignore

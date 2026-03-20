@@ -1,4 +1,4 @@
-import { Repository } from "./repository.js"
+import { Repository } from "./repository"
 export declare class LocalWatcher {
 	private readonly repo
 	private readonly branch

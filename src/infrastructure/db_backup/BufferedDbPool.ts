@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto"
 import { Kysely, sql } from "kysely"
 import { Logger } from "@/shared/services/Logger"
-import { getDb, type Schema } from "./Config.js"
+import { getDb, type Schema } from "./Config"
 
 // Minimal Mutex implementation for porting
 class Mutex {

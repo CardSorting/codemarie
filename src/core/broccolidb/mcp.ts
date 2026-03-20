@@ -2,11 +2,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
 import { Logger } from "@/shared/services/Logger"
-import type { TraversalFilter } from "./agent-context.js"
-import { AgentContext } from "./agent-context.js"
-import { executor } from "./executor.js"
-import { Repository } from "./repository.js"
-import { EnvironmentTracker, telemetryQueue } from "./tracker.js"
+import type { TraversalFilter } from "./agent-context"
+import { AgentContext } from "./agent-context"
+import { executor } from "./executor"
+import { Repository } from "./repository"
+import { EnvironmentTracker, telemetryQueue } from "./tracker"
 
 export class BroccoliDBMCP {
 	private server: McpServer

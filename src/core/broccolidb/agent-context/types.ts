@@ -1,7 +1,7 @@
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
-import { AiService } from "../embedding.js"
-import { LRUCache } from "../lru-cache.js"
-import { Workspace } from "../workspace.js"
+import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
+import { AiService } from "../embedding"
+import { LRUCache } from "../lru-cache"
+import { Workspace } from "../workspace"
 
 export interface AgentProfile {
 	agentId: string

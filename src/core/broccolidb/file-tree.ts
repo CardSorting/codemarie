@@ -1,9 +1,9 @@
 import * as crypto from "node:crypto"
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
-import { AgentGitError, PathSanitizer } from "./errors.js"
-import { AgentIgnore } from "./ignore.js"
-import { TaskMutex } from "./mutex.js"
-import type { Repository, TreeEntry } from "./repository.js"
+import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
+import { AgentGitError, PathSanitizer } from "./errors"
+import { AgentIgnore } from "./ignore"
+import { TaskMutex } from "./mutex"
+import type { Repository, TreeEntry } from "./repository"
 
 export interface FileEntry {
 	path: string

@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto"
 import { GoogleGenAI } from "@google/genai"
 import { Logger } from "@/shared/services/Logger"
-import { LRUCache } from "./lru-cache.js"
+import { LRUCache } from "./lru-cache"
 
 export interface EmbeddingConfig {
 	/** Model ID. Default: 'gemini-embedding-2-preview' */

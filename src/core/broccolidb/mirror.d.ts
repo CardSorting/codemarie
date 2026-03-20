@@ -1,4 +1,4 @@
-import { Repository } from "./repository.js"
+import { Repository } from "./repository"
 /**
  * LocalMirror Prototype
  * Inspired by Cline's "Shadow Git" checkpointing system.

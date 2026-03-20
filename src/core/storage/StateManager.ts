@@ -58,6 +58,9 @@ export interface PersistenceErrorEvent {
 export class StateManager {
 	private static instance: StateManager | null = null
 
+	private isReinitializing = false
+	private reinitializeAttemptCount = 0
+
 	private globalStateCache: GlobalStateAndSettings = {} as GlobalStateAndSettings
 	private taskStateCache: Partial<Settings> = {}
 	private sessionOverrideCache: Partial<Settings> = {}
@@ -670,22 +673,42 @@ export class StateManager {
 	 * Used for error recovery when write operations fail
 	 */
 	async reInitialize(currentTaskId?: string): Promise<void> {
-		if (this.persistenceTimeout) {
-			try {
-				await this.persistPendingState()
-			} catch (error) {
-				Logger.error("[StateManager] Failed to persist pending state during reInitialize:", error)
-			}
+		if (this.isReinitializing) {
+			Logger.warn("[StateManager] reInitialize is already in progress. Skipping.")
+			return
 		}
-		// Clear all cached data and pending state
-		this.dispose()
+		if (this.reinitializeAttemptCount > 3) {
+			Logger.error("[StateManager] reInitialize exceeded retry limit. Halting to prevent infinite loop.")
+			return
+		}
 
-		// Reinitialize from the same storage context
-		await StateManager.initialize(this.storage)
+		this.isReinitializing = true
+		this.reinitializeAttemptCount++
 
-		// If there's an active task, reload its settings
-		if (currentTaskId) {
-			await this.loadTaskSettings(currentTaskId)
+		try {
+			if (this.persistenceTimeout) {
+				try {
+					await this.persistPendingState()
+				} catch (error) {
+					Logger.error("[StateManager] Failed to persist pending state during reInitialize:", error)
+				}
+			}
+			// Clear all cached data and pending state
+			this.dispose()
+
+			// Reinitialize from the same storage context
+			await StateManager.initialize(this.storage)
+
+			// If there's an active task, reload its settings
+			if (currentTaskId) {
+				await this.loadTaskSettings(currentTaskId)
+			}
+		} finally {
+			this.isReinitializing = false
+			// Reset attempt count after a delay to allow recovery but prevent rapid loops
+			setTimeout(() => {
+				this.reinitializeAttemptCount = 0
+			}, 10000)
 		}
 	}
 

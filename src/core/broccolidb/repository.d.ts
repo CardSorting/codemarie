@@ -1,7 +1,7 @@
-import { Connection } from "./connection.js"
-import { FileTree } from "./file-tree.js"
-import type { FileEntry } from "./file-tree.js"
-import { LRUCache } from "./lru-cache.js"
+import { Connection } from "./connection"
+import { FileTree } from "./file-tree"
+import type { FileEntry } from "./file-tree"
+import { LRUCache } from "./lru-cache"
 import admin from "firebase-admin"
 export interface Usage {
 	promptTokens: number

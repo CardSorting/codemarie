@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto"
-import { AgentGitError } from "@/core/broccolidb/errors.js"
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
-import type { GraphEdge, KnowledgeBaseItem, ServiceContext, TraversalFilter } from "./types.js"
+import { AgentGitError } from "@/core/broccolidb/errors"
+import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
+import type { GraphEdge, KnowledgeBaseItem, ServiceContext, TraversalFilter } from "./types"
 
 export class GraphService {
 	constructor(private ctx: ServiceContext) {}

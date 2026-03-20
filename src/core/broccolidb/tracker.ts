@@ -2,7 +2,7 @@ import * as crypto from "node:crypto"
 import * as os from "os"
 import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
 import { Logger } from "@/shared/services/Logger"
-import { LRUCache } from "./lru-cache.js"
+import { LRUCache } from "./lru-cache"
 
 export interface EnvironmentMetadata {
 	osName: string

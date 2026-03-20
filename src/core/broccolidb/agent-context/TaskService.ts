@@ -1,6 +1,6 @@
-import { AgentGitError } from "@/core/broccolidb/errors.js"
-import { GraphService } from "./GraphService.js"
-import type { AgentProfile, KnowledgeBaseItem, ServiceContext, TaskContext, TaskItem } from "./types.js"
+import { AgentGitError } from "@/core/broccolidb/errors"
+import { GraphService } from "./GraphService"
+import type { AgentProfile, KnowledgeBaseItem, ServiceContext, TaskContext, TaskItem } from "./types"
 
 export class TaskService {
 	constructor(

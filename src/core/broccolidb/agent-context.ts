@@ -1,9 +1,9 @@
 import * as crypto from "node:crypto"
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
-import { AuditService } from "./agent-context/AuditService.js"
-import { GraphService } from "./agent-context/GraphService.js"
-import { ReasoningService } from "./agent-context/ReasoningService.js"
-import { TaskService } from "./agent-context/TaskService.js"
+import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool"
+import { AuditService } from "./agent-context/AuditService"
+import { GraphService } from "./agent-context/GraphService"
+import { ReasoningService } from "./agent-context/ReasoningService"
+import { TaskService } from "./agent-context/TaskService"
 
 import type {
 	AgentBundle,
@@ -18,11 +18,11 @@ import type {
 	TaskContext,
 	TaskItem,
 	TraversalFilter,
-} from "./agent-context/types.js"
-import { AiService } from "./embedding.js"
-import { AgentGitError } from "./errors.js"
-import { LRUCache } from "./lru-cache.js"
-import { Workspace } from "./workspace.js"
+} from "./agent-context/types"
+import { AiService } from "./embedding"
+import { AgentGitError } from "./errors"
+import { LRUCache } from "./lru-cache"
+import { Workspace } from "./workspace"
 
 export type {
 	AgentProfile,

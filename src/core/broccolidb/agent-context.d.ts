@@ -1,6 +1,6 @@
 import admin from "firebase-admin"
-import { Workspace } from "./workspace.js"
-import { EmbeddingService } from "./embedding.js"
+import { Workspace } from "./workspace"
+import { EmbeddingService } from "./embedding"
 export interface AgentProfile {
 	agentId: string
 	name: string

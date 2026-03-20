@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto"
 import { Logger } from "@/shared/services/Logger"
-import { GraphService } from "./GraphService.js"
-import type { ContradictionReport, KnowledgeBaseItem, Pedigree, ServiceContext } from "./types.js"
+import { GraphService } from "./GraphService"
+import type { ContradictionReport, KnowledgeBaseItem, Pedigree, ServiceContext } from "./types"
 
 export class ReasoningService {
 	constructor(

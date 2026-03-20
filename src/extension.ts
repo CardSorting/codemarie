@@ -57,10 +57,17 @@ import { SharedUriHandler, TASK_URI_PATH } from "./services/uri/SharedUriHandler
 import { ShowMessageType } from "./shared/proto/host/window"
 import { fileExistsAtPath } from "./utils/fs"
 
+let isActivating = false
+
 // This method is called when the VS Code extension is activated.
 // NOTE: This is VS Code specific - services that should be registered
 // for all-platform should be registered in common.ts.
 export async function activate(context: vscode.ExtensionContext) {
+	if (isActivating) {
+		return
+	}
+	isActivating = true
+
 	const activationStartTime = performance.now()
 
 	// 1. Set up HostProvider for VSCode
@@ -703,8 +710,13 @@ async function openCodemarieSidebarForTaskUri(): Promise<void> {
 
 	const startedAt = Date.now()
 	while (Date.now() - startedAt < sidebarWaitTimeoutMs) {
-		if (WebviewProvider.getVisibleInstance()) {
-			return
+		try {
+			if (WebviewProvider.getVisibleInstance()) {
+				return
+			}
+		} catch (error) {
+			Logger.error("Error checking for Codemarie sidebar visibility:", error)
+			return // Exit loop on error to prevent infinite retries
 		}
 		await new Promise((resolve) => setTimeout(resolve, sidebarWaitIntervalMs))
 	}
@@ -762,10 +774,21 @@ if (IS_DEV) {
 	assert(DEV_WORKSPACE_FOLDER, "DEV_WORKSPACE_FOLDER must be set in development")
 	const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(DEV_WORKSPACE_FOLDER, "src/**/*"))
 
+	let reloadTimeout: NodeJS.Timeout | null = null
 	watcher.onDidChange(({ scheme, path }) => {
-		Logger.info(`${scheme} ${path} changed. Reloading VSCode...`)
+		// Ignore specific generated or state files to avoid reload loops
+		if (path.includes(".log") || path.includes("history.json") || path.includes(".db")) {
+			return
+		}
 
-		vscode.commands.executeCommand("workbench.action.reloadWindow")
+		Logger.info(`${scheme} ${path} changed. Reloading VSCode in 1s...`)
+
+		if (reloadTimeout) {
+			clearTimeout(reloadTimeout)
+		}
+		reloadTimeout = setTimeout(() => {
+			vscode.commands.executeCommand("workbench.action.reloadWindow")
+		}, 1000)
 	})
 }
 
