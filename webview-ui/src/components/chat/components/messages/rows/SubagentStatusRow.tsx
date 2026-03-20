@@ -16,7 +16,7 @@ import {
 	NetworkIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import MarkdownBlock from "../common/MarkdownBlock"
+import MarkdownBlock from "@/components/common/MarkdownBlock"
 
 interface SubagentStatusRowProps {
 	message: CodemarieMessage

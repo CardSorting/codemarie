@@ -1,7 +1,7 @@
+import { Environment } from "@shared/config-types"
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { createStorybookDecorator } from "@/config/StorybookDecorator"
-import { Environment } from "../../../../../src/config"
 import TaskHeader from "./TaskHeader"
 
 const meta: Meta<typeof TaskHeader> = {

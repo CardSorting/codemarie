@@ -1,5 +1,17 @@
 # Changelog
  
+## [3.82.0] - 2026-03-20 - *The Hardening Wave Continues*
+
+### Added
+- **Phase 5 Streaming Resilience (src/core/task):**
+  - **Adaptive Focus Injection**: Real-time correction of agent drift during high-entropy states.
+  - **Streaming Content Integrity**: Automated cleanup of dangling partial message blocks.
+  - **Jitter Modeling**: Stabilized UI rendering for local model streams.
+- **Refactoring & Polish:**
+  - Migrated `CodemarieRulesToggleModal.tsx` to `useGlobalState` and `useAuth`.
+  - Finalized Protobus refactoring across the codebase.
+  - Hardened task orchestrator with enhanced types and error handling.
+
 ## [3.81.0] - 2026-03-20 - *Task Orchestrator Production Hardening*
 
 ### Added

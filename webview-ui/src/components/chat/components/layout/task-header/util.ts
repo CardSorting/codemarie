@@ -1,5 +1,13 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
-import { COLOR_BEIGE, COLOR_BLUE, COLOR_DARK_GRAY, COLOR_GRAY, COLOR_GREEN, COLOR_PURPLE, COLOR_WHITE } from "../colors"
+import {
+	COLOR_BEIGE,
+	COLOR_BLUE,
+	COLOR_DARK_GRAY,
+	COLOR_GRAY,
+	COLOR_GREEN,
+	COLOR_PURPLE,
+	COLOR_WHITE,
+} from "@/components/chat/components/messages/rows/colors"
 
 /**
  *

@@ -1,6 +1,6 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import React from "react"
-import TaskHeader from "@/components/chat/task-header/TaskHeader"
+import TaskHeader from "@/components/chat/components/layout/task-header/TaskHeader"
 import { MessageHandlers } from "../../types/chatTypes"
 
 interface TaskSectionProps {

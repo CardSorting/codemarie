@@ -1,6 +1,6 @@
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import React, { useMemo } from "react"
-import CodeAccordian from "../common/CodeAccordian"
+import CodeAccordian from "@/components/common/CodeAccordian"
 
 interface SearchResultsDisplayProps {
 	content: string

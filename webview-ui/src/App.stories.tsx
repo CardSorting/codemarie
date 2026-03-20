@@ -6,7 +6,8 @@ import type { HistoryItem } from "@shared/HistoryItem"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect, useMemo, useState } from "react"
 import { expect, userEvent, within } from "storybook/test"
-import { ExtensionStateContext, useExtensionState } from "@/context/ExtensionStateContext"
+import { createStorybookDecorator } from "@/config/StorybookDecorator"
+import { useExtensionState } from "@/context/ExtensionStateContext"
 import ChatView from "./components/chat/ChatView"
 import OnboardingView from "./components/onboarding/OnboardingView"
 import WelcomeView from "./components/welcome/WelcomeView"
@@ -37,7 +38,8 @@ const MockApp = () => {
 
 // Constants
 const SIDEBAR_CLASS = "flex flex-col justify-center h-[60%] w-[80%] overflow-hidden"
-const ExtensionStateProviderMock = ExtensionStateContext.Provider
+
+// Mock data factories
 
 const meta: Meta<typeof MockApp> = {
 	title: "Views/Chat",
@@ -255,16 +257,8 @@ const createMockState = (overrides: any = {}) => ({
 const createStoryDecorator =
 	(stateOverrides: any = {}) =>
 	(Story: any) => {
-		const mockState = useMemo(() => createMockState(stateOverrides), [])
-		return (
-			<ExtensionStateProviderMock value={mockState}>
-				<div className="w-full h-full flex justify-center items-center overflow-hidden">
-					<div className={SIDEBAR_CLASS}>
-						<Story />
-					</div>
-				</div>
-			</ExtensionStateProviderMock>
-		)
+		const Decorator = createStorybookDecorator(stateOverrides)
+		return <Decorator Story={Story} />
 	}
 
 export const Welcome: Story = {
@@ -1172,15 +1166,8 @@ export const DiffEditNewFormatStreaming: Story = {
 				}
 			}, [])
 
-			return (
-				<ExtensionStateProviderMock value={mockState}>
-					<div className="w-full h-full flex justify-center items-center overflow-hidden">
-						<div className={SIDEBAR_CLASS}>
-							<Story />
-						</div>
-					</div>
-				</ExtensionStateProviderMock>
-			)
+			const Decorator = createStorybookDecorator(mockState)
+			return <Decorator Story={Story} />
 		},
 	],
 	parameters: {
@@ -1287,15 +1274,8 @@ try {
 				return () => clearInterval(intervalId)
 			}, [])
 
-			return (
-				<ExtensionStateProviderMock value={mockState}>
-					<div className="w-full h-full flex justify-center items-center overflow-hidden">
-						<div className={SIDEBAR_CLASS}>
-							<Story />
-						</div>
-					</div>
-				</ExtensionStateProviderMock>
-			)
+			const Decorator = createStorybookDecorator(mockState)
+			return <Decorator Story={Story} />
 		},
 	],
 	parameters: {
