@@ -4,9 +4,6 @@ package codemarie;
 
 import "codemarie/common.proto";
 
-option go_package = "github.com/codemarie/grpc-go/codemarie";
-option java_multiple_files = true;
-option java_package = "bot.codemarie.proto";
 
 service McpService {
   rpc toggleMcpServer(ToggleMcpServerRequest) returns (McpServers);

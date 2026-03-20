@@ -70,437 +70,428 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	const activationStartTime = performance.now()
 
-	// 1. Set up HostProvider for VSCode
-	// IMPORTANT: This must be done before any service can be registered
-	setupHostProvider(context)
+	try {
+		// 1. Set up HostProvider for VSCode
+		// IMPORTANT: This must be done before any service can be registered
+		setupHostProvider(context)
+		Logger.log("[Extension] Host provider setup complete")
 
-	// 2. Register core command handlers as early as possible so they are available immediately.
-	// These handlers wait for the WebviewProvider to be fully initialized if clicked early.
-	const { commands } = ExtensionRegistryInfo
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.PlusButton, async () => {
-			const sidebarInstance = await WebviewProvider.getInstancePromise()
-			await sidebarInstance.controller.clearTask()
-			await sidebarInstance.controller.postStateToWebview()
-			await sendChatButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.SettingsButton, async () => {
-			await WebviewProvider.getInstancePromise()
-			await sendSettingsButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.HistoryButton, async () => {
-			const sidebarInstance = await WebviewProvider.getInstancePromise()
-			await sidebarInstance.controller.requestTaskHistory()
-			await sendHistoryButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.McpButton, async () => {
-			await WebviewProvider.getInstancePromise()
-			await sendMcpButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.AccountButton, async () => {
-			await WebviewProvider.getInstancePromise()
-			await sendAccountButtonClickedEvent()
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.WorktreesButton, async () => {
-			await WebviewProvider.getInstancePromise()
-			await sendWorktreesButtonClickedEvent()
-		}),
-	)
+		// 2. Register core command handlers as early as possible so they are available immediately.
+		// These handlers wait for the WebviewProvider to be fully initialized if clicked early.
+		const { commands } = ExtensionRegistryInfo
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.PlusButton, async () => {
+				const sidebarInstance = await WebviewProvider.getInstancePromise()
+				await sidebarInstance.controller.clearTask()
+				await sidebarInstance.controller.postStateToWebview()
+				await sendChatButtonClickedEvent()
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.SettingsButton, async () => {
+				await WebviewProvider.getInstancePromise()
+				await sendSettingsButtonClickedEvent()
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.HistoryButton, async () => {
+				const sidebarInstance = await WebviewProvider.getInstancePromise()
+				await sidebarInstance.controller.requestTaskHistory()
+				await sendHistoryButtonClickedEvent()
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.McpButton, async () => {
+				await WebviewProvider.getInstancePromise()
+				await sendMcpButtonClickedEvent()
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.AccountButton, async () => {
+				await WebviewProvider.getInstancePromise()
+				await sendAccountButtonClickedEvent()
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.WorktreesButton, async () => {
+				await WebviewProvider.getInstancePromise()
+				await sendWorktreesButtonClickedEvent()
+			}),
+		)
+		Logger.log("[Extension] Core commands registered")
 
-	// 2. Clean up legacy data patterns within VSCode's native storage.
-	// Moves workspace→global keys, task history→file, custom instructions→rules, etc.
-	// Must run BEFORE the file export so we copy clean state.
-	await cleanupLegacyVSCodeStorage(context)
+		// 2. Clean up legacy data patterns within VSCode's native storage.
+		// Moves workspace→global keys, task history→file, custom instructions→rules, etc.
+		// Must run BEFORE the file export so we copy clean state.
+		await cleanupLegacyVSCodeStorage(context)
+		Logger.log("[Extension] Legacy storage cleanup complete")
 
-	// 3. One-time export of VSCode's native storage to shared file-backed stores.
-	// After this, all platforms (VSCode, CLI, JetBrains) read from ~/.codemarie/data/.
-	const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
-	const storageContext = createStorageContext({ workspacePath })
-	await exportVSCodeStorageToSharedFiles(context, storageContext)
+		// 3. One-time export of VSCode's native storage to shared file-backed stores.
+		// After this, all platforms (VSCode, CLI, JetBrains) read from ~/.codemarie/data/.
+		const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		const storageContext = createStorageContext({ workspacePath })
+		await exportVSCodeStorageToSharedFiles(context, storageContext)
+		Logger.log("[Extension] Storage export complete")
 
-	// 5. Register services and perform common initialization
-	// IMPORTANT: Must be done after host provider is setup and migrations are complete
-	const webview = (await initialize(storageContext)) as VscodeWebviewProvider
+		// 5. Register services and perform common initialization
+		// IMPORTANT: Must be done after host provider is setup and migrations are complete
+		const webview = (await initialize(storageContext)) as VscodeWebviewProvider
+		Logger.log("[Extension] Common initialization complete")
 
-	// 5. Register services and commands specific to VS Code
-	// Initialize test mode and add disposables to context
-	// 6. Initialize test mode if needed (non-blocking)
-	// This sets up file watchers for evals.env which is not required for the initial frame
-	setTimeout(() => {
-		initializeTestMode(webview).catch((err) => {
-			Logger.error("Failed to initialize test mode:", err)
-		})
-	}, 1000)
-	// Initialize hook discovery cache for performance optimization
-	HookDiscoveryCache.getInstance().initialize(
-		context as any, // Adapt VSCode ExtensionContext to generic interface
-		(dir: string) => {
-			try {
-				const pattern = new vscode.RelativePattern(dir, "*")
-				const watcher = vscode.workspace.createFileSystemWatcher(pattern)
-				// Ensure watcher is disposed when extension is deactivated
-				context.subscriptions.push(watcher)
-				// Adapt VSCode FileSystemWatcher to generic interface
-				return {
-					onDidCreate: (listener: () => void) => watcher.onDidCreate(listener),
-					onDidChange: (listener: () => void) => watcher.onDidChange(listener),
-					onDidDelete: (listener: () => void) => watcher.onDidDelete(listener),
-					dispose: () => watcher.dispose(),
+		// 5. Register services and commands specific to VS Code
+		// Initialize test mode and add disposables to context
+		// 6. Initialize test mode if needed (non-blocking)
+		// This sets up file watchers for evals.env which is not required for the initial frame
+		setTimeout(() => {
+			initializeTestMode(webview).catch((err) => {
+				Logger.error("Failed to initialize test mode:", err)
+			})
+		}, 1000)
+		// Initialize hook discovery cache for performance optimization
+		HookDiscoveryCache.getInstance().initialize(
+			context as any, // Adapt VSCode ExtensionContext to generic interface
+			(dir: string) => {
+				try {
+					const pattern = new vscode.RelativePattern(dir, "*")
+					const watcher = vscode.workspace.createFileSystemWatcher(pattern)
+					// Ensure watcher is disposed when extension is deactivated
+					context.subscriptions.push(watcher)
+					// Adapt VSCode FileSystemWatcher to generic interface
+					return {
+						onDidCreate: (listener: () => void) => watcher.onDidCreate(listener),
+						onDidChange: (listener: () => void) => watcher.onDidChange(listener),
+						onDidDelete: (listener: () => void) => watcher.onDidDelete(listener),
+						dispose: () => watcher.dispose(),
+					}
+				} catch {
+					return null
 				}
-			} catch {
-				return null
+			},
+			(callback: () => void) => {
+				// Adapt VSCode Disposable to generic interface
+				const disposable = vscode.workspace.onDidChangeWorkspaceFolders(callback)
+				context.subscriptions.push(disposable)
+				return disposable
+			},
+		)
+
+		context.subscriptions.push(
+			vscode.window.registerWebviewViewProvider(VscodeWebviewProvider.SIDEBAR_ID, webview, {
+				webviewOptions: { retainContextWhenHidden: true },
+			}),
+		)
+
+		// NOTE: Commands must be added to the internal registry before registering them with VSCode
+		// Registrations moved to start of activate for better responsiveness
+
+		// --- Tier 6: Swarm Governance Commands ---
+		context.subscriptions.push(
+			vscode.commands.registerCommand("codemarie.approveWave", async (waveId: string) => {
+				const OrchestrationController = (await import("./core/orchestration/OrchestrationController"))
+					.OrchestrationController
+				OrchestrationController.approveWave(waveId, true)
+				vscode.window.showInformationMessage(`Swarm Wave Approved.`)
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand("codemarie.rejectWave", async (waveId: string) => {
+				const OrchestrationController = (await import("./core/orchestration/OrchestrationController"))
+					.OrchestrationController
+				OrchestrationController.approveWave(waveId, false)
+				vscode.window.showErrorMessage(`Swarm Wave Rejected.`)
+			}),
+		)
+		// -----------------------------------------
+
+		/*
+		We use the text document content provider API to show the left side for diff view by creating a
+		virtual document for the original content. This makes it readonly so users know to edit the right
+		side if they want to keep their changes.
+
+		- This API allows you to create readonly documents in VSCode from arbitrary sources, and works by
+		claiming an uri-scheme for which your provider then returns text contents. The scheme must be
+		provided when registering a provider and cannot change afterwards.
+		- Note how the provider doesn't create uris for virtual documents - its role is to provide contents
+		given such an uri. In return, content providers are wired into the open document logic so that
+		providers are always considered.
+		https://code.visualstudio.com/api/extension-guides/virtual-documents
+		*/
+		const diffContentProvider = new (class implements vscode.TextDocumentContentProvider {
+			provideTextDocumentContent(uri: vscode.Uri): string {
+				return Buffer.from(uri.query, "base64").toString("utf-8")
 			}
-		},
-		(callback: () => void) => {
-			// Adapt VSCode Disposable to generic interface
-			const disposable = vscode.workspace.onDidChangeWorkspaceFolders(callback)
-			context.subscriptions.push(disposable)
-			return disposable
-		},
-	)
+		})()
+		context.subscriptions.push(
+			vscode.workspace.registerTextDocumentContentProvider(DIFF_VIEW_URI_SCHEME, diffContentProvider),
+		)
 
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(VscodeWebviewProvider.SIDEBAR_ID, webview, {
-			webviewOptions: { retainContextWhenHidden: true },
-		}),
-	)
+		const handleUri = async (uri: vscode.Uri) => {
+			const url = decodeURIComponent(uri.toString())
+			const isTaskUri = getUriPath(url) === TASK_URI_PATH
 
-	// NOTE: Commands must be added to the internal registry before registering them with VSCode
-	// Registrations moved to start of activate for better responsiveness
-
-	// --- Tier 6: Swarm Governance Commands ---
-	context.subscriptions.push(
-		vscode.commands.registerCommand("codemarie.approveWave", async (waveId: string) => {
-			const OrchestrationController = (await import("./core/orchestration/OrchestrationController")).OrchestrationController
-			OrchestrationController.approveWave(waveId, true)
-			vscode.window.showInformationMessage(`Swarm Wave Approved.`)
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand("codemarie.rejectWave", async (waveId: string) => {
-			const OrchestrationController = (await import("./core/orchestration/OrchestrationController")).OrchestrationController
-			OrchestrationController.approveWave(waveId, false)
-			vscode.window.showErrorMessage(`Swarm Wave Rejected.`)
-		}),
-	)
-	// -----------------------------------------
-
-	/*
-	We use the text document content provider API to show the left side for diff view by creating a
-	virtual document for the original content. This makes it readonly so users know to edit the right
-	side if they want to keep their changes.
-
-	- This API allows you to create readonly documents in VSCode from arbitrary sources, and works by
-	claiming an uri-scheme for which your provider then returns text contents. The scheme must be
-	provided when registering a provider and cannot change afterwards.
-	- Note how the provider doesn't create uris for virtual documents - its role is to provide contents
-	 given such an uri. In return, content providers are wired into the open document logic so that
-	 providers are always considered.
-	https://code.visualstudio.com/api/extension-guides/virtual-documents
-	*/
-	const diffContentProvider = new (class implements vscode.TextDocumentContentProvider {
-		provideTextDocumentContent(uri: vscode.Uri): string {
-			return Buffer.from(uri.query, "base64").toString("utf-8")
-		}
-	})()
-	context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(DIFF_VIEW_URI_SCHEME, diffContentProvider))
-
-	const handleUri = async (uri: vscode.Uri) => {
-		const url = decodeURIComponent(uri.toString())
-		const isTaskUri = getUriPath(url) === TASK_URI_PATH
-
-		if (isTaskUri) {
-			await openCodemarieSidebarForTaskUri()
-		}
-
-		let success = await SharedUriHandler.handleUri(url)
-
-		// Task deeplinks can race with first-time sidebar initialization.
-		if (!success && isTaskUri) {
-			await openCodemarieSidebarForTaskUri()
-			success = await SharedUriHandler.handleUri(url)
-		}
-
-		if (!success) {
-			Logger.warn("Extension URI handler: Failed to process URI:", uri.toString())
-		}
-	}
-	context.subscriptions.push(vscode.window.registerUriHandler({ handleUri }))
-
-	// Register size testing commands in development mode
-	if (IS_DEV) {
-		vscode.commands.executeCommand("setContext", "codemarie.isDevMode", IS_DEV)
-		// Use dynamic import to avoid loading the module in production
-		import("./dev/commands/tasks")
-			.then((module) => {
-				const devTaskCommands = module.registerTaskCommands(webview.controller)
-				context.subscriptions.push(...devTaskCommands)
-				Logger.log("[Codemarie Dev] Dev mode activated & dev commands registered")
-			})
-			.catch((error) => {
-				Logger.log(`[Codemarie Dev] Failed to register dev commands: ${error}`)
-			})
-	}
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.TerminalOutput, async () => {
-			const terminal = vscode.window.activeTerminal
-			if (!terminal) {
-				return
+			if (isTaskUri) {
+				await openCodemarieSidebarForTaskUri()
 			}
 
-			// Save current clipboard content
-			const tempCopyBuffer = await readTextFromClipboard()
+			let success = await SharedUriHandler.handleUri(url)
 
-			try {
-				// Copy the *existing* terminal selection (without selecting all)
-				await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
+			// Task deeplinks can race with first-time sidebar initialization.
+			if (!success && isTaskUri) {
+				await openCodemarieSidebarForTaskUri()
+				success = await SharedUriHandler.handleUri(url)
+			}
 
-				// Get copied content
-				const terminalContents = (await readTextFromClipboard()).trim()
+			if (!success) {
+				Logger.warn("Extension URI handler: Failed to process URI:", uri.toString())
+			}
+		}
+		context.subscriptions.push(vscode.window.registerUriHandler({ handleUri }))
 
-				// Restore original clipboard content
-				await writeTextToClipboard(tempCopyBuffer)
-
-				if (!terminalContents) {
-					// No terminal content was copied (either nothing selected or some error)
-					return
-				}
-				// Ensure the sidebar view is visible but preserve editor focus
-				await showWebview(true)
-
-				await sendAddToInputEvent(`Terminal output:\n\`\`\`\n${terminalContents}\n\`\`\``)
-
-				Logger.log("addSelectedTerminalOutputToChat", terminalContents, terminal.name)
-			} catch (error) {
-				// Ensure clipboard is restored even if an error occurs
-				await writeTextToClipboard(tempCopyBuffer)
-				Logger.error("Error getting terminal contents:", error)
-				HostProvider.window.showMessage({
-					type: ShowMessageType.ERROR,
-					message: "Failed to get terminal contents",
+		// Register size testing commands in development mode
+		if (IS_DEV) {
+			vscode.commands.executeCommand("setContext", "codemarie.isDevMode", IS_DEV)
+			// Use dynamic import to avoid loading the module in production
+			import("./dev/commands/tasks")
+				.then((module) => {
+					const devTaskCommands = module.registerTaskCommands(webview.controller)
+					context.subscriptions.push(...devTaskCommands)
+					Logger.log("[Codemarie Dev] Dev mode activated & dev commands registered")
 				})
-			}
-		}),
-	)
+				.catch((error) => {
+					Logger.error(`[Codemarie Dev] Failed to register dev commands: ${error}`)
+				})
+		}
 
-	// Register code action provider
-	context.subscriptions.push(
-		vscode.languages.registerCodeActionsProvider(
-			"*",
-			new (class implements vscode.CodeActionProvider {
-				public static readonly providedCodeActionKinds = [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Refactor]
-
-				provideCodeActions(
-					document: vscode.TextDocument,
-					range: vscode.Range,
-					context: vscode.CodeActionContext,
-				): vscode.CodeAction[] {
-					const CONTEXT_LINES_TO_EXPAND = 3
-					const START_OF_LINE_CHAR_INDEX = 0
-					const LINE_COUNT_ADJUSTMENT_FOR_ZERO_INDEXING = 1
-
-					const actions: vscode.CodeAction[] = []
-					const editor = vscode.window.activeTextEditor // Get active editor for selection check
-
-					// Expand range to include surrounding 3 lines or use selection if broader
-					const selection = editor?.selection
-					let expandedRange = range
-					if (
-						editor &&
-						selection &&
-						!selection.isEmpty &&
-						selection.contains(range.start) &&
-						selection.contains(range.end)
-					) {
-						expandedRange = selection
-					} else {
-						expandedRange = new vscode.Range(
-							Math.max(0, range.start.line - CONTEXT_LINES_TO_EXPAND),
-							START_OF_LINE_CHAR_INDEX,
-							Math.min(
-								document.lineCount - LINE_COUNT_ADJUSTMENT_FOR_ZERO_INDEXING,
-								range.end.line + CONTEXT_LINES_TO_EXPAND,
-							),
-							document.lineAt(
-								Math.min(
-									document.lineCount - LINE_COUNT_ADJUSTMENT_FOR_ZERO_INDEXING,
-									range.end.line + CONTEXT_LINES_TO_EXPAND,
-								),
-							).text.length,
-						)
-					}
-
-					// Add to Codemarie (Always available)
-					const addAction = new vscode.CodeAction("Add to Codemarie", vscode.CodeActionKind.QuickFix)
-					addAction.command = {
-						command: commands.AddToChat,
-						title: "Add to Codemarie",
-						arguments: [expandedRange, context.diagnostics],
-					}
-					actions.push(addAction)
-
-					// Explain with Codemarie (Always available)
-					const explainAction = new vscode.CodeAction("Explain with Codemarie", vscode.CodeActionKind.RefactorExtract) // Using a refactor kind
-					explainAction.command = {
-						command: commands.ExplainCode,
-						title: "Explain with Codemarie",
-						arguments: [expandedRange],
-					}
-					actions.push(explainAction)
-
-					// Improve with Codemarie (Always available)
-					const improveAction = new vscode.CodeAction("Improve with Codemarie", vscode.CodeActionKind.RefactorRewrite) // Using a refactor kind
-					improveAction.command = {
-						command: commands.ImproveCode,
-						title: "Improve with Codemarie",
-						arguments: [expandedRange],
-					}
-					actions.push(improveAction)
-
-					// Fix with Codemarie (Only if diagnostics exist)
-					if (context.diagnostics.length > 0) {
-						const fixAction = new vscode.CodeAction("Fix with Codemarie", vscode.CodeActionKind.QuickFix)
-						fixAction.isPreferred = true
-						fixAction.command = {
-							command: commands.FixWithCodemarie,
-							title: "Fix with Codemarie",
-							arguments: [expandedRange, context.diagnostics],
-						}
-						actions.push(fixAction)
-					}
-					return actions
-				}
-			})(),
-			{
-				providedCodeActionKinds: [
-					vscode.CodeActionKind.QuickFix,
-					vscode.CodeActionKind.RefactorExtract,
-					vscode.CodeActionKind.RefactorRewrite,
-				],
-			},
-		),
-	)
-
-	// Register the command handlers
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.AddToChat, async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
-			const context = await getContextForCommand(range, diagnostics)
-			if (!context) {
-				return
-			}
-			await addToCodemarie(context.controller, context.commandContext)
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(
-			commands.FixWithCodemarie,
-			async (range: vscode.Range, diagnostics: vscode.Diagnostic[]) => {
-				const context = await getContextForCommand(range, diagnostics)
-				if (!context) {
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.TerminalOutput, async () => {
+				const terminal = vscode.window.activeTerminal
+				if (!terminal) {
 					return
 				}
-				await fixWithCodemarie(context.controller, context.commandContext)
-			},
-		),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.ExplainCode, async (range: vscode.Range) => {
-			const context = await getContextForCommand(range)
-			if (!context) {
-				return
-			}
-			await explainWithCodemarie(context.controller, context.commandContext)
-		}),
-	)
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.ImproveCode, async (range: vscode.Range) => {
-			const context = await getContextForCommand(range)
-			if (!context) {
-				return
-			}
-			await improveWithCodemarie(context.controller, context.commandContext)
-		}),
-	)
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.FocusChatInput, async (preserveEditorFocus = false) => {
-			const webview = WebviewProvider.getInstance() as VscodeWebviewProvider
+				// Save current clipboard content
+				const tempCopyBuffer = await readTextFromClipboard()
 
-			// Show the webview
-			const webviewView = webview.getWebview()
-			if (webviewView) {
-				if (preserveEditorFocus) {
-					// Only make webview visible without forcing focus
-					webviewView.show(false)
-				} else {
-					// Show and force focus (default behavior for explicit focus actions)
-					webviewView.show(true)
+				try {
+					// Copy the *existing* terminal selection (without selecting all)
+					await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
+
+					// Get copied content
+					const terminalContents = (await readTextFromClipboard()).trim()
+
+					// Restore original clipboard content
+					await writeTextToClipboard(tempCopyBuffer)
+
+					if (!terminalContents) {
+						// No terminal content was copied (either nothing selected or some error)
+						return
+					}
+					// Ensure the sidebar view is visible but preserve editor focus
+					await showWebview(true)
+
+					await sendAddToInputEvent(`Terminal output:\n\`\`\`\n${terminalContents}\n\`\`\``)
+
+					Logger.log("addSelectedTerminalOutputToChat", terminalContents, terminal.name)
+				} catch (error) {
+					// Ensure clipboard is restored even if an error occurs
+					await writeTextToClipboard(tempCopyBuffer)
+					Logger.error("Error getting terminal contents:", error)
+					HostProvider.window.showMessage({
+						type: ShowMessageType.ERROR,
+						message: "Failed to get terminal contents",
+					})
 				}
-			}
+			}),
+		)
 
-			// Send show webview event with preserveEditorFocus flag
-			sendShowWebviewEvent(preserveEditorFocus)
-			telemetryService.captureButtonClick("command_focusChatInput", webview.controller?.task?.ulid)
-		}),
-	)
+		// Register code action provider
+		context.subscriptions.push(
+			vscode.languages.registerCodeActionsProvider(
+				"*",
+				new (class implements vscode.CodeActionProvider {
+					public static readonly providedCodeActionKinds = [
+						vscode.CodeActionKind.QuickFix,
+						vscode.CodeActionKind.Refactor,
+					]
 
-	// Register Jupyter Notebook command handlers
-	const NOTEBOOK_EDIT_INSTRUCTIONS = `Special considerations for using replace_in_file on *.ipynb files:
+					provideCodeActions(
+						document: vscode.TextDocument,
+						range: vscode.Range,
+						actionContext: vscode.CodeActionContext,
+					): vscode.CodeAction[] {
+						const CONTEXT_LINES_TO_EXPAND = 3
+						const actions: vscode.CodeAction[] = []
+						const editor = vscode.window.activeTextEditor // Get active editor for selection check
+
+						// Expand range to include surrounding 3 lines or use selection if broader
+						const selection = editor?.selection
+						let expandedRange = range
+						if (
+							editor &&
+							selection &&
+							!selection.isEmpty &&
+							selection.contains(range.start) &&
+							selection.contains(range.end)
+						) {
+							expandedRange = selection
+						} else {
+							expandedRange = new vscode.Range(
+								Math.max(0, range.start.line - CONTEXT_LINES_TO_EXPAND),
+								0,
+								Math.min(document.lineCount - 1, range.end.line + CONTEXT_LINES_TO_EXPAND),
+								document.lineAt(Math.min(document.lineCount - 1, range.end.line + CONTEXT_LINES_TO_EXPAND)).text
+									.length,
+							)
+						}
+
+						// Add to Codemarie (Always available)
+						const addAction = new vscode.CodeAction("Add to Codemarie", vscode.CodeActionKind.QuickFix)
+						addAction.command = {
+							command: commands.AddToChat,
+							title: "Add to Codemarie",
+							arguments: [expandedRange, actionContext.diagnostics],
+						}
+						actions.push(addAction)
+
+						// Explain with Codemarie (Always available)
+						const explainAction = new vscode.CodeAction(
+							"Explain with Codemarie",
+							vscode.CodeActionKind.RefactorExtract,
+						) // Using a refactor kind
+						explainAction.command = {
+							command: commands.ExplainCode,
+							title: "Explain with Codemarie",
+							arguments: [expandedRange],
+						}
+						actions.push(explainAction)
+
+						// Improve with Codemarie (Always available)
+						const improveAction = new vscode.CodeAction(
+							"Improve with Codemarie",
+							vscode.CodeActionKind.RefactorRewrite,
+						) // Using a refactor kind
+						improveAction.command = {
+							command: commands.ImproveCode,
+							title: "Improve with Codemarie",
+							arguments: [expandedRange],
+						}
+						actions.push(improveAction)
+
+						// Fix with Codemarie (Only if diagnostics exist)
+						if (actionContext.diagnostics.length > 0) {
+							const fixAction = new vscode.CodeAction("Fix with Codemarie", vscode.CodeActionKind.QuickFix)
+							fixAction.isPreferred = true
+							fixAction.command = {
+								command: commands.FixWithCodemarie,
+								title: "Fix with Codemarie",
+								arguments: [expandedRange, actionContext.diagnostics],
+							}
+							actions.push(fixAction)
+						}
+						return actions
+					}
+				})(),
+				{
+					providedCodeActionKinds: [
+						vscode.CodeActionKind.QuickFix,
+						vscode.CodeActionKind.RefactorExtract,
+						vscode.CodeActionKind.RefactorRewrite,
+					],
+				},
+			),
+		)
+
+		// Register the command handlers
+		context.subscriptions.push(
+			vscode.commands.registerCommand(
+				commands.AddToChat,
+				async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
+					const ctx = await getContextForCommand(range, diagnostics)
+					if (ctx) await addToCodemarie(ctx.controller, ctx.commandContext)
+				},
+			),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(
+				commands.FixWithCodemarie,
+				async (range: vscode.Range, diagnostics: vscode.Diagnostic[]) => {
+					const ctx = await getContextForCommand(range, diagnostics)
+					if (ctx) await fixWithCodemarie(ctx.controller, ctx.commandContext)
+				},
+			),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.ExplainCode, async (range: vscode.Range) => {
+				const ctx = await getContextForCommand(range)
+				if (ctx) await explainWithCodemarie(ctx.controller, ctx.commandContext)
+			}),
+		)
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.ImproveCode, async (range: vscode.Range) => {
+				const ctx = await getContextForCommand(range)
+				if (ctx) await improveWithCodemarie(ctx.controller, ctx.commandContext)
+			}),
+		)
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.FocusChatInput, async (preserveEditorFocus = false) => {
+				const webviewProvider = WebviewProvider.getInstance() as VscodeWebviewProvider
+
+				// Show the webview
+				webviewProvider.getWebview()?.show(preserveEditorFocus)
+
+				// Send show webview event with preserveEditorFocus flag
+				sendShowWebviewEvent(preserveEditorFocus)
+				telemetryService.captureButtonClick("command_focusChatInput", webviewProvider.controller?.task?.ulid)
+			}),
+		)
+
+		// Register Jupyter Notebook command handlers
+		const NOTEBOOK_EDIT_INSTRUCTIONS = `Special considerations for using replace_in_file on *.ipynb files:
 * Jupyter notebook files are JSON format with specific structure for source code cells
 * Source code in cells is stored as JSON string arrays ending with explicit \\n characters and commas
 * Always match the exact JSON format including quotes, commas, and escaped newlines.`
 
-	// Helper to get notebook context for Jupyter commands
-	async function getNotebookCommandContext(range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) {
-		const activeNotebook = vscode.window.activeNotebookEditor
-		if (!activeNotebook) {
-			HostProvider.window.showMessage({
-				type: ShowMessageType.ERROR,
-				message: "No active Jupyter notebook found. Please open a .ipynb file first.",
-			})
-			return null
+		// Helper to get notebook context for Jupyter commands
+		async function getNotebookCommandContext(range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) {
+			const activeNotebook = vscode.window.activeNotebookEditor
+			if (!activeNotebook) {
+				HostProvider.window.showMessage({
+					type: ShowMessageType.ERROR,
+					message: "No active Jupyter notebook found. Please open a .ipynb file first.",
+				})
+				return null
+			}
+
+			const ctx = await getContextForCommand(range, diagnostics)
+			if (!ctx) {
+				return null
+			}
+
+			const filePath = ctx.commandContext.filePath || ""
+			let cellJson: string | null = null
+			if (activeNotebook.notebook.cellCount > 0) {
+				const cellIndex = activeNotebook.notebook.cellAt(activeNotebook.selection.start).index
+				cellJson = await findMatchingNotebookCell(filePath, cellIndex)
+			}
+
+			return { ...ctx, cellJson }
 		}
 
-		const ctx = await getContextForCommand(range, diagnostics)
-		if (!ctx) {
-			return null
-		}
+		context.subscriptions.push(
+			vscode.commands.registerCommand(
+				commands.JupyterGenerateCell,
+				async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
+					const userPrompt = await showJupyterPromptInput(
+						"Generate Notebook Cell",
+						"Enter your prompt for generating notebook cell (press Enter to confirm & Esc to cancel)",
+					)
+					if (!userPrompt) return
 
-		const filePath = ctx.commandContext.filePath || ""
-		let cellJson: string | null = null
-		if (activeNotebook.notebook.cellCount > 0) {
-			const cellIndex = activeNotebook.notebook.cellAt(activeNotebook.selection.start).index
-			cellJson = await findMatchingNotebookCell(filePath, cellIndex)
-		}
+					const ctx = await getNotebookCommandContext(range, diagnostics)
+					if (!ctx) return
 
-		return { ...ctx, cellJson }
-	}
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand(
-			commands.JupyterGenerateCell,
-			async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
-				const userPrompt = await showJupyterPromptInput(
-					"Generate Notebook Cell",
-					"Enter your prompt for generating notebook cell (press Enter to confirm & Esc to cancel)",
-				)
-				if (!userPrompt) return
-
-				const ctx = await getNotebookCommandContext(range, diagnostics)
-				if (!ctx) return
-
-				const notebookContext = `User prompt: ${userPrompt}
+					const notebookContext = `User prompt: ${userPrompt}
 Insert a new Jupyter notebook cell above or below the current cell based on user prompt.
 ${NOTEBOOK_EDIT_INSTRUCTIONS}
 
@@ -509,41 +500,41 @@ Current Notebook Cell Context (JSON, sanitized of image data):
 ${ctx.cellJson || "{}"}
 \`\`\``
 
-				await addToCodemarie(ctx.controller, ctx.commandContext, notebookContext)
-			},
-		),
-	)
+					await addToCodemarie(ctx.controller, ctx.commandContext, notebookContext)
+				},
+			),
+		)
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand(
-			commands.JupyterExplainCell,
-			async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
-				const ctx = await getNotebookCommandContext(range, diagnostics)
-				if (!ctx) return
+		context.subscriptions.push(
+			vscode.commands.registerCommand(
+				commands.JupyterExplainCell,
+				async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
+					const ctx = await getNotebookCommandContext(range, diagnostics)
+					if (!ctx) return
 
-				const notebookContext = ctx.cellJson
-					? `\n\nCurrent Notebook Cell Context (JSON, sanitized of image data):\n\`\`\`json\n${ctx.cellJson}\n\`\`\``
-					: undefined
+					const notebookContext = ctx.cellJson
+						? `\n\nCurrent Notebook Cell Context (JSON, sanitized of image data):\n\`\`\`json\n${ctx.cellJson}\n\`\`\``
+						: undefined
 
-				await explainWithCodemarie(ctx.controller, ctx.commandContext, notebookContext)
-			},
-		),
-	)
+					await explainWithCodemarie(ctx.controller, ctx.commandContext, notebookContext)
+				},
+			),
+		)
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand(
-			commands.JupyterImproveCell,
-			async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
-				const userPrompt = await showJupyterPromptInput(
-					"Improve Notebook Cell",
-					"Enter your prompt for improving the current notebook cell (press Enter to confirm & Esc to cancel)",
-				)
-				if (!userPrompt) return
+		context.subscriptions.push(
+			vscode.commands.registerCommand(
+				commands.JupyterImproveCell,
+				async (range?: vscode.Range, diagnostics?: vscode.Diagnostic[]) => {
+					const userPrompt = await showJupyterPromptInput(
+						"Improve Notebook Cell",
+						"Enter your prompt for improving the current notebook cell (press Enter to confirm & Esc to cancel)",
+					)
+					if (!userPrompt) return
 
-				const ctx = await getNotebookCommandContext(range, diagnostics)
-				if (!ctx) return
+					const ctx = await getNotebookCommandContext(range, diagnostics)
+					if (!ctx) return
 
-				const notebookContext = `User prompt: ${userPrompt}
+					const notebookContext = `User prompt: ${userPrompt}
 ${NOTEBOOK_EDIT_INSTRUCTIONS}
 
 Current Notebook Cell Context (JSON, sanitized of image data):
@@ -551,63 +542,69 @@ Current Notebook Cell Context (JSON, sanitized of image data):
 ${ctx.cellJson || "{}"}
 \`\`\``
 
-				await improveWithCodemarie(ctx.controller, ctx.commandContext, notebookContext)
-			},
-		),
-	)
+					await improveWithCodemarie(ctx.controller, ctx.commandContext, notebookContext)
+				},
+			),
+		)
 
-	// Register the openWalkthrough command handler
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.Walkthrough, async () => {
-			await vscode.commands.executeCommand(
-				"workbench.action.openWalkthrough",
-				`${context.extension.id}#CodemarieWalkthrough`,
-			)
-			telemetryService.captureButtonClick("command_openWalkthrough")
-		}),
-	)
+		// Register the openWalkthrough command handler
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.Walkthrough, async () => {
+				await vscode.commands.executeCommand(
+					"workbench.action.openWalkthrough",
+					`${context.extension.id}#CodemarieWalkthrough`,
+				)
+				telemetryService.captureButtonClick("command_openWalkthrough")
+			}),
+		)
 
-	// Register the reconstructTaskHistory command handler
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.ReconstructTaskHistory, async () => {
-			const { reconstructTaskHistory } = await import("./core/commands/reconstructTaskHistory")
-			await reconstructTaskHistory()
-			telemetryService.captureButtonClick("command_reconstructTaskHistory")
-		}),
-	)
+		// Register the reconstructTaskHistory command handler
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.ReconstructTaskHistory, async () => {
+				const { reconstructTaskHistory } = await import("./core/commands/reconstructTaskHistory")
+				await reconstructTaskHistory()
+				telemetryService.captureButtonClick("command_reconstructTaskHistory")
+			}),
+		)
 
-	// Register the generateGitCommitMessage command handler
-	context.subscriptions.push(
-		vscode.commands.registerCommand(commands.GenerateCommit, async (scm) => {
-			generateCommitMsg(webview.controller, scm)
-		}),
-		vscode.commands.registerCommand(commands.AbortCommit, () => {
-			abortCommitGeneration()
-		}),
-	)
+		// Register the generateGitCommitMessage command handler
+		context.subscriptions.push(
+			vscode.commands.registerCommand(commands.GenerateCommit, async (scm) => {
+				generateCommitMsg(webview.controller, scm)
+			}),
+			vscode.commands.registerCommand(commands.AbortCommit, () => {
+				abortCommitGeneration()
+			}),
+		)
 
-	// Listen for secrets changes (e.g., cross-window login/logout sync)
-	const unsubSecrets = storageContext.secrets.onDidChange((event) => {
-		if (event.key === "codemarie:codemarieAccountId") {
-			const secretValue = storageContext.secrets.get<string>(event.key)
-			const activeWebview = WebviewProvider.getVisibleInstance()
-			const controller = activeWebview?.controller
+		// Listen for secrets changes (e.g., cross-window login/logout sync)
+		const unsubSecrets = storageContext.secrets.onDidChange((event) => {
+			if (event.key === "codemarie:codemarieAccountId") {
+				const secretValue = storageContext.secrets.get<string>(event.key)
+				const activeWebview = WebviewProvider.getVisibleInstance()
+				const controller = activeWebview?.controller
 
-			const authService = AuthService.getInstance(controller)
-			if (secretValue) {
-				// Secret was added or updated - restore auth info (login from another window)
-				authService?.restoreRefreshTokenAndRetrieveAuthInfo()
-			} else {
-				// Secret was removed - handle logout for all windows
-				authService?.handleDeauth(LogoutReason.CROSS_WINDOW_SYNC)
+				const authService = AuthService.getInstance(controller)
+				if (secretValue) {
+					// Secret was added or updated - restore auth info (login from another window)
+					authService?.restoreRefreshTokenAndRetrieveAuthInfo()
+				} else {
+					// Secret was removed - handle logout for all windows
+					authService?.handleDeauth(LogoutReason.CROSS_WINDOW_SYNC)
+				}
 			}
-		}
-	})
-	context.subscriptions.push({ dispose: unsubSecrets })
+		})
+		context.subscriptions.push({ dispose: unsubSecrets })
 
-	Logger.log(`[Codemarie] extension activated in ${performance.now() - activationStartTime} ms`)
+		Logger.log(`[Codemarie] extension activated in ${performance.now() - activationStartTime} ms`)
 
-	return createCodemarieAPI(webview.controller)
+		return createCodemarieAPI(webview.controller)
+	} catch (error) {
+		isActivating = false
+		Logger.error("[Extension] Activation failed:", error)
+		vscode.window.showErrorMessage(`Codemarie failed to activate: ${error instanceof Error ? error.message : String(error)}`)
+		throw error
+	}
 }
 
 async function showJupyterPromptInput(title: string, placeholder: string): Promise<string | undefined> {

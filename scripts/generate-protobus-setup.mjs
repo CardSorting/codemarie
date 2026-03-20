@@ -29,8 +29,8 @@ async function generateWebviewProtobusClients(protobusServices) {
 	for (const [serviceName, def] of Object.entries(protobusServices)) {
 		const rpcs = []
 		for (const [rpcName, rpc] of Object.entries(def.service)) {
-			const requestType = getFqn(rpc.requestType.type.name)
-			const responseType = getFqn(rpc.responseType.type.name)
+			const requestType = getFqn(rpc.requestType)
+			const responseType = getFqn(rpc.responseType)
 
 			if (rpc.requestStream) {
 				throw new Error("Request streaming is not supported")
@@ -74,8 +74,8 @@ async function generateVscodeServiceTypes(protobusServices) {
 		servers.push(`// ${domain} Service Handler Types`)
 		servers.push(`export type ${serviceName}Handlers = {`)
 		for (const [rpcName, rpc] of Object.entries(def.service)) {
-			const requestType = getFqn(rpc.requestType.type.name)
-			const responseType = getFqn(rpc.responseType.type.name)
+			const requestType = getFqn(rpc.requestType)
+			const responseType = getFqn(rpc.responseType)
 			if (rpc.requestStream) {
 				throw new Error("Request streaming is not supported")
 			}

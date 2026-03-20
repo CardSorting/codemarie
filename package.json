@@ -47,7 +47,13 @@
 		"onLanguage",
 		"onUri",
 		"onStartupFinished",
-		"workspaceContains:evals.env"
+		"workspaceContains:evals.env",
+		"onView:codemarie.SidebarProvider",
+		"onCommand:codemarie.plusButtonClicked",
+		"onCommand:codemarie.mcpButtonClicked",
+		"onCommand:codemarie.settingsButtonClicked",
+		"onCommand:codemarie.historyButtonClicked",
+		"onCommand:codemarie.accountButtonClicked"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -580,6 +586,7 @@
 		"pdf-parse": "^1.1.1",
 		"picomatch": "^4.0.3",
 		"posthog-node": "^5.8.0",
+		"protobufjs": "^8.0.0",
 		"puppeteer-chromium-resolver": "^23.0.0",
 		"puppeteer-core": "^23.4.0",
 		"reconnecting-eventsource": "^1.6.4",

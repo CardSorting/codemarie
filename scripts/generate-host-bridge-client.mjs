@@ -55,8 +55,8 @@ function generateClientInterfaceType(serviceName, serviceDefinition) {
 	// Get the methods from the service definition
 	const methods = Object.entries(serviceDefinition.service)
 		.map(([methodName, methodDef]) => {
-			const requestType = getFqn(methodDef.requestType.type.name)
-			const responseType = getFqn(methodDef.responseType.type.name)
+			const requestType = getFqn(methodDef.requestType)
+			const responseType = getFqn(methodDef.responseType)
 
 			if (!methodDef.responseStream) {
 				// Generate unary method signature.
@@ -113,8 +113,8 @@ function generateExternalClientSetup(serviceName, serviceDefinition) {
 	const methods = Object.entries(serviceDefinition.service)
 		.map(([methodName, methodDef]) => {
 			// Get fully qualified type names
-			const requestType = getFqn(methodDef.requestType.type.name)
-			const responseType = getFqn(methodDef.responseType.type.name)
+			const requestType = getFqn(methodDef.requestType)
+			const responseType = getFqn(methodDef.responseType)
 			const isStreamingResponse = methodDef.responseStream
 
 			if (!isStreamingResponse) {
