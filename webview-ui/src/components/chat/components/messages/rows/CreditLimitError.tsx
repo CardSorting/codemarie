@@ -2,7 +2,7 @@ import { AskResponseRequest } from "@shared/proto/codemarie/task"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useAuth } from "@/context/AuthContext"
 import { AccountServiceClient, TaskServiceClient } from "@/services/protobus-client"
 
 interface CreditLimitErrorProps {
@@ -25,7 +25,7 @@ const CreditLimitError: React.FC<CreditLimitErrorProps> = ({
 	totalPromotions,
 	totalSpent,
 }) => {
-	const { activeOrganization } = useExtensionState()
+	const { activeOrganization } = useAuth()
 	const [fullBuyCreditsUrl, setFullBuyCreditsUrl] = useState<string>("")
 
 	const dashboardUrl = useMemo(() => {

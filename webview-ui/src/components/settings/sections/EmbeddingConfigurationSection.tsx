@@ -1,6 +1,6 @@
 import { ApiProvider } from "@shared/api"
 import { VSCodeDropdown, VSCodeOption, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import Section from "../Section"
 import { useApiConfigurationHandlers } from "../utils/useApiConfigurationHandlers"
 
@@ -9,7 +9,7 @@ interface EmbeddingConfigurationSectionProps {
 }
 
 const EmbeddingConfigurationSection = ({ renderSectionHeader }: EmbeddingConfigurationSectionProps) => {
-	const { apiConfiguration } = useExtensionState()
+	const { apiConfiguration } = useGlobalState()
 	const { handleFieldsChange } = useApiConfigurationHandlers()
 
 	const { embeddingProvider, embeddingModelId, embeddingApiKey, embeddingOpenAiBaseUrl } = apiConfiguration || {}

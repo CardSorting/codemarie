@@ -7,7 +7,8 @@ import RedditIcon from "@/assets/RedditIcon"
 import XIcon from "@/assets/XIcon"
 import WhatsNewItems from "@/components/common/WhatsNewItems"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useModels } from "@/context/ModelStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { useMount } from "@/hooks/useLifecycle"
 import { useApiConfigurationHandlers } from "../settings/utils/useApiConfigurationHandlers"
 
@@ -20,7 +21,8 @@ interface WhatsNewModalProps {
 }
 
 export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ open, onClose, version, welcomeBanners, onBannerAction }) => {
-	const { openRouterModels, refreshOpenRouterModels, navigateToSettingsModelPicker } = useExtensionState()
+	const { openRouterModels, refreshOpenRouterModels } = useModels()
+	const { navigateToSettingsModelPicker } = useNavigation()
 	const { handleFieldsChange } = useApiConfigurationHandlers()
 
 	// Get latest model list in case user hits shortcut button to set model

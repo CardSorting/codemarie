@@ -9,7 +9,7 @@ import styled from "styled-components"
 import { BrowserSettingsMenu } from "@/components/browser/BrowserSettingsMenu"
 import { ChatRowContent, ProgressIndicator } from "@/components/chat/components/messages/rows/ChatRow"
 import CodeBlock, { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { useSize } from "@/hooks/useBrowser"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/services/protobus-client"
@@ -105,8 +105,8 @@ const headerStyle: CSSProperties = {
 }
 
 const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
-	const { messages, isLast, onHeightChange, lastModifiedMessage, onSetQuote } = props
-	const { browserSettings } = useExtensionState()
+	const { messages, isLast, onHeightChange, lastModifiedMessage } = props
+	const { browserSettings } = useGlobalState()
 	const prevHeightRef = useRef(0)
 	const [maxActionHeight, setMaxActionHeight] = useState(0)
 	const [consoleLogsExpanded, setConsoleLogsExpanded] = useState(false)

@@ -2,7 +2,7 @@ import { McpTool } from "@shared/mcp"
 import { ToggleToolAutoApproveRequest } from "@shared/proto/codemarie/mcp"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { McpServiceClient } from "@/services/protobus-client"
 
 type McpToolRowProps = {
@@ -11,9 +11,7 @@ type McpToolRowProps = {
 }
 
 const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
-	const { autoApprovalSettings } = useExtensionState()
-
-	const { setMcpServers } = useExtensionState()
+	const { autoApprovalSettings, setMcpServers } = useGlobalState()
 
 	// Accept the event object
 	const handleAutoApproveChange = (_event: any) => {

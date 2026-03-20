@@ -1,9 +1,10 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import React, { useCallback, useLayoutEffect, useMemo, useState } from "react"
-import Thumbnails from "@/components/common/Thumbnails"
 import { getModeSpecificFields, normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import Thumbnails from "@/components/ui/thumbnails"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { cn } from "@/lib/utils"
 import { getEnvironmentColor } from "@/utils/environmentColors"
 import CopyTaskButton from "./buttons/CopyTaskButton"
@@ -51,12 +52,12 @@ const TaskHeader: React.FC<TaskHeaderProps> = ({
 		currentTaskItem,
 		checkpointManagerErrorMessage,
 		focusChainSettings,
-		navigateToSettings,
 		mode,
 		expandTaskHeader: isTaskExpanded,
 		setExpandTaskHeader: setIsTaskExpanded,
 		environment,
-	} = useExtensionState()
+	} = useGlobalState()
+	const { navigateToSettings } = useNavigation()
 
 	const [isHighlightedTextExpanded, setIsHighlightedTextExpanded] = useState(false)
 	const [isTextOverflowing, setIsTextOverflowing] = useState(false)

@@ -40,13 +40,15 @@ export function useProtobusSubscriptions() {
 	const openRouterModelsUnsubscribeRef = useRef<(() => void) | null>(null)
 	const liteLlmModelsUnsubscribeRef = useRef<(() => void) | null>(null)
 	const relinquishControlUnsubscribeRef = useRef<(() => void) | null>(null)
+	const lastStateJsonRef = useRef<string | null>(null)
 	const mcpServersSubscriptionRef = useRef<(() => void) | null>(null)
 
 	useEffect(() => {
 		// Set up state subscription
 		stateSubscriptionRef.current = StateServiceClient.subscribeToState(EmptyRequest.create({}), {
 			onResponse: (response) => {
-				if (response.stateJson) {
+				if (response.stateJson && response.stateJson !== lastStateJsonRef.current) {
+					lastStateJsonRef.current = response.stateJson
 					try {
 						const stateData = JSON.parse(response.stateJson)
 						setState((prevState) => {

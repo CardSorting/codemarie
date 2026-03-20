@@ -1,9 +1,11 @@
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useAuth } from "@/context/AuthContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import CodemarieLogoVariable from "../../assets/CodemarieLogoVariable"
 
 export const AccountWelcomeView = () => {
-	const { environment, isLoginLoading, handleSignIn } = useExtensionState()
+	const { environment } = useGlobalState()
+	const { isLoginLoading, handleSignIn } = useAuth()
 
 	return (
 		<div className="flex flex-col items-center gap-2.5">

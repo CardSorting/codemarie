@@ -16,7 +16,7 @@ import React, { useEffect, useRef, useState } from "react"
 import styled from "styled-components"
 import PopupModalContainer from "@/components/common/PopupModalContainer"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { useClickAway, useWindowSize } from "@/hooks/useWindow"
 import { FileServiceClient } from "@/services/protobus-client"
 import { isMacOSOrLinux } from "@/utils/platformUtils"
@@ -38,18 +38,25 @@ const CodemarieRulesToggleModal: React.FC = () => {
 		remoteWorkflowToggles = {},
 		remoteConfigSettings = {},
 		hooksEnabled,
-		setGlobalCodemarieRulesToggles,
-		setLocalCodemarieRulesToggles,
-		setLocalCursorRulesToggles,
-		setLocalWindsurfRulesToggles,
-		setLocalAgentsRulesToggles,
-		setLocalWorkflowToggles,
-		setGlobalWorkflowToggles,
-		setGlobalSkillsToggles,
-		setLocalSkillsToggles,
-		setRemoteRulesToggles,
-		setRemoteWorkflowToggles,
-	} = useExtensionState()
+		updateRulesToggles,
+	} = useGlobalState()
+
+	const setGlobalCodemarieRulesToggles = (toggles: Record<string, boolean>) =>
+		updateRulesToggles("globalCodemarieRulesToggles", toggles)
+	const setLocalCodemarieRulesToggles = (toggles: Record<string, boolean>) =>
+		updateRulesToggles("localCodemarieRulesToggles", toggles)
+	const setLocalCursorRulesToggles = (toggles: Record<string, boolean>) =>
+		updateRulesToggles("localCursorRulesToggles", toggles)
+	const setLocalWindsurfRulesToggles = (toggles: Record<string, boolean>) =>
+		updateRulesToggles("localWindsurfRulesToggles", toggles)
+	const setLocalAgentsRulesToggles = (toggles: Record<string, boolean>) =>
+		updateRulesToggles("localAgentsRulesToggles", toggles)
+	const setLocalWorkflowToggles = (toggles: Record<string, boolean>) => updateRulesToggles("localWorkflowToggles", toggles)
+	const setGlobalWorkflowToggles = (toggles: Record<string, boolean>) => updateRulesToggles("globalWorkflowToggles", toggles)
+	const setGlobalSkillsToggles = (toggles: Record<string, boolean>) => updateRulesToggles("globalSkillsToggles", toggles)
+	const setLocalSkillsToggles = (toggles: Record<string, boolean>) => updateRulesToggles("localSkillsToggles", toggles)
+	const setRemoteRulesToggles = (toggles: Record<string, boolean>) => updateRulesToggles("remoteRulesToggles", toggles)
+	const setRemoteWorkflowToggles = (toggles: Record<string, boolean>) => updateRulesToggles("remoteWorkflowToggles", toggles)
 	const [globalHooks, setGlobalHooks] = useState<Array<{ name: string; enabled: boolean; absolutePath: string }>>([])
 	const [workspaceHooks, setWorkspaceHooks] = useState<
 		Array<{ workspaceName: string; hooks: Array<{ name: string; enabled: boolean; absolutePath: string }> }>

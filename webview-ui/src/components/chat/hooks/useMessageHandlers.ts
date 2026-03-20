@@ -2,7 +2,7 @@ import type { CodemarieMessage } from "@shared/ExtensionMessage"
 import { EmptyRequest, StringRequest } from "@shared/proto/codemarie/common"
 import { AskResponseRequest, NewTaskRequest } from "@shared/proto/codemarie/task"
 import { useCallback, useRef } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { SlashServiceClient, TaskServiceClient } from "@/services/protobus-client"
 import type { ButtonActionType } from "../shared/buttonConfig"
 import type { ChatState, MessageHandlers } from "../types/chatTypes"
@@ -12,7 +12,7 @@ import type { ChatState, MessageHandlers } from "../types/chatTypes"
  * Handles sending messages, button clicks, and task management
  */
 export function useMessageHandlers(messages: CodemarieMessage[], chatState: ChatState): MessageHandlers {
-	const { backgroundCommandRunning } = useExtensionState()
+	const { backgroundCommandRunning } = useGlobalState()
 	const {
 		setInputValue,
 		activeQuote,

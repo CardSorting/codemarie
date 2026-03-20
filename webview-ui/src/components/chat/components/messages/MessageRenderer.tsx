@@ -3,7 +3,7 @@ import type React from "react"
 import { useMemo } from "react"
 import BrowserSessionRow from "@/components/chat/components/messages/rows/BrowserSessionRow"
 import ChatRow from "@/components/chat/components/messages/rows/ChatRow"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { cn } from "@/lib/utils"
 import type { MessageHandlers } from "../../types/chatTypes"
 import { findReasoningForApiReq, isTextMessagePendingToolCall, isToolGroup } from "../../utils/messageUtils"
@@ -40,7 +40,7 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({
 	messageHandlers,
 	footerActive,
 }) => {
-	const { mode } = useExtensionState()
+	const { mode } = useGlobalState()
 
 	const isLastMessage = useMemo(() => index === groupedMessages?.length - 1, [groupedMessages, index])
 

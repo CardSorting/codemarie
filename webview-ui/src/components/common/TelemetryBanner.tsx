@@ -1,6 +1,6 @@
 import { TelemetrySettingEnum, TelemetrySettingRequest } from "@shared/proto/codemarie/state"
 import { useCallback } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { StateServiceClient } from "@/services/protobus-client"
 
 const telemetryRequest = TelemetrySettingRequest.create({
@@ -8,7 +8,7 @@ const telemetryRequest = TelemetrySettingRequest.create({
 })
 
 export const TelemetryBanner: React.FC = () => {
-	const { navigateToSettings } = useExtensionState()
+	const { navigateToSettings } = useNavigation()
 
 	const handleClose = useCallback(() => {
 		StateServiceClient.updateTelemetrySetting(telemetryRequest).catch(console.error)

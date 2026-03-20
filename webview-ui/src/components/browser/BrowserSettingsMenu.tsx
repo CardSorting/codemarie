@@ -1,7 +1,8 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { BrowserServiceClient } from "../../services/protobus-client"
 
 interface ConnectionInfo {
@@ -11,7 +12,8 @@ interface ConnectionInfo {
 }
 
 export const BrowserSettingsMenu = () => {
-	const { browserSettings, navigateToSettings } = useExtensionState()
+	const { browserSettings } = useGlobalState()
+	const { navigateToSettings } = useNavigation()
 	const containerRef = useRef<HTMLDivElement>(null)
 	const [showInfoPopover, setShowInfoPopover] = useState(false)
 	const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo>({

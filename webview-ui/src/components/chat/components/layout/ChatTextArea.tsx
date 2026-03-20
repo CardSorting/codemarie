@@ -8,26 +8,26 @@ import { forwardRef, useCallback, useLayoutEffect, useMemo, useRef, useState } f
 import DynamicTextArea from "react-textarea-autosize"
 import ContextMenu from "@/components/chat/components/layout/ContextMenu"
 import SlashCommandMenu from "@/components/chat/components/layout/SlashCommandMenu"
-import { CHAT_CONSTANTS } from "@/components/chat/constants"
 import { useFileDragAndDrop } from "@/components/chat/hooks/useFileDragAndDrop"
 import { useFilePaste } from "@/components/chat/hooks/useFilePaste"
 import { useMentions } from "@/components/chat/hooks/useMentions"
 import { useSlashCommands } from "@/components/chat/hooks/useSlashCommands"
 import { useTextAreaHeight } from "@/components/chat/hooks/useTextAreaHeight"
-import Thumbnails from "@/components/common/Thumbnails"
+import CodemarieRulesToggleModal from "@/components/codemarie-rules/CodemarieRulesToggleModal"
 import { getModeSpecificFields, normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
+import Thumbnails from "@/components/ui/thumbnails"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { PLATFORM_CONFIG } from "@/config/platform.config"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { useMetaKeyDetection, useShortcut } from "@/hooks"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/services/protobus-client"
 import { isSafari } from "@/utils/platformUtils"
 import { slashCommandDeleteRegex, slashCommandRegexGlobal, validateSlashCommand } from "@/utils/slash-commands"
-import CodemarieRulesToggleModal from "../codemarie-rules/CodemarieRulesToggleModal"
 import ServersToggleModal from "./ServersToggleModal"
 
-const { MAX_IMAGES_AND_FILES_PER_MESSAGE } = CHAT_CONSTANTS
+// const { MAX_IMAGES_AND_FILES_PER_MESSAGE } = CHAT_CONSTANTS
 
 interface ChatTextAreaProps {
 	inputValue: string
@@ -75,9 +75,9 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			globalWorkflowToggles,
 			remoteWorkflowToggles,
 			remoteConfigSettings,
-			navigateToSettingsModelPicker,
 			mcpServers,
-		} = useExtensionState()
+		} = useGlobalState()
+		const { navigateToSettingsModelPicker } = useNavigation()
 		const [isTextAreaFocused, setIsTextAreaFocused] = useState(false)
 		const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
 		const [cursorPosition, setCursorPosition] = useState(0)
@@ -192,8 +192,8 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			textAreaRef,
 			localWorkflowToggles,
 			globalWorkflowToggles,
-			remoteWorkflowToggles,
-			remoteGlobalWorkflows: remoteConfigSettings?.remoteGlobalWorkflows,
+			remoteWorkflowToggles: remoteWorkflowToggles || {},
+			remoteGlobalWorkflows: remoteConfigSettings?.remoteGlobalWorkflows || [],
 			mcpServers,
 		})
 

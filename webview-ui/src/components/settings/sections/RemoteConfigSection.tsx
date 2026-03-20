@@ -3,7 +3,7 @@ import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
 import { RemoteConfigToggle } from "@/components/account/RemoteConfigToggle"
 import { useAuth } from "@/context/AuthContext"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
 
@@ -149,7 +149,7 @@ function TestButton({ label, onClick, disabled, successMessage }: TestButtonProp
 }
 
 function OtelSettingsSection() {
-	const { remoteConfigSettings } = useExtensionState()
+	const { remoteConfigSettings } = useGlobalState()
 
 	const otelEnabled = remoteConfigSettings?.openTelemetryEnabled
 	const hasOtelConfig =
@@ -228,7 +228,7 @@ function OtelSettingsSection() {
 }
 
 function PromptUploadingSection() {
-	const { remoteConfigSettings } = useExtensionState()
+	const { remoteConfigSettings } = useGlobalState()
 
 	const blobStoreConfig = remoteConfigSettings?.blobStoreConfig
 	if (!blobStoreConfig) {
@@ -269,7 +269,7 @@ function PromptUploadingSection() {
 }
 
 export function RemoteConfigSection({ renderSectionHeader }: RemoteConfigSectionProps) {
-	const { remoteConfigSettings, optOutOfRemoteConfig } = useExtensionState()
+	const { remoteConfigSettings, optOutOfRemoteConfig } = useGlobalState()
 	const { activeOrganization } = useAuth()
 
 	if (optOutOfRemoteConfig) {

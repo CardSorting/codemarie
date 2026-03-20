@@ -8,7 +8,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import HomeHeader from "@/components/welcome/HomeHeader"
 import { SuggestedTasks } from "@/components/welcome/SuggestedTasks"
 import CreateWorktreeModal from "@/components/worktrees/CreateWorktreeModal"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { WorktreeServiceClient } from "@/services/protobus-client"
 import { WelcomeSectionProps } from "../../types/chatTypes"
 
@@ -36,7 +37,8 @@ export const WelcomeSection: React.FC<WelcomeSectionProps> = ({ showHistoryView,
 			.catch(() => setIsGitRepo(false))
 	}, [])
 
-	const { navigateToWorktrees, worktreesEnabled } = useExtensionState()
+	const { worktreesEnabled } = useGlobalState()
+	const { navigateToWorktrees } = useNavigation()
 
 	// Handle click on home page worktree element with telemetry
 	const handleWorktreeClick = useCallback(() => {

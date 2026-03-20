@@ -1,12 +1,12 @@
 import { UpdateSettingsRequest, UserOrganization } from "@shared/proto/index.codemarie"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useRef } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { StateServiceClient } from "@/services/protobus-client"
 import { isAdminOrOwner } from "./helpers"
 
 export function RemoteConfigToggle({ activeOrganization }: { activeOrganization: UserOrganization | null }) {
-	const { optOutOfRemoteConfig } = useExtensionState()
+	const { optOutOfRemoteConfig } = useGlobalState()
 	const hadOptedOutOfRemoteConfig = useRef(optOutOfRemoteConfig)
 
 	// If there is no active org but the user had already opted out, keep displaying the toggle

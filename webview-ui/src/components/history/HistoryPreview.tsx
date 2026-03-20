@@ -1,6 +1,6 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { memo } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { TaskServiceClient } from "@/services/protobus-client"
 
 type HistoryPreviewProps = {
@@ -8,7 +8,7 @@ type HistoryPreviewProps = {
 }
 
 const HistoryPreview = ({ showHistoryView }: HistoryPreviewProps) => {
-	const { taskHistory } = useExtensionState()
+	const { taskHistory } = useGlobalState()
 	const handleHistorySelect = (id: string) => {
 		TaskServiceClient.showTaskWithId(StringRequest.create({ value: id })).catch((error) =>
 			console.error("Error showing task:", error),

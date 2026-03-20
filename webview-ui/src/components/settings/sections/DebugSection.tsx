@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
 
@@ -9,7 +9,7 @@ interface DebugSectionProps {
 }
 
 const DebugSection = ({ onResetState, renderSectionHeader }: DebugSectionProps) => {
-	const { setShowWelcome } = useExtensionState()
+	const { setShowWelcome } = useGlobalState()
 	return (
 		<div>
 			{renderSectionHeader("debug")}

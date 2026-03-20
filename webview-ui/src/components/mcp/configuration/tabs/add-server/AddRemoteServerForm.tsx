@@ -4,7 +4,7 @@ import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mc
 import { VSCodeButton, VSCodeLink, VSCodeRadio, VSCodeRadioGroup, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { useState } from "react"
 import { LINKS } from "@/constants"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { McpServiceClient } from "@/services/protobus-client"
 
 type TransportType = "streamableHttp" | "sse"
@@ -15,7 +15,7 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 	const [transportType, setTransportType] = useState<TransportType>("streamableHttp")
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [error, setError] = useState("")
-	const { setMcpServers } = useExtensionState()
+	const { setMcpServers } = useGlobalState()
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()

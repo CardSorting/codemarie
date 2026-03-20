@@ -2,7 +2,7 @@ import { McpMarketplaceItem, McpServer } from "@shared/mcp"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { McpServiceClient } from "@/services/protobus-client"
 
 interface McpMarketplaceCardProps {
@@ -16,7 +16,7 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 	const [isDownloading, setIsDownloading] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
 	const githubLinkRef = useRef<HTMLDivElement>(null)
-	const { onRelinquishControl } = useExtensionState()
+	const { onRelinquishControl } = useGlobalState()
 
 	useEffect(() => {
 		return onRelinquishControl(() => {

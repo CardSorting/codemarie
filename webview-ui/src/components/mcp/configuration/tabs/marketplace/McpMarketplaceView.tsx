@@ -8,14 +8,14 @@ import {
 	VSCodeRadioGroup,
 	VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react"
-import { useEffect, useMemo, useState } from "react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { McpServiceClient } from "@/services/protobus-client"
 import McpMarketplaceCard from "./McpMarketplaceCard"
 import McpSubmitCard from "./McpSubmitCard"
 
 const McpMarketplaceView = () => {
-	const { mcpServers, mcpMarketplaceCatalog, setMcpMarketplaceCatalog, remoteConfigSettings } = useExtensionState()
+	const { mcpServers, mcpMarketplaceCatalog, setMcpMarketplaceCatalog, remoteConfigSettings } = useGlobalState()
 
 	const showMarketplace = remoteConfigSettings?.mcpMarketplaceEnabled !== false
 	const [isLoading, setIsLoading] = useState(true)
@@ -59,27 +59,30 @@ const McpMarketplaceView = () => {
 			})
 	}, [items, searchQuery, selectedCategory, sortBy])
 
-	const fetchMarketplace = (forceRefresh = false) => {
-		if (forceRefresh) {
-			setIsRefreshing(true)
-		} else {
-			setIsLoading(true)
-		}
-		setError(null)
+	const fetchMarketplace = useCallback(
+		(forceRefresh = false) => {
+			if (forceRefresh) {
+				setIsRefreshing(true)
+			} else {
+				setIsLoading(true)
+			}
+			setError(null)
 
-		if (showMarketplace) {
-			McpServiceClient.refreshMcpMarketplace(EmptyRequest.create({}))
-				.then((response) => {
-					setMcpMarketplaceCatalog(response)
-				})
-				.catch((error) => {
-					console.error("Error refreshing MCP marketplace:", error)
-					setError("Failed to load marketplace data")
-					setIsLoading(false)
-					setIsRefreshing(false)
-				})
-		}
-	}
+			if (showMarketplace) {
+				McpServiceClient.refreshMcpMarketplace(EmptyRequest.create({}))
+					.then((response) => {
+						setMcpMarketplaceCatalog(response)
+					})
+					.catch((error) => {
+						console.error("Error refreshing MCP marketplace:", error)
+						setError("Failed to load marketplace data")
+						setIsLoading(false)
+						setIsRefreshing(false)
+					})
+			}
+		},
+		[showMarketplace, setMcpMarketplaceCatalog],
+	)
 
 	useEffect(() => {
 		// Fetch marketplace catalog on initial load

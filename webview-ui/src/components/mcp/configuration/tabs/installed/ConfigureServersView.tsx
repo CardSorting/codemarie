@@ -1,11 +1,13 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { McpServiceClient } from "@/services/protobus-client"
 import ServersToggleList from "./ServersToggleList"
 
 const ConfigureServersView = () => {
-	const { mcpServers: servers, navigateToSettings, remoteConfigSettings } = useExtensionState()
+	const { mcpServers: servers, remoteConfigSettings } = useGlobalState()
+	const { navigateToSettings } = useNavigation()
 
 	// Check if there are remote MCP servers configured
 	const hasRemoteMCPServers = remoteConfigSettings?.remoteMCPServers && remoteConfigSettings.remoteMCPServers.length > 0

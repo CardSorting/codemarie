@@ -41,15 +41,15 @@ import { ActionCheckboxes } from "@/components/chat/components/messages/rows/Act
 import { OptionsButtons } from "@/components/chat/components/messages/rows/OptionsButtons"
 import { QuoteButtonState } from "@/components/chat/hooks/useQuoteButton"
 import { CheckmarkControl } from "@/components/common/CheckmarkControl"
-import { WithCopyButton } from "@/components/common/CopyButton"
 import McpResponseDisplay from "@/components/mcp/chat-display/McpResponseDisplay"
 import McpResourceRow from "@/components/mcp/configuration/tabs/installed/server-row/McpResourceRow"
 import McpToolRow from "@/components/mcp/configuration/tabs/installed/server-row/McpToolRow"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { WithCopyButton } from "@/components/ui/copy-button"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { cn } from "@/lib/utils"
 import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
 import { findMatchingResourceOrTemplate, getMcpServerDisplayName } from "@/utils/mcp"
-import CodeAccordian, { cleanPathPrefix } from "../common/CodeAccordian"
+import CodeAccordian, { cleanPathPrefix } from "../../../../common/CodeAccordian"
 import { AlignmentGuard } from "./AlignmentGuard"
 import { ClarificationHub } from "./ClarificationHub"
 import { CommandOutputContent, CommandOutputRow } from "./CommandOutputRow"
@@ -88,7 +88,6 @@ interface MessageRowDispatcherProps {
 	isLast: boolean
 	inputValue?: string
 	sendMessageFromChatRow?: (text: string, images: string[], files: string[]) => void
-	onSetQuote: (text: string) => void
 	onCancelCommand?: () => void
 	mode?: Mode
 	isRequestInProgress?: boolean
@@ -105,7 +104,7 @@ interface MessageRowDispatcherProps {
 	quoteButtonState: QuoteButtonState
 	handleQuoteClick: () => void
 	handleMouseUp: (event: React.MouseEvent<HTMLDivElement>) => void
-	contentRef: React.RefObject<HTMLDivElement | null>
+	contentRef: React.RefObject<HTMLDivElement>
 	isOutputFullyExpanded: boolean
 	setIsOutputFullyExpanded: (val: boolean) => void
 }
@@ -120,7 +119,6 @@ const MessageRowDispatcher = ({
 	isLast,
 	inputValue,
 	sendMessageFromChatRow,
-	onSetQuote,
 	onCancelCommand,
 	mode,
 	isRequestInProgress,
@@ -140,7 +138,7 @@ const MessageRowDispatcher = ({
 	setIsOutputFullyExpanded,
 }: MessageRowDispatcherProps) => {
 	const { backgroundEditEnabled, mcpServers, mcpMarketplaceCatalog, vscodeTerminalExecutionMode, codemarieMessages } =
-		useExtensionState()
+		useGlobalState()
 
 	const type = message.type === "ask" ? message.ask : message.say
 

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { Button } from "@/components/ui/button"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { cn } from "@/lib/utils"
 import { CheckpointsServiceClient } from "@/services/protobus-client"
 
@@ -23,7 +23,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 	const [restoreBothDisabled, setRestoreBothDisabled] = useState(false)
 	const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
 	const [showMoreOptions, setShowMoreOptions] = useState(false)
-	const { onRelinquishControl } = useExtensionState()
+	const { onRelinquishControl } = useGlobalState()
 
 	// Debounce
 	const closeMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null)

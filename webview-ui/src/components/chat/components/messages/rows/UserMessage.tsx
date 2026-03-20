@@ -4,7 +4,7 @@ import React, { forwardRef, useMemo, useRef, useState } from "react"
 import DynamicTextArea from "react-textarea-autosize"
 import { highlightText } from "@/components/chat/components/layout/task-header/Highlights"
 import Thumbnails from "@/components/ui/thumbnails"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { CheckpointsServiceClient } from "@/services/protobus-client"
 
 interface UserMessageProps {
@@ -19,7 +19,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ text, images, files, messageT
 	const [isEditing, setIsEditing] = useState(false)
 	const [editedText, setEditedText] = useState(text || "")
 	const textAreaRef = useRef<HTMLTextAreaElement>(null)
-	const { checkpointManagerErrorMessage } = useExtensionState()
+	const { checkpointManagerErrorMessage } = useGlobalState()
 
 	const highlightedText = useMemo(() => highlightText(editedText || text), [editedText, text])
 

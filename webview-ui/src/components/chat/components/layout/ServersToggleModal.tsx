@@ -6,12 +6,14 @@ import React, { useEffect, useRef, useState } from "react"
 import PopupModalContainer from "@/components/common/PopupModalContainer"
 import ServersToggleList from "@/components/mcp/configuration/tabs/installed/ServersToggleList"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { useClickAway, useWindowSize } from "@/hooks/useWindow"
 import { McpServiceClient } from "@/services/protobus-client"
 
 const ServersToggleModal: React.FC = () => {
-	const { mcpServers, navigateToMcp, setMcpServers } = useExtensionState()
+	const { mcpServers, setMcpServers } = useGlobalState()
+	const { navigateToMcp } = useNavigation()
 	const [isVisible, setIsVisible] = useState(false)
 	const buttonRef = useRef<HTMLDivElement>(null)
 	const modalRef = useRef<HTMLDivElement>(null)
