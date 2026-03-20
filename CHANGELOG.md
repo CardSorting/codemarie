@@ -1,5 +1,17 @@
 # Changelog
  
+## [3.81.0] - 2026-03-20 - *Task Orchestrator Production Hardening*
+
+### Added
+- **Deep Audit & Production Hardening (src/core/task):**
+  - **Adaptive Focus Injection**: Real-time system prompt adjustment during high-entropy or high-risk periods to enforce structural consistency and adherence to patterns.
+  - **Risk-Aware Adaptive Retry**: Implemented dynamic backoff scaling for API failures, automatically adjusting retry delays based on mission risk levels and system entropy.
+  - **Real-Time Secret Masking**: Added proactive interception and masking of sensitive keys (API keys, secrets, tokens) in assistant text streams using Joy-Zoning rules to prevent accidental leakage.
+  - **Cognitive Snapshotting**: Integrated with Knowledge Graph to capture and preserve critical mental models and reasoning history before context window truncation.
+  - **Structural Refactoring**: Comprehensive type-safety overhaul across `TaskAIStreamHandler`, `TaskLifecycleManager`, and `index.ts` to eliminate `any` usage.
+  - **Dangling Block Resolution**: Automated cleanup of partial tool blocks during stream finalization to ensure conversation integrity.
+  - **Local Model Jitter**: Synthetic delay for local providers to improve UI rendering smoothness and prevent frame drops during high-speed streaming.
+
 ## [3.80.0] - 2026-03-19 - *The Autonomous Hardening Milestone*
 
 ### Added
