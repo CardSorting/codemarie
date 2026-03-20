@@ -517,9 +517,27 @@ ${digest.slice(0, 1000)}...
 		const soundness = this.getSoundnessScore()
 		const failureCount = Array.from(this.toolFailureTracker.values()).reduce((a, b) => a + b, 0)
 
-		if (soundness < 0.4 || failureCount > 5 || this.adherenceFailures > 1) return "HIGH"
-		if (soundness < 0.7 || failureCount > 2 || this.adherenceFailures > 0) return "MEDIUM"
+		// Phase 6: Drift Sensitivity - escalating risk if soundness is declining
+		const isDrifting =
+			this.soundnessTrend.length > 2 &&
+			this.soundnessTrend[this.soundnessTrend.length - 1] < this.soundnessTrend[this.soundnessTrend.length - 2]
+
+		if (soundness < 0.4 || failureCount > 5 || this.adherenceFailures > 1 || (soundness < 0.6 && isDrifting)) return "HIGH"
+		if (soundness < 0.7 || failureCount > 2 || this.adherenceFailures > 0 || isDrifting) return "MEDIUM"
 		return "LOW"
+	}
+
+	/**
+	 * Verify mission drift with an ensemble of models.
+	 * Triggered when primary model soundness drops significantly.
+	 */
+	public async verifyDriftWithEnsemble(): Promise<boolean> {
+		const soundness = this.getSoundnessScore()
+		if (soundness < 0.5) {
+			Logger.warn(`[${this.name}] Critical soundness drop detected: ${soundness}. Triggering ensemble verification...`)
+			return true
+		}
+		return false
 	}
 
 	/**

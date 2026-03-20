@@ -253,8 +253,29 @@ export class TaskAIStreamHandler {
 		}
 
 		const { systemPrompt, tools } = await getSystemPrompt(promptContext)
+
+		// Adaptive Focus Injection: De-noise the agent during high entropy periods
+		let finalSystemPrompt = systemPrompt
+		const multiAgentSystemForFocus = this.deps.getMultiAgentSystem?.()
+		if (multiAgentSystemForFocus) {
+			try {
+				const riskLevel = await multiAgentSystemForFocus.calculateRiskLevel()
+				if (riskLevel === "HIGH") {
+					finalSystemPrompt +=
+						"\n\n# SYSTEM CORRECTION\nSystem instability detected (High Entropy). Focus on structural consistency, follow established patterns strictly, and minimize speculative reasoning."
+					Logger.info(`[Task ${this.taskId}] Injected adaptive focus correction due to HIGH entropy.`)
+				}
+			} catch {
+				/* ignore risk level errors during prompt generation */
+			}
+		}
+
+		// Phase 6: Predictive Tool Simulation Instructions
+		finalSystemPrompt +=
+			"\n\n# PREDICTIVE TOOL SIMULATION\nBefore using high-risk tools (file_write, run_command), you MUST explicitly reason about the expected side-effects and the global state impact in your internal scratchpad. Visualize the delta between the current state and the post-execution state."
+
 		this.taskState.useNativeToolCalls = !!tools?.length
-		await this.writePromptMetadataArtifacts({ systemPrompt, providerInfo })
+		await this.writePromptMetadataArtifacts({ systemPrompt: finalSystemPrompt, providerInfo })
 
 		const contextManagementMetadata = await this.deps.contextManager.getNewContextMessagesAndMetadata(
 			this.messageStateHandler.getApiConversationHistory(),
@@ -350,7 +371,20 @@ export class TaskAIStreamHandler {
 				let response: CodemarieAskResponse
 				if (!isCodemarieProviderInsufficientCredits && !isAuthError && this.taskState.autoRetryAttempts < 3) {
 					this.taskState.autoRetryAttempts++
-					const delay = 2000 * 2 ** (this.taskState.autoRetryAttempts - 1)
+
+					// Risk-Aware Adaptive Retry: Scale backoff based on system entropy/risk
+					const multiAgentSystem = this.deps.getMultiAgentSystem?.()
+					let riskMultiplier = 1.0
+					if (multiAgentSystem) {
+						try {
+							const riskLevel = await multiAgentSystem.calculateRiskLevel()
+							riskMultiplier = riskLevel === "HIGH" ? 3.0 : riskLevel === "MEDIUM" ? 1.5 : 1.0
+						} catch {
+							/* fallback to 1.0 */
+						}
+					}
+
+					const delay = 2000 * 2 ** (this.taskState.autoRetryAttempts - 1) * riskMultiplier
 					await updateApiReqMsg({
 						messageStateHandler: this.messageStateHandler,
 						lastApiReqIndex: lastApiReqStartedIndex,
@@ -431,6 +465,21 @@ export class TaskAIStreamHandler {
 			return
 		}
 		yield* iterator
+		await this.cleanupStreamingState()
+	}
+
+	private async cleanupStreamingState(): Promise<void> {
+		let didModify = false
+		for (const block of this.taskState.assistantMessageContent) {
+			if (block.partial) {
+				block.partial = false
+				didModify = true
+				Logger.info(`[Task ${this.taskId}] Resolved dangling partial block of type ${block.type}`)
+			}
+		}
+		if (didModify) {
+			await this.messageStateHandler.saveCodemarieMessagesAndUpdateHistory()
+		}
 	}
 
 	public async presentAssistantMessage() {
@@ -470,7 +519,46 @@ export class TaskAIStreamHandler {
 								break
 							}
 						}
+
+						/**
+						 * Phase 6: Draft Self-Audit
+						 * If entropy is high, we audit the accumulated content for architectural smells.
+						 */
+						const multiAgentForAudit = this.deps.getMultiAgentSystem?.()
+						if (multiAgentForAudit) {
+							try {
+								const riskLevel = await multiAgentForAudit.calculateRiskLevel()
+								if (riskLevel === "HIGH" && content.length > 300) {
+									const SECRET_REGEX_AUDIT =
+										/(?:sk-|api(?:[_-]?key)?|secret|password|token|auth(?:[_-]?key)?)[\s:="']*[a-zA-Z0-9\-_]{20,}/gi
+									if (SECRET_REGEX_AUDIT.test(content)) {
+										Logger.warn(
+											`[Task ${this.taskId}] Self-Audit detected a potential secret in high-entropy stream!`,
+										)
+										// In a full production env, this would trigger a "Hold-Back and Correct" yield.
+									}
+								}
+							} catch {
+								/* ignore audit errors */
+							}
+						}
+
+						// Real-Time Secret Masking: Use Joy-Zoning rules to prevent accidental leakage
+						const SECRET_REGEX =
+							/(?:sk-|api(?:[_-]?key)?|secret|password|token|auth(?:[_-]?key)?)[\s:="']*[a-zA-Z0-9\-_]{20,}/gi
+						if (SECRET_REGEX.test(content)) {
+							content = content.replace(SECRET_REGEX, (match: string) => {
+								const head = match.slice(0, 4)
+								return `${head}********************`
+							})
+						}
 					}
+
+					// Local Model Jitter: Smooth out UI rendering for local providers
+					if (block.partial && isLocalModel(this.getCurrentProviderInfo())) {
+						await setTimeoutPromise(10 + Math.random() * 20)
+					}
+
 					await this.uiManager.say("text", content, undefined, undefined, block.partial)
 				}
 				if (!block.partial) {
@@ -575,6 +663,30 @@ export class TaskAIStreamHandler {
 		if (hooksEnabled) {
 			try {
 				const deletedRange = this.calculatePreCompactDeletedRange(apiConversationHistory)
+
+				// Context-Aware Truncation: Preserve critical reasoning via Knowledge Graph snapshot
+				const kgService = await this.getKnowledgeGraphService()
+				if (kgService && deletedRange) {
+					const [start, end] = deletedRange
+					const truncatedRange = apiConversationHistory.slice(start, end + 1)
+					if (truncatedRange.length > 0) {
+						const snapshotContent = truncatedRange
+							.map((m) => {
+								const content = Array.isArray(m.content)
+									? m.content
+											.map((b) =>
+												"text" in b ? b.text : b.type === "tool_use" ? `[Tool Use: ${b.name}]` : "",
+											)
+											.join("\n")
+									: m.content
+								return `[TRUNCATED ${m.role.toUpperCase()}]:\n${content}`
+							})
+							.join("\n\n")
+						await kgService.cognitiveSnapshot(this.taskId, snapshotContent, truncatedRange.length)
+						Logger.info(`[Task ${this.taskId}] Captured cognitive snapshot of truncated history before compaction.`)
+					}
+				}
+
 				await executePreCompactHookWithCleanup({
 					taskId: this.taskId,
 					ulid: this.ulid,
