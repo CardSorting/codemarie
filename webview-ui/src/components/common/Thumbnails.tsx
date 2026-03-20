@@ -1,7 +1,7 @@
-import { cn } from "@heroui/react"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import React, { memo, useLayoutEffect, useRef, useState } from "react"
 import { useWindowSize } from "react-use"
+import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/services/protobus-client"
 
 interface ThumbnailsProps {

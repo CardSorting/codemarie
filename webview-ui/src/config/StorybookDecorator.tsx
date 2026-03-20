@@ -2,7 +2,6 @@ import "../../../node_modules/@vscode/codicons/dist/codicon.css"
 import "../../../node_modules/@vscode/codicons/dist/codicon.ttf"
 import "../../src/index.css"
 
-import { cn } from "@heroui/react"
 import type { Decorator } from "@storybook/react-vite"
 import React from "react"
 import {
@@ -17,6 +16,7 @@ import {
 	ExtensionStateContextType,
 	useExtensionState,
 } from "@/context/ExtensionStateContext"
+import { cn } from "@/lib/utils"
 import { StorybookThemes } from "../../.storybook/themes"
 
 // Component that handles theme switching

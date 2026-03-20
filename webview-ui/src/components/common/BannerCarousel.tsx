@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, XIcon } from "lucide-react"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useRemark } from "react-remark"
+import ReactMarkdown from "react-markdown"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -31,12 +31,6 @@ interface BannerCardContentProps {
 }
 
 const BannerCardContent: React.FC<BannerCardContentProps> = ({ banner, isActive, isTransitioning, showDismissButton }) => {
-	const [markdownContent, setMarkdown] = useRemark()
-
-	useEffect(() => {
-		setMarkdown(typeof banner.description === "string" ? banner.description : "")
-	}, [banner.description, setMarkdown])
-
 	return (
 		<div
 			className={cn("p-3 transition-opacity duration-400 ease-in-out opacity-0", {
@@ -58,7 +52,7 @@ const BannerCardContent: React.FC<BannerCardContentProps> = ({ banner, isActive,
 
 			{/* Description */}
 			<div className="text-sm text-description leading-relaxed [&>*:last-child]:mb-0 [&_a]:hover:underline">
-				{markdownContent}
+				<ReactMarkdown>{typeof banner.description === "string" ? banner.description : ""}</ReactMarkdown>
 			</div>
 
 			{/* Action buttons */}

@@ -1,4 +1,3 @@
-import { HeroUIProvider } from "@heroui/react"
 import { type ReactNode } from "react"
 import { CustomPostHogProvider } from "./CustomPostHogProvider"
 import { CodemarieAuthProvider } from "./context/CodemarieAuthContext"
@@ -10,9 +9,7 @@ export function Providers({ children }: { children: ReactNode }) {
 		<PlatformProvider>
 			<ExtensionStateContextProvider>
 				<CustomPostHogProvider>
-					<CodemarieAuthProvider>
-						<HeroUIProvider>{children}</HeroUIProvider>
-					</CodemarieAuthProvider>
+					<CodemarieAuthProvider>{children}</CodemarieAuthProvider>
 				</CustomPostHogProvider>
 			</ExtensionStateContextProvider>
 		</PlatformProvider>

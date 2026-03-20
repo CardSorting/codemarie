@@ -1,6 +1,5 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
-import mermaid from "mermaid"
 import { useEffect, useRef, useState } from "react"
 import styled from "styled-components"
 import { FileServiceClient } from "@/services/protobus-client"
@@ -36,48 +35,56 @@ const MERMAID_THEME = {
 	fillType2: "#454545",
 }
 
-mermaid.initialize({
-	startOnLoad: false,
-	securityLevel: "loose",
-	theme: "dark",
-	themeVariables: {
-		...MERMAID_THEME,
-		fontSize: "16px",
-		fontFamily: "var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif)",
-
-		// Additional styling
-		noteTextColor: "#ffffff",
-		noteBkgColor: "#454545",
-		noteBorderColor: "#888888",
-
-		// Improve contrast for special elements
-		critBorderColor: "#ff9580",
-		critBkgColor: "#803d36",
-
-		// Task diagram specific
-		taskTextColor: "#ffffff",
-		taskTextOutsideColor: "#ffffff",
-		taskTextLightColor: "#ffffff",
-
-		// Numbers/sections
-		sectionBkgColor: "#2d2d2d",
-		sectionBkgColor2: "#3c3c3c",
-
-		// Alt sections in sequence diagrams
-		altBackground: "#2d2d2d",
-
-		// Links
-		linkColor: "#6cb6ff",
-
-		// Borders and lines
-		compositeBackground: "#2d2d2d",
-		compositeBorder: "#888888",
-		titleColor: "#ffffff",
-	},
-})
-
 interface MermaidBlockProps {
 	code: string
+}
+
+let mermaidInstance: any = null
+
+async function getMermaid() {
+	if (mermaidInstance) return mermaidInstance
+	const mermaid = (await import("mermaid")).default
+	mermaid.initialize({
+		startOnLoad: false,
+		securityLevel: "loose",
+		theme: "dark",
+		themeVariables: {
+			...MERMAID_THEME,
+			fontSize: "16px",
+			fontFamily: "var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif)",
+
+			// Additional styling
+			noteTextColor: "#ffffff",
+			noteBkgColor: "#454545",
+			noteBorderColor: "#888888",
+
+			// Improve contrast for special elements
+			critBorderColor: "#ff9580",
+			critBkgColor: "#803d36",
+
+			// Task diagram specific
+			taskTextColor: "#ffffff",
+			taskTextOutsideColor: "#ffffff",
+			taskTextLightColor: "#ffffff",
+
+			// Numbers/sections
+			sectionBkgColor: "#2d2d2d",
+			sectionBkgColor2: "#3c3c3c",
+
+			// Alt sections in sequence diagrams
+			altBackground: "#2d2d2d",
+
+			// Links
+			linkColor: "#6cb6ff",
+
+			// Borders and lines
+			compositeBackground: "#2d2d2d",
+			compositeBorder: "#888888",
+			titleColor: "#ffffff",
+		},
+	})
+	mermaidInstance = mermaid
+	return mermaid
 }
 
 export default function MermaidBlock({ code }: MermaidBlockProps) {
@@ -95,23 +102,27 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 			if (containerRef.current) {
 				containerRef.current.innerHTML = ""
 			}
-			mermaid
-				.parse(code, { suppressErrors: true })
-				.then((isValid) => {
-					if (!isValid) {
-						throw new Error("Invalid or incomplete Mermaid code")
-					}
-					const id = `mermaid-${Math.random().toString(36).substring(2)}`
-					return mermaid.render(id, code)
+			getMermaid()
+				.then((mermaid) => {
+					return mermaid.parse(code, { suppressErrors: true }).then((isValid: boolean) => {
+						if (!isValid) {
+							throw new Error("Invalid or incomplete Mermaid code")
+						}
+						const id = `mermaid-${Math.random().toString(36).substring(2)}`
+						return mermaid.render(id, code)
+					})
 				})
-				.then(({ svg }) => {
+				.then((renderResult) => {
+					const svg = typeof renderResult === "string" ? renderResult : renderResult.svg
 					if (containerRef.current) {
 						containerRef.current.innerHTML = svg
 					}
 				})
 				.catch((err) => {
 					console.warn("Mermaid parse/render failed:", err)
-					containerRef.current!.innerHTML = code.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+					if (containerRef.current) {
+						containerRef.current.innerHTML = code.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+					}
 				})
 				.finally(() => {
 					setIsLoading(false)

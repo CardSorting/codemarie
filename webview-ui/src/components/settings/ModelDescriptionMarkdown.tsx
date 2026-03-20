@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react"
-import { useRemark } from "react-remark"
+import ReactMarkdown from "react-markdown"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -11,7 +11,6 @@ interface ModelDescriptionMarkdownProps {
 
 export const ModelDescriptionMarkdown = memo(({ markdown, key, isPopup }: ModelDescriptionMarkdownProps) => {
 	// Update the markdown content when the prop changes
-	const [reactContent, setMarkdown] = useRemark()
 	const contentRef = useRef<HTMLDivElement>(null)
 	const [isTruncated, setIsTruncated] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -19,9 +18,8 @@ export const ModelDescriptionMarkdown = memo(({ markdown, key, isPopup }: ModelD
 	useEffect(() => {
 		if (markdown) {
 			setIsExpanded(false)
-			setMarkdown(markdown)
 		}
-	}, [markdown, setMarkdown])
+	}, [markdown])
 
 	useEffect(() => {
 		if (contentRef.current && !isExpanded) {
@@ -40,7 +38,7 @@ export const ModelDescriptionMarkdown = memo(({ markdown, key, isPopup }: ModelD
 						"max-h-19": !isExpanded,
 					})}
 					ref={contentRef}>
-					{reactContent}
+					<ReactMarkdown>{markdown}</ReactMarkdown>
 				</div>
 				{isTruncated && (
 					<div className="absolute bottom-0 right-0 flex items-center">

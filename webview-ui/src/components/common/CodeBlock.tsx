@@ -1,5 +1,5 @@
-import { memo, useEffect } from "react"
-import { useRemark } from "react-remark"
+import { memo } from "react"
+import ReactMarkdown from "react-markdown"
 import rehypeHighlight, { Options } from "rehype-highlight"
 import styled from "styled-components"
 import { visit } from "unist-util-visit"
@@ -117,38 +117,6 @@ const StyledPre = styled.pre<{ theme: any }>`
 `
 
 const CodeBlock = memo(({ source, forceWrap = false }: CodeBlockProps) => {
-	const [reactContent, setMarkdownSource] = useRemark({
-		remarkPlugins: [
-			() => {
-				return (tree) => {
-					visit(tree, "code", (node: any) => {
-						if (!node.lang) {
-							node.lang = "javascript"
-						} else if (node.lang.includes(".")) {
-							// if the language is a file, get the extension
-							node.lang = node.lang.split(".").slice(-1)[0]
-						}
-					})
-				}
-			},
-		],
-		rehypePlugins: [
-			rehypeHighlight as any,
-			{
-				// languages: {},
-			} as Options,
-		],
-		rehypeReactOptions: {
-			components: {
-				pre: ({ node, ...preProps }: any) => <StyledPre {...preProps} />,
-			},
-		},
-	})
-
-	useEffect(() => {
-		setMarkdownSource(source || "")
-	}, [source, setMarkdownSource])
-
 	return (
 		<div
 			style={{
@@ -157,7 +125,27 @@ const CodeBlock = memo(({ source, forceWrap = false }: CodeBlockProps) => {
 				backgroundColor: CODE_BLOCK_BG_COLOR,
 			}}>
 			<StyledMarkdown className="ph-no-capture markdown" forceWrap={forceWrap}>
-				{reactContent}
+				<ReactMarkdown
+					components={{
+						pre: ({ node, ...preProps }: any) => <StyledPre {...preProps} />,
+					}}
+					rehypePlugins={[[rehypeHighlight as any, {} as Options]]}
+					remarkPlugins={[
+						() => {
+							return (tree) => {
+								visit(tree, "code", (node: any) => {
+									if (!node.lang) {
+										node.lang = "javascript"
+									} else if (node.lang.includes(".")) {
+										// if the language is a file, get the extension
+										node.lang = node.lang.split(".").slice(-1)[0]
+									}
+								})
+							}
+						},
+					]}>
+					{source || ""}
+				</ReactMarkdown>
 			</StyledMarkdown>
 		</div>
 	)

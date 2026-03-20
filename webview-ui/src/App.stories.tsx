@@ -1,4 +1,3 @@
-import { HeroUIProvider } from "@heroui/react"
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
 import { type ApiConfiguration, bedrockModels } from "@shared/api"
 import { CLINE_ONBOARDING_MODELS } from "@shared/codemarie/onboarding"
@@ -17,7 +16,7 @@ const MockApp = () => {
 	const { showWelcome, onboardingModels, showAnnouncement } = useExtensionState()
 
 	return (
-		<HeroUIProvider>
+		<>
 			{showWelcome ? (
 				onboardingModels ? (
 					<OnboardingView onboardingModels={onboardingModels} />
@@ -32,7 +31,7 @@ const MockApp = () => {
 					showHistoryView={() => {}}
 				/>
 			)}
-		</HeroUIProvider>
+		</>
 	)
 }
 
