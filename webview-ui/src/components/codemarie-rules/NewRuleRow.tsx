@@ -1,8 +1,8 @@
 import { CreateHookRequest, CreateSkillRequest, RuleFileRequest } from "@shared/proto/index.codemarie"
 import { PlusIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useClickAway } from "react-use"
 import { Button } from "@/components/ui/button"
+import { useClickAway } from "@/hooks/useWindow"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/services/protobus-client"
 

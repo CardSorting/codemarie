@@ -2,9 +2,9 @@ import { huggingFaceDefaultModelId, huggingFaceModels } from "@shared/api"
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
+import { useMount } from "@/hooks/useLifecycle"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { ModelsServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
@@ -97,24 +97,15 @@ const HuggingFaceModelPicker: React.FC<HuggingFaceModelPickerProps> = ({ isPopup
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"],
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
-		const results: { id: string; html: string }[] = searchTerm
-			? highlight(fuse.search(searchTerm), "model-item-highlight")
-			: searchableItems
-		return results
-	}, [searchTerm, fuse, searchableItems])
+		return searchTerm ? highlight(fzf.find(searchTerm), "html", "model-item-highlight") : searchableItems
+	}, [searchTerm, fzf, searchableItems])
 
 	const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
 		if (!isDropdownVisible) {

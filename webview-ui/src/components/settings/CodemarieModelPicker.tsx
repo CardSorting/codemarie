@@ -4,12 +4,12 @@ import { EmptyRequest, StringRequest } from "@shared/proto/codemarie/common"
 import { type CodemarieRecommendedModel, CodemarieRecommendedModelsResponse } from "@shared/proto/codemarie/models"
 import type { Mode } from "@shared/storage/types"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import type React from "react"
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
 import styled from "styled-components"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useMount } from "@/hooks/useLifecycle"
 import { ModelsServiceClient, StateServiceClient } from "@/services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ContextWindowSwitcher } from "./common/ContextWindowSwitcher"
@@ -271,15 +271,9 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"], // highlight function will update this
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
@@ -289,12 +283,14 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 
 		// Then get search results for non-favorited models
 		const searchResults = searchTerm
-			? highlight(fuse.search(searchTerm), "model-item-highlight").filter((item) => !favoritedModelIds.includes(item.id))
+			? highlight(fzf.find(searchTerm), "html", "model-item-highlight").filter(
+					(item) => !favoritedModelIds.includes(item.id),
+				)
 			: searchableItems.filter((item) => !favoritedModelIds.includes(item.id))
 
 		// Combine favorited models with search results
 		return [...favoritedModels, ...searchResults]
-	}, [searchableItems, searchTerm, fuse, favoritedModelIds])
+	}, [searchableItems, searchTerm, fzf, favoritedModelIds])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {

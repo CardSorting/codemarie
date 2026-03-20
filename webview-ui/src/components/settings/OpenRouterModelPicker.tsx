@@ -2,12 +2,12 @@ import { CLAUDE_SONNET_1M_SUFFIX, openRouterDefaultModelId } from "@shared/api"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import type { Mode } from "@shared/storage/types"
 import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import type React from "react"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
 import styled from "styled-components"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useMount } from "@/hooks/useLifecycle"
 import { StateServiceClient } from "@/services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ContextWindowSwitcher } from "./common/ContextWindowSwitcher"
@@ -118,32 +118,26 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup, 
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"], // highlight function will update this
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
-		// IMPORTANT: highlightjs has a bug where if you use sort/localCompare - "// results.sort((a, b) => a.id.localeCompare(b.id)) ...sorting like this causes ids in objects to be reordered and mismatched"
-
 		// First, get all favorited models
 		const favoritedModels = searchableItems.filter((item) => favoritedModelIds.includes(item.id))
 
 		// Then get search results for non-favorited models
 		const searchResults = searchTerm
-			? highlight(fuse.search(searchTerm), "model-item-highlight").filter((item) => !favoritedModelIds.includes(item.id))
+			? highlight(fzf.find(searchTerm), "html", "model-item-highlight").filter(
+					(item) => !favoritedModelIds.includes(item.id),
+				)
 			: searchableItems.filter((item) => !favoritedModelIds.includes(item.id))
 
 		// Combine favorited models with search results
 		return [...favoritedModels, ...searchResults]
-	}, [searchableItems, searchTerm, fuse, favoritedModelIds])
+	}, [searchableItems, searchTerm, fzf, favoritedModelIds])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {

@@ -14,10 +14,10 @@ import {
 	Wrench,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useEvent } from "react-use"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useEvent } from "@/hooks/useBrowser"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/services/protobus-client"
 import { isAdminOrOwner } from "../account/helpers"

@@ -15,6 +15,7 @@ export const useHasFeatureFlag = (flagName: string): boolean => {
 
 	// Note: We must call useFeatureFlagEnabled unconditionally due to React's Rules of Hooks.
 	// In selfHosted mode, PostHog isn't initialized so this returns undefined (harmless no-op).
+	// We pass empty string if self-hosted to avoid unnecessary calls
 	const flagEnabled = useFeatureFlagEnabled(isSelfHostedOrUnknown ? "" : flagName)
 
 	if (isSelfHostedOrUnknown) {

@@ -38,7 +38,6 @@ import {
 	TriangleAlertIcon,
 } from "lucide-react"
 import { MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useSize } from "react-use"
 import { ActionCheckboxes } from "@/components/chat/ActionCheckboxes"
 import { OptionsButtons } from "@/components/chat/OptionsButtons"
 import { CheckmarkControl } from "@/components/common/CheckmarkControl"
@@ -47,6 +46,7 @@ import McpResponseDisplay from "@/components/mcp/chat-display/McpResponseDisplay
 import McpResourceRow from "@/components/mcp/configuration/tabs/installed/server-row/McpResourceRow"
 import McpToolRow from "@/components/mcp/configuration/tabs/installed/server-row/McpToolRow"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useSize } from "@/hooks/useBrowser"
 import { cn } from "@/lib/utils"
 import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
 import { findMatchingResourceOrTemplate, getMcpServerDisplayName } from "@/utils/mcp"

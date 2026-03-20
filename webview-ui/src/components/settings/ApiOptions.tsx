@@ -2,14 +2,14 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import PROVIDERS from "@shared/providers/providers.json"
 import { Mode } from "@shared/storage/types"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useInterval } from "react-use"
 import styled from "styled-components"
 import { normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { PLATFORM_CONFIG, PlatformType } from "@/config/platform.config"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useInterval } from "@/hooks/useLifecycle"
 import { ModelsServiceClient } from "@/services/protobus-client"
 import { OPENROUTER_MODEL_PICKER_Z_INDEX } from "./OpenRouterModelPicker"
 import { AnthropicProvider } from "./providers/AnthropicProvider"
@@ -173,21 +173,15 @@ const ApiOptions = ({
 		}))
 	}, [providerOptions])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"],
-			threshold: 0.3,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const providerSearchResults = useMemo(() => {
-		return searchTerm && searchTerm !== currentProviderLabel ? fuse.search(searchTerm)?.map((r) => r.item) : searchableItems
-	}, [searchableItems, searchTerm, fuse, currentProviderLabel])
+		return searchTerm && searchTerm !== currentProviderLabel ? fzf.find(searchTerm).map((r) => r.item) : searchableItems
+	}, [searchableItems, searchTerm, fzf, currentProviderLabel])
 
 	const handleProviderChange = (newProvider: string) => {
 		handleModeFieldChange({ plan: "planModeApiProvider", act: "actModeApiProvider" }, newProvider as any, currentMode)

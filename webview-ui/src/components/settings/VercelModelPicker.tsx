@@ -1,12 +1,12 @@
 import type { ModelInfo } from "@shared/api"
 import type { Mode } from "@shared/storage/types"
 import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import type React from "react"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
 import styled from "styled-components"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useMount } from "@/hooks/useLifecycle"
 import { highlight } from "../history/HistoryView"
 import { ModelInfoView } from "./common/ModelInfoView"
 import ReasoningEffortSelector from "./ReasoningEffortSelector"
@@ -87,23 +87,17 @@ const VercelModelPicker: React.FC<VercelModelPickerProps> = ({ isPopup, currentM
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"],
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
-		const searchResults = searchTerm ? highlight(fuse.search(searchTerm), "model-item-highlight") : searchableItems
+		const searchResults = searchTerm ? highlight(fzf.find(searchTerm), "html", "model-item-highlight") : searchableItems
 
 		return searchResults
-	}, [searchableItems, searchTerm, fuse])
+	}, [searchableItems, searchTerm, fzf])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {

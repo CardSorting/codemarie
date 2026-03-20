@@ -1,10 +1,10 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useMount } from "@/hooks/useLifecycle"
 import { StateServiceClient } from "@/services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { getModeSpecificFields } from "./utils/providerUtils"
@@ -90,15 +90,9 @@ const HicapModelPicker: React.FC<HicapModelPickerProps> = ({ isPopup, currentMod
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"], // highlight function will update this
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
@@ -110,12 +104,14 @@ const HicapModelPicker: React.FC<HicapModelPickerProps> = ({ isPopup, currentMod
 
 		// Then get search results for non-favorited models
 		const searchResults = searchTerm
-			? highlight(fuse.search(searchTerm), "model-item-highlight").filter((item) => !favoritedModelIds.includes(item.id))
+			? highlight(fzf.find(searchTerm), "html", "model-item-highlight").filter(
+					(item) => !favoritedModelIds.includes(item.id),
+				)
 			: searchableItems.filter((item) => !favoritedModelIds.includes(item.id))
 
 		// Combine favorited models with search results
 		return [...favoritedModels, ...searchResults]
-	}, [searchableItems, searchTerm, fuse, favoritedModelIds])
+	}, [searchableItems, searchTerm, fzf, favoritedModelIds])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {

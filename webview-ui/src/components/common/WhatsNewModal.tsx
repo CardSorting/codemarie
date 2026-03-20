@@ -1,6 +1,5 @@
 import { BannerAction, BannerCardData } from "@shared/codemarie/banner"
 import React, { useCallback } from "react"
-import { useMount } from "react-use"
 import DiscordIcon from "@/assets/DiscordIcon"
 import GitHubIcon from "@/assets/GitHubIcon"
 import LinkedInIcon from "@/assets/LinkedInIcon"
@@ -9,6 +8,7 @@ import XIcon from "@/assets/XIcon"
 import WhatsNewItems from "@/components/common/WhatsNewItems"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useMount } from "@/hooks/useLifecycle"
 import { useApiConfigurationHandlers } from "../settings/utils/useApiConfigurationHandlers"
 
 interface WhatsNewModalProps {

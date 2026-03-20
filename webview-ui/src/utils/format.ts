@@ -1,5 +1,3 @@
-import prettyBytes from "pretty-bytes"
-
 export function formatLargeNumber(num: number): string {
 	if (num >= 1e9) {
 		return `${(num / 1e9).toFixed(1)}b`
@@ -60,8 +58,12 @@ export function formatSize(bytes?: number) {
 		return "--kb"
 	}
 
-	return prettyBytes(bytes)
+	const units = ["B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+	if (Math.abs(bytes) < 1) return `${bytes} B`
+	const i = Math.floor(Math.log(bytes) / Math.log(1024))
+	return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`
 }
+
 export function formatSeconds(seconds?: number): string {
 	if (seconds === undefined) {
 		return "--:--"

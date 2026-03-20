@@ -5,7 +5,6 @@
  * including non-React code. The configuration is compile-time constant, so direct
  * import is safe and ensures the methods work consistently regardless of React context.
  */
-import { v4 as uuidv4 } from "uuid"
 import { PLATFORM_CONFIG } from "../config/platform.config"
 
 export interface Callbacks<TResponse> {
@@ -25,7 +24,7 @@ export abstract class ProtoBusClient {
 		decodeResponse: (_: Record<string, unknown>) => TResponse,
 	): Promise<TResponse> {
 		return new Promise((resolve, reject) => {
-			const requestId = uuidv4()
+			const requestId = crypto.randomUUID()
 
 			// Set up one-time listener for this specific request
 			const handleResponse = (event: MessageEvent) => {
@@ -77,7 +76,7 @@ export abstract class ProtoBusClient {
 		decodeResponse: (_: Record<string, unknown>) => TResponse,
 		callbacks: Callbacks<TResponse>,
 	): () => void {
-		const requestId = uuidv4()
+		const requestId = crypto.randomUUID()
 		// Set up listener for streaming responses
 		const handleResponse = (event: MessageEvent) => {
 			const message = event.data

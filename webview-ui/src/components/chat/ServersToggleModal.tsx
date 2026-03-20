@@ -3,11 +3,11 @@ import { McpServers } from "@shared/proto/codemarie/mcp"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useRef, useState } from "react"
-import { useClickAway, useWindowSize } from "react-use"
 import PopupModalContainer from "@/components/common/PopupModalContainer"
 import ServersToggleList from "@/components/mcp/configuration/tabs/installed/ServersToggleList"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useClickAway, useWindowSize } from "@/hooks/useWindow"
 import { McpServiceClient } from "@/services/protobus-client"
 
 const ServersToggleModal: React.FC = () => {

@@ -1,6 +1,6 @@
 import { ModelInfo } from "@shared/api"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { highlight } from "../../history/HistoryView"
@@ -65,15 +65,9 @@ export const ModelAutocomplete = ({
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"],
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
@@ -81,8 +75,8 @@ export const ModelAutocomplete = ({
 		if (!searchTerm) {
 			return searchableItems
 		}
-		return highlight(fuse.search(searchTerm), "model-item-highlight")
-	}, [searchableItems, searchTerm, fuse])
+		return highlight(fzf.find(searchTerm), "html", "model-item-highlight")
+	}, [searchableItems, searchTerm, fzf])
 
 	const handleModelChange = (newModelId: string) => {
 		setSearchTerm(newModelId)

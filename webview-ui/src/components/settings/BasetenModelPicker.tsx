@@ -1,7 +1,7 @@
 import { basetenDefaultModelId, basetenModels } from "@shared/api"
 import { Mode } from "@shared/storage/types"
 import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { highlight } from "../history/HistoryView"
@@ -94,24 +94,15 @@ const BasetenModelPicker: React.FC<BasetenModelPickerProps> = ({ isPopup, curren
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"], // highlight function will update this
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
-		const results: { id: string; html: string }[] = debouncedSearchTerm
-			? highlight(fuse.search(debouncedSearchTerm), "model-item-highlight")
-			: searchableItems
-		return results
-	}, [searchableItems, debouncedSearchTerm, fuse])
+		return debouncedSearchTerm ? highlight(fzf.find(debouncedSearchTerm), "html", "model-item-highlight") : searchableItems
+	}, [searchableItems, debouncedSearchTerm, fzf])
 
 	// Safe HTML parser for highlighted search results
 	const parseHighlightedText = React.useCallback((htmlString: string) => {

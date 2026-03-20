@@ -1,6 +1,4 @@
 import { posthogConfig } from "@shared/services/config/posthog-config"
-import posthog from "posthog-js"
-import { PostHogProvider } from "posthog-js/react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useExtensionState } from "./context/ExtensionStateContext"
 
@@ -15,34 +13,51 @@ export function CustomPostHogProvider({ children }: { children: ReactNode }) {
 	// const isTelemetryEnabled = telemetrySetting !== "disabled";
 	const isTelemetryEnabled = false
 	const [isActive, setIsActive] = useState(false)
+	const [PostHogProvider, setPostHogProvider] = useState<any>(null)
+	const [posthogInstance, setPosthogInstance] = useState<any>(null)
 
 	useEffect(() => {
 		if (isSelfHostedOrUnknown || isActive || !isTelemetryEnabled || !posthogConfig.apiKey) {
 			return
 		}
-		// At this point, we know apiKey is defined due to the check above
-		const apiKey = posthogConfig.apiKey as string
-		posthog.init(apiKey, {
-			api_host: posthogConfig.host,
-			ui_host: posthogConfig.uiHost,
-			disable_session_recording: true,
-			capture_pageview: false,
-			capture_dead_clicks: true,
-			// Feature flags should work regardless of telemetry opt-out
-			advanced_disable_decide: false,
-			// Autocapture should respect telemetry settings
-			autocapture: false,
-		})
-		setIsActive(true)
+
+		// Dynamically import posthog-js
+		const initPostHog = async () => {
+			try {
+				const [posthogModule, posthogReactModule] = await Promise.all([import("posthog-js"), import("posthog-js/react")])
+
+				const posthog = posthogModule.default
+				const apiKey = posthogConfig.apiKey as string
+				posthog.init(apiKey, {
+					api_host: posthogConfig.host,
+					ui_host: posthogConfig.uiHost,
+					disable_session_recording: true,
+					capture_pageview: false,
+					capture_dead_clicks: true,
+					// Feature flags should work regardless of telemetry opt-out
+					advanced_disable_decide: false,
+					// Autocapture should respect telemetry settings
+					autocapture: false,
+				})
+
+				setPosthogInstance(posthog)
+				setPostHogProvider(() => posthogReactModule.PostHogProvider)
+				setIsActive(true)
+			} catch (error) {
+				console.error("Failed to initialize PostHog:", error)
+			}
+		}
+
+		initPostHog()
 	}, [isSelfHostedOrUnknown, isActive])
 
 	useEffect(() => {
-		if (!isTelemetryEnabled || !isActive || !distinctId || !version) {
+		if (!isTelemetryEnabled || !isActive || !distinctId || !version || !posthogInstance) {
 			return
 		}
 
-		posthog.set_config({
-			before_send: (payload) => {
+		posthogInstance.set_config({
+			before_send: (payload: any) => {
 				// Only filter out events if telemetry is disabled, but allow feature flag requests
 				if (!isTelemetryEnabled && payload?.event !== "$feature_flag_called") {
 					return null
@@ -56,22 +71,26 @@ export function CustomPostHogProvider({ children }: { children: ReactNode }) {
 			},
 		})
 
-		const optedIn = posthog.has_opted_in_capturing()
-		const optedOut = posthog.has_opted_out_capturing()
+		const optedIn = posthogInstance.has_opted_in_capturing()
+		const optedOut = posthogInstance.has_opted_out_capturing()
 		const args = {
 			email: userInfo?.email,
 			name: userInfo?.displayName,
 		}
 		if (isTelemetryEnabled && !optedIn) {
-			posthog.opt_in_capturing()
-			posthog.identify(distinctId, args)
+			posthogInstance.opt_in_capturing()
+			posthogInstance.identify(distinctId, args)
 		} else if (!isTelemetryEnabled && !optedOut) {
 			// For feature flags to work, we need to identify the user even when telemetry is disabled
-			posthog.identify(distinctId, args)
+			posthogInstance.identify(distinctId, args)
 			// Then opt out of capturing other events
-			posthog.opt_out_capturing()
+			posthogInstance.opt_out_capturing()
 		}
-	}, [isActive, distinctId, version, userInfo?.displayName, userInfo?.email])
+	}, [isActive, distinctId, version, userInfo?.displayName, userInfo?.email, posthogInstance])
 
-	return <PostHogProvider client={posthog}>{children}</PostHogProvider>
+	if (PostHogProvider && posthogInstance) {
+		return <PostHogProvider client={posthogInstance}>{children}</PostHogProvider>
+	}
+
+	return <>{children}</>
 }

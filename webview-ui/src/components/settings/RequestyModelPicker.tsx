@@ -3,10 +3,10 @@ import { toRequestyServiceUrl } from "@shared/clients/requesty"
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
 import styled from "styled-components"
+import { useMount } from "@/hooks/useLifecycle"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { ModelsServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
@@ -99,25 +99,15 @@ const RequestyModelPicker: React.FC<RequestyModelPickerProps> = ({ isPopup, base
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"], // highlight function will update this
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
-		const results: { id: string; html: string }[] = searchTerm
-			? highlight(fuse.search(searchTerm), "model-item-highlight")
-			: searchableItems
-		// results.sort((a, b) => a.id.localeCompare(b.id)) NOTE: sorting like this causes ids in objects to be reordered and mismatched
-		return results
-	}, [searchableItems, searchTerm, fuse])
+		return searchTerm ? highlight(fzf.find(searchTerm), "html", "model-item-highlight") : searchableItems
+	}, [searchableItems, searchTerm, fzf])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {
@@ -225,24 +215,29 @@ const RequestyModelPicker: React.FC<RequestyModelPickerProps> = ({ isPopup, base
 						)}
 					</VSCodeTextField>
 					{isDropdownVisible && (
-						<DropdownList ref={dropdownListRef} role="listbox">
+						<div
+							className="absolute top-[calc(100%-3px)] left-0 w-[calc(100%-2px)] max-h-[200px] overflow-y-auto bg-(--vscode-dropdown-background) border border-(--vscode-list-activeSelectionBackground) z-999 rounded-b-[3px]"
+							ref={dropdownListRef}
+							role="listbox">
 							{modelSearchResults.map((item, index) => (
-								<DropdownItem
+								<div
+									className={`p-[5px_10px] cursor-pointer break-all whitespace-normal ${
+										index === selectedIndex ? "bg-(--vscode-list-activeSelectionBackground)" : ""
+									} hover:bg-(--vscode-list-activeSelectionBackground)`}
 									dangerouslySetInnerHTML={{
 										__html: item.html,
 									}}
-									isSelected={index === selectedIndex}
 									key={item.id}
 									onClick={() => {
 										handleModelChange(item.id)
 										setIsDropdownVisible(false)
 									}}
 									onMouseEnter={() => setSelectedIndex(index)}
-									ref={(el) => (itemRefs.current[index] = el)}
+									ref={(el: HTMLDivElement | null) => (itemRefs.current[index] = el)}
 									role="option"
 								/>
 							))}
-						</DropdownList>
+						</div>
 					)}
 				</DropdownWrapper>
 			</div>
@@ -285,30 +280,3 @@ const DropdownWrapper = styled.div`
 `
 
 export const REQUESTY_MODEL_PICKER_Z_INDEX = 1_000
-
-const DropdownList = styled.div`
-  position: absolute;
-  top: calc(100% - 3px);
-  left: 0;
-  width: calc(100% - 2px);
-  max-height: 200px;
-  overflow-y: auto;
-  background-color: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-list-activeSelectionBackground);
-  z-index: ${REQUESTY_MODEL_PICKER_Z_INDEX - 1};
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-`
-
-const DropdownItem = styled.div<{ isSelected: boolean }>`
-  padding: 5px 10px;
-  cursor: pointer;
-  word-break: break-all;
-  white-space: normal;
-
-  background-color: ${({ isSelected }) => (isSelected ? "var(--vscode-list-activeSelectionBackground)" : "inherit")};
-
-  &:hover {
-    background-color: var(--vscode-list-activeSelectionBackground);
-  }
-`

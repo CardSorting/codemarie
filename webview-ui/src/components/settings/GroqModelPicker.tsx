@@ -3,9 +3,9 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
 import { Mode } from "@shared/storage/types"
 import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { useMount } from "react-use"
+import { useMount } from "@/hooks/useLifecycle"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { ModelsServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
@@ -109,24 +109,18 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 		}))
 	}, [modelIds])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"], // highlight function will update this
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
 		const results: { id: string; html: string }[] = debouncedSearchTerm
-			? highlight(fuse.search(debouncedSearchTerm), "model-item-highlight")
+			? highlight(fzf.find(debouncedSearchTerm), "html", "model-item-highlight")
 			: searchableItems
 		return results
-	}, [searchableItems, debouncedSearchTerm, fuse])
+	}, [searchableItems, debouncedSearchTerm, fzf])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {

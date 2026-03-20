@@ -1,5 +1,5 @@
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import React, { KeyboardEvent, memo, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { highlight } from "../history/HistoryView"
@@ -51,21 +51,15 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 		}))
 	}, [ollamaModels])
 
-	const fuse = useMemo(() => {
-		return new Fuse(searchableItems, {
-			keys: ["html"],
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(searchableItems, {
+			selector: (item) => item.html,
 		})
 	}, [searchableItems])
 
 	const modelSearchResults = useMemo(() => {
-		return searchTerm ? highlight(fuse.search(searchTerm), "ollama-model-item-highlight") : searchableItems
-	}, [searchableItems, searchTerm, fuse])
+		return searchTerm ? highlight(fzf.find(searchTerm), "html", "ollama-model-item-highlight") : searchableItems
+	}, [searchableItems, searchTerm, fzf])
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (!isDropdownVisible) {

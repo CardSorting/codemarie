@@ -9,7 +9,7 @@ import {
 	VSCodeRadioGroup,
 	VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react"
-import Fuse from "fuse.js"
+import { Fzf } from "fzf"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -70,23 +70,16 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 		setSearchTerm(currentRegion)
 	}, [currentRegion])
 
-	const fuse = useMemo(() => {
-		return new Fuse(AWS_REGIONS, {
-			threshold: 0.3,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
-		})
+	const fzf = useMemo(() => {
+		return new Fzf(AWS_REGIONS)
 	}, [])
 
 	const regionSearchResults = useMemo(() => {
 		if (!searchTerm) {
 			return AWS_REGIONS
 		}
-		return fuse.search(searchTerm).map((r) => r.item)
-	}, [searchTerm, fuse])
+		return fzf.find(searchTerm).map((r) => r.item)
+	}, [searchTerm, fzf])
 
 	const handleRegionChange = (newRegion: string) => {
 		setSearchTerm(newRegion)

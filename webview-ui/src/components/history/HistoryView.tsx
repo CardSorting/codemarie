@@ -1,7 +1,7 @@
 import { BooleanRequest, EmptyRequest, StringArrayRequest } from "@shared/proto/codemarie/common"
 import { GetTaskHistoryRequest, TaskFavoriteRequest } from "@shared/proto/codemarie/task"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
-import Fuse, { FuseResult } from "fuse.js"
+import { Fzf, FzfResultItem } from "fzf"
 import { FunnelIcon } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { GroupedVirtuoso } from "react-virtuoso"
@@ -183,25 +183,14 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		[fetchTotalTasksSize],
 	)
 
-	const fuse = useMemo(() => {
-		return new Fuse(tasks, {
-			keys: ["task"],
-			threshold: 0.6,
-			shouldSort: true,
-			isCaseSensitive: false,
-			ignoreLocation: false,
-			includeMatches: true,
-			minMatchCharLength: 1,
+	const fzf = useMemo(() => {
+		return new Fzf(tasks, {
+			selector: (item) => item.task,
 		})
 	}, [tasks])
 
 	const taskHistorySearchResults = useMemo(() => {
-		const results = searchQuery
-			? fuse
-					.search(searchQuery)
-					?.filter(({ matches }) => matches?.length)
-					.map(({ item }) => item)
-			: tasks
+		const results = searchQuery ? fzf.find(searchQuery).map(({ item }) => item) : tasks
 
 		results.sort((a, b) => {
 			switch (sortOption) {
@@ -219,14 +208,14 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 					)
 				case "mostRelevant":
 					// NOTE: you must never sort directly on object since it will cause members to be reordered
-					return searchQuery ? 0 : b.ts - a.ts // Keep fuse order if searching, otherwise sort by newest
+					return searchQuery ? 0 : b.ts - a.ts // Keep fzf order if searching, otherwise sort by newest
 				default:
 					return b.ts - a.ts
 			}
 		})
 
 		return results
-	}, [tasks, searchQuery, fuse, sortOption])
+	}, [tasks, searchQuery, fzf, sortOption])
 
 	// Group tasks into "Today" and "Older" (only for date-based sorts)
 	const { groupedTasks, groupCounts, groupLabels } = useMemo(() => {
@@ -457,91 +446,48 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 	)
 }
 
-// https://gist.github.com/evenfrost/1ba123656ded32fb7a0cd4651efd4db0
-export const highlight = (fuseSearchResult: FuseResult<any>[], highlightClassName = "history-item-highlight") => {
-	const set = (obj: Record<string, any>, path: string, value: any) => {
-		const pathValue = path.split(".")
-		let i: number
-
-		for (i = 0; i < pathValue.length - 1; i++) {
-			obj = obj[pathValue[i]] as Record<string, any>
-		}
-
-		obj[pathValue[i]] = value
-	}
-
-	// Function to merge overlapping regions
-	const mergeRegions = (regions: [number, number][]): [number, number][] => {
-		if (regions.length === 0) {
-			return regions
-		}
-
-		// Sort regions by start index
-		regions.sort((a, b) => a[0] - b[0])
-
-		const merged: [number, number][] = [regions[0]]
-
-		for (let i = 1; i < regions.length; i++) {
-			const last = merged[merged.length - 1]
-			const current = regions[i]
-
-			if (current[0] <= last[1] + 1) {
-				// Overlapping or adjacent regions
-				last[1] = Math.max(last[1], current[1])
-			} else {
-				merged.push(current)
-			}
-		}
-
-		return merged
-	}
-
-	const generateHighlightedText = (inputText: string, regions: [number, number][] = []) => {
-		if (regions.length === 0) {
+export const highlight = (fzfSearchResults: FzfResultItem<any>[], key: string, highlightClassName = "history-item-highlight") => {
+	const generateHighlightedText = (inputText: string, positions: Set<number>) => {
+		if (positions.size === 0) {
 			return inputText
 		}
 
-		// Sort and merge overlapping regions
-		const mergedRegions = mergeRegions(regions)
-
+		const sortedPositions = Array.from(positions).sort((a, b) => a - b)
 		let content = ""
-		let nextUnhighlightedRegionStartingIndex = 0
+		let prevPos = -1
+		let lastIndex = 0
 
-		mergedRegions.forEach((region) => {
-			const start = region[0]
-			const end = region[1]
-			const lastRegionNextIndex = end + 1
-
-			content += [
-				inputText.substring(nextUnhighlightedRegionStartingIndex, start),
-				`<span class="${highlightClassName}">`,
-				inputText.substring(start, lastRegionNextIndex),
-				"</span>",
-			].join("")
-
-			nextUnhighlightedRegionStartingIndex = lastRegionNextIndex
-		})
-
-		content += inputText.substring(nextUnhighlightedRegionStartingIndex)
+		for (let i = 0; i < sortedPositions.length; i++) {
+			const pos = sortedPositions[i]
+			if (prevPos === -1) {
+				// Start of a new highlight region
+				content += inputText.substring(lastIndex, pos)
+				content += `<span class="${highlightClassName}">`
+			} else if (pos > prevPos + 1) {
+				// Gap between highlight regions
+				content += "</span>"
+				content += inputText.substring(lastIndex, pos)
+				content += `<span class="${highlightClassName}">`
+			}
+			content += inputText[pos]
+			lastIndex = pos + 1
+			prevPos = pos
+		}
+		content += "</span>"
+		content += inputText.substring(lastIndex)
 
 		return content
 	}
 
-	return fuseSearchResult
-		.filter(({ matches }) => matches?.length)
-		.map(({ item, matches }) => {
-			const highlightedItem = { ...item }
+	return fzfSearchResults.map(({ item, positions }) => {
+		const highlightedItem = { ...item }
 
-			matches?.forEach((match) => {
-				if (match.key && typeof match.value === "string" && match.indices) {
-					// Merge overlapping regions before generating highlighted text
-					const mergedIndices = mergeRegions([...match.indices])
-					set(highlightedItem, match.key, generateHighlightedText(match.value, mergedIndices))
-				}
-			})
+		if (key in item && typeof item[key] === "string") {
+			highlightedItem[key] = generateHighlightedText(item[key], positions)
+		}
 
-			return highlightedItem
-		})
+		return highlightedItem
+	})
 }
 
 export default memo(HistoryView)

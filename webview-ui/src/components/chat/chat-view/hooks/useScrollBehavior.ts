@@ -1,8 +1,8 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import debounce from "debounce"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useEvent } from "react-use"
 import { ListRange, VirtuosoHandle } from "react-virtuoso"
+import { useEvent } from "@/hooks/useBrowser"
 import { ScrollBehavior } from "../types/chatTypes"
 
 // Height of the sticky user message header (padding + content)
