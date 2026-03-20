@@ -4,7 +4,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useState } from "react"
 import styled from "styled-components"
 import { cn } from "@/lib/utils"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 
 interface TaskFeedbackButtonsProps {
 	messageTs: number

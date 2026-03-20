@@ -6,7 +6,7 @@ import { useClickAway } from "react-use"
 import styled from "styled-components"
 import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { CheckpointsServiceClient } from "@/services/grpc-client"
+import { CheckpointsServiceClient } from "@/services/protobus-client"
 
 interface CheckpointOverlayProps {
 	messageTs?: number

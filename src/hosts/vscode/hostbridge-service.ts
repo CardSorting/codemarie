@@ -1,4 +1,4 @@
-import { StreamingResponseHandler } from "./hostbridge-grpc-handler"
+import { StreamingResponseHandler } from "./hostbridge-handler"
 
 /**
  * Generic type for service method handlers
@@ -18,7 +18,7 @@ export interface MethodMetadata {
 }
 
 /**
- * Generic service registry for gRPC services
+ * Generic service registry for HostBridge services
  */
 export class ServiceRegistry {
 	private serviceName: string

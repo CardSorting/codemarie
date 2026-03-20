@@ -14,7 +14,7 @@ import { HostBridgeClientProvider } from "@/hosts/host-provider-types"
 import { HOSTBRIDGE_PORT } from "@/standalone/hostbridge-client"
 
 /**
- * Manager to hold the gRPC clients for the host bridge. The clients should be re-used to avoid
+ * Manager to hold the Protobus clients for the host bridge. The clients should be re-used to avoid
  * creating a new TCP connection every time a rpc is made.
  */
 export class ExternalHostBridgeClientManager implements HostBridgeClientProvider {

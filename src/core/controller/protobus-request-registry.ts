@@ -1,8 +1,8 @@
 import { Logger } from "@/shared/services/Logger"
-import { StreamingResponseHandler } from "./grpc-handler"
+import { StreamingResponseHandler } from "./protobus-handler"
 
 /**
- * Information about a registered gRPC request
+ * Information about a registered Protobus request
  */
 export interface RequestInfo {
 	/**
@@ -27,10 +27,10 @@ export interface RequestInfo {
 }
 
 /**
- * Registry for managing gRPC request lifecycles
+ * Registry for managing Protobus request lifecycles
  * This class provides a centralized way to track active requests and their cleanup functions
  */
-export class GrpcRequestRegistry {
+export class ProtobusRequestRegistry {
 	/**
 	 * Map of request IDs to request information
 	 */

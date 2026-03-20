@@ -12,7 +12,7 @@ import { AlertCircle, Check, ExternalLink, FolderOpen, GitBranch, GitMerge, Load
 import { memo, useCallback, useEffect, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { FileServiceClient, TaskServiceClient, WorktreeServiceClient } from "@/services/grpc-client"
+import { FileServiceClient, TaskServiceClient, WorktreeServiceClient } from "@/services/protobus-client"
 import { getEnvironmentColor } from "@/utils/environmentColors"
 import CreateWorktreeModal from "./CreateWorktreeModal"
 import DeleteWorktreeModal from "./DeleteWorktreeModal"

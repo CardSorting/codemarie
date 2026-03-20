@@ -26,7 +26,7 @@ import {
 } from "../../../src/shared/api"
 import { Environment } from "../../../src/shared/config-types"
 import type { McpMarketplaceCatalog, McpServer, McpViewTab } from "../../../src/shared/mcp"
-import { McpServiceClient, ModelsServiceClient, StateServiceClient, UiServiceClient } from "../services/grpc-client"
+import { McpServiceClient, ModelsServiceClient, StateServiceClient, UiServiceClient } from "../services/protobus-client"
 
 export interface ExtensionStateContextType extends ExtensionState {
 	didHydrateState: boolean
@@ -347,7 +347,7 @@ export const ExtensionStateContextProvider: React.FC<{
 	}, [])
 	const mcpServersSubscriptionRef = useRef<(() => void) | null>(null)
 
-	// Subscribe to state updates and UI events using the gRPC streaming API
+	// Subscribe to state updates and UI events using the Protobus streaming API
 	useEffect(() => {
 		// Set up state subscription
 		stateSubscriptionRef.current = StateServiceClient.subscribeToState(EmptyRequest.create({}), {
@@ -411,7 +411,7 @@ export const ExtensionStateContextProvider: React.FC<{
 			{},
 			{
 				onResponse: () => {
-					console.log("[DEBUG] Received mcpButtonClicked event from gRPC stream")
+					console.log("[DEBUG] Received mcpButtonClicked event from Protobus stream")
 					navigateToMcp()
 				},
 				onError: (error) => {
@@ -429,7 +429,7 @@ export const ExtensionStateContextProvider: React.FC<{
 			{
 				onResponse: () => {
 					// When history button is clicked, navigate to history view
-					console.log("[DEBUG] Received history button clicked event from gRPC stream")
+					console.log("[DEBUG] Received history button clicked event from Protobus stream")
 					navigateToHistory()
 				},
 				onError: (error) => {
@@ -447,7 +447,7 @@ export const ExtensionStateContextProvider: React.FC<{
 			{
 				onResponse: () => {
 					// When chat button is clicked, navigate to chat
-					console.log("[DEBUG] Received chat button clicked event from gRPC stream")
+					console.log("[DEBUG] Received chat button clicked event from Protobus stream")
 					navigateToChat()
 				},
 				onError: (error) => {
@@ -460,7 +460,7 @@ export const ExtensionStateContextProvider: React.FC<{
 		// Subscribe to MCP servers updates
 		mcpServersSubscriptionRef.current = McpServiceClient.subscribeToMcpServers(EmptyRequest.create(), {
 			onResponse: (response) => {
-				console.log("[DEBUG] Received MCP servers update from gRPC stream")
+				console.log("[DEBUG] Received MCP servers update from Protobus stream")
 				if (response.mcpServers) {
 					setMcpServers(convertProtoMcpServersToMcpServers(response.mcpServers))
 				}
@@ -540,7 +540,7 @@ export const ExtensionStateContextProvider: React.FC<{
 		// Subscribe to MCP marketplace catalog updates
 		mcpMarketplaceUnsubscribeRef.current = McpServiceClient.subscribeToMcpMarketplaceCatalog(EmptyRequest.create({}), {
 			onResponse: (catalog) => {
-				console.log("[DEBUG] Received MCP marketplace catalog update from gRPC stream")
+				console.log("[DEBUG] Received MCP marketplace catalog update from Protobus stream")
 				setMcpMarketplaceCatalog(catalog)
 			},
 			onError: (error) => {
@@ -582,20 +582,20 @@ export const ExtensionStateContextProvider: React.FC<{
 			},
 		})
 
-		// Initialize webview using gRPC
+		// Initialize webview using Protobus
 		UiServiceClient.initializeWebview(EmptyRequest.create({}))
 			.then(() => {
-				console.log("[DEBUG] Webview initialization completed via gRPC")
+				console.log("[DEBUG] Webview initialization completed via Protobus")
 			})
 			.catch((error) => {
-				console.error("Failed to initialize webview via gRPC:", error)
+				console.error("Failed to initialize webview via Protobus:", error)
 			})
 
 		// Set up account button clicked subscription
 		accountButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToAccountButtonClicked(EmptyRequest.create(), {
 			onResponse: () => {
 				// When account button is clicked, navigate to account view
-				console.log("[DEBUG] Received account button clicked event from gRPC stream")
+				console.log("[DEBUG] Received account button clicked event from Protobus stream")
 				navigateToAccount()
 			},
 			onError: (error) => {

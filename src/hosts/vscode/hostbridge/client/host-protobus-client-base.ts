@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 import { StreamingCallbacks } from "@/hosts/host-provider-types"
-import { GrpcHandler } from "@/hosts/vscode/hostbridge-grpc-handler"
+import { ProtobusHandler } from "@/hosts/vscode/hostbridge-handler"
 import { Logger } from "@/shared/services/Logger"
 
 // Generic type for any protobuf service definition
@@ -20,7 +20,7 @@ export type ProtoService = {
 }
 
 // Define a unified client type that handles both unary and streaming methods
-export type GrpcClientType<T extends ProtoService> = {
+export type ProtobusClientType<T extends ProtoService> = {
 	[K in keyof T["methods"]]: T["methods"][K]["responseStream"] extends true
 		? (
 				request: InstanceType<T["methods"][K]["requestType"]>,
@@ -29,18 +29,21 @@ export type GrpcClientType<T extends ProtoService> = {
 		: (request: InstanceType<T["methods"][K]["requestType"]>) => Promise<InstanceType<T["methods"][K]["responseType"]>>
 }
 
-// Create a client for any protobuf service with inferred types
-export function createGrpcClient<T extends ProtoService>(service: T): GrpcClientType<T> {
-	const client = {} as GrpcClientType<T>
-	const grpcHandler = new GrpcHandler()
+/**
+ * Creates a client for any protobuf service with inferred types.
+ */
+export function createProtobusClient<T extends ProtoService>(service: T): ProtobusClientType<T> {
+	const client = {} as ProtobusClientType<T>
+	const protobusHandler = new ProtobusHandler()
 
 	Object.values(service.methods).forEach((method) => {
 		// Use lowercase method name as the key in the client object
-		const methodKey = method.name.charAt(0).toLowerCase() + method.name.slice(1)
+		const name = method.name
+		const mKey = name.charAt(0).toLowerCase() + name.slice(1)
 
 		// Streaming method implementation
 		if (method.responseStream) {
-			client[methodKey as keyof GrpcClientType<T>] = ((
+			client[mKey as keyof ProtobusClientType<T>] = ((
 				request: any,
 				options: StreamingCallbacks<InstanceType<typeof method.responseType>>,
 			) => {
@@ -50,9 +53,9 @@ export function createGrpcClient<T extends ProtoService>(service: T): GrpcClient
 				// We need to await the promise and then return the cancel function
 				return (async () => {
 					try {
-						const result = await grpcHandler.handleRequest<InstanceType<typeof method.responseType>>(
+						const result = await protobusHandler.handleRequest<InstanceType<typeof method.responseType>>(
 							service.fullName,
-							methodKey,
+							mKey,
 							request,
 							requestId,
 							options,
@@ -76,23 +79,21 @@ export function createGrpcClient<T extends ProtoService>(service: T): GrpcClient
 			}) as any
 		} else {
 			// Unary method implementation
-			client[methodKey as keyof GrpcClientType<T>] = ((request: any) => {
-				return new Promise(async (resolve, reject) => {
-					const requestId = uuidv4()
-					try {
-						const response = await grpcHandler.handleRequest(service.fullName, methodKey, request, requestId)
+			client[mKey as keyof ProtobusClientType<T>] = (async (request: any) => {
+				const requestId = uuidv4()
+				try {
+					const response = await protobusHandler.handleRequest(service.fullName, mKey, request, requestId)
 
-						// Check if the response is a function (streaming)
-						if (typeof response === "function") {
-							// This shouldn't happen for unary requests
-							throw new Error("Received streaming response for unary request")
-						}
-						resolve(response)
-					} catch (e) {
-						Logger.log(`[DEBUG] gRPC host ERR to ${service.fullName}.${methodKey} req:${requestId} err:${e}`)
-						reject(e)
+					// Check if the response is a function (streaming)
+					if (typeof response === "function") {
+						// This shouldn't happen for unary requests
+						throw new Error("Received streaming response for unary request")
 					}
-				})
+					return response
+				} catch (e) {
+					Logger.log(`[DEBUG] Protobus host ERR to ${service.fullName}.${mKey} req:${requestId} err:${e}`)
+					throw e
+				}
 			}) as any
 		}
 	})

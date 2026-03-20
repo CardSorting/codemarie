@@ -258,4 +258,4 @@ The test environment includes:
 
 - `CLINE_E2E_TESTS_VERBOSE=true` - Enable verbose logging
 - `CI=true` - Adjusts timeouts and reporting for CI environments
-- `GRPC_RECORDER_ENABLED=true` - Enable gRPC recording for debugging
+- `PROTOBUS_RECORDER_ENABLED=true` - Enable Protobus recording for debugging

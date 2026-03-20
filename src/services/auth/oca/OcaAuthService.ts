@@ -1,7 +1,7 @@
 import { type EmptyRequest, String as ProtoString } from "@shared/proto/codemarie/common"
 import { OcaAuthState, OcaUserInfo } from "@shared/proto/codemarie/oca_account"
 import type { Controller } from "@/core/controller"
-import { getRequestRegistry, type StreamingResponseHandler } from "@/core/controller/grpc-handler"
+import { getProtobusRequestRegistry, type StreamingResponseHandler } from "@/core/controller/protobus-handler"
 import { AuthHandler } from "@/hosts/external/AuthHandler"
 import { Logger } from "@/shared/services/Logger"
 import { openExternal } from "@/utils/env"
@@ -253,7 +253,12 @@ export class OcaAuthService {
 			this._activeAuthStatusUpdateSubscriptions.delete(entry)
 		}
 		if (requestId) {
-			getRequestRegistry().registerRequest(requestId, cleanup, { type: "authStatusUpdate_subscription" }, responseStream)
+			getProtobusRequestRegistry().registerRequest(
+				requestId,
+				cleanup,
+				{ type: "authStatusUpdate_subscription" },
+				responseStream,
+			)
 		}
 		try {
 			await this.sendAuthStatusUpdate()

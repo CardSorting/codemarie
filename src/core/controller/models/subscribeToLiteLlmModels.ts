@@ -1,8 +1,8 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { OpenRouterCompatibleModelInfo } from "@shared/proto/codemarie/models"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active LiteLLM models subscriptions
 const activeLiteLlmModelsSubscriptions = new Set<StreamingResponseHandler<OpenRouterCompatibleModelInfo>>()
@@ -12,7 +12,7 @@ const activeLiteLlmModelsSubscriptions = new Set<StreamingResponseHandler<OpenRo
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToLiteLlmModels(
 	_controller: Controller,
@@ -30,7 +30,7 @@ export async function subscribeToLiteLlmModels(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "liteLlmModels_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "liteLlmModels_subscription" }, responseStream)
 	}
 }
 

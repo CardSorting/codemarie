@@ -1,6 +1,6 @@
 import { Logger } from "@/shared/services/Logger"
-import { StreamingResponseHandler } from "./grpc-handler"
 import { Controller } from "./index"
+import { StreamingResponseHandler } from "./protobus-handler"
 
 /**
  * Generic type for service method handlers
@@ -25,7 +25,7 @@ export interface MethodMetadata {
 }
 
 /**
- * Generic service registry for gRPC services
+ * Generic service registry for Protobus services
  */
 export class ServiceRegistry {
 	private serviceName: string

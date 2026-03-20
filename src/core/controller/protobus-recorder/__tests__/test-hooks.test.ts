@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, it } from "mocha"
 import "should"
 import { Controller } from "@core/controller"
-import { IRecorder } from "@core/controller/grpc-recorder/grpc-recorder"
-import { GrpcRecorderBuilder } from "@core/controller/grpc-recorder/grpc-recorder.builder"
-import { testHooks } from "@core/controller/grpc-recorder/test-hooks"
-import { GrpcLogEntry } from "@core/controller/grpc-recorder/types"
+import { ProtobusRecorderBuilder } from "@core/controller/protobus-recorder/protobus-recorder.builder"
+import { testHooks } from "@core/controller/protobus-recorder/test-hooks"
+import { IProtobusRecorder, ProtobusLogEntry } from "@core/controller/protobus-recorder/types"
 import * as sinon from "sinon"
 
 describe("test-hooks", () => {
@@ -18,7 +17,7 @@ describe("test-hooks", () => {
 		recordRequestStub = sinon.stub()
 		recordResponseStub = sinon.stub()
 
-		const mockRecorder: IRecorder = {
+		const mockRecorder: IProtobusRecorder = {
 			cleanupSyntheticEntries: cleanupSyntheticEntriesStub,
 			recordRequest: recordRequestStub,
 			recordResponse: recordResponseStub,
@@ -26,7 +25,7 @@ describe("test-hooks", () => {
 			getSessionLog: sinon.stub().returns({ startTime: "", entries: [] }),
 		}
 
-		getRecorderStub = sinon.stub(GrpcRecorderBuilder, "getRecorder").returns(mockRecorder)
+		getRecorderStub = sinon.stub(ProtobusRecorderBuilder, "getRecorder").returns(mockRecorder)
 	})
 
 	afterEach(() => {
@@ -49,7 +48,7 @@ describe("test-hooks", () => {
 
 		const hooks = testHooks(mockController)
 
-		const mockEntry: GrpcLogEntry = {
+		const mockEntry: ProtobusLogEntry = {
 			requestId: "test-request-id",
 			service: "TestService",
 			method: "testMethod",

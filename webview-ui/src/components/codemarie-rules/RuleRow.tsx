@@ -5,7 +5,7 @@ import { EyeIcon, InfoIcon, PenIcon, Trash2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 
 function isWin32Path(filePath: string): boolean {
 	return /^[a-zA-Z]:\\/.test(filePath)

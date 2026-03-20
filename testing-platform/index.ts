@@ -4,12 +4,12 @@ import fs from "fs"
 import path from "path"
 import "tsconfig-paths/register"
 
-import { GrpcAdapter } from "@adapters/grpcAdapter"
+import { WebSocketAdapter } from "@adapters/webSocketAdapter"
 import { NON_DETERMINISTIC_FIELDS } from "@harness/config"
 import { SpecFile } from "@harness/types"
 import { compareResponse, loadJson, retry } from "@harness/utils"
 
-const STANDALONE_GRPC_SERVER_PORT = process.env.STANDALONE_GRPC_SERVER_PORT || "26040"
+const STANDALONE_PROTOBUS_SERVER_PORT = process.env.STANDALONE_GRPC_SERVER_PORT || "26040"
 const FIX_MODE = process.argv.includes("--fix")
 
 function shouldAttemptFix(): boolean {
@@ -43,7 +43,7 @@ async function tryFixEntry(
 	return false
 }
 
-async function runSpec(specPath: string, grpcAdapter: GrpcAdapter) {
+async function runSpec(specPath: string, adapter: WebSocketAdapter) {
 	const spec: SpecFile = loadJson(specPath)
 
 	for (const entry of spec.entries) {
@@ -53,7 +53,7 @@ async function runSpec(specPath: string, grpcAdapter: GrpcAdapter) {
 
 		try {
 			await retry(async () => {
-				actualResponse = await grpcAdapter.call(entry.service, entry.method, entry.request)
+				actualResponse = await adapter.call(entry.service as any, entry.method, entry.request)
 
 				const { success, diffs } = compareResponse(
 					actualResponse,
@@ -84,7 +84,7 @@ async function runSpec(specPath: string, grpcAdapter: GrpcAdapter) {
 	}
 }
 
-async function runSpecsFromFolder(folderPath: string, grpcAdapter: GrpcAdapter) {
+async function runSpecsFromFolder(folderPath: string, adapter: WebSocketAdapter) {
 	const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".json"))
 
 	if (files.length === 0) {
@@ -95,7 +95,7 @@ async function runSpecsFromFolder(folderPath: string, grpcAdapter: GrpcAdapter) 
 	for (const file of files) {
 		const fullPath = path.join(folderPath, file)
 		console.log(`\n📂 Running spec file: ${file}`)
-		await runSpec(fullPath, grpcAdapter)
+		await runSpec(fullPath, adapter)
 	}
 }
 
@@ -107,16 +107,16 @@ async function main() {
 	}
 
 	const fullPath = path.resolve(inputPath)
-	const grpcAdapter = new GrpcAdapter(`localhost:${STANDALONE_GRPC_SERVER_PORT}`)
+	const adapter = new WebSocketAdapter(`localhost:${STANDALONE_PROTOBUS_SERVER_PORT}`)
 
 	const stat = fs.statSync(fullPath)
 	if (stat.isDirectory()) {
-		await runSpecsFromFolder(fullPath, grpcAdapter)
+		await runSpecsFromFolder(fullPath, adapter)
 	} else {
-		await runSpec(fullPath, grpcAdapter)
+		await runSpec(fullPath, adapter)
 	}
 
-	grpcAdapter.close()
+	adapter.close()
 }
 
 main().catch((err) => {

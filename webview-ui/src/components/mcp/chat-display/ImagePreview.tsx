@@ -2,7 +2,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import DOMPurify from "dompurify"
 import React from "react"
 import ChatErrorBoundary from "@/components/chat/ChatErrorBoundary"
-import { FileServiceClient, WebServiceClient } from "@/services/grpc-client"
+import { FileServiceClient, WebServiceClient } from "@/services/protobus-client"
 import { checkIfImageUrl, formatUrlForOpening, getSafeHostname } from "./utils/mcpRichUtil"
 
 interface ImagePreviewProps {

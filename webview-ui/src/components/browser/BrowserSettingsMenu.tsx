@@ -2,7 +2,7 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { BrowserServiceClient } from "../../services/grpc-client"
+import { BrowserServiceClient } from "../../services/protobus-client"
 
 interface ConnectionInfo {
 	isConnected: boolean
@@ -21,7 +21,7 @@ export const BrowserSettingsMenu = () => {
 	})
 	const popoverRef = useRef<HTMLDivElement>(null)
 
-	// Get actual connection info from the browser session using gRPC
+	// Get actual connection info from the browser session using Protobus
 	useEffect(() => {
 		// Function to fetch connection info
 		;(async () => {
@@ -69,7 +69,7 @@ export const BrowserSettingsMenu = () => {
 	const toggleInfoPopover = () => {
 		setShowInfoPopover(!showInfoPopover)
 
-		// Request updated connection info when opening the popover using gRPC
+		// Request updated connection info when opening the popover using Protobus
 		if (!showInfoPopover) {
 			const fetchConnectionInfo = async () => {
 				try {
@@ -107,7 +107,7 @@ export const BrowserSettingsMenu = () => {
 		return "var(--vscode-foreground)"
 	}
 
-	// Check connection status every second to keep icon in sync using gRPC
+	// Check connection status every second to keep icon in sync using Protobus
 	useEffect(() => {
 		// Function to fetch connection info
 		const fetchConnectionInfo = async () => {

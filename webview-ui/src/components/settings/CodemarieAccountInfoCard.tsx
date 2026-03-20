@@ -3,7 +3,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useState } from "react"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { AccountServiceClient } from "@/services/grpc-client"
+import { AccountServiceClient } from "@/services/protobus-client"
 
 export const CodemarieAccountInfoCard = () => {
 	const { codemarieUser } = useCodemarieAuth()

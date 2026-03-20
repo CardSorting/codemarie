@@ -1,7 +1,4 @@
-import * as protoLoader from "@grpc/proto-loader"
-import * as fs from "fs"
-import * as health from "grpc-health-check"
-import { StreamingCallbacks } from "@/hosts/host-provider-types"
+import { type StreamingCallbacks } from "@/hosts/host-provider-types"
 
 const log = (...args: unknown[]) => {
 	const now = new Date()
@@ -16,16 +13,6 @@ const log = (...args: unknown[]) => {
 	const timestamp = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`
 
 	console.log(`[${timestamp}]`, "#bot.codemarie.server.ts", ...args)
-}
-
-function getPackageDefinition() {
-	// Load service definitions.
-	const descriptorSet = fs.readFileSync("proto/descriptor_set.pb")
-	const options = { longs: Number } // Encode int64 fields as numbers
-	const descriptorDefs = protoLoader.loadFileDescriptorSetFromBuffer(descriptorSet, options)
-	const healthDef = protoLoader.loadSync(health.protoPath)
-	const packageDefinition = { ...descriptorDefs, ...healthDef }
-	return packageDefinition
 }
 
 /**
@@ -46,9 +33,9 @@ async function asyncIteratorToCallbacks<T>(stream: AsyncIterable<T>, callbacks: 
 		if (callbacks.onError) {
 			callbacks.onError(error)
 		} else {
-			log(`Host bridge RPC error: ${error}`)
+			log(`Stream error: ${error}`)
 		}
 	}
 }
 
-export { getPackageDefinition, log, asyncIteratorToCallbacks }
+export { log, asyncIteratorToCallbacks }

@@ -1,7 +1,7 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { memo, useMemo, useState } from "react"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import { CHAT_ROW_EXPANDED_BG_COLOR } from "../common/CodeBlock"
 import { HOOK_OUTPUT_STRING } from "./constants"
 

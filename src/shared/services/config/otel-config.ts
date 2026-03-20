@@ -21,7 +21,7 @@ export interface OpenTelemetryClientConfig {
 	logsExporter?: string
 
 	/**
-	 * Protocol for OTLP exporters: "grpc", "http/json", "http/protobuf"
+	 * Protocol for OTLP exporters: "http/json", "http/protobuf"
 	 */
 	otlpProtocol?: string
 
@@ -65,7 +65,7 @@ export interface OpenTelemetryClientConfig {
 	metricExportInterval?: number
 
 	/**
-	 * Whether to use insecure (non-TLS) connections for gRPC OTLP exporters
+	 * Whether to use insecure (non-TLS) connections for OTLP exporters
 	 * Set to "true" for local development without TLS
 	 * Default: false (uses TLS)
 	 */
@@ -150,7 +150,7 @@ function getOtelConfig(): OpenTelemetryClientConfig {
  * - CLINE_OTEL_TELEMETRY_ENABLED: "1" to enable OpenTelemetry (default: off)
  * - CLINE_OTEL_METRICS_EXPORTER: Comma-separated list: "console", "otlp", "prometheus"
  * - CLINE_OTEL_LOGS_EXPORTER: Comma-separated list: "console", "otlp"
- * - CLINE_OTEL_EXPORTER_OTLP_PROTOCOL: "grpc", "http/json", or "http/protobuf"
+ * - CLINE_OTEL_EXPORTER_OTLP_PROTOCOL: "http/json", or "http/protobuf"
  * - CLINE_OTEL_EXPORTER_OTLP_ENDPOINT: OTLP collector endpoint (if not using specific endpoints)
  * - CLINE_OTEL_EXPORTER_OTLP_HEADERS: Comma-separated key-value pairs (e.g., "key1=value1,key2=value2")
  * - CLINE_OTEL_EXPORTER_OTLP_METRICS_PROTOCOL: Metrics-specific protocol override
@@ -158,7 +158,7 @@ function getOtelConfig(): OpenTelemetryClientConfig {
  * - CLINE_OTEL_EXPORTER_OTLP_LOGS_PROTOCOL: Logs-specific protocol override
  * - CLINE_OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: Logs-specific endpoint override
  * - CLINE_OTEL_METRIC_EXPORT_INTERVAL: Milliseconds between metric exports (default: 60000)
- * - CLINE_OTEL_EXPORTER_OTLP_INSECURE: "true" to disable TLS for gRPC (for local development)
+ * - CLINE_OTEL_EXPORTER_OTLP_INSECURE: "true" to disable TLS (for local development)
  * - CLINE_OTEL_LOG_BATCH_SIZE: Maximum batch size for log records (default: 512)
  * - CLINE_OTEL_LOG_BATCH_TIMEOUT: Maximum time to wait before exporting logs in ms (default: 5000)
  * - CLINE_OTEL_LOG_MAX_QUEUE_SIZE: Maximum queue size for log records (default: 2048)

@@ -1,13 +1,13 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { CodemarieMessage } from "@shared/proto/codemarie/ui"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
-// Keep track of active partial message subscriptions (gRPC streams)
+// Keep track of active partial message subscriptions (Protobus streams)
 const activePartialMessageSubscriptions = new Set<StreamingResponseHandler<CodemarieMessage>>()
 
-// Keep track of callback-based subscriptions (for CLI and other non-gRPC consumers)
+// Keep track of callback-based subscriptions (for CLI and other non-Protobus consumers)
 export type PartialMessageCallback = (message: CodemarieMessage) => void
 const callbackSubscriptions = new Set<PartialMessageCallback>()
 
@@ -16,7 +16,7 @@ const callbackSubscriptions = new Set<PartialMessageCallback>()
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToPartialMessage(
 	_controller: Controller,
@@ -34,12 +34,12 @@ export async function subscribeToPartialMessage(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "partial_message_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "partial_message_subscription" }, responseStream)
 	}
 }
 
 /**
- * Register a callback to receive partial message events (for CLI and non-gRPC consumers)
+ * Register a callback to receive partial message events (for CLI and non-Protobus consumers)
  * @param callback The callback function to receive messages
  * @returns A function to unsubscribe
  */
@@ -55,7 +55,7 @@ export function registerPartialMessageCallback(callback: PartialMessageCallback)
  * @param partialMessage The CodemarieMessage to send
  */
 export async function sendPartialMessageEvent(partialMessage: CodemarieMessage): Promise<void> {
-	// Send to gRPC stream subscribers
+	// Send to Protobus stream subscribers
 	const streamPromises = Array.from(activePartialMessageSubscriptions).map(async (responseStream) => {
 		try {
 			await responseStream(

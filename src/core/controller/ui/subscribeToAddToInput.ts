@@ -1,7 +1,7 @@
 import type { EmptyRequest, String as ProtoString } from "@shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, type StreamingResponseHandler } from "../grpc-handler"
 import type { Controller } from "../index"
+import { getProtobusRequestRegistry, type StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active addToInput subscriptions
 const activeAddToInputSubscriptions = new Set<StreamingResponseHandler<ProtoString>>()
@@ -11,7 +11,7 @@ const activeAddToInputSubscriptions = new Set<StreamingResponseHandler<ProtoStri
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToAddToInput(
 	_controller: Controller,
@@ -29,7 +29,7 @@ export async function subscribeToAddToInput(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "addToInput_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "addToInput_subscription" }, responseStream)
 	}
 }
 

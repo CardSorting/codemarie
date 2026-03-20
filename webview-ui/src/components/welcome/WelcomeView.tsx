@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from "react"
 import CodemarieLogoWhite from "@/assets/CodemarieLogoWhite"
 import ApiOptions from "@/components/settings/ApiOptions"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { AccountServiceClient, StateServiceClient } from "@/services/grpc-client"
+import { AccountServiceClient, StateServiceClient } from "@/services/protobus-client"
 import { validateApiConfiguration } from "@/utils/validate"
 
 const WelcomeView = memo(() => {

@@ -9,7 +9,7 @@ import HomeHeader from "@/components/welcome/HomeHeader"
 import { SuggestedTasks } from "@/components/welcome/SuggestedTasks"
 import CreateWorktreeModal from "@/components/worktrees/CreateWorktreeModal"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { WorktreeServiceClient } from "@/services/grpc-client"
+import { WorktreeServiceClient } from "@/services/protobus-client"
 import { WelcomeSectionProps } from "../../types/chatTypes"
 
 /**

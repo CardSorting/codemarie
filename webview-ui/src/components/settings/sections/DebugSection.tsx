@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
 
 interface DebugSectionProps {

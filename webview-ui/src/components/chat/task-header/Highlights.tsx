@@ -1,6 +1,6 @@
 import { mentionRegexGlobal } from "@shared/context-mentions"
 import { StringRequest } from "@shared/proto/codemarie/common"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 import { validateSlashCommand } from "@/utils/slash-commands"
 
 // Optimized highlighting functions

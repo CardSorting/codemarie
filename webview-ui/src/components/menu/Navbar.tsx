@@ -2,7 +2,7 @@ import { HistoryIcon, PlusIcon, SettingsIcon, UserCircleIcon } from "lucide-reac
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 
 // Custom MCP Server Icon component using VSCode codicon

@@ -1,5 +1,5 @@
-import { GrpcRequestRegistry } from "@core/controller/grpc-request-registry"
-import { hostServiceHandlers } from "@generated/hosts/vscode/hostbridge-grpc-service-config"
+import { ProtobusRequestRegistry } from "@core/controller/protobus-request-registry"
+import { hostServiceHandlers } from "@generated/hosts/vscode/hostbridge-service-config"
 import { StreamingCallbacks } from "@/hosts/host-provider-types"
 import { Logger } from "@/shared/services/Logger"
 
@@ -8,18 +8,18 @@ import { Logger } from "@/shared/services/Logger"
  */
 export type StreamingResponseHandler = (response: any, isLast?: boolean, sequenceNumber?: number) => Promise<void>
 
-// Registry to track active gRPC requests and their cleanup functions
-const requestRegistry = new GrpcRequestRegistry()
+// Registry to track active Protobus requests and their cleanup functions
+const requestRegistry = new ProtobusRequestRegistry()
 
 /**
- * Handles gRPC requests for the host bridge.
+ * Handles Protobus requests for the host bridge.
  */
-export class GrpcHandler {
+export class ProtobusHandler {
 	/**
-	 * Handle a gRPC request for the host bridge.
+	 * Handle a Protobus request for the host bridge.
 	 * @param service The service name
 	 * @param method The method name
-	 * @param message The request message
+	 * @param request The request message
 	 * @param requestId The request ID for response correlation
 	 * @param streamingCallbacks Optional callbacks for streaming responses
 	 * @returns For unary requests: the response message or error. For streaming requests: a cancel function.
@@ -94,7 +94,7 @@ export class GrpcHandler {
 	}
 
 	/**
-	 * Cancel a gRPC request
+	 * Cancel a Protobus request
 	 * @param requestId The request ID to cancel
 	 * @returns True if the request was found and cancelled, false otherwise
 	 */
@@ -121,7 +121,7 @@ export class GrpcHandler {
 	}
 
 	/**
-	 * Handle a streaming gRPC request
+	 * Handle a streaming Protobus request
 	 * @param service The service name
 	 * @param method The method name
 	 * @param message The request message
@@ -176,6 +176,6 @@ export interface HostServiceHandlerConfig {
  * Get the request registry instance
  * This allows other parts of the code to access the registry
  */
-export function getRequestRegistry(): GrpcRequestRegistry {
+export function getProtobusRequestRegistry(): ProtobusRequestRegistry {
 	return requestRegistry
 }

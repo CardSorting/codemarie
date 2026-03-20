@@ -1,7 +1,7 @@
 import { TelemetrySettingEnum, TelemetrySettingRequest } from "@shared/proto/codemarie/state"
 import { useCallback } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 
 const telemetryRequest = TelemetrySettingRequest.create({
 	setting: TelemetrySettingEnum.ENABLED,

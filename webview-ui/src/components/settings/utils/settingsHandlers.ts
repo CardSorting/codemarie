@@ -1,5 +1,5 @@
 import { McpDisplayMode, UpdateSettingsRequest } from "@shared/proto/codemarie/state"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 
 /**
  * Converts values to their corresponding proto format

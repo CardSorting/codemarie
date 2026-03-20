@@ -386,7 +386,7 @@ export class McpHub {
 						cwd: expandedConfig.cwd,
 						env: {
 							...getDefaultEnvironment(),
-							...(expandedConfig.env || {}), // Now has expanded environment variables
+							...expandedConfig.env, // Now has expanded environment variables
 						},
 						stderr: "pipe",
 					})
@@ -1102,7 +1102,7 @@ export class McpHub {
 		// Get sorted servers
 		const sortedServers = this.getSortedMcpServers(serverOrder)
 
-		// Send update using gRPC stream
+		// Send update using Protobus stream
 		await sendMcpServersUpdate({
 			mcpServers: convertMcpServersToProtoMcpServers(sortedServers),
 		})

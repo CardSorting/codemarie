@@ -1,7 +1,7 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import CodemarieLogoVariable from "@/assets/CodemarieLogoVariable"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { UiServiceClient } from "@/services/grpc-client"
+import { UiServiceClient } from "@/services/protobus-client"
 
 interface HomeHeaderProps {
 	shouldShowQuickWins?: boolean

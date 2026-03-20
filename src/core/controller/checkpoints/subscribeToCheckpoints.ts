@@ -5,8 +5,8 @@ import {
 } from "@shared/proto/codemarie/checkpoints"
 import { Timestamp } from "@shared/proto/google/protobuf/timestamp"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 /**
  * Parameters for creating a checkpoint event
@@ -68,7 +68,7 @@ export async function subscribeToCheckpoints(
 	}
 
 	if (requestId) {
-		getRequestRegistry().registerRequest(
+		getProtobusRequestRegistry().registerRequest(
 			requestId,
 			cleanup,
 			{ type: "checkpoint_subscription" as const, cwdHash },

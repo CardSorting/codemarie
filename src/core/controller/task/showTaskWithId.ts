@@ -26,7 +26,7 @@ export async function showTaskWithId(controller: Controller, request: StringRequ
 			// Send UI update to show the chat view
 			await sendChatButtonClickedEvent()
 
-			// Return task data for gRPC response
+			// Return task data for Protobus response
 			return TaskResponse.create({
 				id: historyItem.id,
 				task: historyItem.task || "",

@@ -8,7 +8,7 @@ import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "reac
 import { useMount } from "react-use"
 import styled from "styled-components"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-import { ModelsServiceClient } from "../../services/grpc-client"
+import { ModelsServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ModelInfoView } from "./common/ModelInfoView"
 import ThinkingBudgetSlider from "./ThinkingBudgetSlider"

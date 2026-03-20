@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
-import { McpServiceClient } from "@/services/grpc-client"
+import { McpServiceClient } from "@/services/protobus-client"
 import { getMcpServerDisplayName } from "@/utils/mcp"
 import McpPromptRow from "./McpPromptRow"
 import McpResourceRow from "./McpResourceRow"
@@ -113,7 +113,7 @@ const ServerRow = ({
 		// Set local state to show "connecting" status
 		setIsRestarting(true)
 
-		// Make the gRPC call
+		// Make the Protobus call
 		McpServiceClient.restartMcpServer({
 			value: server.name,
 		} as StringRequest)

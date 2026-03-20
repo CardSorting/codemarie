@@ -11,7 +11,7 @@ import type { Controller } from "../index"
  *
  * @example
  * // Usage from webview:
- * import { TaskServiceClient } from "@/services/grpc-client"
+ * import { TaskServiceClient } from "@/services/protobus-client"
  * import { ExecuteQuickWinRequest } from "@shared/proto/codemarie/task"
  *
  * const request: ExecuteQuickWinRequest = {

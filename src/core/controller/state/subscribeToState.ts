@@ -2,8 +2,8 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { State } from "@shared/proto/codemarie/state"
 import { ExtensionState } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active state subscriptions
 const activeStateSubscriptions = new Set<StreamingResponseHandler<State>>()
@@ -13,7 +13,7 @@ const activeStateSubscriptions = new Set<StreamingResponseHandler<State>>()
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToState(
 	controller: Controller,
@@ -31,7 +31,7 @@ export async function subscribeToState(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "state_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "state_subscription" }, responseStream)
 	}
 
 	// Send the initial state

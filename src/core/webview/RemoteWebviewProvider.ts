@@ -57,7 +57,7 @@ export class RemoteWebviewProvider extends WebviewProvider {
 		// Bridge it to the controller just like VS Code does
 		// The controller should have been set up in the base class constructor
 		// But we need to make sure the controller knows how to handle these messages
-		// (handleGrpcRequest, etc.)
+		// (handleProtobusRequest, etc.)
 		Logger.debug("[RemoteWebviewProvider] Received remote message:", (message as { command?: string }).command)
 	}
 

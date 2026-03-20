@@ -14,7 +14,7 @@ export interface Callbacks<TResponse> {
 	onComplete: () => void
 }
 
-/* biome-ignore lint/complexity/noStaticOnlyClass: ProtoBusClient is used as a namespace for gRPC methods */
+/* biome-ignore lint/complexity/noStaticOnlyClass: ProtoBusClient is used as a namespace for Protobus methods */
 export abstract class ProtoBusClient {
 	static serviceName: string
 
@@ -42,14 +42,14 @@ export abstract class ProtoBusClient {
 					}
 					return
 				}
-				if (message.type === "grpc_response" && message.grpc_response?.request_id === requestId) {
+				if (message.type === "protobus_response" && message.protobus_response?.request_id === requestId) {
 					// Remove listener once we get our response
 					window.removeEventListener("message", handleResponse)
-					if (message.grpc_response.message) {
-						const response = PLATFORM_CONFIG.decodeMessage(message.grpc_response.message, decodeResponse)
+					if (message.protobus_response.message) {
+						const response = PLATFORM_CONFIG.decodeMessage(message.protobus_response.message, decodeResponse)
 						resolve(response)
-					} else if (message.grpc_response.error) {
-						reject(new Error(message.grpc_response.error))
+					} else if (message.protobus_response.error) {
+						reject(new Error(message.protobus_response.error))
 					} else {
 						console.error("Received ProtoBus message with no response or error ", JSON.stringify(message))
 					}
@@ -58,8 +58,8 @@ export abstract class ProtoBusClient {
 
 			window.addEventListener("message", handleResponse)
 			PLATFORM_CONFIG.postMessage({
-				type: "grpc_request",
-				grpc_request: {
+				type: "protobus_request",
+				protobus_request: {
 					service: this.serviceName,
 					method: methodName,
 					message: PLATFORM_CONFIG.encodeMessage(request, encodeRequest),
@@ -81,7 +81,7 @@ export abstract class ProtoBusClient {
 		// Set up listener for streaming responses
 		const handleResponse = (event: MessageEvent) => {
 			const message = event.data
-			if (message.type === "grpc_response" && message.grpc_response?.request_id === requestId) {
+			if (message.type === "protobus_response" && message.protobus_response?.request_id === requestId) {
 				if (message.type === "host_action") {
 					// Special handling for host actions like showing messages
 					const { method, args } = message.host_action
@@ -94,21 +94,21 @@ export abstract class ProtoBusClient {
 					}
 					return
 				}
-				if (message.grpc_response.message) {
+				if (message.protobus_response.message) {
 					// Process streaming message
-					const response = PLATFORM_CONFIG.decodeMessage(message.grpc_response.message, decodeResponse)
+					const response = PLATFORM_CONFIG.decodeMessage(message.protobus_response.message, decodeResponse)
 					callbacks.onResponse(response)
-				} else if (message.grpc_response.error) {
+				} else if (message.protobus_response.error) {
 					// Handle error
 					if (callbacks.onError) {
-						callbacks.onError(new Error(message.grpc_response.error))
+						callbacks.onError(new Error(message.protobus_response.error))
 					}
 					// Only remove the event listener on error
 					window.removeEventListener("message", handleResponse)
 				} else {
 					console.error("Received ProtoBus message with no response or error ", JSON.stringify(message))
 				}
-				if (message.grpc_response.is_streaming === false) {
+				if (message.protobus_response.is_streaming === false) {
 					if (callbacks.onComplete) {
 						callbacks.onComplete()
 					}
@@ -119,8 +119,8 @@ export abstract class ProtoBusClient {
 		}
 		window.addEventListener("message", handleResponse)
 		PLATFORM_CONFIG.postMessage({
-			type: "grpc_request",
-			grpc_request: {
+			type: "protobus_request",
+			protobus_request: {
 				service: this.serviceName,
 				method: methodName,
 				message: PLATFORM_CONFIG.encodeMessage(request, encodeRequest),
@@ -132,8 +132,8 @@ export abstract class ProtoBusClient {
 		return () => {
 			window.removeEventListener("message", handleResponse)
 			PLATFORM_CONFIG.postMessage({
-				type: "grpc_request_cancel",
-				grpc_request_cancel: {
+				type: "protobus_request_cancel",
+				protobus_request_cancel: {
 					request_id: requestId,
 				},
 			})

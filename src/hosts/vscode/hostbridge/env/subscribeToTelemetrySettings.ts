@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { StreamingResponseHandler } from "@/hosts/vscode/hostbridge-grpc-handler"
+import { StreamingResponseHandler } from "@/hosts/vscode/hostbridge-protobus-handler"
 import { EmptyRequest } from "@/shared/proto/index.codemarie"
 import { Setting } from "@/shared/proto/index.host"
 

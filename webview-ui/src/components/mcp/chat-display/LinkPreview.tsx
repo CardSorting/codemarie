@@ -2,7 +2,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import DOMPurify from "dompurify"
 import React from "react"
 import ChatErrorBoundary from "@/components/chat/ChatErrorBoundary"
-import { WebServiceClient } from "@/services/grpc-client"
+import { WebServiceClient } from "@/services/protobus-client"
 import { getSafeHostname, normalizeRelativeUrl } from "./utils/mcpRichUtil"
 
 interface OpenGraphData {
@@ -109,7 +109,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 			const startTime = Date.now()
 			this.setState({ fetchStartTime: startTime })
 
-			// Use the gRPC client to fetch Open Graph data
+			// Use the Protobus client to fetch Open Graph data
 			const response = await WebServiceClient.fetchOpenGraphData(
 				StringRequest.create({
 					value: this.props.url,
@@ -142,7 +142,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 			}
 
 			// Clean up the heartbeat interval
-			// (No message listener is needed with gRPC, unlike the previous message-based approach)
+			// (No message listener is needed with Protobus, unlike the previous message-based approach)
 			this.cleanup()
 
 			// Set up heartbeat for loading indicator

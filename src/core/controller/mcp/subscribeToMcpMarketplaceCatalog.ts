@@ -1,8 +1,8 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { McpMarketplaceCatalog } from "@shared/proto/codemarie/mcp"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active subscriptions
 const activeMcpMarketplaceSubscriptions = new Set<StreamingResponseHandler<McpMarketplaceCatalog>>()
@@ -12,7 +12,7 @@ const activeMcpMarketplaceSubscriptions = new Set<StreamingResponseHandler<McpMa
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToMcpMarketplaceCatalog(
 	_controller: Controller,
@@ -30,7 +30,7 @@ export async function subscribeToMcpMarketplaceCatalog(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "mcp_marketplace_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "mcp_marketplace_subscription" }, responseStream)
 	}
 }
 

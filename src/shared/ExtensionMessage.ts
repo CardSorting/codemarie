@@ -19,12 +19,12 @@ import { TelemetrySetting } from "./TelemetrySetting"
 import { UserInfo } from "./UserInfo"
 // webview will hold state
 export interface ExtensionMessage {
-	type: "grpc_response" | "state" // New type for gRPC responses
-	grpc_response?: GrpcResponse
+	type: "protobus_response" | "state" // New type for Protobus responses
+	protobus_response?: ProtobusResponse
 	state?: ExtensionState
 }
 
-export type GrpcResponse = {
+export type ProtobusResponse = {
 	message?: unknown // JSON serialized protobuf message
 	request_id: string // Same ID as the request
 	error?: string // Optional error message

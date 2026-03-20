@@ -3,7 +3,7 @@ import { ArrowDownToLineIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 
 const OpenDiskConversationHistoryButton: React.FC<{
 	taskId?: string

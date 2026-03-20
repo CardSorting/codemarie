@@ -2,7 +2,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import { FilePlus, FileText, FileX, SquareArrowOutUpRightIcon } from "lucide-react"
 import { memo, useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 
 interface Patch {
 	action: string

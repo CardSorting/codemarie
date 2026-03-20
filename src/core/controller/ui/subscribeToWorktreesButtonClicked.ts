@@ -1,7 +1,7 @@
 import { Empty, EmptyRequest } from "@shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active worktrees button clicked subscriptions
 const activeWorktreesButtonClickedSubscriptions = new Set<StreamingResponseHandler<Empty>>()
@@ -11,7 +11,7 @@ const activeWorktreesButtonClickedSubscriptions = new Set<StreamingResponseHandl
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToWorktreesButtonClicked(
 	_controller: Controller,
@@ -29,7 +29,7 @@ export async function subscribeToWorktreesButtonClicked(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(
+		getProtobusRequestRegistry().registerRequest(
 			requestId,
 			cleanup,
 			{ type: "worktrees_button_clicked_subscription" },

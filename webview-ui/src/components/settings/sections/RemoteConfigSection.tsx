@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { RemoteConfigToggle } from "@/components/account/RemoteConfigToggle"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
 
 interface RemoteConfigSectionProps {

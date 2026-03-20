@@ -1,10 +1,10 @@
 import { Controller } from "@core/controller/index"
 import { serviceHandlers } from "@generated/hosts/vscode/protobus-services"
-import { GrpcRecorderBuilder } from "@/core/controller/grpc-recorder/grpc-recorder.builder"
-import { GrpcRequestRegistry } from "@/core/controller/grpc-request-registry"
+import { ProtobusRecorderBuilder } from "@/core/controller/protobus-recorder/protobus-recorder.builder"
+import { ProtobusRequestRegistry } from "@/core/controller/protobus-request-registry"
 import { ExtensionMessage } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
-import { GrpcCancel, GrpcRequest } from "@/shared/WebviewMessage"
+import { ProtobusCancel, ProtobusRequest } from "@/shared/WebviewMessage"
 
 /**
  * Type definition for a streaming response handler
@@ -18,18 +18,18 @@ export type StreamingResponseHandler<TResponse> = (
 export type PostMessageToWebview = (message: ExtensionMessage) => Thenable<boolean | undefined>
 
 /**
- * Creates a middleware wrapper for recording gRPC requests and responses
+ * Creates a middleware wrapper for recording Protobus requests and responses
  */
 function withRecordingMiddleware(postMessage: PostMessageToWebview, controller: Controller): PostMessageToWebview {
 	return async (response: ExtensionMessage) => {
-		if (response?.grpc_response) {
+		if (response?.protobus_response) {
 			try {
-				GrpcRecorderBuilder.getRecorder(controller).recordResponse(
-					response.grpc_response.request_id,
-					response.grpc_response,
+				ProtobusRecorderBuilder.getRecorder(controller).recordResponse(
+					response.protobus_response.request_id,
+					response.protobus_response,
 				)
 			} catch (e) {
-				Logger.warn("Failed to record gRPC response:", e)
+				Logger.warn("Failed to record Protobus response:", e)
 			}
 		}
 		return postMessage(response)
@@ -37,23 +37,23 @@ function withRecordingMiddleware(postMessage: PostMessageToWebview, controller: 
 }
 
 /**
- * Records gRPC request with error handling
+ * Records Protobus request with error handling
  */
-function recordRequest(request: GrpcRequest, controller: Controller): void {
+function recordRequest(request: ProtobusRequest, controller: Controller): void {
 	try {
-		GrpcRecorderBuilder.getRecorder(controller).recordRequest(request)
+		ProtobusRecorderBuilder.getRecorder(controller).recordRequest(request as any)
 	} catch (e) {
-		Logger.warn("Failed to record gRPC request:", e)
+		Logger.warn("Failed to record Protobus request:", e)
 	}
 }
 
 /**
- * Handles a gRPC request from the webview.
+ * Handles a Protobus request from the webview.
  */
-export async function handleGrpcRequest(
+export async function handleProtobusRequest(
 	controller: Controller,
 	postMessageToWebview: PostMessageToWebview,
-	request: GrpcRequest,
+	request: ProtobusRequest,
 ): Promise<void> {
 	recordRequest(request, controller)
 
@@ -68,14 +68,14 @@ export async function handleGrpcRequest(
 }
 
 /**
- * Handles a gRPC unary request from the webview.
+ * Handles a Protobus unary request from the webview.
  *
  * Calls the handler using the service and method name, and then posts the result back to the webview.
  */
 async function handleUnaryRequest(
 	controller: Controller,
 	postMessageToWebview: PostMessageToWebview,
-	request: GrpcRequest,
+	request: ProtobusRequest,
 ): Promise<void> {
 	try {
 		// Get the service handler from the config
@@ -84,8 +84,8 @@ async function handleUnaryRequest(
 		const response = await handler(controller, request.message)
 		// Send response to the webview
 		await postMessageToWebview({
-			type: "grpc_response",
-			grpc_response: {
+			type: "protobus_response",
+			protobus_response: {
 				message: response,
 				request_id: request.request_id,
 			},
@@ -94,8 +94,8 @@ async function handleUnaryRequest(
 		// Send error response
 		Logger.log("Protobus error:", error)
 		await postMessageToWebview({
-			type: "grpc_response",
-			grpc_response: {
+			type: "protobus_response",
+			protobus_response: {
 				error: error instanceof Error ? error.message : String(error),
 				request_id: request.request_id,
 				is_streaming: false,
@@ -105,7 +105,7 @@ async function handleUnaryRequest(
 }
 
 /**
- * Handle a streaming gRPC request from the webview.
+ * Handle a streaming Protobus request from the webview.
  *
  * Calls the handler using the service and method name, and creates a streaming response handler
  * which posts results back to the webview.
@@ -113,13 +113,13 @@ async function handleUnaryRequest(
 async function handleStreamingRequest(
 	controller: Controller,
 	postMessageToWebview: PostMessageToWebview,
-	request: GrpcRequest,
+	request: ProtobusRequest,
 ): Promise<void> {
 	// Create a response stream function
 	const responseStream: StreamingResponseHandler<any> = async (response: any, isLast = false, sequenceNumber?: number) => {
 		await postMessageToWebview({
-			type: "grpc_response",
-			grpc_response: {
+			type: "protobus_response",
+			protobus_response: {
 				message: response,
 				request_id: request.request_id,
 				is_streaming: !isLast,
@@ -141,8 +141,8 @@ async function handleStreamingRequest(
 		// Send error response
 		Logger.log("Protobus error:", error)
 		await postMessageToWebview({
-			type: "grpc_response",
-			grpc_response: {
+			type: "protobus_response",
+			protobus_response: {
 				error: error instanceof Error ? error.message : String(error),
 				request_id: request.request_id,
 				is_streaming: false,
@@ -152,18 +152,18 @@ async function handleStreamingRequest(
 }
 
 /**
- * Handles a gRPC request cancellation from the webview.
+ * Handles a Protobus request cancellation from the webview.
  * @param controller The controller instance
  * @param request The cancellation request
  */
-export async function handleGrpcRequestCancel(postMessageToWebview: PostMessageToWebview, request: GrpcCancel) {
+export async function handleProtobusRequestCancel(postMessageToWebview: PostMessageToWebview, request: ProtobusCancel) {
 	const cancelled = requestRegistry.cancelRequest(request.request_id)
 
 	if (cancelled) {
 		// Send a cancellation confirmation
 		await postMessageToWebview({
-			type: "grpc_response",
-			grpc_response: {
+			type: "protobus_response",
+			protobus_response: {
 				message: { cancelled: true },
 				request_id: request.request_id,
 				is_streaming: false,
@@ -174,14 +174,14 @@ export async function handleGrpcRequestCancel(postMessageToWebview: PostMessageT
 	}
 }
 
-// Registry to track active gRPC requests and their cleanup functions
-const requestRegistry = new GrpcRequestRegistry()
+// Registry to track active Protobus requests and their cleanup functions
+const requestRegistry = new ProtobusRequestRegistry()
 
 /**
  * Get the request registry instance
  * This allows other parts of the code to access the registry
  */
-export function getRequestRegistry(): GrpcRequestRegistry {
+export function getProtobusRequestRegistry(): ProtobusRequestRegistry {
 	return requestRegistry
 }
 

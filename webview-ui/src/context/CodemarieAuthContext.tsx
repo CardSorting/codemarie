@@ -3,7 +3,7 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import deepEqual from "fast-deep-equal"
 import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { AccountServiceClient } from "@/services/grpc-client"
+import { AccountServiceClient } from "@/services/protobus-client"
 
 // Define User type (you may need to adjust this based on your actual User type)
 export interface CodemarieUser {

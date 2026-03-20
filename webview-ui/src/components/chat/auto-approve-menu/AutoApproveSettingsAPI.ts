@@ -1,8 +1,8 @@
 import { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 
 /**
- * Updates auto approval settings using the gRPC/Protobus client
+ * Updates auto approval settings using the Protobus/Protobus client
  * @param settings The auto approval settings to update
  * @throws Error if the update fails
  */

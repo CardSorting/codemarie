@@ -1,7 +1,7 @@
 import { Empty, EmptyRequest } from "@shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active account button clicked subscriptions
 const activeAccountButtonClickedSubscriptions = new Set<StreamingResponseHandler<Empty>>()
@@ -29,7 +29,12 @@ export async function subscribeToAccountButtonClicked(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "accountButtonClicked_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(
+			requestId,
+			cleanup,
+			{ type: "accountButtonClicked_subscription" },
+			responseStream,
+		)
 	}
 }
 

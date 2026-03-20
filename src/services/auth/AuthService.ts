@@ -2,7 +2,7 @@ import { AuthState, UserInfo } from "@shared/proto/codemarie/account"
 import { type EmptyRequest, String } from "@shared/proto/codemarie/common"
 import { CodemarieEnv } from "@/config"
 import { Controller } from "@/core/controller"
-import { getRequestRegistry, type StreamingResponseHandler } from "@/core/controller/grpc-handler"
+import { getProtobusRequestRegistry, type StreamingResponseHandler } from "@/core/controller/protobus-handler"
 import { setWelcomeViewCompleted } from "@/core/controller/state/setWelcomeViewCompleted"
 import { HostProvider } from "@/hosts/host-provider"
 import { telemetryService } from "@/services/telemetry"
@@ -347,7 +347,7 @@ export class AuthService {
 	 * @param controller The controller instance
 	 * @param request The empty request
 	 * @param responseStream The streaming response handler
-	 * @param requestId The ID of the request (passed by the gRPC handler)
+	 * @param requestId The ID of the request (passed by the protobus handler)
 	 */
 	async subscribeToAuthStatusUpdate(
 		controller: Controller,
@@ -365,7 +365,12 @@ export class AuthService {
 		}
 		// Register the cleanup function with the request registry if we have a requestId
 		if (requestId) {
-			getRequestRegistry().registerRequest(requestId, cleanup, { type: "authStatusUpdate_subscription" }, responseStream)
+			getProtobusRequestRegistry().registerRequest(
+				requestId,
+				cleanup,
+				{ type: "authStatusUpdate_subscription" },
+				responseStream,
+			)
 		}
 
 		// Send the current authentication status immediately

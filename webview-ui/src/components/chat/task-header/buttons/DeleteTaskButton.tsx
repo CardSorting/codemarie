@@ -3,7 +3,7 @@ import { TrashIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import { formatSize } from "@/utils/format"
 
 const DeleteTaskButton: React.FC<{

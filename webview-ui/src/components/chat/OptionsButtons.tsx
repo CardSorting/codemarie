@@ -1,7 +1,7 @@
 import { AskResponseRequest } from "@shared/proto/codemarie/task"
 import styled from "styled-components"
 import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 
 const OptionButton = styled.button<{ isSelected?: boolean; isNotSelectable?: boolean }>`
 	padding: 8px 12px;

@@ -5,7 +5,7 @@ import { Logger } from "@/shared/services/Logger"
 import type { Controller } from "../index"
 
 /**
- * Adds a new remote MCP server via gRPC
+ * Adds a new remote MCP server via Protobus
  * @param controller The controller instance
  * @param request The request containing server name and URL
  * @returns An array of McpServer objects

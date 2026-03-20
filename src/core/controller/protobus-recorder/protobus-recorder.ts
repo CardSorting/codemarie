@@ -1,21 +1,22 @@
-import { GrpcResponse } from "@shared/ExtensionMessage"
-import { GrpcRequest } from "@shared/WebviewMessage"
-import { GrpcRecorderBuilder } from "@/core/controller/grpc-recorder/grpc-recorder.builder"
-import { ILogFileHandler } from "@/core/controller/grpc-recorder/log-file-handler"
+import { ProtobusResponse } from "@shared/ExtensionMessage"
+import { ProtobusRequest } from "@shared/WebviewMessage"
+import { ILogFileHandler } from "@/core/controller/protobus-recorder/log-file-handler"
+import { ProtobusRecorderBuilder } from "@/core/controller/protobus-recorder/protobus-recorder.builder"
 import {
-	GrpcLogEntry,
-	GrpcPostRecordHook,
-	GrpcRequestFilter,
-	GrpcSessionLog,
+	IProtobusRecorder,
+	ProtobusLogEntry,
+	ProtobusPostRecordHook,
+	ProtobusRequestFilter,
+	ProtobusSessionLog,
 	SessionStats,
-} from "@/core/controller/grpc-recorder/types"
+} from "@/core/controller/protobus-recorder/types"
 import { Logger } from "@/shared/services/Logger"
 
-export class GrpcRecorderNoops implements IRecorder {
-	recordRequest(_request: GrpcRequest): void {}
-	recordResponse(_requestId: string, _response: GrpcResponse): void {}
+export class ProtobusRecorderNoops implements IProtobusRecorder {
+	recordRequest(_request: ProtobusRequest): void {}
+	recordResponse(_requestId: string, _response: ProtobusResponse): void {}
 	recordError(_requestId: string, _error: string): void {}
-	getSessionLog(): GrpcSessionLog {
+	getSessionLog(): ProtobusSessionLog {
 		return {
 			startTime: "",
 			entries: [],
@@ -24,31 +25,19 @@ export class GrpcRecorderNoops implements IRecorder {
 	cleanupSyntheticEntries(): void {}
 }
 
-export interface IRecorder {
-	recordRequest(request: GrpcRequest, synthetic?: boolean): void
-	recordResponse(requestId: string, response: GrpcResponse): void
-	recordError(requestId: string, error: string): void
-	getSessionLog(): GrpcSessionLog
-	cleanupSyntheticEntries(): void
-}
+// Interface moved to types.ts
 
 /**
- * Default implementation of a gRPC recorder.
- *
- * Responsibilities:
- * - Records requests, responses, and errors.
- * - Tracks request/response lifecycle, including duration and status.
- * - Maintains a session log of all recorded entries.
- * - Persists logs asynchronously through a file handler.
+ * Default implementation of a Protobus recorder.
  */
-export class GrpcRecorder implements IRecorder {
-	private sessionLog: GrpcSessionLog
-	private pendingRequests: Map<string, { entry: GrpcLogEntry; startTime: number }> = new Map()
+export class ProtobusRecorder implements IProtobusRecorder {
+	private sessionLog: ProtobusSessionLog
+	private pendingRequests: Map<string, { entry: ProtobusLogEntry; startTime: number }> = new Map()
 
 	constructor(
 		private fileHandler: ILogFileHandler,
-		private requestFilters: GrpcRequestFilter[] = [],
-		private postRecordHooks: GrpcPostRecordHook[] = [],
+		private requestFilters: ProtobusRequestFilter[] = [],
+		private postRecordHooks: ProtobusPostRecordHook[] = [],
 	) {
 		this.sessionLog = {
 			startTime: new Date().toISOString(),
@@ -56,29 +45,23 @@ export class GrpcRecorder implements IRecorder {
 		}
 
 		this.fileHandler.initialize(this.sessionLog).catch((error) => {
-			Logger.error("Failed to initialize gRPC log file:", error)
+			Logger.error("Failed to initialize Protobus log file:", error)
 		})
 	}
 
-	public static builder(): GrpcRecorderBuilder {
-		return new GrpcRecorderBuilder()
+	public static builder(): ProtobusRecorderBuilder {
+		return new ProtobusRecorderBuilder()
 	}
 
 	/**
-	 * Records a gRPC request.
-	 *
-	 * - Stores the request as a "pending" log entry.
-	 * - Tracks the request start time for later duration calculation.
-	 * - Persists the log asynchronously.
-	 *
-	 * @param request - The incoming gRPC request.
+	 * Records a Protobus request.
 	 */
-	public recordRequest(request: GrpcRequest, synthetic = false): void {
+	public recordRequest(request: ProtobusRequest, synthetic = false): void {
 		if (this.shouldFilter(request)) {
 			return
 		}
 
-		const entry: GrpcLogEntry = {
+		const entry: ProtobusLogEntry = {
 			requestId: request.request_id,
 			service: request.service,
 			method: request.method,
@@ -99,23 +82,14 @@ export class GrpcRecorder implements IRecorder {
 		this.flushLogAsync()
 	}
 
-	public getSessionLog(): GrpcSessionLog {
+	public getSessionLog(): ProtobusSessionLog {
 		return this.sessionLog
 	}
 
 	/**
-	 * Records a gRPC response for a given request.
-	 *
-	 * - Looks up the pending request entry.
-	 * - Updates the entry with response data, status, and duration.
-	 * - Removes the request from pending if it's not streaming.
-	 * - Recomputes session stats.
-	 * - Persists the log asynchronously.
-	 *
-	 * @param requestId - The ID of the request being responded to.
-	 * @param response - The corresponding gRPC response.
+	 * Records a Protobus response for a given request.
 	 */
-	public recordResponse(requestId: string, response: GrpcResponse): void {
+	public recordResponse(requestId: string, response: ProtobusResponse): void {
 		const pendingRequest = this.pendingRequests.get(requestId)
 
 		if (!pendingRequest) {
@@ -146,7 +120,7 @@ export class GrpcRecorder implements IRecorder {
 		this.runHooks(entry).catch((e) => Logger.error("Post-record hook failed:", e))
 	}
 
-	private async runHooks(entry: GrpcLogEntry): Promise<void> {
+	private async runHooks(entry: ProtobusLogEntry): Promise<void> {
 		if (entry.meta?.synthetic) return
 		for (const hook of this.postRecordHooks) {
 			await hook(entry)
@@ -170,14 +144,6 @@ export class GrpcRecorder implements IRecorder {
 
 	/**
 	 * Records an error for a given request.
-	 *
-	 * - Marks the request as failed.
-	 * - Records the error message and request duration.
-	 * - Removes it from the pending requests.
-	 * - Persists the log asynchronously.
-	 *
-	 * @param requestId - The ID of the request that errored.
-	 * @param error - Error message.
 	 */
 	public recordError(requestId: string, error: string): void {
 		const pendingRequest = this.pendingRequests.get(requestId)
@@ -201,7 +167,7 @@ export class GrpcRecorder implements IRecorder {
 	private flushLogAsync(): void {
 		setImmediate(() => {
 			this.fileHandler.write(this.sessionLog).catch((error) => {
-				Logger.error("Failed to flush gRPC log:", error)
+				Logger.error("Failed to flush Protobus log:", error)
 			})
 		})
 	}
@@ -220,7 +186,7 @@ export class GrpcRecorder implements IRecorder {
 		}
 	}
 
-	private shouldFilter(request: GrpcRequest): boolean {
+	private shouldFilter(request: ProtobusRequest): boolean {
 		return this.requestFilters.some((filter) => filter(request))
 	}
 }

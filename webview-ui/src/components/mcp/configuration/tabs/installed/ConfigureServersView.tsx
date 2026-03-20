@@ -1,7 +1,7 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { McpServiceClient } from "@/services/grpc-client"
+import { McpServiceClient } from "@/services/protobus-client"
 import ServersToggleList from "./ServersToggleList"
 
 const ConfigureServersView = () => {

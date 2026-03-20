@@ -2,7 +2,7 @@ import { UpdateSettingsRequest, UserOrganization } from "@shared/proto/index.cod
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useRef } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 import { isAdminOrOwner } from "./helpers"
 
 export function RemoteConfigToggle({ activeOrganization }: { activeOrganization: UserOrganization | null }) {

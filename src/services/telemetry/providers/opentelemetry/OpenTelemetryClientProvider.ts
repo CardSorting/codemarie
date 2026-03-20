@@ -41,7 +41,7 @@ export class OpenTelemetryClientProvider {
 			Logger.log(`[OTEL DEBUG] Configuration:`)
 			Logger.log(`[OTEL DEBUG]   - Metrics Exporter: ${this.config.metricsExporter || "none"}`)
 			Logger.log(`[OTEL DEBUG]   - Logs Exporter: ${this.config.logsExporter || "none"}`)
-			Logger.log(`[OTEL DEBUG]   - OTLP Protocol: ${this.config.otlpProtocol || "grpc (default)"}`)
+			Logger.log(`[OTEL DEBUG]   - OTLP Protocol: ${this.config.otlpProtocol || "http/protobuf (default)"}`)
 
 			Logger.log(`[OTEL DEBUG]   - OTLP Endpoint: ${this.config.otlpEndpoint || "not set"}`)
 			Logger.log(`[OTEL DEBUG]   - OTLP Insecure: ${this.config.otlpInsecure || false}`)
@@ -92,7 +92,7 @@ export class OpenTelemetryClientProvider {
 						break
 					}
 					case "otlp": {
-						const protocol = this.config?.otlpMetricsProtocol || this.config?.otlpProtocol || "grpc"
+						const protocol = this.config?.otlpMetricsProtocol || this.config?.otlpProtocol || "http/protobuf"
 						const endpoint = this.config?.otlpMetricsEndpoint || this.config?.otlpEndpoint
 						const insecure = this.config?.otlpInsecure || false
 						const headers = this.config?.otlpMetricsHeaders || this.config?.otlpHeaders
@@ -148,7 +148,7 @@ export class OpenTelemetryClientProvider {
 						Logger.log("[OTEL] Console logs exporter created")
 						break
 					case "otlp": {
-						const protocol = this.config?.otlpLogsProtocol || this.config?.otlpProtocol || "grpc"
+						const protocol = this.config?.otlpLogsProtocol || this.config?.otlpProtocol || "http/protobuf"
 						const endpoint = this.config?.otlpLogsEndpoint || this.config?.otlpEndpoint
 						const insecure = this.config?.otlpInsecure || false
 						const headers = this.config?.otlpLogsHeaders || this.config?.otlpHeaders

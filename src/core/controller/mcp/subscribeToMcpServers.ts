@@ -2,8 +2,8 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { McpServers } from "@shared/proto/codemarie/mcp"
 import { convertMcpServersToProtoMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active subscriptions
 const activeMcpServersSubscriptions = new Set<StreamingResponseHandler<McpServers>>()
@@ -13,7 +13,7 @@ const activeMcpServersSubscriptions = new Set<StreamingResponseHandler<McpServer
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToMcpServers(
 	controller: Controller,
@@ -31,7 +31,7 @@ export async function subscribeToMcpServers(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "mcpServers_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "mcpServers_subscription" }, responseStream)
 	}
 
 	// Send initial state if available

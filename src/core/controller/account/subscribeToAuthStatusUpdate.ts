@@ -1,7 +1,7 @@
 import { AuthService } from "@services/auth/AuthService"
 import { AuthState, EmptyRequest } from "@/shared/proto/index.codemarie"
 import { Controller } from ".."
-import { StreamingResponseHandler } from "../grpc-handler"
+import { StreamingResponseHandler } from "../protobus-handler"
 
 export async function subscribeToAuthStatusUpdate(
 	controller: Controller,

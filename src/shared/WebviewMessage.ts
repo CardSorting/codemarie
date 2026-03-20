@@ -1,10 +1,10 @@
 export interface WebviewMessage {
-	type: "grpc_request" | "grpc_request_cancel"
-	grpc_request?: GrpcRequest
-	grpc_request_cancel?: GrpcCancel
+	type: "protobus_request" | "protobus_request_cancel"
+	protobus_request?: ProtobusRequest
+	protobus_request_cancel?: ProtobusCancel
 }
 
-export type GrpcRequest = {
+export type ProtobusRequest = {
 	service: string
 	method: string
 	message: any // JSON serialized protobuf message
@@ -12,7 +12,7 @@ export type GrpcRequest = {
 	is_streaming: boolean // Whether this is a streaming request
 }
 
-export type GrpcCancel = {
+export type ProtobusCancel = {
 	request_id: string // ID of the request to cancel
 }
 

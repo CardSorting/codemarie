@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
-import { StateServiceClient } from "@/services/grpc-client"
+import { StateServiceClient } from "@/services/protobus-client"
 import { isAdminOrOwner } from "../account/helpers"
 import { Tab, TabContent, TabList, TabTrigger } from "../common/Tab"
 import ViewHeader from "../common/ViewHeader"
@@ -173,16 +173,16 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 	// Optimized message handler with early returns
 	const handleMessage = useCallback((event: MessageEvent) => {
 		const message: ExtensionMessage = event.data
-		if (message.type !== "grpc_response") {
+		if (message.type !== "protobus_response") {
 			return
 		}
 
-		const grpcMessage = message.grpc_response?.message as KeyValuePair | undefined
-		if (grpcMessage?.key !== "scrollToSettings") {
+		const protobusMessage = message.protobus_response?.message as KeyValuePair | undefined
+		if (protobusMessage?.key !== "scrollToSettings") {
 			return
 		}
 
-		const tabId = grpcMessage.value
+		const tabId = protobusMessage.value
 		if (!tabId) {
 			return
 		}

@@ -3,7 +3,7 @@ import { DeleteHookRequest, HooksToggles } from "@shared/proto/codemarie/file"
 import { PenIcon, Trash2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 
 interface HookRowProps {
 	hookName: string

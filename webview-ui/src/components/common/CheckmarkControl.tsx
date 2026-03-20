@@ -10,7 +10,7 @@ import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { Button } from "@/components/ui/button"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
-import { CheckpointsServiceClient } from "@/services/grpc-client"
+import { CheckpointsServiceClient } from "@/services/protobus-client"
 
 interface CheckmarkControlProps {
 	messageTs?: number

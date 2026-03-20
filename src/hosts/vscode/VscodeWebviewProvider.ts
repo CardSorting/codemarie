@@ -1,7 +1,7 @@
 import { sendShowWebviewEvent } from "@core/controller/ui/subscribeToShowWebview"
 import { WebviewProvider } from "@core/webview"
 import * as vscode from "vscode"
-import { handleGrpcRequest, handleGrpcRequestCancel } from "@/core/controller/grpc-handler"
+import { handleProtobusRequest, handleProtobusRequestCancel } from "@/core/controller/protobus-handler"
 import { HostProvider } from "@/hosts/host-provider"
 import { ExtensionRegistryInfo } from "@/registry"
 import type { ExtensionMessage } from "@/shared/ExtensionMessage"
@@ -162,15 +162,15 @@ export class VscodeWebviewProvider extends WebviewProvider implements vscode.Web
 		const postMessageToWebview = (response: ExtensionMessage) => this.postMessageToWebview(response)
 
 		switch (message.type) {
-			case "grpc_request": {
-				if (message.grpc_request) {
-					await handleGrpcRequest(this.controller, postMessageToWebview, message.grpc_request)
+			case "protobus_request": {
+				if (message.protobus_request) {
+					await handleProtobusRequest(this.controller, postMessageToWebview, message.protobus_request)
 				}
 				break
 			}
-			case "grpc_request_cancel": {
-				if (message.grpc_request_cancel) {
-					await handleGrpcRequestCancel(postMessageToWebview, message.grpc_request_cancel)
+			case "protobus_request_cancel": {
+				if (message.protobus_request_cancel) {
+					await handleProtobusRequestCancel(postMessageToWebview, message.protobus_request_cancel)
 				}
 				break
 			}

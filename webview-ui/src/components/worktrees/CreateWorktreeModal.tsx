@@ -3,7 +3,7 @@ import { CreateWorktreeRequest, SwitchWorktreeRequest } from "@shared/proto/code
 import { VSCodeButton, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { AlertCircle, AlertTriangle, Loader2, X } from "lucide-react"
 import { memo, useCallback, useEffect, useState } from "react"
-import { WorktreeServiceClient } from "@/services/grpc-client"
+import { WorktreeServiceClient } from "@/services/protobus-client"
 
 interface CreateWorktreeModalProps {
 	open: boolean

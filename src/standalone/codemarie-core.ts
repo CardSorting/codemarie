@@ -281,7 +281,7 @@ Codemarie Core - Standalone Server
 Usage: node codemarie-core.js [options]
 
 Options:
-  -p, --port <port>              Port for the main gRPC service (default: ${PROTOBUS_PORT})
+  -p, --port <port>              Port for the main Protobus service (default: ${PROTOBUS_PORT})
   --host-bridge-port <port>      Port for the host bridge service (default: ${HOSTBRIDGE_PORT})
   -c, --config <path>            Directory for Codemarie data storage (default: ~/.codemarie)
   -h, --help                     Show this help message

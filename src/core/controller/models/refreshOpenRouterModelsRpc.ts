@@ -5,9 +5,9 @@ import type { Controller } from "../index"
 import { refreshOpenRouterModels } from "./refreshOpenRouterModels"
 
 /**
- * Refreshes OpenRouter models and returns protobuf types for gRPC
+ * Refreshes OpenRouter models and returns protobuf types for Protobus
  * @param controller The controller instance
- * @param request Empty request (unused but required for gRPC signature)
+ * @param request Empty request (unused but required for Protobus signature)
  * @returns OpenRouterCompatibleModelInfo with protobuf types
  */
 export async function refreshOpenRouterModelsRpc(

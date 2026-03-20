@@ -11,7 +11,7 @@ import WorktreesView from "./components/worktrees/WorktreesView"
 import { useCodemarieAuth } from "./context/CodemarieAuthContext"
 import { useExtensionState } from "./context/ExtensionStateContext"
 import { Providers } from "./Providers"
-import { UiServiceClient } from "./services/grpc-client"
+import { UiServiceClient } from "./services/protobus-client"
 
 const AppContent = () => {
 	const {
@@ -44,7 +44,7 @@ const AppContent = () => {
 		if (shouldShowAnnouncement) {
 			setShowAnnouncement(true)
 
-			// Use the gRPC client instead of direct WebviewMessage
+			// Use the Protobus client instead of direct WebviewMessage
 			UiServiceClient.onDidShowAnnouncement({} as EmptyRequest)
 				.then((response: Boolean) => {
 					setShouldShowAnnouncement(response.value)

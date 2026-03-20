@@ -8,7 +8,7 @@ import PopupModalContainer from "@/components/common/PopupModalContainer"
 import ServersToggleList from "@/components/mcp/configuration/tabs/installed/ServersToggleList"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { McpServiceClient } from "@/services/grpc-client"
+import { McpServiceClient } from "@/services/protobus-client"
 
 const ServersToggleModal: React.FC = () => {
 	const { mcpServers, navigateToMcp, setMcpServers } = useExtensionState()

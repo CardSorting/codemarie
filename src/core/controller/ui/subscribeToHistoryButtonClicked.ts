@@ -1,7 +1,7 @@
 import { Empty, EmptyRequest } from "@shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active history button clicked subscriptions
 const activeHistoryButtonClickedSubscriptions = new Set<StreamingResponseHandler<Empty>>()
@@ -11,7 +11,7 @@ const activeHistoryButtonClickedSubscriptions = new Set<StreamingResponseHandler
  * @param controller The controller instance
  * @param request The empty request
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request (passed by the gRPC handler)
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToHistoryButtonClicked(
 	_controller: Controller,
@@ -29,7 +29,12 @@ export async function subscribeToHistoryButtonClicked(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "history_button_clicked_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(
+			requestId,
+			cleanup,
+			{ type: "history_button_clicked_subscription" },
+			responseStream,
+		)
 	}
 }
 

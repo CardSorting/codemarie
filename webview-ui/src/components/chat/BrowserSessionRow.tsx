@@ -12,7 +12,7 @@ import { ChatRowContent, ProgressIndicator } from "@/components/chat/ChatRow"
 import CodeBlock, { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 
 interface BrowserSessionRowProps {
 	messages: CodemarieMessage[]

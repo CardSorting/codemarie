@@ -1,48 +1,43 @@
-import * as grpc from "@grpc/grpc-js"
-import * as protoLoader from "@grpc/proto-loader"
-import * as health from "grpc-health-check"
+import * as net from "net"
 import { log } from "./utils"
 
 export const HOSTBRIDGE_PORT = 26041
 
 export async function waitForHostBridgeReady(timeoutMs = 60000, intervalMs = 500): Promise<string> {
 	const address = process.env.HOST_BRIDGE_ADDRESS || `127.0.0.1:${HOSTBRIDGE_PORT}`
-	const client = createHealthClient(address)
+	const [host, portStr] = address.split(":")
+	const port = Number.parseInt(portStr, 10)
+
 	const deadline = Date.now() + timeoutMs
-	try {
-		while (Date.now() < deadline) {
-			const ok = await checkHealthOnce(client)
-			if (ok) {
-				log(`HostBridge serving at ${address}; continuing startup`)
-				return address
-			}
-			log("Waiting for hostbridge to be ready...")
-			await new Promise((r) => setTimeout(r, intervalMs))
+	while (Date.now() < deadline) {
+		const ok = await checkTcpPort(host, port)
+		if (ok) {
+			log(`HostBridge serving at ${address}; continuing startup`)
+			return address
 		}
-	} finally {
-		client.close()
+		log("Waiting for hostbridge to be ready...")
+		await new Promise((r) => setTimeout(r, intervalMs))
 	}
-	throw new Error(`HostBridge health check timed out after ${timeoutMs}ms`)
+	throw new Error(`HostBridge port check timed out after ${timeoutMs}ms at ${address}`)
 }
 
-// Client-side health check for the hostbridge service (kept at bottom for clarity)
-const SERVING_STATUS = 1
-function createHealthClient(address: string) {
-	const healthDef = protoLoader.loadSync(health.protoPath)
-	const grpcObj = grpc.loadPackageDefinition(healthDef) as unknown as any
-	const Health = grpcObj.grpc.health.v1.Health
-	const opts: grpc.ChannelOptions = { "grpc.enable_http_proxy": 0 }
-	return new Health(address, grpc.credentials.createInsecure(), opts)
-}
-
-async function checkHealthOnce(client: any): Promise<boolean> {
+async function checkTcpPort(host: string, port: number): Promise<boolean> {
 	return new Promise<boolean>((resolve) => {
-		client.check({ service: "" }, (err: unknown, resp: any) => {
-			if (err) {
-				console.debug(err.toString())
-				return resolve(false)
-			}
-			return resolve(resp?.status === SERVING_STATUS)
-		})
+		const socket = new net.Socket()
+		socket.setTimeout(1000)
+		socket
+			.once("connect", () => {
+				socket.destroy()
+				resolve(true)
+			})
+			.once("timeout", () => {
+				socket.destroy()
+				resolve(false)
+			})
+			.once("error", () => {
+				socket.destroy()
+				resolve(false)
+			})
+			.connect(port, host)
 	})
 }

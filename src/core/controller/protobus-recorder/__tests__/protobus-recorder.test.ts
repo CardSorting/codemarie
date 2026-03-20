@@ -1,23 +1,24 @@
-import { GrpcRecorder, IRecorder } from "@core/controller/grpc-recorder/grpc-recorder"
 import { expect } from "chai"
+import { ProtobusRecorder } from "@/core/controller/protobus-recorder/protobus-recorder"
+import { IProtobusRecorder } from "@/core/controller/protobus-recorder/types"
 import { ExtensionMessage } from "@/shared/ExtensionMessage"
-import { GrpcRequest } from "@/shared/WebviewMessage"
+import { ProtobusRequest } from "@/shared/WebviewMessage"
 
-describe("grpc-recorder", () => {
-	let recorder: IRecorder
+describe("protobus-recorder", () => {
+	let recorder: IProtobusRecorder
 
 	before(async () => {
-		recorder = GrpcRecorder.builder()
-			.withFilters((req: GrpcRequest) => req.service === "the-unwanted-service")
+		recorder = ProtobusRecorder.builder()
+			.withFilters((req: ProtobusRequest) => req.service === "the-unwanted-service")
 			.enableIf(true)
 			.build()
 	})
 
-	describe("GrpcRecorder", () => {
+	describe("ProtobusRecorder", () => {
 		it("matches multiple request, response and stats", async () => {
 			interface UseCase {
-				request: GrpcRequest
-				response: ExtensionMessage["grpc_response"]
+				request: ProtobusRequest
+				response: ExtensionMessage["protobus_response"]
 				expectedStatus: string
 			}
 			const requestResponseUseCases: UseCase[] = [
@@ -117,7 +118,7 @@ describe("grpc-recorder", () => {
 		})
 
 		it("using default filtering should filter out unwanted requests", async () => {
-			const customRecorder = GrpcRecorder.builder()
+			const customRecorder = ProtobusRecorder.builder()
 				.withFilters(
 					(req) => req.is_streaming,
 					(req) => ["codemarie.UiService", "codemarie.McpService", "codemarie.WebService"].includes(req.service),
@@ -148,7 +149,7 @@ describe("grpc-recorder", () => {
 		})
 
 		it("cleanupSyntheticEntries removes synthetic entries from session log", async () => {
-			const testRecorder = GrpcRecorder.builder().enableIf(true).build()
+			const testRecorder = ProtobusRecorder.builder().enableIf(true).build()
 
 			// Add regular request
 			testRecorder.recordRequest({
@@ -190,7 +191,7 @@ describe("grpc-recorder", () => {
 				hookEntry = entry
 			}
 
-			const testRecorder = GrpcRecorder.builder().withPostRecordHooks(mockHook).enableIf(true).build()
+			const testRecorder = ProtobusRecorder.builder().withPostRecordHooks(mockHook).enableIf(true).build()
 
 			testRecorder.recordRequest({
 				service: "test-service",

@@ -1,6 +1,6 @@
 import { NewTaskRequest } from "@shared/proto/codemarie/task"
 import React from "react"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import QuickWinCard from "./QuickWinCard"
 import { QuickWinTask, quickWinTasks } from "./quickWinTasks"
 

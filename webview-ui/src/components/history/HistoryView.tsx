@@ -8,7 +8,7 @@ import { GroupedVirtuoso } from "react-virtuoso"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import { formatSize } from "@/utils/format"
 import ViewHeader from "../common/ViewHeader"
 import HistoryViewItem from "./HistoryViewItem"
@@ -49,7 +49,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 	// Keep track of pending favorite toggle operations
 	const [pendingFavoriteToggles, setPendingFavoriteToggles] = useState<Record<string, boolean>>({})
 
-	// Load filtered task history with gRPC
+	// Load filtered task history with Protobus
 	const [tasks, setTasks] = useState<any[]>([])
 
 	// Load and refresh task history

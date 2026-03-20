@@ -3,7 +3,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useMemo, useState } from "react"
 import VSCodeButtonLink from "@/components/common/VSCodeButtonLink"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
-import { AccountServiceClient, TaskServiceClient } from "@/services/grpc-client"
+import { AccountServiceClient, TaskServiceClient } from "@/services/protobus-client"
 
 interface CreditLimitErrorProps {
 	currentBalance: number

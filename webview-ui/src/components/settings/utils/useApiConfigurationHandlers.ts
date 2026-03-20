@@ -3,7 +3,7 @@ import { UpdateApiConfigurationPartialRequest } from "@shared/proto/codemarie/mo
 import { convertApiConfigurationToProto } from "@shared/proto-conversions/models/api-configuration-conversion"
 import { Mode } from "@shared/storage/types"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { ModelsServiceClient } from "@/services/grpc-client"
+import { ModelsServiceClient } from "@/services/protobus-client"
 
 export const useApiConfigurationHandlers = () => {
 	const { apiConfiguration, planActSeparateModelsSetting } = useExtensionState()

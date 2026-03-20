@@ -1,4 +1,3 @@
-import { status } from "@grpc/grpc-js"
 import { HostProvider } from "@/hosts/host-provider"
 import { DiffViewProvider } from "@/integrations/editor/DiffViewProvider"
 import { Logger } from "@/shared/services/Logger"
@@ -63,13 +62,10 @@ export class ExternalDiffViewProvider extends DiffViewProvider {
 			await HostProvider.diff.saveDocument({ diffId: this.activeDiffEditorId })
 			return true
 		} catch (err: any) {
-			if (err.code === status.NOT_FOUND) {
-				// This can happen when the task is reloaded or the diff editor is closed. So, don't
-				// consider it a real error.
-				Logger.log("Diff not found:", this.activeDiffEditorId)
-				return false
-			}
-			throw err
+			// This can happen when the task is reloaded or the diff editor is closed. So, don't
+			// consider it a real error.
+			Logger.log("Diff not found or error saving:", this.activeDiffEditorId, err)
+			return false
 		}
 	}
 

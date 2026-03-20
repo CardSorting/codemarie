@@ -1,7 +1,7 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { memo } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 
 type HistoryPreviewProps = {
 	showHistoryView: () => void

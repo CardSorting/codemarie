@@ -15,7 +15,7 @@ import {
 import { memo, useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { TaskServiceClient } from "@/services/grpc-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import { formatLargeNumber, formatSize } from "@/utils/format"
 
 type HistoryViewItemProps = {

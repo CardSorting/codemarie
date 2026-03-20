@@ -1,8 +1,8 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { ShowWebviewEvent } from "@shared/proto/codemarie/ui"
 import { Logger } from "@/shared/services/Logger"
-import { getRequestRegistry, StreamingResponseHandler } from "../grpc-handler"
 import type { Controller } from "../index"
+import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
 
 // Keep track of active show webview subscriptions
 const showWebviewSubscriptions = new Set<StreamingResponseHandler<ShowWebviewEvent>>()
@@ -12,7 +12,7 @@ const showWebviewSubscriptions = new Set<StreamingResponseHandler<ShowWebviewEve
  * @param controller The controller instance
  * @param request The show webview request containing preserveEditorFocus flag
  * @param responseStream The streaming response handler
- * @param requestId The ID of the request
+ * @param requestId The ID of the request (passed by the Protobus handler)
  */
 export async function subscribeToShowWebview(
 	_controller: Controller,
@@ -30,7 +30,7 @@ export async function subscribeToShowWebview(
 
 	// Register the cleanup function with the request registry if we have a requestId
 	if (requestId) {
-		getRequestRegistry().registerRequest(requestId, cleanup, { type: "show_webview_subscription" }, responseStream)
+		getProtobusRequestRegistry().registerRequest(requestId, cleanup, { type: "show_webview_subscription" }, responseStream)
 	}
 }
 

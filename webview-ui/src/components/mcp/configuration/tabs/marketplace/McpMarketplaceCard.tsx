@@ -3,7 +3,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import { useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { McpServiceClient } from "@/services/grpc-client"
+import { McpServiceClient } from "@/services/protobus-client"
 
 interface McpMarketplaceCardProps {
 	item: McpMarketplaceItem

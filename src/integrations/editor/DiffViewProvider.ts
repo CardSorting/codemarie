@@ -104,7 +104,7 @@ export abstract class DiffViewProvider {
 
 	/**
 	 * Safely truncates the document, ensuring the line number is within bounds.
-	 * This prevents errors on hosts that strictly validate line numbers (e.g., JetBrains via gRPC).
+	 * This prevents errors on hosts that strictly validate line numbers (e.g., JetBrains via Protobus).
 	 */
 	private async safelyTruncateDocument(lineNumber: number): Promise<void> {
 		const lineCount = await this.getDocumentLineCount()

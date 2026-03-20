@@ -18,7 +18,7 @@ import styled from "styled-components"
 import PopupModalContainer from "@/components/common/PopupModalContainer"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 import { isMacOSOrLinux } from "@/utils/platformUtils"
 import HookRow from "./HookRow"
 import NewRuleRow from "./NewRuleRow"
@@ -230,7 +230,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 	const hasRemoteRules = remoteGlobalRules.length > 0
 	const hasRemoteWorkflows = remoteGlobalWorkflows.length > 0
 
-	// Handle toggle rule using gRPC
+	// Handle toggle rule using Protobus
 	const toggleRule = (isGlobal: boolean, rulePath: string, enabled: boolean) => {
 		FileServiceClient.toggleCodemarieRule(
 			ToggleCodemarieRuleRequest.create({

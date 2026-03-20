@@ -4,7 +4,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import { memo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { FileServiceClient } from "@/services/grpc-client"
+import { FileServiceClient } from "@/services/protobus-client"
 import CodeBlock from "../common/CodeBlock"
 import ExpandHandle from "./ExpandHandle"
 

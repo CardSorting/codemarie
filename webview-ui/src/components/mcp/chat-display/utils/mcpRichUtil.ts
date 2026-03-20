@@ -1,5 +1,5 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
-import { WebServiceClient } from "@/services/grpc-client"
+import { WebServiceClient } from "@/services/protobus-client"
 
 // Represents a URL found in the text with its position and metadata
 export interface UrlMatch {
@@ -174,10 +174,10 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 		return false
 	}
 
-	// For https URLs, we need to use the gRPC FileService
+	// For https URLs, we need to use the Protobus FileService
 	if (url.startsWith("https")) {
 		try {
-			// Use the gRPC client with timeout
+			// Use the Protobus client with timeout
 			const timeoutPromise = new Promise<boolean>((resolve) => {
 				setTimeout(() => {
 					console.log("Hit timeout waiting for checkIsImageUrl")
@@ -189,7 +189,7 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 			const servicePromise = WebServiceClient.checkIsImageUrl(StringRequest.create({ value: url }))
 				.then((result) => result.isImage)
 				.catch((error) => {
-					console.error("Error checking if URL is an image via gRPC:", error)
+					console.error("Error checking if URL is an image via Protobus:", error)
 					return false
 				})
 

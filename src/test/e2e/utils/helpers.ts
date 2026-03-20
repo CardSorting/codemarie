@@ -42,10 +42,10 @@ export class E2ETestHelper {
 	}
 
 	/**
-	 * Generates a filename for gRPC recorder logs based on test information
+	 * Generates a filename for Protobus recorder logs based on test information
 	 * @param testTitle The title of the test
 	 * @param projectName The name of the test project (optional)
-	 * @returns A sanitized filename suitable for gRPC recorder logs
+	 * @returns A sanitized filename suitable for Protobus recorder logs
 	 */
 	public static generateTestFileName(testTitle: string, projectName?: string): string {
 		// Create a base name from the test title
@@ -252,9 +252,9 @@ export const e2e = test
 						CODEMARIE_ENVIRONMENT: process.env.CODEMARIE_ENVIRONMENT || process.env.CLINE_ENVIRONMENT || "local",
 						CODEMARIE_DIR: codemarieTestDir, // Isolate test data from user's ~/.codemarie
 						CLINE_DIR: codemarieTestDir, // Backwards compatibility for now
-						GRPC_RECORDER_FILE_NAME: E2ETestHelper.generateTestFileName(testInfo.title, testInfo.project.name),
-						// GRPC_RECORDER_ENABLED: "true",
-						// GRPC_RECORDER_TESTS_FILTERS_ENABLED: "true"
+						PROTOBUS_RECORDER_FILE_NAME: E2ETestHelper.generateTestFileName(testInfo.title, testInfo.project.name),
+						// PROTOBUS_RECORDER_ENABLED: "true",
+						// PROTOBUS_RECORDER_TESTS_FILTERS_ENABLED: "true"
 						// IS_DEV: "true",
 						// DEV_WORKSPACE_FOLDER: E2ETestHelper.CODEBASE_ROOT_DIR,
 					},

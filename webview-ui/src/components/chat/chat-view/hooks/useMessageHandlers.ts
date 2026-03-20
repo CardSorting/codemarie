@@ -3,7 +3,7 @@ import { EmptyRequest, StringRequest } from "@shared/proto/codemarie/common"
 import { AskResponseRequest, NewTaskRequest } from "@shared/proto/codemarie/task"
 import { useCallback, useRef } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { SlashServiceClient, TaskServiceClient } from "@/services/grpc-client"
+import { SlashServiceClient, TaskServiceClient } from "@/services/protobus-client"
 import type { ButtonActionType } from "../shared/buttonConfig"
 import type { ChatState, MessageHandlers } from "../types/chatTypes"
 

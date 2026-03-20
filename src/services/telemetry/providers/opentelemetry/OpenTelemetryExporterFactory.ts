@@ -1,8 +1,5 @@
-import { credentials as grpcCredentials } from "@grpc/grpc-js"
-import { OTLPLogExporter as OTLPLogExporterGRPC } from "@opentelemetry/exporter-logs-otlp-grpc"
 import { OTLPLogExporter as OTLPLogExporterHTTP } from "@opentelemetry/exporter-logs-otlp-http"
 import { OTLPLogExporter as OTLPLogExporterProto } from "@opentelemetry/exporter-logs-otlp-proto"
-import { OTLPMetricExporter as OTLPMetricExporterGRPC } from "@opentelemetry/exporter-metrics-otlp-grpc"
 import { OTLPMetricExporter as OTLPMetricExporterHTTP } from "@opentelemetry/exporter-metrics-otlp-http"
 import { OTLPMetricExporter as OTLPMetricExporterProto } from "@opentelemetry/exporter-metrics-otlp-proto"
 import { ConsoleLogRecordExporter, LogRecordExporter } from "@opentelemetry/sdk-logs"
@@ -39,7 +36,7 @@ export function ensurePathSuffix(url: URL, suffix: string): void {
 export function createOTLPLogExporter(
 	protocol: string,
 	endpoint: string,
-	insecure: boolean,
+	_insecure: boolean,
 	headers?: Record<string, string>,
 ): LogRecordExporter | null {
 	try {
@@ -48,17 +45,6 @@ export function createOTLPLogExporter(
 		ensurePathSuffix(logsUrl, "/v1/logs")
 
 		switch (protocol) {
-			case "grpc": {
-				const grpcEndpoint = endpoint.replace(/^https?:\/\//, "")
-				const credentials = insecure ? grpcCredentials.createInsecure() : grpcCredentials.createSsl()
-
-				exporter = new OTLPLogExporterGRPC({
-					url: grpcEndpoint,
-					credentials: credentials,
-					headers,
-				})
-				break
-			}
 			case "http/json": {
 				exporter = new OTLPLogExporterHTTP({ url: logsUrl.toString(), headers })
 				break
@@ -68,7 +54,7 @@ export function createOTLPLogExporter(
 				break
 			}
 			default:
-				Logger.warn(`[OTEL] Unknown OTLP protocol for logs: ${protocol}`)
+				Logger.warn(`[OTEL] Unknown or unsupported OTLP protocol for logs: ${protocol}. Protobus is no longer supported.`)
 				return null
 		}
 
@@ -102,7 +88,7 @@ export function createConsoleMetricReader(intervalMs: number, timeoutMs: number)
 export function createOTLPMetricReader(
 	protocol: string,
 	endpoint: string,
-	insecure: boolean,
+	_insecure: boolean,
 	intervalMs: number,
 	timeoutMs: number,
 	headers?: Record<string, string>,
@@ -114,17 +100,6 @@ export function createOTLPMetricReader(
 		ensurePathSuffix(metricsUrl, "/v1/metrics")
 
 		switch (protocol) {
-			case "grpc": {
-				const grpcEndpoint = endpoint.replace(/^https?:\/\//, "")
-				const credentials = insecure ? grpcCredentials.createInsecure() : grpcCredentials.createSsl()
-
-				exporter = new OTLPMetricExporterGRPC({
-					url: grpcEndpoint,
-					credentials: credentials,
-					headers,
-				})
-				break
-			}
 			case "http/json": {
 				exporter = new OTLPMetricExporterHTTP({ url: metricsUrl.toString(), headers })
 				break
@@ -134,7 +109,9 @@ export function createOTLPMetricReader(
 				break
 			}
 			default:
-				Logger.warn(`[OTEL] Unknown OTLP protocol for metrics: ${protocol}`)
+				Logger.warn(
+					`[OTEL] Unknown or unsupported OTLP protocol for metrics: ${protocol}. Protobus is no longer supported.`,
+				)
 				return null
 		}
 

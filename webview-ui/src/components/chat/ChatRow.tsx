@@ -48,7 +48,7 @@ import McpResourceRow from "@/components/mcp/configuration/tabs/installed/server
 import McpToolRow from "@/components/mcp/configuration/tabs/installed/server-row/McpToolRow"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
-import { FileServiceClient, UiServiceClient } from "@/services/grpc-client"
+import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
 import { findMatchingResourceOrTemplate, getMcpServerDisplayName } from "@/utils/mcp"
 import CodeAccordian, { cleanPathPrefix } from "../common/CodeAccordian"
 import { AlignmentGuard } from "./AlignmentGuard"
@@ -705,7 +705,7 @@ export const ChatRowContent = memo(
 							<div
 								className="bg-code rounded-xs overflow-hidden border border-editor-group-border py-2 px-2.5 cursor-pointer select-none"
 								onClick={() => {
-									// Open the URL in the default browser using gRPC
+									// Open the URL in the default browser using Protobus
 									if (tool.path) {
 										UiServiceClient.openUrl(StringRequest.create({ value: tool.path })).catch((err) => {
 											console.error("Failed to open URL:", err)

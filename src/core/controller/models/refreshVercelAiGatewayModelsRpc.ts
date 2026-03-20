@@ -5,7 +5,7 @@ import { Controller } from ".."
 import { refreshVercelAiGatewayModels } from "./refreshVercelAiGatewayModels"
 
 /**
- * Handles protobuf conversion for gRPC service
+ * Handles protobuf conversion for Protobus service
  * @param controller The controller instance
  * @param request Empty request object
  * @returns Response containing Vercel AI Gateway models (protobuf types)
