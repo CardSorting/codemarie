@@ -23,7 +23,11 @@ export async function createDirectoriesForFile(filePath: string): Promise<string
 	// Traverse up the directory tree and collect missing directories
 	while (!(await fileExistsAtPath(currentPath))) {
 		dirsToCreate.push(currentPath)
-		currentPath = path.dirname(currentPath)
+		const nextPath = path.dirname(currentPath)
+		if (nextPath === currentPath) {
+			break
+		}
+		currentPath = nextPath
 	}
 
 	// Create directories from the topmost missing one down to the target directory
