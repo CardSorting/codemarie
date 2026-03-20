@@ -3,12 +3,12 @@ import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { memo, useEffect, useState } from "react"
 import CodemarieLogoWhite from "@/assets/CodemarieLogoWhite"
 import ApiOptions from "@/components/settings/ApiOptions"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { AccountServiceClient, StateServiceClient } from "@/services/protobus-client"
 import { validateApiConfiguration } from "@/utils/validate"
 
 const WelcomeView = memo(() => {
-	const { apiConfiguration, mode } = useExtensionState()
+	const { apiConfiguration, mode } = useGlobalState()
 	const [apiErrorMessage, setApiErrorMessage] = useState<string | undefined>(undefined)
 	const [showApiOptions, setShowApiOptions] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)

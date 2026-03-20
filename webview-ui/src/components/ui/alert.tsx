@@ -24,8 +24,13 @@ const alertVariants = cva(
 const Alert = React.forwardRef<
 	HTMLDivElement,
 	React.HTMLAttributes<HTMLDivElement> &
-		VariantProps<typeof alertVariants> & { isDismissible?: boolean; title?: string; icon?: React.ReactNode }
->(({ className, variant, children, isDismissible = true, title, icon, ...props }, ref) => {
+		VariantProps<typeof alertVariants> & {
+			isDismissible?: boolean
+			title?: string
+			icon?: React.ReactNode
+			onClose?: () => void
+		}
+>(({ className, variant, children, isDismissible = true, title, icon, onClose, ...props }, ref) => {
 	const [dismissed, setDismissed] = React.useState(false)
 	if (dismissed) {
 		return null
@@ -46,6 +51,7 @@ const Alert = React.forwardRef<
 							e.preventDefault()
 							e.stopPropagation()
 							setDismissed(true)
+							onClose?.()
 						}}
 						size="icon"
 						variant="icon">

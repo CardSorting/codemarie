@@ -25,6 +25,7 @@ export function RemoteConfigToggle({ activeOrganization }: { activeOrganization:
 	return (
 		<VSCodeCheckbox
 			checked={optOutOfRemoteConfig}
+			// biome-ignore lint/suspicious/noExplicitAny: VSCodeCheckbox event type mismatch
 			onChange={(e: any) => {
 				const isChecked = e.target.checked === true
 

@@ -3,7 +3,7 @@ import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TaskServiceClient } from "@/services/protobus-client"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useNavigation } from "../../context/NavigationContext"
 
 // Custom MCP Server Icon component using VSCode codicon
 const McpServerIcon = ({ className, size }: { className?: string; size?: number }) => (
@@ -14,7 +14,7 @@ const McpServerIcon = ({ className, size }: { className?: string; size?: number 
 )
 
 export const Navbar = () => {
-	const { navigateToHistory, navigateToSettings, navigateToAccount, navigateToMcp, navigateToChat } = useExtensionState()
+	const { navigateToHistory, navigateToSettings, navigateToAccount, navigateToMcp, navigateToChat } = useNavigation()
 
 	const SETTINGS_TABS = useMemo(
 		() => [

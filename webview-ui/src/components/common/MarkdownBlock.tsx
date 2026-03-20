@@ -11,10 +11,10 @@ import type { Node } from "unist"
 import { visit } from "unist-util-visit"
 import MermaidBlock from "@/components/common/MermaidBlock"
 import { Button } from "@/components/ui/button"
+import { WithCopyButton } from "@/components/ui/copy-button"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { FileServiceClient, StateServiceClient } from "@/services/protobus-client"
-import { WithCopyButton } from "./CopyButton"
 
 function parseMarkdownIntoBlocks(markdown: string): string[] {
 	try {

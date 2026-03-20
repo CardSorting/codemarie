@@ -1,5 +1,5 @@
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
-import VSCodeButtonLink from "../common/VSCodeButtonLink"
+import { Button } from "@/components/ui/button"
 import { StyledCreditDisplay } from "./StyledCreditDisplay"
 
 type CreditBalanceProps = {
@@ -29,9 +29,11 @@ export const CreditBalance = ({ balance, fetchCreditBalance, creditUrl, lastFetc
 			</div>
 
 			<div className="w-full">
-				<VSCodeButtonLink className="w-full" href={creditUrl.href}>
-					Add Credits
-				</VSCodeButtonLink>
+				<Button asChild className="w-full">
+					<a href={creditUrl.href} style={{ textDecoration: "none", color: "inherit" }}>
+						Add Credits
+					</a>
+				</Button>
 			</div>
 		</div>
 	)

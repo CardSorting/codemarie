@@ -1,17 +1,23 @@
 import { type ReactNode } from "react"
 import { CustomPostHogProvider } from "./CustomPostHogProvider"
-import { CodemarieAuthProvider } from "./context/CodemarieAuthContext"
-import { ExtensionStateContextProvider } from "./context/ExtensionStateContext"
-import { PlatformProvider } from "./context/PlatformContext"
+import { AuthProvider } from "./context/AuthContext"
+import { GlobalStateProvider } from "./context/GlobalStateContext"
+import { ModelStateProvider } from "./context/ModelStateContext"
+import { NavigationProvider } from "./context/NavigationContext"
+import { NotificationProvider } from "./context/NotificationContext"
 
 export function Providers({ children }: { children: ReactNode }) {
 	return (
-		<PlatformProvider>
-			<ExtensionStateContextProvider>
-				<CustomPostHogProvider>
-					<CodemarieAuthProvider>{children}</CodemarieAuthProvider>
-				</CustomPostHogProvider>
-			</ExtensionStateContextProvider>
-		</PlatformProvider>
+		<GlobalStateProvider>
+			<ModelStateProvider>
+				<AuthProvider>
+					<NavigationProvider>
+						<NotificationProvider>
+							<CustomPostHogProvider>{children}</CustomPostHogProvider>
+						</NotificationProvider>
+					</NavigationProvider>
+				</AuthProvider>
+			</ModelStateProvider>
+		</GlobalStateProvider>
 	)
 }

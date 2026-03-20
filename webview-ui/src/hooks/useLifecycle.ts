@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 export const useMount = (fn: () => void) => {
 	useEffect(() => {
 		fn()
-	}, [])
+	}, [fn])
 }
 
 export const useInterval = (callback: () => void, delay: number | null) => {

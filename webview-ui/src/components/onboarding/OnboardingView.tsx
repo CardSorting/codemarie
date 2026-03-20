@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Item, ItemContent, ItemDescription, ItemHeader, ItemMedia, ItemTitle } from "@/components/ui/item"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useModels } from "@/context/ModelStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { cn } from "@/lib/utils"
 import { AccountServiceClient, StateServiceClient } from "@/services/protobus-client"
 import ApiConfigurationSection from "../settings/sections/ApiConfigurationSection"
@@ -272,7 +274,9 @@ const OnboardingStepContent = ({
 
 const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingModelGroup }) => {
 	const { handleFieldsChange } = useApiConfigurationHandlers()
-	const { openRouterModels, hideSettings, hideAccount, setShowWelcome } = useExtensionState()
+	const { setShowWelcome } = useGlobalState()
+	const { hideSettings, hideAccount } = useNavigation()
+	const { openRouterModels } = useModels()
 
 	const [stepNumber, setStepNumber] = useState(0)
 	const [isActionLoading, setIsActionLoading] = useState(false)

@@ -1,7 +1,7 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import DOMPurify from "dompurify"
 import React from "react"
-import ChatErrorBoundary from "@/components/chat/ChatErrorBoundary"
+import ChatErrorBoundary from "@/components/chat/components/messages/rows/ChatErrorBoundary"
 import { FileServiceClient, WebServiceClient } from "@/services/protobus-client"
 import { checkIfImageUrl, formatUrlForOpening, getSafeHostname } from "./utils/mcpRichUtil"
 
@@ -21,7 +21,6 @@ class ImagePreview extends React.Component<
 	private imgRef = React.createRef<HTMLImageElement>()
 	private timeoutId: NodeJS.Timeout | null = null
 	private heartbeatId: NodeJS.Timeout | null = null
-	private aspectRatio = 1
 
 	constructor(props: ImagePreviewProps) {
 		super(props)

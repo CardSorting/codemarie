@@ -16,6 +16,38 @@ export interface Callbacks<TResponse> {
 /* biome-ignore lint/complexity/noStaticOnlyClass: ProtoBusClient is used as a namespace for Protobus methods */
 export abstract class ProtoBusClient {
 	static serviceName: string
+	static notificationHandler: ((type: "info" | "warning" | "error", message: string) => void) | null = null
+
+	static setNotificationHandler(handler: (type: "info" | "warning" | "error", message: string) => void) {
+		this.notificationHandler = handler
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: Message type is determined by host
+	static handleHostAction(message: any) {
+		if (message.type === "host_action") {
+			const { method, args } = message.host_action
+			const messageText = args[0]
+			let type: "info" | "warning" | "error" = "info"
+
+			if (method === "showInformationMessage") {
+				type = "info"
+			} else if (method === "showWarningMessage") {
+				type = "warning"
+			} else if (method === "showErrorMessage") {
+				type = "error"
+			} else {
+				return false
+			}
+
+			if (this.notificationHandler) {
+				this.notificationHandler(type, messageText)
+			} else {
+				console.log(`[${type.toUpperCase()}] ${messageText}`)
+			}
+			return true
+		}
+		return false
+	}
 
 	static async makeUnaryRequest<TRequest, TResponse>(
 		methodName: string,
@@ -29,16 +61,7 @@ export abstract class ProtoBusClient {
 			// Set up one-time listener for this specific request
 			const handleResponse = (event: MessageEvent) => {
 				const message = event.data
-				if (message.type === "host_action") {
-					// Special handling for host actions like showing messages
-					const { method, args } = message.host_action
-					if (method === "showInformationMessage") {
-						alert(`INFO: ${args[0]}`)
-					} else if (method === "showWarningMessage") {
-						alert(`WARNING: ${args[0]}`)
-					} else if (method === "showErrorMessage") {
-						alert(`ERROR: ${args[0]}`)
-					}
+				if (this.handleHostAction(message)) {
 					return
 				}
 				if (message.type === "protobus_response" && message.protobus_response?.request_id === requestId) {
@@ -80,19 +103,10 @@ export abstract class ProtoBusClient {
 		// Set up listener for streaming responses
 		const handleResponse = (event: MessageEvent) => {
 			const message = event.data
+			if (this.handleHostAction(message)) {
+				return
+			}
 			if (message.type === "protobus_response" && message.protobus_response?.request_id === requestId) {
-				if (message.type === "host_action") {
-					// Special handling for host actions like showing messages
-					const { method, args } = message.host_action
-					if (method === "showInformationMessage") {
-						alert(`INFO: ${args[0]}`)
-					} else if (method === "showWarningMessage") {
-						alert(`WARNING: ${args[0]}`)
-					} else if (method === "showErrorMessage") {
-						alert(`ERROR: ${args[0]}`)
-					}
-					return
-				}
 				if (message.protobus_response.message) {
 					// Process streaming message
 					const response = PLATFORM_CONFIG.decodeMessage(message.protobus_response.message, decodeResponse)

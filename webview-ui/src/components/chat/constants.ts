@@ -1,10 +1,7 @@
 /**
- * Shared constants for chat components
+ * Constants used across the chat view components
  */
-
-/**
- * Marker string used to separate hook metadata from hook output in hook messages.
- * When a hook executes, its metadata (status, tool info, etc.) is followed by this
- * marker, which is then followed by the actual output from the hook script.
- */
-export const HOOK_OUTPUT_STRING = "__HOOK_OUTPUT__"
+export const CHAT_CONSTANTS = {
+	MAX_IMAGES_AND_FILES_PER_MESSAGE: 20,
+	QUICK_WINS_HISTORY_THRESHOLD: 300,
+} as const

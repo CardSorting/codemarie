@@ -4,7 +4,7 @@ import { McpServers } from "@shared/proto/codemarie/mcp"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { useEffect, useState } from "react"
 import styled from "styled-components"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { McpServiceClient } from "@/services/protobus-client"
 import ViewHeader from "../../common/ViewHeader"
 import AddRemoteServerForm from "./tabs/add-server/AddRemoteServerForm"
@@ -17,7 +17,7 @@ type McpViewProps = {
 }
 
 const McpConfigurationView = ({ onDone, initialTab }: McpViewProps) => {
-	const { remoteConfigSettings, setMcpServers, environment } = useExtensionState()
+	const { remoteConfigSettings, setMcpServers, environment, setMcpMarketplaceCatalog } = useGlobalState()
 	// Show marketplace by default unless remote config explicitly disables it
 	const showMarketplace = remoteConfigSettings?.mcpMarketplaceEnabled !== false
 	const showRemoteServers = remoteConfigSettings?.blockPersonalRemoteMCPServers !== true
@@ -36,9 +36,6 @@ const McpConfigurationView = ({ onDone, initialTab }: McpViewProps) => {
 			setActiveTab("configure")
 		}
 	}, [showMarketplace, showRemoteServers, activeTab])
-
-	// Get setter for MCP marketplace catalog from context
-	const { setMcpMarketplaceCatalog } = useExtensionState()
 
 	useEffect(() => {
 		if (showMarketplace) {

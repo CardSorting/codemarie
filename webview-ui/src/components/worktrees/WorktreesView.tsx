@@ -11,7 +11,7 @@ import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { AlertCircle, Check, ExternalLink, FolderOpen, GitBranch, GitMerge, Loader2, Plus, Trash2, X } from "lucide-react"
 import { memo, useCallback, useEffect, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { FileServiceClient, TaskServiceClient, WorktreeServiceClient } from "@/services/protobus-client"
 import { getEnvironmentColor } from "@/utils/environmentColors"
 import CreateWorktreeModal from "./CreateWorktreeModal"
@@ -22,7 +22,7 @@ type WorktreesViewProps = {
 }
 
 const WorktreesView = ({ onDone }: WorktreesViewProps) => {
-	const { environment } = useExtensionState()
+	const { environment } = useGlobalState()
 	const [worktrees, setWorktrees] = useState<WorktreeProto[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)

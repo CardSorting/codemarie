@@ -5,13 +5,13 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeDivider, VSCodeDropdown, VSCodeOption, VSCodeTag } from "@vscode/webview-ui-toolkit/react"
 import deepEqual from "fast-deep-equal"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { type CodemarieUser, handleSignOut } from "@/context/CodemarieAuthContext"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { type CodemarieUser, useAuth } from "@/context/AuthContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { useInterval } from "@/hooks/useLifecycle"
 import { AccountServiceClient } from "@/services/protobus-client"
 import ViewHeader from "../common/ViewHeader"
-import VSCodeButtonLink from "../common/VSCodeButtonLink"
 import { updateSetting } from "../settings/utils/settingsHandlers"
 import { AccountWelcomeView } from "./AccountWelcomeView"
 import { CreditBalance } from "./CreditBalance"
@@ -20,9 +20,6 @@ import { convertProtoUsageTransactions, getCodemarieUris, getMainRole } from "./
 import { RemoteConfigToggle } from "./RemoteConfigToggle"
 
 type AccountViewProps = {
-	codemarieUser: CodemarieUser | null
-	organizations: UserOrganization[] | null
-	activeOrganization: UserOrganization | null
 	onDone: () => void
 }
 
@@ -42,8 +39,9 @@ type CachedData = {
 
 const CodemarieEnvOptions = ["Production", "Staging", "Local"] as const
 
-const AccountView = ({ onDone, codemarieUser, organizations, activeOrganization }: AccountViewProps) => {
-	const { environment } = useExtensionState()
+const AccountView = ({ onDone }: AccountViewProps) => {
+	const { environment } = useGlobalState()
+	const { user: codemarieUser, userOrganizations: organizations, activeOrganization } = useAuth()
 
 	return (
 		<div className="fixed inset-0 flex flex-col overflow-hidden">
@@ -72,7 +70,8 @@ export const CodemarieAccountView = ({
 	codemarieEnv,
 }: CodemarieAccountViewProps) => {
 	const { email, displayName, appBaseUrl, uid } = codemarieUser
-	const { remoteConfigSettings, environment } = useExtensionState()
+	const { remoteConfigSettings, environment } = useGlobalState()
+	const { handleSignOut } = useAuth()
 
 	// Determine if dropdown should be locked by remote config
 	const isLockedByRemoteConfig = Object.keys(remoteConfigSettings || {}).length > 0
@@ -120,7 +119,7 @@ export const CodemarieAccountView = ({
 	const [lastActiveOrgId, setLastActiveOrgId] = useState<string | undefined>(activeOrganization?.organizationId)
 	// Use ref for debounce timeout to avoid re-renders
 	const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-	// Track if manual fetch is in progress to avoid duplicate fetches
+	// Track if manual fetch in progress to avoid duplicate fetches
 	const manualFetchInProgressRef = useRef<boolean>(false)
 	// Track if initial mount fetch has completed to avoid duplicate fetches
 	const initialFetchCompleteRef = useRef<boolean>(false)
@@ -188,6 +187,7 @@ export const CodemarieAccountView = ({
 	)
 
 	const handleOrganizationChange = useCallback(
+		// biome-ignore lint/suspicious/noExplicitAny: VSCodeDropdown event type mismatch
 		async (event: any) => {
 			const target = event.target as HTMLSelectElement
 			if (!target) {
@@ -367,12 +367,13 @@ export const CodemarieAccountView = ({
 
 				<div className="w-full flex gap-2 flex-col min-[225px]:flex-row">
 					<div className="w-full min-[225px]:w-1/2">
-						<VSCodeButtonLink
-							appearance="primary"
-							className="w-full"
-							href={getCodemarieUris(codemarieUrl, "dashboard").href}>
-							Dashboard
-						</VSCodeButtonLink>
+						<Button asChild className="w-full">
+							<a
+								href={getCodemarieUris(codemarieUrl, "dashboard").href}
+								style={{ textDecoration: "none", color: "inherit" }}>
+								Dashboard
+							</a>
+						</Button>
 					</div>
 					<VSCodeButton appearance="secondary" className="w-full min-[225px]:w-1/2" onClick={() => handleSignOut()}>
 						Log out

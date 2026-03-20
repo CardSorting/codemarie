@@ -1,7 +1,7 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import DOMPurify from "dompurify"
 import React from "react"
-import ChatErrorBoundary from "@/components/chat/ChatErrorBoundary"
+import ChatErrorBoundary from "@/components/chat/components/messages/rows/ChatErrorBoundary"
 import { WebServiceClient } from "@/services/protobus-client"
 import { getSafeHostname, normalizeRelativeUrl } from "./utils/mcpRichUtil"
 

@@ -1,49 +1,47 @@
 import type { Boolean, EmptyRequest } from "@shared/proto/codemarie/common"
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 import AccountView from "./components/account/AccountView"
 import ChatView from "./components/chat/ChatView"
+import { ErrorBoundary } from "./components/common/ErrorBoundary"
+import { NotificationCenter } from "./components/common/NotificationCenter"
 import HistoryView from "./components/history/HistoryView"
 import McpView from "./components/mcp/configuration/McpConfigurationView"
 import OnboardingView from "./components/onboarding/OnboardingView"
 import SettingsView from "./components/settings/SettingsView"
 import WelcomeView from "./components/welcome/WelcomeView"
 import WorktreesView from "./components/worktrees/WorktreesView"
-import { useCodemarieAuth } from "./context/CodemarieAuthContext"
-import { useExtensionState } from "./context/ExtensionStateContext"
+import { useAuth } from "./context/AuthContext"
+import { useGlobalState } from "./context/GlobalStateContext"
+import { useNavigation } from "./context/NavigationContext"
 import { Providers } from "./Providers"
 import { UiServiceClient } from "./services/protobus-client"
 
 const AppContent = () => {
+	const { didHydrateState, showWelcome, shouldShowAnnouncement, onboardingModels, setState } = useGlobalState()
+
 	const {
-		didHydrateState,
-		showWelcome,
-		shouldShowAnnouncement,
-		showMcp,
+		activeView,
 		mcpTab,
-		showSettings,
 		settingsTargetSection,
-		showHistory,
-		showAccount,
-		showWorktrees,
-		showAnnouncement,
-		onboardingModels,
-		setShowAnnouncement,
-		setShouldShowAnnouncement,
-		closeMcpView,
 		navigateToHistory,
 		hideSettings,
 		hideHistory,
 		hideAccount,
 		hideWorktrees,
-		hideAnnouncement,
-	} = useExtensionState()
+		closeMcpView,
+	} = useNavigation()
 
-	const { codemarieUser, organizations, activeOrganization } = useCodemarieAuth()
+	useAuth()
+
+	const showAnnouncement = shouldShowAnnouncement
+	const setShouldShowAnnouncement = useCallback(
+		(value: boolean) => setState((prev) => ({ ...prev, shouldShowAnnouncement: value })),
+		[setState],
+	)
+	const hideAnnouncement = () => setState((prev) => ({ ...prev, shouldShowAnnouncement: false }))
 
 	useEffect(() => {
 		if (shouldShowAnnouncement) {
-			setShowAnnouncement(true)
-
 			// Use the Protobus client instead of direct WebviewMessage
 			UiServiceClient.onDidShowAnnouncement({} as EmptyRequest)
 				.then((response: Boolean) => {
@@ -53,38 +51,38 @@ const AppContent = () => {
 					console.error("Failed to acknowledge announcement:", error)
 				})
 		}
-	}, [shouldShowAnnouncement, setShouldShowAnnouncement, setShowAnnouncement])
+	}, [shouldShowAnnouncement, setShouldShowAnnouncement])
 
 	if (!didHydrateState) {
 		return null
 	}
 
 	if (showWelcome) {
-		return onboardingModels ? <OnboardingView onboardingModels={onboardingModels} /> : <WelcomeView />
+		return (
+			<ErrorBoundary>
+				{onboardingModels ? <OnboardingView onboardingModels={onboardingModels} /> : <WelcomeView />}
+			</ErrorBoundary>
+		)
 	}
 
 	return (
-		<div className="flex h-screen w-full flex-col">
-			{showSettings && <SettingsView onDone={hideSettings} targetSection={settingsTargetSection} />}
-			{showHistory && <HistoryView onDone={hideHistory} />}
-			{showMcp && <McpView initialTab={mcpTab} onDone={closeMcpView} />}
-			{showAccount && (
-				<AccountView
-					activeOrganization={activeOrganization}
-					codemarieUser={codemarieUser}
-					onDone={hideAccount}
-					organizations={organizations}
+		<ErrorBoundary>
+			<div className="flex h-screen w-full flex-col">
+				<NotificationCenter />
+				{activeView === "settings" && <SettingsView onDone={hideSettings} targetSection={settingsTargetSection} />}
+				{activeView === "history" && <HistoryView onDone={hideHistory} />}
+				{activeView === "mcp" && <McpView initialTab={mcpTab} onDone={closeMcpView} />}
+				{activeView === "account" && <AccountView onDone={hideAccount} />}
+				{activeView === "worktrees" && <WorktreesView onDone={hideWorktrees} />}
+				{/* Do not conditionally load ChatView, it's expensive and there's state we don't want to lose (user input, disableInput, askResponse promise, etc.) */}
+				<ChatView
+					hideAnnouncement={hideAnnouncement}
+					isHidden={activeView !== "chat"}
+					showAnnouncement={showAnnouncement}
+					showHistoryView={navigateToHistory}
 				/>
-			)}
-			{showWorktrees && <WorktreesView onDone={hideWorktrees} />}
-			{/* Do not conditionally load ChatView, it's expensive and there's state we don't want to lose (user input, disableInput, askResponse promise, etc.) */}
-			<ChatView
-				hideAnnouncement={hideAnnouncement}
-				isHidden={showSettings || showHistory || showMcp || showAccount || showWorktrees}
-				showAnnouncement={showAnnouncement}
-				showHistoryView={navigateToHistory}
-			/>
-		</div>
+			</div>
+		</ErrorBoundary>
 	)
 }
 

@@ -1,9 +1,9 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
+import { useDebounceEffect } from "@/hooks"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/services/protobus-client"
-import { useDebounceEffect } from "@/utils/useDebounceEffect"
 
 const MERMAID_THEME = {
 	background: "#1e1e1e", // VS Code dark theme background

@@ -16,7 +16,7 @@ vi.mock("@/context/ExtensionStateContext", () => ({
 	}),
 }))
 
-import UserMessage from "../UserMessage"
+import UserMessage from "../components/messages/rows/UserMessage"
 
 describe("UserMessage – IME composition handling", () => {
 	it("does NOT send when IME composition Enter is pressed while editing", () => {

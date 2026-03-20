@@ -7,7 +7,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { GroupedVirtuoso } from "react-virtuoso"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { TaskServiceClient } from "@/services/protobus-client"
 import { formatSize } from "@/utils/format"
 import ViewHeader from "../common/ViewHeader"
@@ -36,8 +36,7 @@ const HISTORY_FILTERS = {
 }
 
 const HistoryView = ({ onDone }: HistoryViewProps) => {
-	const extensionStateContext = useExtensionState()
-	const { taskHistory, onRelinquishControl, environment } = extensionStateContext
+	const { taskHistory, onRelinquishControl, environment, totalTasksSize, setTotalTasksSize } = useGlobalState()
 	const [searchQuery, setSearchQuery] = useState("")
 	const [sortOption, setSortOption] = useState<SortOption>("newest")
 	const [lastNonRelevantSort, setLastNonRelevantSort] = useState<SortOption | null>("newest")
@@ -125,13 +124,11 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 		})
 	}, [onRelinquishControl])
 
-	const { totalTasksSize, setTotalTasksSize } = extensionStateContext
-
 	const fetchTotalTasksSize = useCallback(async () => {
 		try {
 			const response = await TaskServiceClient.getTotalTasksSize(EmptyRequest.create({}))
 			if (response && typeof response.value === "number") {
-				setTotalTasksSize?.(response.value || 0)
+				setTotalTasksSize(response.value || 0)
 			}
 		} catch (error) {
 			console.error("Error getting total tasks size:", error)

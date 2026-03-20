@@ -1,9 +1,8 @@
 import { UpdateTerminalConnectionTimeoutResponse } from "@shared/proto/index.codemarie"
 import { VSCodeCheckbox, VSCodeDropdown, VSCodeOption, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import React, { useState } from "react"
-import { PlatformType } from "@/config/platform.config"
+import { PLATFORM_CONFIG, PlatformType } from "@/config/platform.config"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { usePlatform } from "@/context/PlatformContext"
 import { StateServiceClient } from "../../../services/protobus-client"
 import Section from "../Section"
 import TerminalOutputLineLimitSlider from "../TerminalOutputLineLimitSlider"
@@ -21,9 +20,7 @@ export const TerminalSettingsSection: React.FC<TerminalSettingsSectionProps> = (
 		availableTerminalProfiles,
 		vscodeTerminalExecutionMode,
 	} = useExtensionState()
-	const platformConfig = usePlatform()
-	const isVsCodePlatform = platformConfig.type === PlatformType.VSCODE
-
+	const isVsCodePlatform = PLATFORM_CONFIG.type === PlatformType.VSCODE
 	const [inputValue, setInputValue] = useState((shellIntegrationTimeout / 1000).toString())
 	const [inputError, setInputError] = useState<string | null>(null)
 

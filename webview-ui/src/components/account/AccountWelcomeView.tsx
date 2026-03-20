@@ -1,14 +1,9 @@
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { useCodemarieSignIn } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import CodemarieLogoVariable from "../../assets/CodemarieLogoVariable"
 
-// export const AccountWelcomeView = () => (
-// 	<div className="flex flex-col items-center pr-3 gap-2.5">
-// 		<CodemarieLogoWhite className="size-16 mb-4" />
 export const AccountWelcomeView = () => {
-	const { environment } = useExtensionState()
-	const { isLoginLoading, handleSignIn } = useCodemarieSignIn()
+	const { environment, isLoginLoading, handleSignIn } = useExtensionState()
 
 	return (
 		<div className="flex flex-col items-center gap-2.5">

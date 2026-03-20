@@ -1,7 +1,6 @@
 import type { ExtensionMessage } from "@shared/ExtensionMessage"
 import { KeyValuePair } from "@shared/proto/codemarie/common"
 import { ResetStateRequest } from "@shared/proto/codemarie/state"
-import { UserOrganization } from "@shared/proto/index.codemarie"
 import {
 	CheckCheck,
 	FlaskConical,
@@ -14,14 +13,15 @@ import {
 	Wrench,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { Tab, TabContent, TabList, TabTrigger } from "@/components/ui/tab"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useAuth } from "@/context/AuthContext"
+import { useGlobalState } from "@/context/GlobalStateContext"
+import { useNavigation } from "@/context/NavigationContext"
 import { useEvent } from "@/hooks/useBrowser"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/services/protobus-client"
 import { isAdminOrOwner } from "../account/helpers"
-import { Tab, TabContent, TabList, TabTrigger } from "../common/Tab"
 import ViewHeader from "../common/ViewHeader"
 import SectionHeader from "./SectionHeader"
 import AboutSection from "./sections/AboutSection"
@@ -53,7 +53,7 @@ interface SettingsTab {
 	tooltipText: string
 	headerText: string
 	icon: LucideIcon
-	hidden?: (params?: { activeOrganization: UserOrganization | null }) => boolean
+	hidden?: (params?: { activeOrganization: any | null }) => boolean
 }
 
 export const SETTINGS_TABS: SettingsTab[] = [
@@ -165,8 +165,9 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 		[],
 	) // Empty deps - these imports never change
 
-	const { version, environment, settingsInitialModelTab } = useExtensionState()
-	const { activeOrganization } = useCodemarieAuth()
+	const { version, environment } = useGlobalState()
+	const { settingsInitialModelTab } = useNavigation()
+	const { activeOrganization } = useAuth()
 
 	const [activeTab, setActiveTab] = useState<string>(targetSection || SETTINGS_TABS[0].id)
 

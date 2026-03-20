@@ -3,17 +3,17 @@ import { type ReactNode, useEffect, useState } from "react"
 import { useExtensionState } from "./context/ExtensionStateContext"
 
 export function CustomPostHogProvider({ children }: { children: ReactNode }) {
-	const { distinctId, version, userInfo, environment } = useExtensionState()
+	const { distinctId, version, userInfo, environment, telemetrySetting } = useExtensionState()
 
 	// Skip PostHog entirely in self-hosted mode or when environment is unknown (safety fallback)
 	const isSelfHostedOrUnknown = !environment || environment === "selfHosted"
 
-	// NOTE: This is a hack to stop recording webview click events temporarily.
-	// Remove this to re-enable.
-	// const isTelemetryEnabled = telemetrySetting !== "disabled";
-	const isTelemetryEnabled = false
+	// Match telemetry setting logic from backend
+	const isTelemetryEnabled = telemetrySetting !== "disabled"
 	const [isActive, setIsActive] = useState(false)
+	// biome-ignore lint/suspicious/noExplicitAny: PostHog types are dynamic
 	const [PostHogProvider, setPostHogProvider] = useState<any>(null)
+	// biome-ignore lint/suspicious/noExplicitAny: PostHog types are dynamic
 	const [posthogInstance, setPosthogInstance] = useState<any>(null)
 
 	useEffect(() => {
@@ -49,7 +49,7 @@ export function CustomPostHogProvider({ children }: { children: ReactNode }) {
 		}
 
 		initPostHog()
-	}, [isSelfHostedOrUnknown, isActive])
+	}, [isSelfHostedOrUnknown, isActive, isTelemetryEnabled])
 
 	useEffect(() => {
 		if (!isTelemetryEnabled || !isActive || !distinctId || !version || !posthogInstance) {
@@ -57,6 +57,7 @@ export function CustomPostHogProvider({ children }: { children: ReactNode }) {
 		}
 
 		posthogInstance.set_config({
+			// biome-ignore lint/suspicious/noExplicitAny: PostHog payload type is complex
 			before_send: (payload: any) => {
 				// Only filter out events if telemetry is disabled, but allow feature flag requests
 				if (!isTelemetryEnabled && payload?.event !== "$feature_flag_called") {
@@ -86,7 +87,7 @@ export function CustomPostHogProvider({ children }: { children: ReactNode }) {
 			// Then opt out of capturing other events
 			posthogInstance.opt_out_capturing()
 		}
-	}, [isActive, distinctId, version, userInfo?.displayName, userInfo?.email, posthogInstance])
+	}, [isActive, distinctId, version, userInfo?.displayName, userInfo?.email, posthogInstance, isTelemetryEnabled])
 
 	if (PostHogProvider && posthogInstance) {
 		return <PostHogProvider client={posthogInstance}>{children}</PostHogProvider>

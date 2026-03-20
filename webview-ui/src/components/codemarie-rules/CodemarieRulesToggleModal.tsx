@@ -34,8 +34,6 @@ const CodemarieRulesToggleModal: React.FC = () => {
 		localAgentsRulesToggles = {},
 		localWorkflowToggles = {},
 		globalWorkflowToggles = {},
-		globalSkillsToggles = {},
-		localSkillsToggles = {},
 		remoteRulesToggles = {},
 		remoteWorkflowToggles = {},
 		remoteConfigSettings = {},
@@ -63,7 +61,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 	const [isVisible, setIsVisible] = useState(false)
 	const buttonRef = useRef<HTMLDivElement>(null)
 	const modalRef = useRef<HTMLDivElement>(null)
-	const { width: viewportWidth, height: viewportHeight } = useWindowSize()
+	useWindowSize()
 	const [arrowPosition, setArrowPosition] = useState(0)
 	const [menuPosition, setMenuPosition] = useState(0)
 	const [currentView, setCurrentView] = useState<"rules" | "workflows" | "hooks" | "skills">("rules")
@@ -311,7 +309,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 	// Toggle hook handler
 	const toggleHook = (isGlobal: boolean, hookName: string, enabled: boolean, workspaceName?: string) => {
 		FileServiceClient.toggleHook({
-			metadata: {} as any,
+			metadata: undefined,
 			hookName,
 			isGlobal,
 			enabled,

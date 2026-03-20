@@ -6,12 +6,13 @@ import { getApiMetrics, getLastApiReqTotalTokens } from "@shared/getApiMetrics"
 import { BooleanRequest, StringRequest } from "@shared/proto/codemarie/common"
 import { useCallback, useEffect, useMemo } from "react"
 import { normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
-import { useExtensionState } from "@/context/ExtensionStateContext"
-import { useShowNavbar } from "@/context/PlatformContext"
+import { PLATFORM_CONFIG } from "@/config/platform.config"
+import { useGlobalState } from "@/context/GlobalStateContext"
 import { useMount } from "@/hooks/useLifecycle"
 import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
 import { Navbar } from "../menu/Navbar"
-import AutoApproveBar from "./auto-approve-menu/AutoApproveBar"
+import AutoApproveBar from "./components/layout/auto-approve-menu/AutoApproveBar"
+import SwarmDashboard from "./components/messages/rows/SwarmDashboard"
 // Import utilities and hooks from the new structure
 import {
 	ActionButtons,
@@ -28,8 +29,7 @@ import {
 	useMessageHandlers,
 	useScrollBehavior,
 	WelcomeSection,
-} from "./chat-view"
-import SwarmDashboard from "./SwarmDashboard"
+} from "./index"
 
 interface ChatViewProps {
 	isHidden: boolean
@@ -43,7 +43,7 @@ const MAX_IMAGES_AND_FILES_PER_MESSAGE = CHAT_CONSTANTS.MAX_IMAGES_AND_FILES_PER
 const QUICK_WINS_HISTORY_THRESHOLD = 3
 
 const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryView }: ChatViewProps) => {
-	const showNavbar = useShowNavbar()
+	const showNavbar = PLATFORM_CONFIG.showNavbar
 	const {
 		version,
 		codemarieMessages: messages,
@@ -56,7 +56,7 @@ const ChatView = ({ isHidden, showAnnouncement, hideAnnouncement, showHistoryVie
 		focusChainSettings,
 		hooksEnabled,
 		swarmState,
-	} = useExtensionState()
+	} = useGlobalState()
 	const isProdHostedApp = userInfo?.apiBaseUrl === "https://app.codemarie.bot"
 	const shouldShowQuickWins = isProdHostedApp && (!taskHistory || taskHistory.length < QUICK_WINS_HISTORY_THRESHOLD)
 

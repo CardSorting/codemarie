@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ErrorBlockTitle } from "../ErrorBlockTitle"
+import { ErrorBlockTitle } from "../components/messages/rows/ErrorBlockTitle"
 
 describe("ErrorBlockTitle", () => {
 	it("should return icon and title for API request cancelled", () => {
