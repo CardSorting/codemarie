@@ -25,6 +25,7 @@ export class TaskState {
 	isStreaming = false
 	isWaitingForFirstChunk = false
 	didCompleteReadingStream = false
+	useNativeToolCalls = false
 
 	// Content processing
 	currentStreamingContentIndex = 0
@@ -40,13 +41,11 @@ export class TaskState {
 
 	// Ask/Response handling
 	askResponse?: CodemarieAskResponse
-	askResponseText?: string
 	askResponseImages?: string[]
 	askResponseFiles?: string[]
 	lastMessageTs?: number
 
 	// Plan mode specific state
-	isAwaitingPlanResponse = false
 	didRespondToPlanAskBySwitchingMode = false
 
 	// Context and history
@@ -58,7 +57,6 @@ export class TaskState {
 	didEditFile = false
 	lastToolName = "" // Track last tool used for consecutive call detection
 
-	// Error tracking
 	consecutiveMistakeCount = 0
 	doubleCheckCompletionPending = false
 	didAutomaticallyRetryFailedApiRequest = false
@@ -72,7 +70,6 @@ export class TaskState {
 
 	// Focus Chain / Todo List Management
 	apiRequestCount = 0
-	apiRequestsSinceLastTodoUpdate = 0
 	currentFocusChainChecklist: string | null = null
 	todoListWasUpdatedByUser = false
 
@@ -86,10 +83,6 @@ export class TaskState {
 
 	// Policy Health & Auditing
 	policyHealth: PolicyHealth = PolicyHealth.STABLE
-	lastViolationDetails?: {
-		violations: string[]
-		hint?: string
-	}
 
 	// Auto-context summarization
 	currentlySummarizing = false
@@ -100,7 +93,6 @@ export class TaskState {
 	currentTurnTotalReadCount = 0
 	currentTurnUniqueReadCount = 0
 	currentTurnExplorationCount = 0
-	taskReadHistory = new Map<string, number>()
 	swarmState?: SwarmState
 }
 

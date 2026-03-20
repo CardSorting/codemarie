@@ -28,6 +28,8 @@ export class MultiAgentStreamSystem {
 	private adherenceFailures = 0
 	private soundnessTrend: number[] = []
 	private lastSoundnessScore = 1.0
+	private lastEntropyScore = 0.0
+	private entropyTrend: number[] = []
 
 	constructor(
 		public controller: OrchestrationController,
@@ -217,14 +219,22 @@ export class MultiAgentStreamSystem {
 			const archId = `arch-${this.controller.getStreamId()}`
 			this.lastSoundnessScore = await ctx.getLogicalSoundness([ikigaiId, archId])
 
+			// Integrate with FluidPolicyEngine's entropy if available
+			// Note: Entropy is typically per-turn/per-file, so we average it or take the max
+			// For MAS level, we'll track the latest turn's impact
+			const lastEntropyMemory = await this.controller.recallMemory("latest_entropy_score")
+			this.lastEntropyScore = lastEntropyMemory ? Number.parseFloat(lastEntropyMemory) : 0.0
+
 			// High Throughput: Store reflection in local LRU cache
 			if (categorizedImprovements && Object.keys(categorizedImprovements).length > 0) {
 				// Flatten for sticky checks
 				const allImprovements = Object.values(categorizedImprovements).flat()
 
-				// Update soundness trend
+				// Update soundness and entropy trends
 				this.soundnessTrend.push(this.lastSoundnessScore)
+				this.entropyTrend.push(this.lastEntropyScore)
 				if (this.soundnessTrend.length > 5) this.soundnessTrend.shift()
+				if (this.entropyTrend.length > 5) this.entropyTrend.shift()
 
 				// Phase 6: Reflection Adherence Tracking
 				const streamId = this.controller.getStreamId()
@@ -250,12 +260,19 @@ export class MultiAgentStreamSystem {
 					(imp) => imp.toUpperCase().includes("CRITICAL") || imp.toUpperCase().includes("VIOLATION"),
 				)
 
-				// Predictive Mission Termination: Declining soundness trend
+				// Predictive Mission Termination: Declining soundness or rising entropy
 				if (this.soundnessTrend.length >= 3) {
-					const isDeclining = this.soundnessTrend.slice(-3).every((val, i, arr) => i === 0 || val < arr[i - 1])
-					if (isDeclining && this.lastSoundnessScore < 0.6) {
+					const isSoundnessDeclining = this.soundnessTrend.slice(-3).every((val, i, arr) => i === 0 || val < arr[i - 1])
+					const isEntropyRising =
+						this.entropyTrend.length >= 3 &&
+						this.entropyTrend.slice(-3).every((val, i, arr) => i === 0 || val > arr[i - 1])
+
+					if (
+						(isSoundnessDeclining && this.lastSoundnessScore < 0.6) ||
+						(isEntropyRising && this.lastEntropyScore > 0.8)
+					) {
 						await this.reportAbort(
-							"Predictive Termination: Extreme logical soundness decline detected over multiple turns.",
+							`Predictive Termination: Extreme architectural instability detected (Soundness: ${this.lastSoundnessScore.toFixed(2)}, Entropy: ${this.lastEntropyScore.toFixed(2)}).`,
 						)
 						// Trigger abort in task state via controller if possible
 						return undefined
@@ -334,7 +351,6 @@ export class MultiAgentStreamSystem {
 		try {
 			const streamId = this.controller.getStreamId()
 			const digest = await this.controller.getStreamDigest()
-			const reflections = await this.controller.recallMemory("turn_reflection")
 
 			// Phase 3: Specialized Kaizen Post-Mortem
 			const postMortemReflection = await this.executePostMortem()

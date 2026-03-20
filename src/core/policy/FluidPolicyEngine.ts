@@ -63,6 +63,12 @@ export class FluidPolicyEngine {
 				"mas-orchestrator",
 				`⚠️ Strike ${newCount} recorded for architectural violation in: ${path.basename(filePath)}`,
 			)
+
+			// Update total stream strikes for entropy weighing
+			const totalKey = "total_architectural_strikes"
+			const currentTotalRaw = await orchestrator.recallMemory(this.streamId, totalKey)
+			const newTotal = (currentTotalRaw ? Number.parseInt(currentTotalRaw) : 0) + 1
+			await orchestrator.storeMemory(this.streamId, totalKey, newTotal.toString())
 		}
 		// --------------------------------------
 
@@ -482,16 +488,38 @@ export class FluidPolicyEngine {
 			}
 		}
 
-		// Stability Policy: Entropy Detection
+		// Stability Policy: Entropy Detection (Structural churn analysis)
 		if (prevResultHash) {
 			const resultStr = typeof toolOutput === "string" ? toolOutput : JSON.stringify(toolOutput)
 			const currentHash = createHash("sha256").update(resultStr).digest("hex")
 
 			if (currentHash !== prevResultHash) {
+				// Calculate dynamic entropy score (0.0 - 1.0)
+				// Higher score = higher instability/disorder
+				const soundnessFactor = Math.max(0, 1 - this.soundnessScore)
+
+				// Fetch total strikes for this stream to weigh entropy
+				let totalStrikes = 0
+				if (this.streamId) {
+					try {
+						const memory = await orchestrator.recallMemory(this.streamId, "total_architectural_strikes")
+						totalStrikes = memory ? Number.parseInt(memory) : 0
+					} catch {
+						/* fallback */
+					}
+				}
+				const strikeFactor = Math.min(1.0, totalStrikes / 5)
+
+				// Entropy is a weighted average of soundness gap and architectural debt (strikes)
+				result.entropyScore = soundnessFactor * 0.6 + strikeFactor * 0.4
+
 				result.warning =
 					(result.warning ? `${result.warning}\n` : "") +
-					"⚠️ ENTROPY WARNING: Tool output has diverged from expected hash. Structural stability may be compromised."
-				result.entropyScore = 1.0 // Simple toggle for now
+					`⚠️ ENTROPY WARNING (Score: ${result.entropyScore.toFixed(2)}): Tool output has diverged from expected hash. Structural stability may be compromised.`
+
+				if (result.entropyScore > 0.8) {
+					result.warning += "\n🚨 CRITICAL INSTABILITY: Progressive enforcement has reached maximum rigor."
+				}
 			}
 		}
 
