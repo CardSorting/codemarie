@@ -421,7 +421,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				lmStudioModelId,
 				ollamaModelId,
 				liteLlmModelId,
-				requestyModelId,
 				vercelAiGatewayModelId,
 			} = getModeSpecificFields(apiConfiguration, mode)
 			const unknownModel = "unknown"
@@ -430,8 +429,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				return unknownModel
 			}
 			switch (selectedProvider) {
-				case "codemarie":
-					return `${selectedProvider}:${selectedModelId}`
 				case "openai":
 					return `openai-compat:${selectedModelId}`
 				case "vscode-lm":
@@ -444,8 +441,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					return `${selectedProvider}:${ollamaModelId}`
 				case "litellm":
 					return `${selectedProvider}:${liteLlmModelId}`
-				case "requesty":
-					return `${selectedProvider}:${requestyModelId}`
 				case "vercel-ai-gateway":
 					return `${selectedProvider}:${vercelAiGatewayModelId || selectedModelId}`
 				default:

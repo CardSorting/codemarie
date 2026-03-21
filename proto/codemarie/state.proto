@@ -1,9 +1,8 @@
 syntax = "proto3";
 package codemarie;
 
-import "codemarie/system.proto";
 import "codemarie/common.proto";
-
+import "codemarie/system.proto";
 
 service StateService {
   rpc getLatestState(EmptyRequest) returns (State);
@@ -72,7 +71,6 @@ message Secrets {
   optional string xai_api_key = 22;
   optional string moonshot_api_key = 23;
   optional string zai_api_key = 24;
-  optional string hugging_face_api_key = 25;
   optional string nebius_api_key = 26;
   optional string sambanova_api_key = 27;
   optional string cerebras_api_key = 28;
@@ -93,7 +91,8 @@ message Secrets {
   optional string cloudflare_api_token = 50;
   optional string embedding_api_key = 53;
   optional string vertex_api_key = 58;
-  optional string openai_codex_oauth_credentials = 71;
+  optional string openai_codex_oauth_credentials = 72;
+  optional string codemarie_account_id = 73;
 }
 
 // NOTE: Add new fields under API_HANDLER_SETTINGS_FIELDS or USER_SETTINGS_FIELDS
@@ -161,8 +160,6 @@ message Settings {
   optional OpenRouterModelInfo plan_mode_groq_model_info = 67;
   optional string plan_mode_baseten_model_id = 68;
   optional OpenRouterModelInfo plan_mode_baseten_model_info = 69;
-  optional string plan_mode_hugging_face_model_id = 70;
-  optional OpenRouterModelInfo plan_mode_hugging_face_model_info = 71;
   optional string plan_mode_huawei_cloud_maas_model_id = 72;
   optional OpenRouterModelInfo plan_mode_huawei_cloud_maas_model_info = 73;
   optional string plan_mode_oca_model_id = 74;
@@ -197,8 +194,6 @@ message Settings {
   optional OpenRouterModelInfo act_mode_groq_model_info = 107;
   optional string act_mode_baseten_model_id = 108;
   optional OpenRouterModelInfo act_mode_baseten_model_info = 109;
-  optional string act_mode_hugging_face_model_id = 110;
-  optional OpenRouterModelInfo act_mode_hugging_face_model_info = 111;
   optional string act_mode_huawei_cloud_maas_model_id = 112;
   optional OpenRouterModelInfo act_mode_huawei_cloud_maas_model_info = 113;
   optional string act_mode_oca_model_id = 114;

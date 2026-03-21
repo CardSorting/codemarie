@@ -5,7 +5,7 @@ import {
 	ToggleMcpServerRequest,
 	ToggleToolAutoApproveRequest,
 	UpdateMcpTimeoutRequest,
-} from "@shared/proto/codemarie/mcp"
+} from "@shared/proto/codemarie/system"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import {
 	VSCodeCheckbox,
@@ -90,9 +90,8 @@ const ServerRow = ({
 		}
 	})
 
-	const handleTimeoutChange = (e: any) => {
-		const select = e.target as HTMLSelectElement
-		const value = select.value
+	const handleTimeoutChange = (e: React.ChangeEvent<HTMLSelectElement> | any) => {
+		const value = e.target.value
 		const num = Number.parseInt(value, 10)
 		setTimeoutValue(value)
 
@@ -209,7 +208,15 @@ const ServerRow = ({
 				className={cn("flex bg-code-block-background p-2 gap-4 items-center", {
 					"cursor-pointer": !server.error && isExpandable,
 				})}
-				onClick={handleRowClick}>
+				onClick={handleRowClick}
+				onKeyDown={(e) => {
+					if (!server.error && isExpandable && (e.key === "Enter" || e.key === " ")) {
+						e.preventDefault()
+						handleRowClick()
+					}
+				}}
+				role={!server.error && isExpandable ? "button" : undefined}
+				tabIndex={!server.error && isExpandable ? 0 : undefined}>
 				{!server.error && isExpandable && (
 					<span
 						className={cn("mr-2 codicon", {
@@ -328,7 +335,7 @@ const ServerRow = ({
 												checked={server.tools.every((tool) => tool.autoApprove)}
 												className="mb-1 text-xs"
 												data-tool="all-tools"
-												onChange={handleAutoApproveChange}>
+												onClick={handleAutoApproveChange}>
 												Auto-approve all tools
 											</VSCodeCheckbox>
 										)}
@@ -384,8 +391,14 @@ const ServerRow = ({
 						</VSCodePanels>
 
 						<div className="my-2.5 mx-1.5">
-							<label className="block mb-1 text-[13px]">Request Timeout</label>
-							<VSCodeDropdown className="w-full" onChange={handleTimeoutChange} value={timeoutValue}>
+							<label className="block mb-1 text-[13px]" htmlFor="mcp-timeout-dropdown">
+								Request Timeout
+							</label>
+							<VSCodeDropdown
+								className="w-full"
+								id="mcp-timeout-dropdown"
+								onChange={handleTimeoutChange}
+								value={timeoutValue}>
 								{TimeoutOptions}
 							</VSCodeDropdown>
 						</div>

@@ -1,9 +1,9 @@
 import type { CodemarieMessage } from "@shared/ExtensionMessage"
-import { EmptyRequest, StringRequest } from "@shared/proto/codemarie/common"
+import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { AskResponseRequest, NewTaskRequest } from "@shared/proto/codemarie/task"
 import { useCallback, useRef } from "react"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { SlashServiceClient, TaskServiceClient } from "@/services/protobus-client"
+import { TaskServiceClient } from "@/services/protobus-client"
 import type { ButtonActionType } from "../shared/buttonConfig"
 import type { ChatState, MessageHandlers } from "../types/chatTypes"
 
@@ -126,8 +126,8 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 					setEnableButtons(false)
 
 					// Reset auto-scroll
-					if ("disableAutoScrollRef" in chatState) {
-						;(chatState as any).disableAutoScrollRef.current = false
+					if ("disableAutoScrollRef" in chatState && chatState.disableAutoScrollRef) {
+						;(chatState.disableAutoScrollRef as React.MutableRefObject<boolean>).current = false
 					}
 				}
 			}
@@ -277,21 +277,20 @@ export function useMessageHandlers(messages: CodemarieMessage[], chatState: Chat
 				case "utility":
 					switch (codemarieAsk) {
 						case "condense":
-							await SlashServiceClient.condense(StringRequest.create({ value: lastMessage?.text })).catch((err) =>
-								console.error(err),
-							)
-							break
 						case "report_bug":
-							await SlashServiceClient.reportBug(StringRequest.create({ value: lastMessage?.text })).catch((err) =>
-								console.error(err),
-							)
+							await TaskServiceClient.askResponse(
+								AskResponseRequest.create({
+									responseType: "yesButtonClicked",
+									text: lastMessage?.text,
+								}),
+							).catch((err) => console.error("Failed to execute utility action:", err))
 							break
 					}
 					break
 			}
 
-			if ("disableAutoScrollRef" in chatState) {
-				;(chatState as any).disableAutoScrollRef.current = false
+			if ("disableAutoScrollRef" in chatState && chatState.disableAutoScrollRef) {
+				;(chatState.disableAutoScrollRef as React.MutableRefObject<boolean>).current = false
 			}
 		},
 		[

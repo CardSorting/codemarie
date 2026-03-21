@@ -1,4 +1,5 @@
 import { openAiCodexModels } from "@shared/api"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -28,7 +29,7 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 
 	const handleSignIn = async () => {
 		try {
-			await AccountServiceClient.openAiCodexSignIn({})
+			await AccountServiceClient.signIn({ provider: ApiProvider.OPENAI_CODEX })
 		} catch (error) {
 			console.error("Failed to sign in to OpenAI Codex:", error)
 		}
@@ -36,7 +37,7 @@ export const OpenAiCodexProvider = ({ showModelOptions, isPopup, currentMode }: 
 
 	const handleSignOut = async () => {
 		try {
-			await AccountServiceClient.openAiCodexSignOut({})
+			await AccountServiceClient.signOut({ provider: ApiProvider.OPENAI_CODEX })
 		} catch (error) {
 			console.error("Failed to sign out of OpenAI Codex:", error)
 		}

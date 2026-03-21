@@ -1,4 +1,4 @@
-import { EmptyRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -82,7 +82,7 @@ export const OpenRouterProvider = ({ showModelOptions, isPopup, currentMode }: O
 						appearance="secondary"
 						onClick={async () => {
 							try {
-								await AccountServiceClient.openrouterAuthClicked(EmptyRequest.create())
+								await AccountServiceClient.signIn({ provider: ApiProvider.OPENROUTER })
 							} catch (error) {
 								console.error("Failed to open OpenRouter auth:", error)
 							}

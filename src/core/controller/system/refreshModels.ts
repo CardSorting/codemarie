@@ -1,4 +1,4 @@
-import { ApiProvider, EmptyRequest, Metadata, StringRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider, Metadata, StringRequest } from "@shared/proto/codemarie/common"
 import {
 	OpenRouterCompatibleModelInfo,
 	RefreshModelsRequest,
@@ -7,11 +7,12 @@ import {
 } from "@shared/proto/codemarie/system"
 import { toProtobufModels } from "../../../shared/proto-conversions/models/typeConversion"
 import type { Controller } from "../index"
+import { getLmStudioModels } from "./getLmStudioModels"
+import { getOllamaModels } from "./getOllamaModels"
 import { getSapAiCoreModels } from "./getSapAiCoreModels"
 import { getVsCodeLmModels } from "./getVsCodeLmModels"
 import { refreshBasetenModels } from "./refreshBasetenModels"
 import { refreshGroqModels } from "./refreshGroqModels"
-import { refreshHuggingFaceModels } from "./refreshHuggingFaceModels"
 import { refreshLiteLlmModels } from "./refreshLiteLlmModels"
 import { refreshOcaModels } from "./refreshOcaModels"
 import { refreshOpenRouterModels } from "./refreshOpenRouterModels"
@@ -54,12 +55,6 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 				}),
 			})
 		}
-		case ApiProvider.HUGGINGFACE: {
-			const response = await refreshHuggingFaceModels(controller, EmptyRequest.create({}))
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: response,
-			})
-		}
 		case ApiProvider.VERCEL_AI_GATEWAY: {
 			const models = await refreshVercelAiGatewayModels(controller)
 			return RefreshModelsResponse.fromPartial({
@@ -88,6 +83,18 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 			)
 			return RefreshModelsResponse.fromPartial({
 				sapAiCoreModels: response,
+			})
+		}
+		case ApiProvider.OLLAMA: {
+			const response = await getOllamaModels(controller, StringRequest.fromPartial({ value: request.baseUrl || "" }))
+			return RefreshModelsResponse.fromPartial({
+				stringArrayModels: response,
+			})
+		}
+		case ApiProvider.LMSTUDIO: {
+			const response = await getLmStudioModels(controller, StringRequest.fromPartial({ value: request.baseUrl || "" }))
+			return RefreshModelsResponse.fromPartial({
+				stringArrayModels: response,
 			})
 		}
 		case ApiProvider.OCA: {

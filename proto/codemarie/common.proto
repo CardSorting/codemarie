@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package codemarie;
 
-
 message Metadata {}
 
 message EmptyRequest {}
@@ -121,7 +120,6 @@ enum ApiProvider {
   SAPAICORE = 25;
   CLAUDE_CODE = 26;
   MOONSHOT = 27;
-  HUGGINGFACE = 28;
   HUAWEI_CLOUD_MAAS = 29;
   BASETEN = 30;
   ZAI = 31;

@@ -1,4 +1,4 @@
-import { StringRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useState } from "react"
@@ -25,7 +25,7 @@ interface OllamaProviderProps {
 /**
  * The Ollama provider configuration component
  */
-export const OllamaProvider = ({ showModelOptions, isPopup, currentMode }: OllamaProviderProps) => {
+export const OllamaProvider = ({ showModelOptions, currentMode }: OllamaProviderProps) => {
 	const { apiConfiguration } = useExtensionState()
 	const { handleFieldChange, handleModeFieldChange } = useApiConfigurationHandlers()
 
@@ -36,13 +36,12 @@ export const OllamaProvider = ({ showModelOptions, isPopup, currentMode }: Ollam
 	// Poll ollama models
 	const requestOllamaModels = useCallback(async () => {
 		try {
-			const response = await SystemServiceClient.getOllamaModels(
-				StringRequest.create({
-					value: apiConfiguration?.ollamaBaseUrl || "",
-				}),
-			)
-			if (response?.values) {
-				setOllamaModels(response.values)
+			const response = await SystemServiceClient.refreshModels({
+				provider: ApiProvider.OLLAMA,
+				baseUrl: apiConfiguration?.ollamaBaseUrl || "",
+			})
+			if (response?.stringArrayModels?.values) {
+				setOllamaModels(response.stringArrayModels.values)
 			}
 		} catch (error) {
 			console.error("Failed to fetch Ollama models:", error)

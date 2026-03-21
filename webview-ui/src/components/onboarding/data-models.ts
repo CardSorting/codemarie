@@ -1,5 +1,5 @@
-import type { OpenRouterModelInfo } from "@shared/proto/codemarie/models"
 import type { OnboardingModel, OnboardingModelGroup } from "@shared/proto/codemarie/state"
+import type { OpenRouterModelInfo } from "@shared/proto/codemarie/system"
 
 export interface OnboardingModelsByGroup {
 	free: ModelGroup[]

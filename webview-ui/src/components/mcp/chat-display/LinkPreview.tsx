@@ -2,7 +2,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import DOMPurify from "dompurify"
 import React from "react"
 import ChatErrorBoundary from "@/components/chat/components/messages/rows/ChatErrorBoundary"
-import { WebServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { getSafeHostname, normalizeRelativeUrl } from "./utils/mcpRichUtil"
 
 interface OpenGraphData {
@@ -110,7 +110,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 			this.setState({ fetchStartTime: startTime })
 
 			// Use the Protobus client to fetch Open Graph data
-			const response = await WebServiceClient.fetchOpenGraphData(
+			const response = await SystemServiceClient.fetchOpenGraphData(
 				StringRequest.create({
 					value: this.props.url,
 				}),
@@ -233,7 +233,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 					className="link-preview-error"
 					onClick={async () => {
 						try {
-							await WebServiceClient.openInBrowser(
+							await SystemServiceClient.openInBrowser(
 								StringRequest.create({
 									value: DOMPurify.sanitize(url),
 								}),
@@ -275,7 +275,7 @@ class LinkPreview extends React.Component<LinkPreviewProps, LinkPreviewState> {
 				className="link-preview"
 				onClick={async () => {
 					try {
-						await WebServiceClient.openInBrowser(
+						await SystemServiceClient.openInBrowser(
 							StringRequest.create({
 								value: DOMPurify.sanitize(url),
 							}),

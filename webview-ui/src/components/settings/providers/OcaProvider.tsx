@@ -1,11 +1,11 @@
 import type { OcaModelInfo } from "@shared/api"
-import type { OcaAuthState, OcaUserInfo } from "@shared/proto/index.codemarie"
-import { EmptyRequest, StringRequest } from "@shared/proto/index.codemarie"
+import type { AuthState, OcaUserInfo } from "@shared/proto/index.codemarie"
+import { ApiProvider, EmptyRequest } from "@shared/proto/index.codemarie"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton, VSCodeCheckbox, VSCodeLink, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { OcaAccountServiceClient, SystemServiceClient } from "@/services/protobus-client"
+import { AccountServiceClient, SystemServiceClient } from "@/services/protobus-client"
 import { VSC_BUTTON_BACKGROUND, VSC_BUTTON_FOREGROUND, VSC_DESCRIPTION_FOREGROUND } from "@/utils/vscStyles"
 import { BaseUrlField } from "../common/BaseUrlField"
 import { useApiConfigurationHandlers } from "../utils/useApiConfigurationHandlers"
@@ -48,7 +48,7 @@ function useOcaAuth() {
 
 	const login = useCallback(async () => {
 		try {
-			await OcaAccountServiceClient.ocaAccountLoginClicked(EmptyRequest.create())
+			await AccountServiceClient.signIn({ provider: ApiProvider.OCA })
 		} catch (error) {
 			console.error("OCA login failed:", error)
 		}
@@ -56,7 +56,7 @@ function useOcaAuth() {
 
 	const logout = useCallback(async () => {
 		try {
-			await OcaAccountServiceClient.ocaAccountLogoutClicked(EmptyRequest.create())
+			await AccountServiceClient.signOut({ provider: ApiProvider.OCA })
 		} catch (error) {
 			console.error("OCA logout failed:", error)
 		}
@@ -64,12 +64,12 @@ function useOcaAuth() {
 
 	useEffect(() => {
 		unmountedRef.current = false
-		const cancel = OcaAccountServiceClient.ocaSubscribeToAuthStatusUpdate(EmptyRequest.create(), {
-			onResponse: (response: OcaAuthState) => {
+		const cancel = AccountServiceClient.subscribeToAuthStatusUpdate(EmptyRequest.create(), {
+			onResponse: (response: AuthState) => {
 				if (unmountedRef.current) {
 					return
 				}
-				const nextUser = response?.user?.uid ? (response.user as OcaUserInfo) : null
+				const nextUser = response?.ocaUser?.user?.uid ? (response.ocaUser.user as OcaUserInfo) : null
 				setUser(nextUser)
 
 				if (!initialReceivedRef.current) {
@@ -129,13 +129,13 @@ function useOcaModels({
 		setLoading(true)
 		setHasError(false)
 		try {
-			const resp = await SystemServiceClient.refreshOcaModels(StringRequest.create({ value: url || "" }))
+			const resp = await SystemServiceClient.refreshModels({ provider: ApiProvider.OCA, baseUrl: url || "" })
 			// Only apply if still latest and still mounted
 			if (!unmountedRef.current && myReqId === reqIdRef.current) {
-				if (resp.error) {
+				if (resp.ocaModels?.error) {
 					setHasError(true)
 				} else {
-					setModels(resp.models || {})
+					setModels(resp.ocaModels?.models || {})
 					setHasError(false)
 					setLastRefreshedAt(Date.now())
 				}
@@ -190,11 +190,11 @@ function useOcaModels({
 
 		async function tryRefresh(retry = false): Promise<boolean> {
 			try {
-				const resp = await SystemServiceClient.refreshOcaModels(StringRequest.create({ value: baseUrl || "" }))
-				if (resp.error) {
-					throw new Error(resp.error)
+				const resp = await SystemServiceClient.refreshModels({ provider: ApiProvider.OCA, baseUrl: baseUrl || "" })
+				if (resp.ocaModels?.error) {
+					throw new Error(resp.ocaModels.error)
 				}
-				setModels(resp.models || {})
+				setModels(resp.ocaModels?.models || {})
 				setHasError(false)
 				setLastRefreshedAt(Date.now())
 				return true
@@ -264,22 +264,21 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 	return (
 		<div>
 			{!ready ? (
-				<div aria-live="polite" className="flex items-center gap-2 py-2" role="status">
+				<output className="flex items-center gap-2 py-2">
 					<VSCodeProgressRing />
 					<span className={`text-[13px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>Connecting…</span>
-				</div>
+				</output>
 			) : !isAuthenticated ? (
 				<div>
 					<div
-						aria-label="Oracle employment"
 						style={{
 							marginTop: 12,
 							marginBottom: 4,
 						}}>
 						<VSCodeCheckbox
 							checked={ocaMode !== "external"}
-							onChange={(e: any) => {
-								const checked = (e?.target as HTMLInputElement)?.checked
+							onClick={(e: React.MouseEvent<HTMLInputElement>) => {
+								const checked = (e.target as HTMLInputElement).checked
 								handleToggleMode(checked ? "internal" : "external")
 							}}>
 							I’m an Oracle Employee
@@ -351,10 +350,7 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 					/>
 
 					{isAuthenticated && ocaHasError && (
-						<div
-							aria-live="polite"
-							className={`mt-2 text-[13px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}
-							role="status">
+						<output className={`mt-2 text-[13px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>
 							<div>Failed to refresh models. Check your session or network.</div>
 							<div className="mt-2 flex gap-2">
 								<VSCodeButton appearance="secondary" onClick={handleRefresh}>
@@ -368,7 +364,7 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 									Sign in again
 								</VSCodeButton>
 							</div>
-						</div>
+						</output>
 					)}
 
 					<InfoCard
@@ -377,7 +373,6 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 								aria-hidden
 								fill="none"
 								height="20"
-								role="img"
 								style={{ color: `var(${VSC_DESCRIPTION_FOREGROUND})` }}
 								viewBox="0 0 36 35"
 								width="20">
@@ -441,33 +436,21 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 								justifyContent: "center",
 								marginTop: 8,
 							}}>
-							<a
-								href={
-									ocaMode === "internal"
-										? "https://apexsurveys.oracle.com/ords/surveys/t/oca-nps/survey?k=oracle-code-assist-internal-link-share&sc=SMM1BNSNUI"
-										: "https://customersurveys.oracle.com/ords/surveys/t/aicode/survey?k=oracle-code-assist&sc=SUDN1ZXYQ5"
-								}
-								rel="noopener noreferrer"
+							<VSCodeButton
+								onClick={() => {
+									const url =
+										ocaMode === "internal"
+											? "https://apexsurveys.oracle.com/ords/surveys/t/oca-nps/survey?k=oracle-code-assist-internal-link-share&sc=SMM1BNSNUI"
+											: "https://customersurveys.oracle.com/ords/surveys/t/aicode/survey?k=oracle-code-assist&sc=SUDN1ZXYQ5"
+									window.open(url, "_blank", "noopener,noreferrer")
+								}}
 								style={{
 									fontSize: 14,
 									fontWeight: 500,
-									textDecoration: "none",
-									background: "var(--vscode-button-background)",
-									color: "var(--vscode-button-foreground)",
-									padding: "8px 14px",
-									minHeight: 28,
-									border: "1px solid var(--vscode-button-border, transparent)",
-									borderRadius: 0,
-									display: "inline-flex",
-									alignItems: "center",
-									justifyContent: "center",
-									minWidth: 0,
-									boxSizing: "border-box",
-									cursor: "pointer",
-								}}
-								target="_blank">
+									width: "max-content",
+								}}>
 								Provide feedback
-							</a>
+							</VSCodeButton>
 						</div>
 					</InfoCard>
 				</div>

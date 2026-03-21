@@ -4,7 +4,6 @@ package codemarie;
 
 import "codemarie/common.proto";
 
-
 // Service for git worktree operations
 service WorktreeService {
   // Lists all worktrees in the current repository

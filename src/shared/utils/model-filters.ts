@@ -1,5 +1,3 @@
-import type { ApiProvider } from "@shared/api"
-
 function normalizeModelId(modelId: string): string {
 	return modelId.trim().toLowerCase()
 }
@@ -20,27 +18,7 @@ export function isCodemarieFreeModelException(modelId: string): boolean {
  * @param allowedFreeModelIds Optional list of Codemarie free model IDs to keep visible
  * @returns Filtered array of model IDs
  */
-export function filterOpenRouterModelIds(
-	modelIds: string[],
-	provider: ApiProvider,
-	allowedFreeModelIds: string[] = [],
-): string[] {
-	if (provider === "codemarie") {
-		const allowedFreeIdSet = new Set(allowedFreeModelIds.map((id) => normalizeModelId(id)))
-		// For Codemarie provider: exclude :free models, but keep known exception models
-		return modelIds.filter((id) => {
-			const normalizedModelId = normalizeModelId(id)
-			if (allowedFreeIdSet.has(normalizedModelId)) {
-				return true
-			}
-			if (isCodemarieFreeModelException(normalizedModelId)) {
-				return true
-			}
-			// Filter out other :free models
-			return !normalizedModelId.includes(":free")
-		})
-	}
-
+export function filterOpenRouterModelIds(modelIds: string[]): string[] {
 	// For OpenRouter and Vercel AI Gateway providers: exclude Codemarie-specific models
 	return modelIds.filter((id) => !id.startsWith("codemarie/"))
 }

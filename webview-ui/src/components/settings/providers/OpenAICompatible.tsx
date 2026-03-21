@@ -1,10 +1,10 @@
-import { TooltipContent, TooltipTrigger } from "@radix-ui/react-tooltip"
 import { azureOpenAiDefaultApiVersion, openAiModelInfoSaneDefaults } from "@shared/api"
-import { OpenAiModelsRequest } from "@shared/proto/codemarie/models"
+import { ApiProvider } from "@shared/proto/codemarie/common"
+import { RefreshModelsRequest } from "@shared/proto/codemarie/system"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Tooltip } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { SystemServiceClient } from "@/services/protobus-client"
 import { getAsVar, VSC_DESCRIPTION_FOREGROUND } from "@/utils/vscStyles"
@@ -60,14 +60,22 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 
 		if (baseUrl && apiKey) {
 			debounceTimerRef.current = setTimeout(() => {
-				SystemServiceClient.refreshOpenAiModels(
-					OpenAiModelsRequest.create({
+				SystemServiceClient.refreshModels(
+					RefreshModelsRequest.create({
+						provider: ApiProvider.OPENAI,
 						baseUrl,
 						apiKey,
 					}),
-				).catch((error) => {
-					console.error("Failed to refresh OpenAI models:", error)
-				})
+				)
+					.then((response) => {
+						if (response?.compatibleModels?.models) {
+							// For now we just refresh models, if we had a picker we'd store them
+							console.log("OpenAI compatible models refreshed")
+						}
+					})
+					.catch((error: any) => {
+						console.error("Failed to refresh OpenAI models:", error)
+					})
 			}, 500)
 		}
 	}, [])

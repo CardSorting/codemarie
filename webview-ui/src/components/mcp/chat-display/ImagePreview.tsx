@@ -2,7 +2,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import DOMPurify from "dompurify"
 import React from "react"
 import ChatErrorBoundary from "@/components/chat/components/messages/rows/ChatErrorBoundary"
-import { FileServiceClient, WebServiceClient } from "@/services/protobus-client"
+import { FileServiceClient, SystemServiceClient } from "@/services/protobus-client"
 import { checkIfImageUrl, formatUrlForOpening, getSafeHostname } from "./utils/mcpRichUtil"
 
 interface ImagePreviewProps {
@@ -227,7 +227,7 @@ class ImagePreview extends React.Component<
 					className="image-preview-error"
 					onClick={async () => {
 						try {
-							await WebServiceClient.openInBrowser(
+							await SystemServiceClient.openInBrowser(
 								StringRequest.create({
 									value: DOMPurify.sanitize(url),
 								}),
@@ -262,7 +262,7 @@ class ImagePreview extends React.Component<
 							await FileServiceClient.openImage(StringRequest.create({ value: url }))
 						} else {
 							// For regular URLs, open in browser
-							await WebServiceClient.openInBrowser(
+							await SystemServiceClient.openInBrowser(
 								StringRequest.create({
 									value: DOMPurify.sanitize(formatUrlForOpening(url)),
 								}),

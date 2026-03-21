@@ -1,26 +1,15 @@
 import { ApiConfiguration } from "@shared/api"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { ExtensionStateContextProvider, useExtensionState } from "@/context/ExtensionStateContext"
+import { useExtensionState } from "@/context/ExtensionStateContext"
+import { ExtensionStateContextProvider } from "@/utils/test-utils"
 import ApiOptions from "../ApiOptions"
 
 vi.mock("../../../context/ExtensionStateContext", async (importOriginal) => {
-	const actual = await importOriginal()
+	const actual = await importOriginal<typeof import("@/context/ExtensionStateContext")>()
 	return {
-		...(actual || {}),
-		// your mocked methods
-		useExtensionState: vi.fn(() => ({
-			apiConfiguration: {
-				planModeApiProvider: "requesty",
-				actModeApiProvider: "requesty",
-				requestyApiKey: "",
-				planModeRequestyModelId: "",
-				actModeRequestyModelId: "",
-			},
-			setApiConfiguration: vi.fn(),
-			requestyModels: {},
-			planActSeparateModelsSetting: false,
-		})),
+		...actual,
+		useExtensionState: vi.fn(),
 	}
 })
 
@@ -28,7 +17,6 @@ const mockExtensionState = (apiConfiguration: Partial<ApiConfiguration>) => {
 	vi.mocked(useExtensionState).mockReturnValue({
 		apiConfiguration,
 		setApiConfiguration: vi.fn(),
-		requestyModels: {},
 		planActSeparateModelsSetting: false,
 	} as any)
 }
@@ -41,12 +29,12 @@ describe("ApiOptions Component", () => {
 		//@ts-expect-error - vscode is not defined in the global namespace in test environment
 		global.vscode = { postMessage: mockPostMessage }
 		mockExtensionState({
-			planModeApiProvider: "requesty",
-			actModeApiProvider: "requesty",
+			planModeApiProvider: "openai-native",
+			actModeApiProvider: "openai-native",
 		})
 	})
 
-	it("renders Requesty API Key input", () => {
+	it("renders OpenAI Native API Key input", () => {
 		render(
 			<ExtensionStateContextProvider>
 				<ApiOptions currentMode="plan" showModelOptions={true} />
@@ -56,14 +44,14 @@ describe("ApiOptions Component", () => {
 		expect(apiKeyInput).toBeInTheDocument()
 	})
 
-	it("renders Requesty Model ID input", () => {
+	it("renders OpenAI Native Model select", () => {
 		render(
 			<ExtensionStateContextProvider>
 				<ApiOptions currentMode="plan" showModelOptions={true} />
 			</ExtensionStateContextProvider>,
 		)
-		const modelIdInput = screen.getByPlaceholderText("Search and select a model...")
-		expect(modelIdInput).toBeInTheDocument()
+		const modelIdSelect = screen.getByLabelText("Model")
+		expect(modelIdSelect).toBeInTheDocument()
 	})
 })
 

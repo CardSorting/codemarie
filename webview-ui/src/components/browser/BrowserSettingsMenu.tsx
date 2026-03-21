@@ -3,7 +3,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useNavigation } from "@/context/NavigationContext"
-import { BrowserServiceClient } from "../../services/protobus-client"
+import { SystemServiceClient } from "../../services/protobus-client"
 
 interface ConnectionInfo {
 	isConnected: boolean
@@ -29,7 +29,7 @@ export const BrowserSettingsMenu = () => {
 		;(async () => {
 			try {
 				console.log("[DEBUG] SENDING BROWSER CONNECTION INFO REQUEST")
-				const info = await BrowserServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
+				const info = await SystemServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
 				console.log("[DEBUG] GOT BROWSER REPLY:", info, typeof info)
 				setConnectionInfo({
 					isConnected: info.isConnected,
@@ -75,7 +75,7 @@ export const BrowserSettingsMenu = () => {
 		if (!showInfoPopover) {
 			const fetchConnectionInfo = async () => {
 				try {
-					const info = await BrowserServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
+					const info = await SystemServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
 					setConnectionInfo({
 						isConnected: info.isConnected,
 						isRemote: info.isRemote,
@@ -114,7 +114,7 @@ export const BrowserSettingsMenu = () => {
 		// Function to fetch connection info
 		const fetchConnectionInfo = async () => {
 			try {
-				const info = await BrowserServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
+				const info = await SystemServiceClient.getBrowserConnectionInfo(EmptyRequest.create({}))
 				setConnectionInfo({
 					isConnected: info.isConnected,
 					isRemote: info.isRemote,

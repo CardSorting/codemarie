@@ -1,6 +1,6 @@
-import { SapAiCoreModelDeployment, SapAiCoreModelsRequest } from "@shared/proto/index.codemarie"
+import { ApiProvider, SapAiCoreModelDeployment } from "@shared/proto/index.codemarie"
 import { Mode } from "@shared/storage/types"
-import { VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeButton, VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useState } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { SystemServiceClient } from "@/services/protobus-client"
@@ -60,19 +60,18 @@ export const SapAiCoreProvider = ({ showModelOptions, isPopup, currentMode }: Sa
 		setModelError(null)
 
 		try {
-			const response = await SystemServiceClient.getSapAiCoreModels(
-				SapAiCoreModelsRequest.create({
-					clientId: apiConfiguration.sapAiCoreClientId,
-					clientSecret: apiConfiguration.sapAiCoreClientSecret,
-					baseUrl: apiConfiguration.sapAiCoreBaseUrl,
-					tokenUrl: apiConfiguration.sapAiCoreTokenUrl,
-					resourceGroup: apiConfiguration.sapAiResourceGroup,
-				}),
-			)
+			const response = await SystemServiceClient.refreshModels({
+				provider: ApiProvider.SAPAICORE,
+				clientId: apiConfiguration.sapAiCoreClientId,
+				clientSecret: apiConfiguration.sapAiCoreClientSecret,
+				baseUrl: apiConfiguration.sapAiCoreBaseUrl,
+				tokenUrl: apiConfiguration.sapAiCoreTokenUrl,
+				resourceGroup: apiConfiguration.sapAiResourceGroup,
+			})
 
-			if (response) {
-				setSapAiCoreModelDeployments(response.deployments || [])
-				setOrchestrationAvailable(response.orchestrationAvailable || false)
+			if (response?.sapAiCoreModels) {
+				setSapAiCoreModelDeployments(response.sapAiCoreModels.deployments || [])
+				setOrchestrationAvailable(response.sapAiCoreModels.orchestrationAvailable || false)
 				setHasCheckedOrchestration(true)
 			} else {
 				setSapAiCoreModelDeployments([])
@@ -218,11 +217,9 @@ export const SapAiCoreProvider = ({ showModelOptions, isPopup, currentMode }: Sa
 						) : modelError ? (
 							<div className="text-xs text-(--vscode-errorForeground)">
 								{modelError}
-								<button
-									className="ml-2 text-[11px] px-1.5 py-0.5 bg-(--vscode-button-background) text-(--vscode-button-foreground) border-none rounded-sm cursor-pointer"
-									onClick={fetchSapAiCoreModels}>
+								<VSCodeButton appearance="secondary" onClick={fetchSapAiCoreModels} style={{ marginLeft: "8px" }}>
 									Retry
-								</button>
+								</VSCodeButton>
 							</div>
 						) : hasRequiredCredentials ? (
 							<>

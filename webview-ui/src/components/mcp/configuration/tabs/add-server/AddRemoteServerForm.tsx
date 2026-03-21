@@ -1,5 +1,5 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
-import { AddRemoteMcpServerRequest, McpServers } from "@shared/proto/codemarie/mcp"
+import { AddRemoteMcpServerRequest, McpServers } from "@shared/proto/codemarie/system"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { VSCodeButton, VSCodeLink, VSCodeRadio, VSCodeRadioGroup, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { useState } from "react"
@@ -77,8 +77,8 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 					<VSCodeTextField
 						className="w-full"
 						disabled={isSubmitting}
-						onChange={(e) => {
-							setServerName((e.target as HTMLInputElement).value)
+						onInput={(e: any) => {
+							setServerName(e.target.value)
 							setError("")
 						}}
 						placeholder="mcp-server"
@@ -91,8 +91,8 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 					<VSCodeTextField
 						className="w-full mr-4"
 						disabled={isSubmitting}
-						onChange={(e) => {
-							setServerUrl((e.target as HTMLInputElement).value)
+						onInput={(e: any) => {
+							setServerUrl(e.target.value)
 							setError("")
 						}}
 						placeholder="https://example.com/mcp-server"
@@ -101,13 +101,19 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 					</VSCodeTextField>
 				</div>
 
-				<div className="mb-3">
-					<label className={`block text-sm font-medium mb-2 ${isSubmitting ? "opacity-50" : ""}`}>Transport Type</label>
+				<div aria-labelledby="transport-type-label" role="group">
+					<label
+						className={`block text-sm font-medium mb-2 ${isSubmitting ? "opacity-50" : ""}`}
+						id="transport-type-label">
+						Transport Type
+					</label>
 					<VSCodeRadioGroup
 						disabled={isSubmitting}
-						onChange={(e) => {
-							const value = (e.target as HTMLInputElement).value as TransportType
-							setTransportType(value)
+						onClick={(e: any) => {
+							const value = e.target.value as TransportType
+							if (value) {
+								setTransportType(value)
+							}
 						}}
 						value={transportType}>
 						<VSCodeRadio checked={transportType === "streamableHttp"} value="streamableHttp">

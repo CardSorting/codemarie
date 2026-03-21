@@ -1,6 +1,7 @@
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
+import DOMPurify from "dompurify"
 import { Fzf } from "fzf"
-import React, { KeyboardEvent, memo, useEffect, useMemo, useRef, useState } from "react"
+import React, { type KeyboardEvent, memo, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { highlight } from "../history/HistoryView"
 
@@ -25,6 +26,7 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 	const dropdownListRef = useRef<HTMLDivElement>(null)
+	const lastSelectedModelIdRef = useRef(selectedModelId)
 
 	const handleModelChange = (newModelId: string) => {
 		onModelChange(newModelId)
@@ -105,12 +107,13 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 		}
 	}, [selectedIndex])
 
-	// Update search term when selectedModelId changes externally
+	// Update search term ONLY when selectedModelId prop changes externally
 	useEffect(() => {
-		if (selectedModelId !== searchTerm) {
+		if (selectedModelId !== lastSelectedModelIdRef.current) {
 			setSearchTerm(selectedModelId || "")
+			lastSelectedModelIdRef.current = selectedModelId
 		}
-	}, [selectedModelId, searchTerm])
+	}, [selectedModelId])
 
 	return (
 		<div style={{ width: "100%" }}>
@@ -141,12 +144,19 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 					}}
 					value={searchTerm}>
 					{searchTerm && (
-						<div
+						<button
 							aria-label="Clear search"
-							className="input-icon-button codicon codicon-close"
+							className="input-icon-button"
 							onClick={() => {
 								handleModelChange("")
 								setIsDropdownVisible(true)
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault()
+									handleModelChange("")
+									setIsDropdownVisible(true)
+								}
 							}}
 							slot="end"
 							style={{
@@ -154,8 +164,15 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 								justifyContent: "center",
 								alignItems: "center",
 								height: "100%",
+								cursor: "pointer",
+								background: "transparent",
+								border: "none",
+								padding: "0 5px",
+								color: "inherit",
 							}}
-						/>
+							type="button">
+							<span className="codicon codicon-close" />
+						</button>
 					)}
 				</VSCodeTextField>
 				{isDropdownVisible && modelSearchResults.length > 0 && (
@@ -169,9 +186,11 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 									setIsDropdownVisible(false)
 								}}
 								onMouseEnter={() => setSelectedIndex(index)}
-								ref={(el) => (itemRefs.current[index] = el)}
+								ref={(el) => {
+									itemRefs.current[index] = el
+								}}
 								role="option">
-								<span dangerouslySetInnerHTML={{ __html: item.html }} />
+								<span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.html) }} />
 							</DropdownItem>
 						))}
 					</DropdownList>

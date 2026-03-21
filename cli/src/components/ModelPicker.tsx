@@ -10,7 +10,6 @@ import React, { useEffect, useMemo, useState } from "react"
 import { refreshModels as refreshOcaModels } from "@/core/controller/system/refreshModels"
 import { refreshOpenRouterModels } from "@/core/controller/system/refreshOpenRouterModels"
 import {
-	type ApiProvider,
 	anthropicDefaultModelId,
 	anthropicModels,
 	askSageDefaultModelId,
@@ -35,8 +34,6 @@ import {
 	groqModels,
 	huaweiCloudMaasDefaultModelId,
 	huaweiCloudMaasModels,
-	huggingFaceDefaultModelId,
-	huggingFaceModels,
 	internationalQwenDefaultModelId,
 	internationalQwenModels,
 	internationalZAiDefaultModelId,
@@ -89,7 +86,6 @@ export const providerModels: Record<string, { models: Record<string, unknown>; d
 	gemini: { models: geminiModels, defaultId: geminiDefaultModelId },
 	groq: { models: groqModels, defaultId: groqDefaultModelId },
 	"huawei-cloud-maas": { models: huaweiCloudMaasModels, defaultId: huaweiCloudMaasDefaultModelId },
-	huggingface: { models: huggingFaceModels, defaultId: huggingFaceDefaultModelId },
 	minimax: { models: minimaxModels, defaultId: minimaxDefaultModelId },
 	mistral: { models: mistralModels, defaultId: mistralDefaultModelId },
 	moonshot: { models: moonshotModels, defaultId: moonshotDefaultModelId },
@@ -145,7 +141,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ provider, controller, 
 			refreshOpenRouterModels(controller)
 				.then((models) => {
 					const modelIds = Object.keys(models).sort((a, b) => a.localeCompare(b))
-					const filtered = filterOpenRouterModelIds(modelIds, provider as unknown as ApiProvider)
+					const filtered = filterOpenRouterModelIds(modelIds)
 					setAsyncModels(filtered)
 				})
 				.finally(() => {

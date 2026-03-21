@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package codemarie;
 
-
 // Input message for all hooks
 message HookInput {
   string codemarie_version = 1;

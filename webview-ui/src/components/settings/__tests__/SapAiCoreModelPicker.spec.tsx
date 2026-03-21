@@ -1,6 +1,7 @@
+import "@testing-library/jest-dom"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { ExtensionStateContextProvider } from "@/context/ExtensionStateContext"
+import { ExtensionStateContextProvider } from "@/utils/test-utils"
 import SapAiCoreModelPicker from "../SapAiCoreModelPicker"
 
 // Define the interface locally since it's not exported from the proto
@@ -19,9 +20,9 @@ const createDeployments = (modelNames: string[]): SapAiCoreModelDeployment[] => 
 
 // Mock the shared API models
 vi.mock("@shared/api", async (importOriginal) => {
-	const actual = (await importOriginal()) as Record<string, any>
+	const actual = (await importOriginal()) as Record<string, unknown>
 	return {
-		...actual,
+		...(actual as Record<string, unknown>),
 		sapAiCoreModels: {
 			"anthropic--claude-3.5-sonnet": {
 				maxTokens: 8192,
@@ -53,16 +54,10 @@ vi.mock("@shared/api", async (importOriginal) => {
 
 // Mock the ExtensionStateContext
 vi.mock("../../../context/ExtensionStateContext", async (importOriginal) => {
-	const actual = await importOriginal()
+	const actual = await importOriginal<typeof import("@/context/ExtensionStateContext")>()
 	return {
-		...(actual || {}),
-		useExtensionState: vi.fn(() => ({
-			apiConfiguration: {
-				apiProvider: "sapaicore",
-				sapAiCoreModelId: "anthropic--claude-3.5-sonnet",
-			},
-			setApiConfiguration: vi.fn(),
-		})),
+		...actual,
+		useExtensionState: vi.fn(),
 	}
 })
 

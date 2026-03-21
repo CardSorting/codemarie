@@ -1035,9 +1035,9 @@ export class CodemarieAgent implements acp.Agent {
 				if (authData) {
 					Logger.debug("[CodemarieAgent] Authentication successful")
 
-					// Set up the provider configuration for codemarie
-					stateManager.setGlobalState("actModeApiProvider", "codemarie")
-					stateManager.setGlobalState("planModeApiProvider", "codemarie")
+					// Set up the provider configuration for anthropic (as default after Codemarie login)
+					stateManager.setGlobalState("actModeApiProvider", "anthropic")
+					stateManager.setGlobalState("planModeApiProvider", "anthropic")
 					await stateManager.flushPendingState()
 
 					return {}

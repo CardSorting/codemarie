@@ -1,5 +1,5 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
-import { WebServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 // Represents a URL found in the text with its position and metadata
 export interface UrlMatch {
@@ -186,9 +186,9 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 			})
 
 			// Create the actual service call
-			const servicePromise = WebServiceClient.checkIsImageUrl(StringRequest.create({ value: url }))
-				.then((result) => result.isImage)
-				.catch((error) => {
+			const servicePromise = SystemServiceClient.checkIsImageUrl(StringRequest.create({ value: url }))
+				.then((result: { isImage: boolean }) => result.isImage)
+				.catch((error: Error) => {
 					console.error("Error checking if URL is an image via Protobus:", error)
 					return false
 				})
@@ -218,21 +218,22 @@ export const checkIfImageUrl = async (url: string): Promise<boolean> => {
 export const extractUrlsFromText = (text: string, maxUrls = 50): UrlMatch[] => {
 	const matches: UrlMatch[] = []
 	const urlRegex = /(?:https?:\/\/|data:image)[^\s<>"']+/g
-	let urlMatch: RegExpExecArray | null
+	let urlMatch = urlRegex.exec(text)
 	let urlCount = 0
-
-	while ((urlMatch = urlRegex.exec(text)) !== null && urlCount < maxUrls) {
+	while (urlMatch !== null && urlCount < maxUrls) {
 		const url = urlMatch[0]
 
 		// Skip invalid URLs
 		if (!isUrl(url)) {
 			console.log("Skipping invalid URL:", url)
+			urlMatch = urlRegex.exec(text)
 			continue
 		}
 
 		// Skip localhost URLs to prevent security issues
 		if (isLocalhostUrl(url)) {
 			console.log("Skipping localhost URL:", url)
+			urlMatch = urlRegex.exec(text)
 			continue
 		}
 
@@ -245,6 +246,7 @@ export const extractUrlsFromText = (text: string, maxUrls = 50): UrlMatch[] => {
 		})
 
 		urlCount++
+		urlMatch = urlRegex.exec(text)
 	}
 
 	console.log(`Found ${matches.length} URLs in text`)

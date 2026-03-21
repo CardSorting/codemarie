@@ -47,7 +47,7 @@ import pWaitFor from "p-wait-for"
 import * as path from "path"
 import { getSystemPrompt, SystemPromptContext } from "@/core/prompts/system-prompt"
 import { HostProvider } from "@/hosts/host-provider"
-import { CodemarieError, CodemarieErrorType, ErrorService } from "@/services/error"
+import { CodemarieErrorType, ErrorService } from "@/services/error"
 import { CodemarieClient } from "@/shared/codemarie"
 import { CodemarieContent, CodemarieStorageMessage } from "@/shared/messages"
 import { ApiFormat } from "@/shared/proto/codemarie/common"
@@ -364,9 +364,7 @@ export class TaskAIStreamHandler {
 				}
 
 				const isAuthError = codemarieError.isErrorType(CodemarieErrorType.Auth)
-				const isCodemarieProviderInsufficientCredits =
-					providerId === "codemarie" &&
-					CodemarieError.transform(error, model.id, providerId).isErrorType(CodemarieErrorType.Balance)
+				const isCodemarieProviderInsufficientCredits = false
 
 				let response: CodemarieAskResponse
 				if (!isCodemarieProviderInsufficientCredits && !isAuthError && this.taskState.autoRetryAttempts < 3) {

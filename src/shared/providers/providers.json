@@ -108,10 +108,7 @@
 			"value": "moonshot",
 			"label": "Moonshot"
 		},
-		{
-			"value": "huggingface",
-			"label": "Hugging Face"
-		},
+
 		{
 			"value": "nebius",
 			"label": "Nebius AI Studio"

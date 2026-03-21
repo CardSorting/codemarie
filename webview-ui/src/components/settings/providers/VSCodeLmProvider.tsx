@@ -1,4 +1,4 @@
-import { EmptyRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useState } from "react"
@@ -17,16 +17,16 @@ interface VSCodeLmProviderProps {
 export const VSCodeLmProvider = ({ currentMode }: VSCodeLmProviderProps) => {
 	const [vsCodeLmModels, setVsCodeLmModels] = useState<vscodemodels.LanguageModelChatSelector[]>([])
 	const { apiConfiguration } = useExtensionState()
-	const { handleFieldChange, handleModeFieldChange } = useApiConfigurationHandlers()
+	const { handleModeFieldChange } = useApiConfigurationHandlers()
 
 	const { vsCodeLmModelSelector } = getModeSpecificFields(apiConfiguration, currentMode)
 
 	// Poll VS Code LM models
 	const requestVsCodeLmModels = useCallback(async () => {
 		try {
-			const response = await SystemServiceClient.getVsCodeLmModels(EmptyRequest.create({}))
-			if (response?.models) {
-				setVsCodeLmModels(response.models)
+			const response = await SystemServiceClient.refreshModels({ provider: ApiProvider.VSCODE_LM })
+			if (response?.vsCodeLmModels?.models) {
+				setVsCodeLmModels(response.vsCodeLmModels.models)
 			}
 		} catch (error) {
 			console.error("Failed to fetch VS Code LM models:", error)

@@ -11,33 +11,24 @@ import {
 	type ModelInfo,
 	openRouterDefaultModelId,
 	openRouterDefaultModelInfo,
-	requestyDefaultModelId,
-	requestyDefaultModelInfo,
 } from "../../../src/shared/api"
 import { SystemServiceClient } from "../services/protobus-client"
 import { useGlobalState } from "./GlobalStateContext"
 
 export interface ModelStateContextType {
-	codemarieModels: Record<string, ModelInfo> | null
 	openRouterModels: Record<string, ModelInfo>
 	vercelAiGatewayModels: Record<string, ModelInfo>
 	hicapModels: Record<string, ModelInfo>
 	liteLlmModels: Record<string, ModelInfo>
-	requestyModels: Record<string, ModelInfo>
 	groqModels: Record<string, ModelInfo>
 	basetenModels: Record<string, ModelInfo>
-	huggingFaceModels: Record<string, ModelInfo>
 	openAiModels: string[]
-	setCodemarieModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo> | null>>
 	setOpenRouterModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
 	setVercelAiGatewayModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
 	setHicapModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
 	setLiteLlmModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setRequestyModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
 	setGroqModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
 	setBasetenModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setHuggingFaceModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	refreshCodemarieModels: () => void
 	refreshOpenRouterModels: () => void
 	refreshVercelAiGatewayModels: () => void
 	refreshHicapModels: () => void
@@ -48,16 +39,12 @@ const ModelStateContext = createContext<ModelStateContextType | undefined>(undef
 
 export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const state = useGlobalState()
-	const [codemarieModels, setCodemarieModels] = useState<Record<string, ModelInfo> | null>(null)
 	const [openRouterModels, setOpenRouterModels] = useState<Record<string, ModelInfo>>({
 		[openRouterDefaultModelId]: openRouterDefaultModelInfo,
 	})
 	const [vercelAiGatewayModels, setVercelAiGatewayModels] = useState<Record<string, ModelInfo>>({})
 	const [hicapModels, setHicapModels] = useState<Record<string, ModelInfo>>({})
 	const [liteLlmModels, setLiteLlmModels] = useState<Record<string, ModelInfo>>({})
-	const [requestyModels, setRequestyModels] = useState<Record<string, ModelInfo>>({
-		[requestyDefaultModelId]: requestyDefaultModelInfo,
-	})
 	const [groqModelsState, setGroqModels] = useState<Record<string, ModelInfo>>({
 		[groqDefaultModelId]: groqModels[groqDefaultModelId],
 	})
@@ -65,7 +52,6 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		...basetenModels,
 		[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
 	})
-	const [huggingFaceModels, setHuggingFaceModels] = useState<Record<string, ModelInfo>>({})
 	const [openAiModels, _setOpenAiModels] = useState<string[]>([])
 
 	const refreshOpenRouterModels = useCallback(() => {
@@ -125,17 +111,6 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			.catch((error: Error) => console.error("Failed to refresh Vercel AI Gateway models:", error))
 	}, [])
 
-	const refreshCodemarieModels = useCallback(() => {
-		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.CODEMARIE }))
-			.then((response: RefreshModelsResponse) => {
-				if (response.compatibleModels) {
-					const models = fromProtobufModels(response.compatibleModels.models)
-					setCodemarieModels((prev) => (Object.keys(models).length > 0 ? models : (prev ?? null)))
-				}
-			})
-			.catch((error: Error) => console.error("Failed to refresh Codemarie models:", error))
-	}, [])
-
 	useEffect(() => {
 		if (!openRouterModels || Object.keys(openRouterModels).length <= 1) refreshOpenRouterModels()
 		if (!vercelAiGatewayModels || Object.keys(vercelAiGatewayModels).length === 0) refreshVercelAiGatewayModels()
@@ -152,43 +127,22 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		vercelAiGatewayModels,
 	])
 
-	useEffect(() => {
-		const hasCodemarieProvider =
-			state.apiConfiguration?.actModeApiProvider === "codemarie" ||
-			state.apiConfiguration?.planModeApiProvider === "codemarie"
-		if (hasCodemarieProvider && codemarieModels === null) {
-			refreshCodemarieModels()
-		}
-	}, [
-		state.apiConfiguration?.actModeApiProvider,
-		state.apiConfiguration?.planModeApiProvider,
-		codemarieModels,
-		refreshCodemarieModels,
-	])
-
 	return (
 		<ModelStateContext.Provider
 			value={{
-				codemarieModels,
 				openRouterModels,
 				vercelAiGatewayModels,
 				hicapModels,
 				liteLlmModels,
-				requestyModels,
 				groqModels: groqModelsState,
 				basetenModels: basetenModelsState,
-				huggingFaceModels,
 				openAiModels,
-				setCodemarieModels,
 				setOpenRouterModels,
 				setVercelAiGatewayModels,
 				setHicapModels,
 				setLiteLlmModels,
-				setRequestyModels,
 				setGroqModels,
 				setBasetenModels,
-				setHuggingFaceModels,
-				refreshCodemarieModels,
 				refreshOpenRouterModels,
 				refreshVercelAiGatewayModels,
 				refreshHicapModels,

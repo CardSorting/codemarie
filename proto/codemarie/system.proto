@@ -3,9 +3,8 @@ syntax = "proto3";
 package codemarie;
 
 import "codemarie/common.proto";
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/field_mask.proto";
-
+import "google/protobuf/timestamp.proto";
 
 // SystemService provides methods for host-related operations
 // including browser management, web metadata, system-level slash commands,
@@ -281,7 +280,6 @@ message OpenRouterCompatibleModelInfo {
   map<string, OpenRouterModelInfo> models = 1;
 }
 
-
 message SapAiCoreModelDeployment {
   string model_name = 1;
   string deployment_id = 2;
@@ -319,7 +317,6 @@ message ModelsApiSecrets {
   optional string sap_ai_core_client_secret = 26;
   optional string moonshot_api_key = 27;
   optional string groq_api_key = 29;
-  optional string hugging_face_api_key = 30;
   optional string huawei_cloud_maas_api_key = 31;
   optional string baseten_api_key = 32;
   optional string zai_api_key = 33;
@@ -406,8 +403,6 @@ message ModelsApiOptions {
   optional string plan_mode_sap_ai_core_deployment_id = 120;
   optional string plan_mode_groq_model_id = 121;
   optional OpenRouterModelInfo plan_mode_groq_model_info = 122;
-  optional string plan_mode_hugging_face_model_id = 123;
-  optional OpenRouterModelInfo plan_mode_hugging_face_model_info = 124;
   optional string plan_mode_huawei_cloud_maas_model_id = 125;
   optional OpenRouterModelInfo plan_mode_huawei_cloud_maas_model_info = 126;
   optional string plan_mode_baseten_model_id = 127;
@@ -447,8 +442,6 @@ message ModelsApiOptions {
   optional string act_mode_sap_ai_core_deployment_id = 220;
   optional string act_mode_groq_model_id = 221;
   optional OpenRouterModelInfo act_mode_groq_model_info = 222;
-  optional string act_mode_hugging_face_model_id = 223;
-  optional OpenRouterModelInfo act_mode_hugging_face_model_info = 224;
   optional string act_mode_huawei_cloud_maas_model_id = 225;
   optional OpenRouterModelInfo act_mode_huawei_cloud_maas_model_info = 226;
   optional string act_mode_baseten_model_id = 227;
@@ -542,7 +535,6 @@ message ModelsApiConfiguration {
   optional string aws_authentication = 58;
   optional string aws_bedrock_api_key = 59;
   optional string groq_api_key = 61;
-  optional string hugging_face_api_key = 62;
   optional string huawei_cloud_maas_api_key = 63;
   optional string baseten_api_key = 64;
   optional string ollama_api_key = 65;
@@ -570,7 +562,7 @@ message ModelsApiConfiguration {
   optional string embedding_open_ai_base_url = 90;
   optional string cloudflare_account_id = 91;
   optional string cloudflare_api_token = 92;
-  
+
   // Model info for OCA models
   optional ApiProvider plan_mode_api_provider = 100;
   optional string plan_mode_api_model_id = 101;
@@ -595,8 +587,6 @@ message ModelsApiConfiguration {
   optional string plan_mode_sap_ai_core_deployment_id = 120;
   optional string plan_mode_groq_model_id = 121;
   optional OpenRouterModelInfo plan_mode_groq_model_info = 122;
-  optional string plan_mode_hugging_face_model_id = 123;
-  optional OpenRouterModelInfo plan_mode_hugging_face_model_info = 124;
   optional string plan_mode_huawei_cloud_maas_model_id = 125;
   optional OpenRouterModelInfo plan_mode_huawei_cloud_maas_model_info = 126;
   optional string plan_mode_baseten_model_id = 127;
@@ -636,8 +626,6 @@ message ModelsApiConfiguration {
   optional string act_mode_sap_ai_core_deployment_id = 220;
   optional string act_mode_groq_model_id = 221;
   optional OpenRouterModelInfo act_mode_groq_model_info = 222;
-  optional string act_mode_hugging_face_model_id = 223;
-  optional OpenRouterModelInfo act_mode_hugging_face_model_info = 224;
   optional string act_mode_huawei_cloud_maas_model_id = 225;
   optional OpenRouterModelInfo act_mode_huawei_cloud_maas_model_info = 226;
   optional string act_mode_baseten_model_id = 227;

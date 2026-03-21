@@ -10,7 +10,6 @@ import { AwsBedrockHandler } from "./providers/bedrock"
 import { CerebrasHandler } from "./providers/cerebras"
 import { ClaudeCodeHandler } from "./providers/claude-code"
 import { CloudflareHandler } from "./providers/cloudflare"
-import { CodemarieHandler } from "./providers/codemarie"
 import { DeepSeekHandler } from "./providers/deepseek"
 import { DifyHandler } from "./providers/dify"
 import { DoubaoHandler } from "./providers/doubao"
@@ -19,7 +18,6 @@ import { GeminiHandler } from "./providers/gemini"
 import { GroqHandler } from "./providers/groq"
 import { HicapHandler } from "./providers/hicap"
 import { HuaweiCloudMaaSHandler } from "./providers/huawei-cloud-maas"
-import { HuggingFaceHandler } from "./providers/huggingface"
 import { LiteLlmHandler } from "./providers/litellm"
 import { LmStudioHandler } from "./providers/lmstudio"
 import { MinimaxHandler } from "./providers/minimax"
@@ -35,7 +33,6 @@ import { OpenAiNativeHandler } from "./providers/openai-native"
 import { OpenRouterHandler } from "./providers/openrouter"
 import { QwenHandler } from "./providers/qwen"
 import { QwenCodeHandler } from "./providers/qwen-code"
-import { RequestyHandler } from "./providers/requesty"
 import { SambanovaHandler } from "./providers/sambanova"
 import { SapAiCoreHandler } from "./providers/sapaicore"
 import { TogetherHandler } from "./providers/together"
@@ -201,17 +198,6 @@ function createHandlerForProvider(
 				deepSeekApiKey: options.deepSeekApiKey,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
 			})
-		case "requesty":
-			return new RequestyHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				requestyBaseUrl: options.requestyBaseUrl,
-				requestyApiKey: options.requestyApiKey,
-				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
-				thinkingBudgetTokens:
-					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-				requestyModelId: mode === "plan" ? options.planModeRequestyModelId : options.actModeRequestyModelId,
-				requestyModelInfo: mode === "plan" ? options.planModeRequestyModelInfo : options.actModeRequestyModelInfo,
-			})
 		case "fireworks":
 			return new FireworksHandler({
 				onRetryAttempt: options.onRetryAttempt,
@@ -258,26 +244,6 @@ function createHandlerForProvider(
 				vsCodeLmModelSelector:
 					mode === "plan" ? options.planModeVsCodeLmModelSelector : options.actModeVsCodeLmModelSelector,
 			})
-		case "codemarie": {
-			const codemarieModelId =
-				(mode === "plan" ? options.planModeCodemarieModelId : options.actModeCodemarieModelId) ||
-				(mode === "plan" ? options.planModeOpenRouterModelId : options.actModeOpenRouterModelId)
-			const codemarieModelInfo =
-				(mode === "plan" ? options.planModeCodemarieModelInfo : options.actModeCodemarieModelInfo) ||
-				(mode === "plan" ? options.planModeOpenRouterModelInfo : options.actModeOpenRouterModelInfo)
-			return new CodemarieHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				codemarieAccountId: options.codemarieAccountId,
-				codemarieApiKey: options.codemarieApiKey,
-				ulid: options.ulid,
-				reasoningEffort: mode === "plan" ? options.planModeReasoningEffort : options.actModeReasoningEffort,
-				thinkingBudgetTokens:
-					mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens,
-				openRouterProviderSorting: options.openRouterProviderSorting,
-				openRouterModelId: codemarieModelId,
-				openRouterModelInfo: codemarieModelInfo,
-			})
-		}
 		case "litellm":
 			return new LiteLlmHandler({
 				onRetryAttempt: options.onRetryAttempt,
@@ -296,14 +262,6 @@ function createHandlerForProvider(
 				moonshotApiKey: options.moonshotApiKey,
 				moonshotApiLine: options.moonshotApiLine,
 				apiModelId: mode === "plan" ? options.planModeApiModelId : options.actModeApiModelId,
-			})
-		case "huggingface":
-			return new HuggingFaceHandler({
-				onRetryAttempt: options.onRetryAttempt,
-				huggingFaceApiKey: options.huggingFaceApiKey,
-				huggingFaceModelId: mode === "plan" ? options.planModeHuggingFaceModelId : options.actModeHuggingFaceModelId,
-				huggingFaceModelInfo:
-					mode === "plan" ? options.planModeHuggingFaceModelInfo : options.actModeHuggingFaceModelInfo,
 			})
 		case "nebius":
 			return new NebiusHandler({

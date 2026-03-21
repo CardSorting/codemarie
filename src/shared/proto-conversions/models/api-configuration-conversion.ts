@@ -282,8 +282,6 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.LITELLM
 		case "moonshot":
 			return ProtoApiProvider.MOONSHOT
-		case "huggingface":
-			return ProtoApiProvider.HUGGINGFACE
 		case "nebius":
 			return ProtoApiProvider.NEBIUS
 		case "fireworks":
@@ -368,8 +366,6 @@ export function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvid
 			return "litellm"
 		case ProtoApiProvider.MOONSHOT:
 			return "moonshot"
-		case ProtoApiProvider.HUGGINGFACE:
-			return "huggingface"
 		case ProtoApiProvider.NEBIUS:
 			return "nebius"
 		case ProtoApiProvider.FIREWORKS:
@@ -487,8 +483,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 			planModeGroqModelInfo: convertModelInfoToProtoOpenRouter(config.planModeGroqModelInfo),
 			planModeBasetenModelId: config.planModeBasetenModelId,
 			planModeBasetenModelInfo: convertModelInfoToProtoOpenRouter(config.planModeBasetenModelInfo),
-			planModeHuggingFaceModelId: config.planModeHuggingFaceModelId,
-			planModeHuggingFaceModelInfo: convertModelInfoToProtoOpenRouter(config.planModeHuggingFaceModelInfo),
 			planModeSapAiCoreModelId: config.planModeSapAiCoreModelId,
 			planModeHuaweiCloudMaasModelId: config.planModeHuaweiCloudMaasModelId,
 			planModeHuaweiCloudMaasModelInfo: convertModelInfoToProtoOpenRouter(config.planModeHuaweiCloudMaasModelInfo),
@@ -525,8 +519,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 			actModeGroqModelInfo: convertModelInfoToProtoOpenRouter(config.actModeGroqModelInfo),
 			actModeBasetenModelId: config.actModeBasetenModelId,
 			actModeBasetenModelInfo: convertModelInfoToProtoOpenRouter(config.actModeBasetenModelInfo),
-			actModeHuggingFaceModelId: config.actModeHuggingFaceModelId,
-			actModeHuggingFaceModelInfo: convertModelInfoToProtoOpenRouter(config.actModeHuggingFaceModelInfo),
 			actModeSapAiCoreModelId: config.actModeSapAiCoreModelId,
 			actModeHuaweiCloudMaasModelId: config.actModeHuaweiCloudMaasModelId,
 			actModeHuaweiCloudMaasModelInfo: convertModelInfoToProtoOpenRouter(config.actModeHuaweiCloudMaasModelInfo),
@@ -567,7 +559,6 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 			sapAiCoreClientSecret: config.sapAiCoreClientSecret,
 			moonshotApiKey: config.moonshotApiKey,
 			groqApiKey: config.groqApiKey,
-			huggingFaceApiKey: config.huggingFaceApiKey,
 			huaweiCloudMaasApiKey: config.huaweiCloudMaasApiKey,
 			basetenApiKey: config.basetenApiKey,
 			zaiApiKey: config.zaiApiKey,
@@ -640,7 +631,6 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		qwenApiLine: options.qwenApiLine,
 		moonshotApiLine: options.moonshotApiLine,
 		moonshotApiKey: secrets.moonshotApiKey,
-		huggingFaceApiKey: secrets.huggingFaceApiKey,
 		nebiusApiKey: secrets.nebiusApiKey,
 		asksageApiUrl: options.asksageApiUrl,
 		asksageApiKey: secrets.asksageApiKey,
@@ -702,8 +692,6 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		planModeGroqModelInfo: convertProtoToModelInfo(options.planModeGroqModelInfo),
 		planModeBasetenModelId: options.planModeBasetenModelId,
 		planModeBasetenModelInfo: convertProtoToModelInfo(options.planModeBasetenModelInfo),
-		planModeHuggingFaceModelId: options.planModeHuggingFaceModelId,
-		planModeHuggingFaceModelInfo: convertProtoToModelInfo(options.planModeHuggingFaceModelInfo),
 		planModeSapAiCoreModelId: options.planModeSapAiCoreModelId,
 		planModeHuaweiCloudMaasModelId: options.planModeHuaweiCloudMaasModelId,
 		planModeHuaweiCloudMaasModelInfo: convertProtoToModelInfo(options.planModeHuaweiCloudMaasModelInfo),
@@ -742,8 +730,6 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		actModeGroqModelInfo: convertProtoToModelInfo(options.actModeGroqModelInfo),
 		actModeBasetenModelId: options.actModeBasetenModelId,
 		actModeBasetenModelInfo: convertProtoToModelInfo(options.actModeBasetenModelInfo),
-		actModeHuggingFaceModelId: options.actModeHuggingFaceModelId,
-		actModeHuggingFaceModelInfo: convertProtoToModelInfo(options.actModeHuggingFaceModelInfo),
 		actModeSapAiCoreModelId: options.actModeSapAiCoreModelId,
 		actModeHuaweiCloudMaasModelId: options.actModeHuaweiCloudMaasModelId,
 		actModeHuaweiCloudMaasModelInfo: convertProtoToModelInfo(options.actModeHuaweiCloudMaasModelInfo),

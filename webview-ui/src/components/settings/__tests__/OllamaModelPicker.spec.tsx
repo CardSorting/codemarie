@@ -1,20 +1,15 @@
+import "@testing-library/jest-dom"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { ExtensionStateContextProvider } from "@/context/ExtensionStateContext"
+import { ExtensionStateContextProvider } from "@/utils/test-utils"
 import OllamaModelPicker from "../OllamaModelPicker"
 
 // Mock the ExtensionStateContext
 vi.mock("../../../context/ExtensionStateContext", async (importOriginal) => {
-	const actual = await importOriginal()
+	const actual = await importOriginal<typeof import("@/context/ExtensionStateContext")>()
 	return {
-		...(actual || {}),
-		useExtensionState: vi.fn(() => ({
-			apiConfiguration: {
-				apiProvider: "ollama",
-				ollamaModelId: "llama2",
-			},
-			setApiConfiguration: vi.fn(),
-		})),
+		...actual,
+		useExtensionState: vi.fn(),
 	}
 })
 

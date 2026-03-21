@@ -324,8 +324,8 @@ const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingMode
 					actModeOpenRouterModelId: selectedModelId,
 					planModeOpenRouterModelInfo: openRouterModels[selectedModelId],
 					actModeOpenRouterModelInfo: openRouterModels[selectedModelId],
-					planModeApiProvider: "codemarie",
-					actModeApiProvider: "codemarie",
+					planModeApiProvider: "anthropic",
+					actModeApiProvider: "anthropic",
 				})
 			}
 			hideAccount()
@@ -342,14 +342,14 @@ const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingMode
 				case "signup":
 					setStepNumber(stepNumber + 1)
 					setIsActionLoading(true)
-					await AccountServiceClient.signIn({ provider: ApiProvider.CODEMARIE })
+					await AccountServiceClient.signIn({ provider: ApiProvider.ANTHROPIC })
 						.catch(() => {})
 						.finally(() => setIsActionLoading(false))
 					await finishOnboarding(true, stepNumber + 1)
 					break
 				case "signin":
 					setIsActionLoading(true)
-					await AccountServiceClient.signIn({ provider: ApiProvider.CODEMARIE })
+					await AccountServiceClient.signIn({ provider: ApiProvider.ANTHROPIC })
 						.catch(() => {})
 						.finally(() => setIsActionLoading(false))
 					await finishOnboarding(true, stepNumber + 1)

@@ -11,6 +11,11 @@ export async function signIn(controller: Controller, request: SignInRequest): Pr
 	const provider = request.provider as ApiProvider
 
 	switch (provider) {
+		case ApiProvider.ANTHROPIC: {
+			// This is the default case for the main account login
+			await controller.authService.createAuthRequest()
+			return {}
+		}
 		case ApiProvider.OPENROUTER: {
 			const callbackUrl = await HostProvider.get().getCallbackUrl("/openrouter")
 			const authUrl = `https://openrouter.ai/auth?callback_url=${encodeURIComponent(callbackUrl)}`

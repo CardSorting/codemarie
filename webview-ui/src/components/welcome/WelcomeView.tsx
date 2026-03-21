@@ -1,5 +1,4 @@
 import { SignInRequest } from "@shared/proto/codemarie/account"
-import { ApiProvider } from "@shared/proto/codemarie/common"
 import { UpdateSettingsRequest } from "@shared/proto/codemarie/state"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { memo, useEffect, useState } from "react"
@@ -19,7 +18,7 @@ const WelcomeView = memo(() => {
 
 	const handleLogin = () => {
 		setIsLoading(true)
-		AccountServiceClient.signIn(SignInRequest.create({ provider: ApiProvider.CODEMARIE }))
+		AccountServiceClient.signIn(SignInRequest.create({}))
 			.catch((err: Error) => console.error("Failed to sign in:", err))
 			.finally(() => {
 				setIsLoading(false)

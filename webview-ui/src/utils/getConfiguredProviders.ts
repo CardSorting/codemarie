@@ -17,11 +17,8 @@ export function getConfiguredProviders(
 	const configured: ApiProvider[] = []
 
 	if (!apiConfiguration) {
-		return ["codemarie"] // Codemarie is always available
+		return []
 	}
-
-	// Codemarie - always available (uses account-based auth)
-	configured.push("codemarie")
 
 	// Anthropic - requires API key
 	if (apiConfiguration.apiKey) {
@@ -81,11 +78,6 @@ export function getConfiguredProviders(
 		configured.push("mistral")
 	}
 
-	// Requesty - requires API key
-	if (apiConfiguration.requestyApiKey) {
-		configured.push("requesty")
-	}
-
 	// Fireworks - requires API key
 	if (apiConfiguration.fireworksApiKey) {
 		configured.push("fireworks")
@@ -139,11 +131,6 @@ export function getConfiguredProviders(
 	// Groq - requires API key
 	if (apiConfiguration.groqApiKey) {
 		configured.push("groq")
-	}
-
-	// Hugging Face - requires API key
-	if (apiConfiguration.huggingFaceApiKey) {
-		configured.push("huggingface")
 	}
 
 	// Baseten - requires API key

@@ -1,5 +1,5 @@
 import { McpTool } from "@shared/mcp"
-import { ToggleToolAutoApproveRequest } from "@shared/proto/codemarie/mcp"
+import { ToggleToolAutoApproveRequest } from "@shared/proto/codemarie/system"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useGlobalState } from "@/context/GlobalStateContext"
@@ -14,7 +14,7 @@ const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
 	const { autoApprovalSettings, setMcpServers } = useGlobalState()
 
 	// Accept the event object
-	const handleAutoApproveChange = (_event: any) => {
+	const handleAutoApproveChange = (_event: React.MouseEvent | React.KeyboardEvent) => {
 		if (!serverName) {
 			return
 		}
@@ -43,6 +43,8 @@ const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
 			<div
 				data-testid="tool-row-container"
 				onClick={(e) => e.stopPropagation()}
+				onKeyDown={(e) => e.stopPropagation()}
+				role="presentation"
 				style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "4px" }}>
 				<div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: "1 1 auto" }}>
 					<span className="codicon codicon-symbol-method" style={{ marginRight: "6px", flexShrink: 0 }} />
@@ -52,7 +54,7 @@ const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
 					<VSCodeCheckbox
 						checked={tool.autoApprove ?? false}
 						data-tool={tool.name}
-						onChange={handleAutoApproveChange}
+						onClick={handleAutoApproveChange}
 						style={{ fontSize: "11px" }}>
 						Auto-approve
 					</VSCodeCheckbox>
@@ -71,7 +73,7 @@ const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
 			)}
 			{tool.inputSchema &&
 				"properties" in tool.inputSchema &&
-				Object.keys(tool.inputSchema.properties as Record<string, any>).length > 0 && (
+				Object.keys(tool.inputSchema.properties as Record<string, unknown>).length > 0 && (
 					<div
 						style={{
 							marginTop: "8px",

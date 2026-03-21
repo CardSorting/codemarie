@@ -177,8 +177,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	planModeGroqModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeBasetenModelId: { default: undefined as string | undefined },
 	planModeBasetenModelInfo: { default: undefined as ModelInfo | undefined },
-	planModeHuggingFaceModelId: { default: undefined as string | undefined },
-	planModeHuggingFaceModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeHuaweiCloudMaasModelId: { default: undefined as string | undefined },
 	planModeHuaweiCloudMaasModelInfo: { default: undefined as ModelInfo | undefined },
 	planModeOcaModelId: { default: undefined as string | undefined },
@@ -215,8 +213,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	actModeGroqModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeBasetenModelId: { default: undefined as string | undefined },
 	actModeBasetenModelInfo: { default: undefined as ModelInfo | undefined },
-	actModeHuggingFaceModelId: { default: undefined as string | undefined },
-	actModeHuggingFaceModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeHuaweiCloudMaasModelId: { default: undefined as string | undefined },
 	actModeHuaweiCloudMaasModelInfo: { default: undefined as ModelInfo | undefined },
 	actModeOcaModelId: { default: undefined as string | undefined },
@@ -324,7 +320,6 @@ const SECRETS_KEYS = [
 	"xaiApiKey",
 	"moonshotApiKey",
 	"zaiApiKey",
-	"huggingFaceApiKey",
 	"nebiusApiKey",
 	"sambanovaApiKey",
 	"cerebrasApiKey",
@@ -344,6 +339,8 @@ const SECRETS_KEYS = [
 	"ocaRefreshToken",
 	"mcpOAuthSecrets",
 	"openai-codex-oauth-credentials", // JSON blob containing OAuth tokens for OpenAI Codex (ChatGPT subscription)
+	"codemarieAccountId",
+	"codemarie:codemarieAccountId",
 	"embeddingApiKey",
 ] as const
 

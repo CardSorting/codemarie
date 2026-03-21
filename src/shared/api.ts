@@ -30,7 +30,6 @@ export type ApiProvider =
 	| "cerebras"
 	| "sapaicore"
 	| "groq"
-	| "huggingface"
 	| "huawei-cloud-maas"
 	| "dify"
 	| "baseten"
@@ -1977,78 +1976,6 @@ export const deepSeekModels = {
 		outputPrice: 2.19,
 		cacheWritesPrice: 0.55,
 		cacheReadsPrice: 0.14,
-	},
-} as const satisfies Record<string, ModelInfo>
-
-// Hugging Face Inference Providers
-// https://huggingface.co/docs/inference-providers/en/index
-export type HuggingFaceModelId = keyof typeof huggingFaceModels
-export const huggingFaceDefaultModelId: HuggingFaceModelId = "moonshotai/Kimi-K2-Instruct"
-export const huggingFaceModels = {
-	"openai/gpt-oss-120b": {
-		maxTokens: 32766,
-		contextWindow: 131_072,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description:
-			"Large open-weight reasoning model for high-end desktops and data centers, built for complex coding, math, and general AI tasks.",
-	},
-	"openai/gpt-oss-20b": {
-		maxTokens: 32766,
-		contextWindow: 131_072,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description:
-			"Medium open-weight reasoning model that runs on most desktops, balancing strong reasoning with broad accessibility.",
-	},
-	"moonshotai/Kimi-K2-Instruct": {
-		maxTokens: 131_072,
-		contextWindow: 131_072,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description: "Advanced reasoning model with superior performance across coding, math, and general capabilities.",
-	},
-	"deepseek-ai/DeepSeek-V3-0324": {
-		maxTokens: 8192,
-		contextWindow: 64_000,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description: "Advanced reasoning model with superior performance across coding, math, and general capabilities.",
-	},
-	"deepseek-ai/DeepSeek-R1": {
-		maxTokens: 8192,
-		contextWindow: 64_000,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description: "DeepSeek's reasoning model with step-by-step thinking capabilities.",
-	},
-	"deepseek-ai/DeepSeek-R1-0528": {
-		maxTokens: 64_000,
-		contextWindow: 64_000,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description: "DeepSeek's reasoning model's latest version with step-by-step thinking capabilities",
-	},
-	"meta-llama/Llama-3.1-8B-Instruct": {
-		maxTokens: 8192,
-		contextWindow: 128_000,
-		supportsImages: false,
-		supportsPromptCache: false,
-		inputPrice: 0,
-		outputPrice: 0,
-		description: "Efficient 8B parameter Llama model for general-purpose tasks.",
 	},
 } as const satisfies Record<string, ModelInfo>
 

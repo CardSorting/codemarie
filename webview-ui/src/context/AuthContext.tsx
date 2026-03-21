@@ -1,5 +1,5 @@
 import { type AuthState, SignInRequest, SignOutRequest, type UserOrganization } from "@shared/proto/codemarie/account"
-import { ApiProvider, EmptyRequest } from "@shared/proto/codemarie/common"
+import { EmptyRequest } from "@shared/proto/codemarie/common"
 import deepEqual from "fast-deep-equal"
 import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 	const handleSignIn = useCallback(() => {
 		try {
 			setIsLoginLoading(true)
-			AccountServiceClient.signIn(SignInRequest.create({ provider: ApiProvider.CODEMARIE }))
+			AccountServiceClient.signIn(SignInRequest.create({}))
 				.catch((err: Error) => console.error("Failed to sign in:", err))
 				.finally(() => {
 					setIsLoginLoading(false)
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 	const handleSignOut = useCallback(async () => {
 		try {
-			await AccountServiceClient.signOut(SignOutRequest.create({ provider: ApiProvider.CODEMARIE })).catch((err: Error) =>
+			await AccountServiceClient.signOut(SignOutRequest.create({})).catch((err: Error) =>
 				console.error("Failed to logout:", err),
 			)
 		} catch (error) {

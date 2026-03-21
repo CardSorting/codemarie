@@ -16,6 +16,7 @@ vi.mock("@/context/ExtensionStateContext", () => ({
 	}),
 }))
 
+import { ExtensionStateContextProvider } from "@/utils/test-utils"
 import UserMessage from "../components/messages/rows/UserMessage"
 
 describe("UserMessage – IME composition handling", () => {
@@ -23,7 +24,14 @@ describe("UserMessage – IME composition handling", () => {
 		const sendMessageFromChatRow = vi.fn()
 
 		const { getByText } = render(
-			<UserMessage images={[]} messageTs={Date.now()} sendMessageFromChatRow={sendMessageFromChatRow} text="変換テスト" />,
+			<ExtensionStateContextProvider>
+				<UserMessage
+					images={[]}
+					messageTs={Date.now()}
+					sendMessageFromChatRow={sendMessageFromChatRow}
+					text="変換テスト"
+				/>
+			</ExtensionStateContextProvider>,
 		)
 
 		const editable = getByText("変換テスト") as HTMLElement

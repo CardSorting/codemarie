@@ -1,4 +1,4 @@
-import { EmptyRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect } from "react"
@@ -61,7 +61,7 @@ export const HicapProvider = ({ showModelOptions, isPopup, currentMode }: HicapP
 						appearance="secondary"
 						onClick={async () => {
 							try {
-								await AccountServiceClient.hicapAuthClicked(EmptyRequest.create())
+								await AccountServiceClient.signIn({ provider: ApiProvider.HICAP })
 							} catch (error) {
 								console.error("Failed to open Hicap auth:", error)
 							}

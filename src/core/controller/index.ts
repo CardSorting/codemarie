@@ -581,7 +581,7 @@ export class Controller {
 			await this.authService.handleAuthCallback(customToken, provider ? provider : "google")
 
 			await this.updateApiConfigurationWithProvider({
-				provider: "codemarie",
+				provider: "anthropic",
 				setWelcomeViewCompleted: true,
 			})
 
@@ -708,16 +708,6 @@ export class Controller {
 			apiKeyValue: apiKey,
 		})
 		// Dont send settingsButtonClicked because its bad ux if user is on welcome
-	}
-
-	// Requesty
-
-	async handleRequestyCallback(code: string) {
-		await this.updateApiConfigurationWithProvider({
-			provider: "requesty",
-			apiKeyField: "requestyApiKey",
-			apiKeyValue: code,
-		})
 	}
 
 	// Read OpenRouter models from disk cache

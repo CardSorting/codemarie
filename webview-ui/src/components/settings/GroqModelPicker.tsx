@@ -1,11 +1,13 @@
 import { groqDefaultModelId, groqModels } from "@shared/api"
-import { EmptyRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
 import { Mode } from "@shared/storage/types"
-import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeButton, VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
+import DOMPurify from "dompurify"
 import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "@/hooks/useLifecycle"
+
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { SystemServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
@@ -29,6 +31,7 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 	const dropdownRef = useRef<HTMLDivElement>(null)
 	const itemRefs = useRef<(HTMLDivElement | null)[]>([])
 	const dropdownListRef = useRef<HTMLDivElement>(null)
+	const lastPropModelIdRef = useRef(modeFields.groqModelId || groqDefaultModelId)
 
 	const handleModelChange = (newModelId: string) => {
 		// Use dynamic models if available, otherwise fall back to static models
@@ -53,12 +56,14 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 	}, [apiConfiguration, currentMode])
 
 	useMount(() => {
-		SystemServiceClient.refreshGroqModelsRpc(EmptyRequest.create({}))
+		SystemServiceClient.refreshModels({ provider: ApiProvider.GROQ })
 			.then((response) => {
-				setGroqModels({
-					[groqDefaultModelId]: groqModels[groqDefaultModelId],
-					...fromProtobufModels(response.models),
-				})
+				if (response.compatibleModels?.models) {
+					setGroqModels({
+						[groqDefaultModelId]: groqModels[groqDefaultModelId],
+						...fromProtobufModels(response.compatibleModels.models),
+					})
+				}
 			})
 			.catch((err) => {
 				console.error("Failed to refresh Groq models:", err)
@@ -68,7 +73,10 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 	// Sync external changes when the modelId changes
 	useEffect(() => {
 		const currentModelId = modeFields.groqModelId || groqDefaultModelId
-		setSearchTerm(currentModelId)
+		if (currentModelId !== lastPropModelIdRef.current) {
+			setSearchTerm(currentModelId)
+			lastPropModelIdRef.current = currentModelId
+		}
 	}, [modeFields.groqModelId])
 
 	// Debounce search term to reduce re-renders
@@ -206,15 +214,17 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 						}}
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VSCodeButton
+								appearance="icon"
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close flex justify-center items-center h-full"
+								className="input-icon-button"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)
 								}}
-								slot="end"
-							/>
+								slot="end">
+								<span className="codicon codicon-close" />
+							</VSCodeButton>
 						)}
 					</VSCodeTextField>
 					{isDropdownVisible && (
@@ -231,18 +241,31 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 									className={`px-2.5 py-1.5 cursor-pointer break-all whitespace-normal hover:bg-(--vscode-list-activeSelectionBackground) ${
 										index === selectedIndex ? "bg-(--vscode-list-activeSelectionBackground)" : ""
 									}`}
-									dangerouslySetInnerHTML={{
-										__html: item.html,
-									}}
 									key={item.id}
 									onClick={() => {
 										handleModelChange(item.id)
 										setIsDropdownVisible(false)
 									}}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault()
+											handleModelChange(item.id)
+											setIsDropdownVisible(false)
+										}
+									}}
 									onMouseEnter={() => setSelectedIndex(index)}
-									ref={(el: HTMLDivElement | null) => (itemRefs.current[index] = el)}
+									ref={(el: HTMLDivElement | null) => {
+										itemRefs.current[index] = el
+									}}
 									role="option"
-								/>
+									tabIndex={0}>
+									{/* biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized via DOMPurify */}
+									<span
+										dangerouslySetInnerHTML={{
+											__html: DOMPurify.sanitize(item.html),
+										}}
+									/>
+								</div>
 							))}
 						</div>
 					)}

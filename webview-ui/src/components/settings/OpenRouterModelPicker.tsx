@@ -1,10 +1,10 @@
 import { CLAUDE_SONNET_1M_SUFFIX, openRouterDefaultModelId } from "@shared/api"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import type { Mode } from "@shared/storage/types"
-import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
+import { VSCodeButton, VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
+import DOMPurify from "dompurify"
 import { Fzf } from "fzf"
-import type React from "react"
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
+import React, { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useMount } from "@/hooks/useLifecycle"
@@ -23,10 +23,23 @@ import {
 import { useApiConfigurationHandlers } from "./utils/useApiConfigurationHandlers"
 
 // Star icon for favorites
-const StarIcon = ({ isFavorite, onClick }: { isFavorite: boolean; onClick: (e: React.MouseEvent) => void }) => {
+const StarIcon = ({
+	isFavorite,
+	onClick,
+}: {
+	isFavorite: boolean
+	onClick: (e: React.MouseEvent | React.KeyboardEvent) => void
+}) => {
 	return (
-		<div
+		<button
+			aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
 			onClick={onClick}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault()
+					onClick(e)
+				}
+			}}
 			style={{
 				cursor: "pointer",
 				color: isFavorite ? "var(--vscode-terminal-ansiBlue)" : "var(--vscode-descriptionForeground)",
@@ -37,9 +50,13 @@ const StarIcon = ({ isFavorite, onClick }: { isFavorite: boolean; onClick: (e: R
 				justifyContent: "center",
 				userSelect: "none",
 				WebkitUserSelect: "none",
-			}}>
+				background: "transparent",
+				border: "none",
+				padding: 0,
+			}}
+			type="button">
 			{isFavorite ? "★" : "☆"}
-		</div>
+		</button>
 	)
 }
 
@@ -108,7 +125,7 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup, 
 
 	const modelIds = useMemo(() => {
 		const unfilteredModelIds = Object.keys(openRouterModels).sort((a, b) => a.localeCompare(b))
-		return filterOpenRouterModelIds(unfilteredModelIds, "openrouter")
+		return filterOpenRouterModelIds(unfilteredModelIds)
 	}, [openRouterModels])
 
 	const searchableItems = useMemo(() => {
@@ -259,21 +276,17 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup, 
 						}}
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VSCodeButton
+								appearance="icon"
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close"
+								className="input-icon-button"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)
 								}}
-								slot="end"
-								style={{
-									display: "flex",
-									justifyContent: "center",
-									alignItems: "center",
-									height: "100%",
-								}}
-							/>
+								slot="end">
+								<span className="codicon codicon-close" />
+							</VSCodeButton>
 						)}
 					</VSCodeTextField>
 					{isDropdownVisible && (
@@ -288,11 +301,22 @@ const OpenRouterModelPicker: React.FC<OpenRouterModelPickerProps> = ({ isPopup, 
 											handleModelChange(item.id)
 											setIsDropdownVisible(false)
 										}}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault()
+												handleModelChange(item.id)
+												setIsDropdownVisible(false)
+											}
+										}}
 										onMouseEnter={() => setSelectedIndex(index)}
-										ref={(el) => (itemRefs.current[index] = el)}
-										role="option">
+										ref={(el) => {
+											itemRefs.current[index] = el
+										}}
+										role="option"
+										tabIndex={0}>
 										<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-											<span dangerouslySetInnerHTML={{ __html: item.html }} />
+											{/* biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized via DOMPurify */}
+											<span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.html) }} />
 											<StarIcon
 												isFavorite={isFavorite}
 												onClick={(e) => {

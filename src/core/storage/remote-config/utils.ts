@@ -167,13 +167,6 @@ export function transformRemoteConfigToStateShape(remoteConfig: RemoteConfig): P
 		}
 	}
 
-	const codemarieSettings = remoteConfig.providerSettings?.Codemarie
-	if (codemarieSettings) {
-		transformed.planModeApiProvider = "codemarie"
-		transformed.actModeApiProvider = "codemarie"
-		providers.push("codemarie")
-	}
-
 	// Map LiteLLM provider settings
 	const liteLlmSettings = remoteConfig.providerSettings?.LiteLLM
 	if (liteLlmSettings) {

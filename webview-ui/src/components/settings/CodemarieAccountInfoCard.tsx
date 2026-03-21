@@ -14,7 +14,7 @@ export const CodemarieAccountInfoCard = () => {
 
 	const handleLogin = () => {
 		setIsLoading(true)
-		AccountServiceClient.accountLoginClicked(EmptyRequest.create())
+		AccountServiceClient.getRedirectUrl(EmptyRequest.create())
 			.catch((err) => console.error("Failed to get login URL:", err))
 			.finally(() => {
 				setIsLoading(false)

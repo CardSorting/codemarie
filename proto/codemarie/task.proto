@@ -5,7 +5,6 @@ package codemarie;
 import "codemarie/common.proto";
 import "codemarie/state.proto";
 
-
 service TaskService {
   // Cancels the currently running task
   rpc cancelTask(EmptyRequest) returns (Empty);

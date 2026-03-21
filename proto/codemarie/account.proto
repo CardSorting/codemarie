@@ -4,7 +4,6 @@ package codemarie;
 
 import "codemarie/common.proto";
 
-
 // Service for account-related operations
 service AccountService {
   // Subscribe to auth status update events (when authentication state changes)
@@ -40,7 +39,7 @@ service AccountService {
 message SignInRequest {
   ApiProvider provider = 1;
   optional string base_url = 2; // For providers that need a base URL
-  optional string api_key = 3;  // For providers that take a direct API key
+  optional string api_key = 3; // For providers that take a direct API key
 }
 
 // Request for sign-out

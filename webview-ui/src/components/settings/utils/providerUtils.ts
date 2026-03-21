@@ -60,8 +60,6 @@ import {
 	openRouterDefaultModelInfo,
 	qwenCodeDefaultModelId,
 	qwenCodeModels,
-	requestyDefaultModelId,
-	requestyDefaultModelInfo,
 	sambanovaDefaultModelId,
 	sambanovaModels,
 	sapAiCoreDefaultModelId,
@@ -80,7 +78,7 @@ export function supportsReasoningEffortForModelId(modelId?: string, _allowShortO
 
 /**
  * Returns the static model list for a provider.
- * For providers with dynamic models (openrouter, codemarie, ollama, etc.), returns undefined.
+ * For providers with dynamic models (openrouter, ollama, etc.), returns undefined.
  * Some providers depend on configuration (qwen, zai) for region-specific models.
  */
 export function getModelsForProvider(
@@ -251,40 +249,6 @@ export function normalizeApiConfiguration(
 				selectedProvider: provider,
 				selectedModelId: openRouterModelId || openRouterDefaultModelId,
 				selectedModelInfo: openRouterModelInfo || openRouterDefaultModelInfo,
-			}
-		case "requesty":
-			const requestyModelId =
-				currentMode === "plan" ? apiConfiguration?.planModeRequestyModelId : apiConfiguration?.actModeRequestyModelId
-			const requestyModelInfo =
-				currentMode === "plan" ? apiConfiguration?.planModeRequestyModelInfo : apiConfiguration?.actModeRequestyModelInfo
-			return {
-				selectedProvider: provider,
-				selectedModelId: requestyModelId || requestyDefaultModelId,
-				selectedModelInfo: requestyModelInfo || requestyDefaultModelInfo,
-			}
-		case "codemarie":
-			const fallbackOpenRouterModelId =
-				currentMode === "plan" ? apiConfiguration?.planModeOpenRouterModelId : apiConfiguration?.actModeOpenRouterModelId
-			const fallbackOpenRouterModelInfo =
-				currentMode === "plan"
-					? apiConfiguration?.planModeOpenRouterModelInfo
-					: apiConfiguration?.actModeOpenRouterModelInfo
-			const codemarieModelId =
-				(currentMode === "plan"
-					? apiConfiguration?.planModeCodemarieModelId
-					: apiConfiguration?.actModeCodemarieModelId) ||
-				fallbackOpenRouterModelId ||
-				openRouterDefaultModelId
-			const codemarieModelInfo =
-				(currentMode === "plan"
-					? apiConfiguration?.planModeCodemarieModelInfo
-					: apiConfiguration?.actModeCodemarieModelInfo) ||
-				fallbackOpenRouterModelInfo ||
-				openRouterDefaultModelInfo
-			return {
-				selectedProvider: provider,
-				selectedModelId: codemarieModelId,
-				selectedModelInfo: codemarieModelInfo,
 			}
 		case "openai":
 			const openAiModelId =
@@ -509,10 +473,7 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			lmStudioModelId: undefined,
 			ollamaModelId: undefined,
 			liteLlmModelId: undefined,
-			requestyModelId: undefined,
 			openAiModelId: undefined,
-			openRouterModelId: undefined,
-			codemarieModelId: undefined,
 			groqModelId: undefined,
 			basetenModelId: undefined,
 			huggingFaceModelId: undefined,
@@ -525,8 +486,6 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 			openAiModelInfo: undefined,
 			liteLlmModelInfo: undefined,
 			openRouterModelInfo: undefined,
-			codemarieModelInfo: undefined,
-			requestyModelInfo: undefined,
 			groqModelInfo: undefined,
 			basetenModelInfo: undefined,
 			huggingFaceModelInfo: undefined,
@@ -545,19 +504,6 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 		}
 	}
 
-	const openRouterModelId =
-		mode === "plan" ? apiConfiguration.planModeOpenRouterModelId : apiConfiguration.actModeOpenRouterModelId
-	const openRouterModelInfo =
-		mode === "plan" ? apiConfiguration.planModeOpenRouterModelInfo : apiConfiguration.actModeOpenRouterModelInfo
-
-	// Backward compatibility: Codemarie previously stored model selection in OpenRouter keys.
-	const codemarieModelId =
-		(mode === "plan" ? apiConfiguration.planModeCodemarieModelId : apiConfiguration.actModeCodemarieModelId) ||
-		openRouterModelId
-	const codemarieModelInfo =
-		(mode === "plan" ? apiConfiguration.planModeCodemarieModelInfo : apiConfiguration.actModeCodemarieModelInfo) ||
-		openRouterModelInfo
-
 	return {
 		// Core fields
 		apiProvider: mode === "plan" ? apiConfiguration.planModeApiProvider : apiConfiguration.actModeApiProvider,
@@ -569,10 +515,9 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 		lmStudioModelId: mode === "plan" ? apiConfiguration.planModeLmStudioModelId : apiConfiguration.actModeLmStudioModelId,
 		ollamaModelId: mode === "plan" ? apiConfiguration.planModeOllamaModelId : apiConfiguration.actModeOllamaModelId,
 		liteLlmModelId: mode === "plan" ? apiConfiguration.planModeLiteLlmModelId : apiConfiguration.actModeLiteLlmModelId,
-		requestyModelId: mode === "plan" ? apiConfiguration.planModeRequestyModelId : apiConfiguration.actModeRequestyModelId,
 		openAiModelId: mode === "plan" ? apiConfiguration.planModeOpenAiModelId : apiConfiguration.actModeOpenAiModelId,
-		openRouterModelId,
-		codemarieModelId,
+		openRouterModelId:
+			mode === "plan" ? apiConfiguration.planModeOpenRouterModelId : apiConfiguration.actModeOpenRouterModelId,
 		groqModelId: mode === "plan" ? apiConfiguration.planModeGroqModelId : apiConfiguration.actModeGroqModelId,
 		basetenModelId: mode === "plan" ? apiConfiguration.planModeBasetenModelId : apiConfiguration.actModeBasetenModelId,
 		huggingFaceModelId:
@@ -589,10 +534,8 @@ export function getModeSpecificFields(apiConfiguration: ApiConfiguration | undef
 		// Model info objects
 		openAiModelInfo: mode === "plan" ? apiConfiguration.planModeOpenAiModelInfo : apiConfiguration.actModeOpenAiModelInfo,
 		liteLlmModelInfo: mode === "plan" ? apiConfiguration.planModeLiteLlmModelInfo : apiConfiguration.actModeLiteLlmModelInfo,
-		openRouterModelInfo,
-		codemarieModelInfo,
-		requestyModelInfo:
-			mode === "plan" ? apiConfiguration.planModeRequestyModelInfo : apiConfiguration.actModeRequestyModelInfo,
+		openRouterModelInfo:
+			mode === "plan" ? apiConfiguration.planModeOpenRouterModelInfo : apiConfiguration.actModeOpenRouterModelInfo,
 		groqModelInfo: mode === "plan" ? apiConfiguration.planModeGroqModelInfo : apiConfiguration.actModeGroqModelInfo,
 		basetenModelInfo: mode === "plan" ? apiConfiguration.planModeBasetenModelInfo : apiConfiguration.actModeBasetenModelInfo,
 		huggingFaceModelInfo:
@@ -668,20 +611,6 @@ export async function syncModeConfigurations(
 			updates.actModeOpenRouterModelId = sourceFields.openRouterModelId
 			updates.planModeOpenRouterModelInfo = sourceFields.openRouterModelInfo
 			updates.actModeOpenRouterModelInfo = sourceFields.openRouterModelInfo
-			break
-
-		case "codemarie":
-			updates.planModeCodemarieModelId = sourceFields.codemarieModelId
-			updates.actModeCodemarieModelId = sourceFields.codemarieModelId
-			updates.planModeCodemarieModelInfo = sourceFields.codemarieModelInfo
-			updates.actModeCodemarieModelInfo = sourceFields.codemarieModelInfo
-			break
-
-		case "requesty":
-			updates.planModeRequestyModelId = sourceFields.requestyModelId
-			updates.actModeRequestyModelId = sourceFields.requestyModelId
-			updates.planModeRequestyModelInfo = sourceFields.requestyModelInfo
-			updates.actModeRequestyModelInfo = sourceFields.requestyModelInfo
 			break
 
 		case "openai":
@@ -848,13 +777,6 @@ export const getProviderInfo = (
 				modelId: undefined,
 				baseUrl: undefined,
 				helpText: "Select a VS Code language model from settings",
-			}
-		case "requesty":
-			return {
-				modelId:
-					effectiveMode === "plan" ? apiConfiguration.planModeRequestyModelId : apiConfiguration.actModeRequestyModelId,
-				baseUrl: apiConfiguration.requestyBaseUrl,
-				helpText: "Add your Requesty API key in settings",
 			}
 		case "together":
 			return {

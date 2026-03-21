@@ -8,6 +8,11 @@ export async function signOut(controller: Controller, request: SignOutRequest): 
 	const provider = request.provider as ApiProvider
 
 	switch (provider) {
+		case ApiProvider.ANTHROPIC: {
+			// This is the default case for the main account log-out
+			await controller.authService.handleDeauth()
+			return {}
+		}
 		case ApiProvider.OPENAI_CODEX: {
 			try {
 				await openAiCodexOAuthManager.clearCredentials()

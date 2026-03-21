@@ -17,9 +17,6 @@ export { getProviderLabel }
  */
 function isProviderConfigured(providerId: string, config: ApiConfiguration): boolean {
 	switch (providerId) {
-		case "codemarie":
-			// Check if user has Codemarie API key or Codemarie account auth data stored
-			return !!(config.codemarieApiKey ?? config["codemarie:codemarieAccountId"])
 		case "anthropic":
 			return !!config.apiKey
 		case "openrouter":
@@ -46,8 +43,6 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 			return !!config.doubaoApiKey
 		case "mistral":
 			return !!config.mistralApiKey
-		case "requesty":
-			return !!config.requestyApiKey
 		case "fireworks":
 			return !!config.fireworksApiKey
 		case "together":
@@ -73,8 +68,6 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 			return !!config.zaiApiKey
 		case "groq":
 			return !!config.groqApiKey
-		case "huggingface":
-			return !!config.huggingFaceApiKey
 		case "baseten":
 			return !!config.basetenApiKey
 		case "dify":

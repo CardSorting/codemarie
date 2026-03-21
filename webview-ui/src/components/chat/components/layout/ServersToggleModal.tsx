@@ -1,5 +1,5 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
-import { McpServers } from "@shared/proto/codemarie/mcp"
+import { McpServers } from "@shared/proto/codemarie/system"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useRef, useState } from "react"

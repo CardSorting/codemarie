@@ -183,7 +183,6 @@
 									"provider-config/google-gemini",
 									"provider-config/groq",
 									"provider-config/huawei-cloud-maas",
-									"provider-config/huggingface",
 									"provider-config/minimax",
 									"provider-config/mistral-ai",
 									"provider-config/moonshot",

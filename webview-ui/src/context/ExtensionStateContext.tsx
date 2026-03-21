@@ -15,16 +15,13 @@ export interface ExtensionStateContextType extends ExtensionState {
 	didHydrateState: boolean
 	showWelcome: boolean
 	onboardingModels: OnboardingModelGroup | undefined
-	codemarieModels: Record<string, ModelInfo> | null
 	openRouterModels: Record<string, ModelInfo>
 	vercelAiGatewayModels: Record<string, ModelInfo>
 	hicapModels: Record<string, ModelInfo>
 	liteLlmModels: Record<string, ModelInfo>
 	openAiModels: string[]
-	requestyModels: Record<string, ModelInfo>
 	groqModels: Record<string, ModelInfo>
 	basetenModels: Record<string, ModelInfo>
-	huggingFaceModels: Record<string, ModelInfo>
 	mcpServers: McpServer[]
 	mcpMarketplaceCatalog: McpMarketplaceCatalog
 	totalTasksSize: number | null
@@ -53,10 +50,8 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setShowAnnouncement: (value: boolean) => void
 	setShouldShowAnnouncement: (value: boolean) => void
 	setMcpServers: (value: McpServer[]) => void
-	setRequestyModels: (value: Record<string, ModelInfo>) => void
 	setGroqModels: (value: Record<string, ModelInfo>) => void
 	setBasetenModels: (value: Record<string, ModelInfo>) => void
-	setHuggingFaceModels: (value: Record<string, ModelInfo>) => void
 	updateRulesToggles: (key: keyof ExtensionState, toggles: Record<string, boolean>) => void
 	setGlobalCodemarieRulesToggles: (toggles: Record<string, boolean>) => void
 	setLocalCodemarieRulesToggles: (toggles: Record<string, boolean>) => void
@@ -76,7 +71,6 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setOnboardingModels: (value: OnboardingModelGroup | undefined) => void
 
 	// Refresh functions
-	refreshCodemarieModels: () => void
 	refreshOpenRouterModels: () => void
 	refreshVercelAiGatewayModels: () => void
 	refreshHicapModels: () => void
