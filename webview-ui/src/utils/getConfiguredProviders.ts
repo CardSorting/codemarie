@@ -30,16 +30,6 @@ export function getConfiguredProviders(
 		configured.push("openrouter")
 	}
 
-	// Bedrock - requires region
-	if (apiConfiguration.awsRegion) {
-		configured.push("bedrock")
-	}
-
-	// Vertex - requires API key
-	if (apiConfiguration.vertexApiKey) {
-		configured.push("vertex")
-	}
-
 	// Gemini - requires API key
 	if (apiConfiguration.geminiApiKey) {
 		configured.push("gemini")
@@ -52,116 +42,6 @@ export function getConfiguredProviders(
 
 	// OpenAI Codex - subscription-based OAuth, always available
 	configured.push("openai-codex")
-
-	// DeepSeek - requires API key
-	if (apiConfiguration.deepSeekApiKey) {
-		configured.push("deepseek")
-	}
-
-	// xAI - requires API key
-	if (apiConfiguration.xaiApiKey) {
-		configured.push("xai")
-	}
-
-	// Qwen - requires API key
-	if (apiConfiguration.qwenApiKey) {
-		configured.push("qwen")
-	}
-
-	// Doubao - requires API key
-	if (apiConfiguration.doubaoApiKey) {
-		configured.push("doubao")
-	}
-
-	// Mistral - requires API key
-	if (apiConfiguration.mistralApiKey) {
-		configured.push("mistral")
-	}
-
-	// Fireworks - requires API key
-	if (apiConfiguration.fireworksApiKey) {
-		configured.push("fireworks")
-	}
-
-	// Together - requires API key
-	if (apiConfiguration.togetherApiKey) {
-		configured.push("together")
-	}
-
-	// Moonshot - requires API key
-	if (apiConfiguration.moonshotApiKey) {
-		configured.push("moonshot")
-	}
-
-	// Nebius - requires API key
-	if (apiConfiguration.nebiusApiKey) {
-		configured.push("nebius")
-	}
-
-	// AskSage - requires API key
-	if (apiConfiguration.asksageApiKey) {
-		configured.push("asksage")
-	}
-
-	// SambaNova - requires API key
-	if (apiConfiguration.sambanovaApiKey) {
-		configured.push("sambanova")
-	}
-
-	// Cerebras - requires API key
-	if (apiConfiguration.cerebrasApiKey) {
-		configured.push("cerebras")
-	}
-
-	// SAP AI Core - requires base URL, client ID, client secret, and token URL
-	if (
-		apiConfiguration.sapAiCoreBaseUrl &&
-		apiConfiguration.sapAiCoreClientId &&
-		apiConfiguration.sapAiCoreClientSecret &&
-		apiConfiguration.sapAiCoreTokenUrl
-	) {
-		configured.push("sapaicore")
-	}
-
-	// Z AI - requires API key
-	if (apiConfiguration.zaiApiKey) {
-		configured.push("zai")
-	}
-
-	// Groq - requires API key
-	if (apiConfiguration.groqApiKey) {
-		configured.push("groq")
-	}
-
-	// Baseten - requires API key
-	if (apiConfiguration.basetenApiKey) {
-		configured.push("baseten")
-	}
-
-	// Dify - requires base URL and API key
-	if (apiConfiguration.difyBaseUrl && apiConfiguration.difyApiKey) {
-		configured.push("dify")
-	}
-
-	// Minimax - requires API key
-	if (apiConfiguration.minimaxApiKey) {
-		configured.push("minimax")
-	}
-
-	// Hicap - requires API key
-	if (apiConfiguration.hicapApiKey) {
-		configured.push("hicap")
-	}
-
-	// Huawei Cloud MaaS - requires API key
-	if (apiConfiguration.huaweiCloudMaasApiKey) {
-		configured.push("huawei-cloud-maas")
-	}
-
-	// Vercel AI Gateway - requires API key
-	if (apiConfiguration.vercelAiGatewayApiKey) {
-		configured.push("vercel-ai-gateway")
-	}
 
 	// NousResearch - requires API key
 	if (apiConfiguration.nousResearchApiKey) {
@@ -177,42 +57,9 @@ export function getConfiguredProviders(
 		configured.push("openai")
 	}
 
-	// Ollama - local provider, check base URL OR model configured
-	if (apiConfiguration.ollamaBaseUrl || apiConfiguration.planModeOllamaModelId || apiConfiguration.actModeOllamaModelId) {
-		configured.push("ollama")
-	}
-
-	// LM Studio - local provider, check base URL OR model configured
-	if (apiConfiguration.lmStudioBaseUrl || apiConfiguration.planModeLmStudioModelId || apiConfiguration.actModeLmStudioModelId) {
-		configured.push("lmstudio")
-	}
-
-	// LiteLLM - check base URL, API key OR model configured
-	if (
-		apiConfiguration.liteLlmBaseUrl ||
-		apiConfiguration.liteLlmApiKey ||
-		apiConfiguration.planModeLiteLlmModelId ||
-		apiConfiguration.actModeLiteLlmModelId
-	) {
-		configured.push("litellm")
-	}
-
-	// VSCode LM - always potentially available
-	configured.push("vscode-lm")
-
 	// Claude Code - requires path
 	if (apiConfiguration.claudeCodePath) {
 		configured.push("claude-code")
-	}
-
-	// Qwen Code - requires API key (same as Qwen)
-	if (apiConfiguration.qwenApiKey) {
-		configured.push("qwen-code")
-	}
-
-	// OCA - requires base URL
-	if (apiConfiguration.ocaBaseUrl) {
-		configured.push("oca")
 	}
 
 	return configured

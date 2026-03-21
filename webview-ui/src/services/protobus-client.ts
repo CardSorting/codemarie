@@ -4,177 +4,84 @@
 import * as proto from "@shared/proto/index"
 import { Callbacks, ProtoBusClient } from "./protobus-client-base"
 
-export class StateServiceClient extends ProtoBusClient {
-	static override serviceName = "codemarie.StateService"
-	static async getLatestState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.State> {
-		return StateServiceClient.makeUnaryRequest(
-			"getLatestState",
+export class AccountServiceClient extends ProtoBusClient {
+	static override serviceName = "codemarie.AccountService"
+	static subscribeToAuthStatusUpdate(
+		request: proto.codemarie.EmptyRequest,
+		callbacks: Callbacks<proto.codemarie.AuthState>,
+	): () => void {
+		return AccountServiceClient.makeStreamingRequest(
+			"subscribeToAuthStatusUpdate",
 			request,
 			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.State.fromJSON,
-		)
-	}
-	static async getAvailableTerminalProfiles(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TerminalProfiles> {
-		return StateServiceClient.makeUnaryRequest(
-			"getAvailableTerminalProfiles",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.TerminalProfiles.fromJSON,
-		)
-	}
-	static subscribeToState(request: proto.codemarie.EmptyRequest, callbacks: Callbacks<proto.codemarie.State>): () => void {
-		return StateServiceClient.makeStreamingRequest(
-			"subscribeToState",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.State.fromJSON,
+			proto.codemarie.AuthState.fromJSON,
 			callbacks,
 		)
 	}
-	static async toggleFavoriteModel(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"toggleFavoriteModel",
+	static async authStateChanged(request: proto.codemarie.AuthStateChangedRequest): Promise<proto.codemarie.AuthState> {
+		return AccountServiceClient.makeUnaryRequest(
+			"authStateChanged",
 			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
+			proto.codemarie.AuthStateChangedRequest.toJSON,
+			proto.codemarie.AuthState.fromJSON,
 		)
 	}
-	static async resetState(request: proto.codemarie.ResetStateRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"resetState",
-			request,
-			proto.codemarie.ResetStateRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async togglePlanActModeProto(request: proto.codemarie.TogglePlanActModeRequest): Promise<proto.codemarie.Boolean> {
-		return StateServiceClient.makeUnaryRequest(
-			"togglePlanActModeProto",
-			request,
-			proto.codemarie.TogglePlanActModeRequest.toJSON,
-			proto.codemarie.Boolean.fromJSON,
-		)
-	}
-	static async updateAutoApprovalSettings(
-		request: proto.codemarie.AutoApprovalSettingsRequest,
-	): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateAutoApprovalSettings",
-			request,
-			proto.codemarie.AutoApprovalSettingsRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateSettings(request: proto.codemarie.UpdateSettingsRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateSettings",
-			request,
-			proto.codemarie.UpdateSettingsRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateSettingsCli(request: proto.codemarie.UpdateSettingsRequestCli): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateSettingsCli",
-			request,
-			proto.codemarie.UpdateSettingsRequestCli.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateTaskSettings(request: proto.codemarie.UpdateTaskSettingsRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateTaskSettings",
-			request,
-			proto.codemarie.UpdateTaskSettingsRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateTelemetrySetting(request: proto.codemarie.TelemetrySettingRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateTelemetrySetting",
-			request,
-			proto.codemarie.TelemetrySettingRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async captureOnboardingProgress(request: proto.codemarie.OnboardingProgressRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"captureOnboardingProgress",
-			request,
-			proto.codemarie.OnboardingProgressRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async dismissBanner(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"dismissBanner",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async trackBannerEvent(request: proto.codemarie.TrackBannerEventRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"trackBannerEvent",
-			request,
-			proto.codemarie.TrackBannerEventRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async installCodemarieCli(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"installCodemarieCli",
+	static async getUserCredits(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.UserCreditsData> {
+		return AccountServiceClient.makeUnaryRequest(
+			"getUserCredits",
 			request,
 			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.UserCreditsData.fromJSON,
+		)
+	}
+	static async getOrganizationCredits(
+		request: proto.codemarie.GetOrganizationCreditsRequest,
+	): Promise<proto.codemarie.OrganizationCreditsData> {
+		return AccountServiceClient.makeUnaryRequest(
+			"getOrganizationCredits",
+			request,
+			proto.codemarie.GetOrganizationCreditsRequest.toJSON,
+			proto.codemarie.OrganizationCreditsData.fromJSON,
+		)
+	}
+	static async getUserOrganizations(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.UserOrganizationsResponse> {
+		return AccountServiceClient.makeUnaryRequest(
+			"getUserOrganizations",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.UserOrganizationsResponse.fromJSON,
+		)
+	}
+	static async setUserOrganization(request: proto.codemarie.UserOrganizationUpdateRequest): Promise<proto.codemarie.Empty> {
+		return AccountServiceClient.makeUnaryRequest(
+			"setUserOrganization",
+			request,
+			proto.codemarie.UserOrganizationUpdateRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async checkCliInstallation(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Boolean> {
-		return StateServiceClient.makeUnaryRequest(
-			"checkCliInstallation",
+	static async signIn(request: proto.codemarie.SignInRequest): Promise<proto.codemarie.Empty> {
+		return AccountServiceClient.makeUnaryRequest(
+			"signIn",
 			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.Boolean.fromJSON,
-		)
-	}
-	static async getProcessInfo(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.ProcessInfo> {
-		return StateServiceClient.makeUnaryRequest(
-			"getProcessInfo",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.ProcessInfo.fromJSON,
-		)
-	}
-	static async flushPendingState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"flushPendingState",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.SignInRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async refreshRemoteConfig(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"refreshRemoteConfig",
+	static async signOut(request: proto.codemarie.SignOutRequest): Promise<proto.codemarie.Empty> {
+		return AccountServiceClient.makeUnaryRequest(
+			"signOut",
 			request,
-			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.SignOutRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async testOtelConnection(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
-		return StateServiceClient.makeUnaryRequest(
-			"testOtelConnection",
+	static async getRedirectUrl(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.String> {
+		return AccountServiceClient.makeUnaryRequest(
+			"getRedirectUrl",
 			request,
 			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.TestConnectionResult.fromJSON,
-		)
-	}
-	static async testPromptUploading(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
-		return StateServiceClient.makeUnaryRequest(
-			"testPromptUploading",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.TestConnectionResult.fromJSON,
+			proto.codemarie.String.fromJSON,
 		)
 	}
 }
@@ -410,6 +317,232 @@ export class FileServiceClient extends ProtoBusClient {
 			request,
 			proto.codemarie.DeleteSkillRequest.toJSON,
 			proto.codemarie.SkillsToggles.fromJSON,
+		)
+	}
+}
+export class TaskServiceClient extends ProtoBusClient {
+	static override serviceName = "codemarie.TaskService"
+	static async cancelTask(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"cancelTask",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async cancelBackgroundCommand(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"cancelBackgroundCommand",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async clearTask(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"clearTask",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async getTotalTasksSize(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Int64> {
+		return TaskServiceClient.makeUnaryRequest(
+			"getTotalTasksSize",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Int64.fromJSON,
+		)
+	}
+	static async deleteTasksWithIds(request: proto.codemarie.StringArrayRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"deleteTasksWithIds",
+			request,
+			proto.codemarie.StringArrayRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async newTask(request: proto.codemarie.NewTaskRequest): Promise<proto.codemarie.String> {
+		return TaskServiceClient.makeUnaryRequest(
+			"newTask",
+			request,
+			proto.codemarie.NewTaskRequest.toJSON,
+			proto.codemarie.String.fromJSON,
+		)
+	}
+	static async showTaskWithId(request: proto.codemarie.StringRequest): Promise<proto.codemarie.TaskResponse> {
+		return TaskServiceClient.makeUnaryRequest(
+			"showTaskWithId",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.TaskResponse.fromJSON,
+		)
+	}
+	static async exportTaskWithId(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"exportTaskWithId",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async toggleTaskFavorite(request: proto.codemarie.TaskFavoriteRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"toggleTaskFavorite",
+			request,
+			proto.codemarie.TaskFavoriteRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async getTaskHistory(request: proto.codemarie.GetTaskHistoryRequest): Promise<proto.codemarie.TaskHistoryArray> {
+		return TaskServiceClient.makeUnaryRequest(
+			"getTaskHistory",
+			request,
+			proto.codemarie.GetTaskHistoryRequest.toJSON,
+			proto.codemarie.TaskHistoryArray.fromJSON,
+		)
+	}
+	static async askResponse(request: proto.codemarie.AskResponseRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"askResponse",
+			request,
+			proto.codemarie.AskResponseRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async taskFeedback(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"taskFeedback",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async taskCompletionViewChanges(request: proto.codemarie.Int64Request): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"taskCompletionViewChanges",
+			request,
+			proto.codemarie.Int64Request.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async executeQuickWin(request: proto.codemarie.ExecuteQuickWinRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"executeQuickWin",
+			request,
+			proto.codemarie.ExecuteQuickWinRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async deleteAllTaskHistory(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.DeleteAllTaskHistoryCount> {
+		return TaskServiceClient.makeUnaryRequest(
+			"deleteAllTaskHistory",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.DeleteAllTaskHistoryCount.fromJSON,
+		)
+	}
+	static async explainChanges(request: proto.codemarie.ExplainChangesRequest): Promise<proto.codemarie.Empty> {
+		return TaskServiceClient.makeUnaryRequest(
+			"explainChanges",
+			request,
+			proto.codemarie.ExplainChangesRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+}
+export class WorktreeServiceClient extends ProtoBusClient {
+	static override serviceName = "codemarie.WorktreeService"
+	static async listWorktrees(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.WorktreeList> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"listWorktrees",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.WorktreeList.fromJSON,
+		)
+	}
+	static async createWorktree(request: proto.codemarie.CreateWorktreeRequest): Promise<proto.codemarie.WorktreeResult> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"createWorktree",
+			request,
+			proto.codemarie.CreateWorktreeRequest.toJSON,
+			proto.codemarie.WorktreeResult.fromJSON,
+		)
+	}
+	static async deleteWorktree(request: proto.codemarie.DeleteWorktreeRequest): Promise<proto.codemarie.WorktreeResult> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"deleteWorktree",
+			request,
+			proto.codemarie.DeleteWorktreeRequest.toJSON,
+			proto.codemarie.WorktreeResult.fromJSON,
+		)
+	}
+	static async switchWorktree(request: proto.codemarie.SwitchWorktreeRequest): Promise<proto.codemarie.WorktreeResult> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"switchWorktree",
+			request,
+			proto.codemarie.SwitchWorktreeRequest.toJSON,
+			proto.codemarie.WorktreeResult.fromJSON,
+		)
+	}
+	static async getAvailableBranches(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.BranchList> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"getAvailableBranches",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.BranchList.fromJSON,
+		)
+	}
+	static async getWorktreeDefaults(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.WorktreeDefaults> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"getWorktreeDefaults",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.WorktreeDefaults.fromJSON,
+		)
+	}
+	static async getWorktreeIncludeStatus(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.WorktreeIncludeStatus> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"getWorktreeIncludeStatus",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.WorktreeIncludeStatus.fromJSON,
+		)
+	}
+	static async createWorktreeInclude(
+		request: proto.codemarie.CreateWorktreeIncludeRequest,
+	): Promise<proto.codemarie.WorktreeResult> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"createWorktreeInclude",
+			request,
+			proto.codemarie.CreateWorktreeIncludeRequest.toJSON,
+			proto.codemarie.WorktreeResult.fromJSON,
+		)
+	}
+	static async checkoutBranch(request: proto.codemarie.CheckoutBranchRequest): Promise<proto.codemarie.WorktreeResult> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"checkoutBranch",
+			request,
+			proto.codemarie.CheckoutBranchRequest.toJSON,
+			proto.codemarie.WorktreeResult.fromJSON,
+		)
+	}
+	static async mergeWorktree(request: proto.codemarie.MergeWorktreeRequest): Promise<proto.codemarie.MergeWorktreeResult> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"mergeWorktree",
+			request,
+			proto.codemarie.MergeWorktreeRequest.toJSON,
+			proto.codemarie.MergeWorktreeResult.fromJSON,
+		)
+	}
+	static async trackWorktreeViewOpened(
+		request: proto.codemarie.TrackWorktreeViewOpenedRequest,
+	): Promise<proto.codemarie.Empty> {
+		return WorktreeServiceClient.makeUnaryRequest(
+			"trackWorktreeViewOpened",
+			request,
+			proto.codemarie.TrackWorktreeViewOpenedRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
 		)
 	}
 }
@@ -837,310 +970,177 @@ export class SystemServiceClient extends ProtoBusClient {
 		)
 	}
 }
-export class AccountServiceClient extends ProtoBusClient {
-	static override serviceName = "codemarie.AccountService"
-	static subscribeToAuthStatusUpdate(
-		request: proto.codemarie.EmptyRequest,
-		callbacks: Callbacks<proto.codemarie.AuthState>,
-	): () => void {
-		return AccountServiceClient.makeStreamingRequest(
-			"subscribeToAuthStatusUpdate",
+export class StateServiceClient extends ProtoBusClient {
+	static override serviceName = "codemarie.StateService"
+	static async getLatestState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.State> {
+		return StateServiceClient.makeUnaryRequest(
+			"getLatestState",
 			request,
 			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.AuthState.fromJSON,
+			proto.codemarie.State.fromJSON,
+		)
+	}
+	static async getAvailableTerminalProfiles(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TerminalProfiles> {
+		return StateServiceClient.makeUnaryRequest(
+			"getAvailableTerminalProfiles",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.TerminalProfiles.fromJSON,
+		)
+	}
+	static subscribeToState(request: proto.codemarie.EmptyRequest, callbacks: Callbacks<proto.codemarie.State>): () => void {
+		return StateServiceClient.makeStreamingRequest(
+			"subscribeToState",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.State.fromJSON,
 			callbacks,
 		)
 	}
-	static async authStateChanged(request: proto.codemarie.AuthStateChangedRequest): Promise<proto.codemarie.AuthState> {
-		return AccountServiceClient.makeUnaryRequest(
-			"authStateChanged",
+	static async toggleFavoriteModel(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"toggleFavoriteModel",
 			request,
-			proto.codemarie.AuthStateChangedRequest.toJSON,
-			proto.codemarie.AuthState.fromJSON,
-		)
-	}
-	static async getUserCredits(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.UserCreditsData> {
-		return AccountServiceClient.makeUnaryRequest(
-			"getUserCredits",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.UserCreditsData.fromJSON,
-		)
-	}
-	static async getOrganizationCredits(
-		request: proto.codemarie.GetOrganizationCreditsRequest,
-	): Promise<proto.codemarie.OrganizationCreditsData> {
-		return AccountServiceClient.makeUnaryRequest(
-			"getOrganizationCredits",
-			request,
-			proto.codemarie.GetOrganizationCreditsRequest.toJSON,
-			proto.codemarie.OrganizationCreditsData.fromJSON,
-		)
-	}
-	static async getUserOrganizations(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.UserOrganizationsResponse> {
-		return AccountServiceClient.makeUnaryRequest(
-			"getUserOrganizations",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.UserOrganizationsResponse.fromJSON,
-		)
-	}
-	static async setUserOrganization(request: proto.codemarie.UserOrganizationUpdateRequest): Promise<proto.codemarie.Empty> {
-		return AccountServiceClient.makeUnaryRequest(
-			"setUserOrganization",
-			request,
-			proto.codemarie.UserOrganizationUpdateRequest.toJSON,
+			proto.codemarie.StringRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async signIn(request: proto.codemarie.SignInRequest): Promise<proto.codemarie.Empty> {
-		return AccountServiceClient.makeUnaryRequest(
-			"signIn",
+	static async resetState(request: proto.codemarie.ResetStateRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"resetState",
 			request,
-			proto.codemarie.SignInRequest.toJSON,
+			proto.codemarie.ResetStateRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async signOut(request: proto.codemarie.SignOutRequest): Promise<proto.codemarie.Empty> {
-		return AccountServiceClient.makeUnaryRequest(
-			"signOut",
+	static async togglePlanActModeProto(request: proto.codemarie.TogglePlanActModeRequest): Promise<proto.codemarie.Boolean> {
+		return StateServiceClient.makeUnaryRequest(
+			"togglePlanActModeProto",
 			request,
-			proto.codemarie.SignOutRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
+			proto.codemarie.TogglePlanActModeRequest.toJSON,
+			proto.codemarie.Boolean.fromJSON,
 		)
 	}
-	static async getRedirectUrl(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.String> {
-		return AccountServiceClient.makeUnaryRequest(
-			"getRedirectUrl",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.String.fromJSON,
-		)
-	}
-}
-export class WorktreeServiceClient extends ProtoBusClient {
-	static override serviceName = "codemarie.WorktreeService"
-	static async listWorktrees(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.WorktreeList> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"listWorktrees",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.WorktreeList.fromJSON,
-		)
-	}
-	static async createWorktree(request: proto.codemarie.CreateWorktreeRequest): Promise<proto.codemarie.WorktreeResult> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"createWorktree",
-			request,
-			proto.codemarie.CreateWorktreeRequest.toJSON,
-			proto.codemarie.WorktreeResult.fromJSON,
-		)
-	}
-	static async deleteWorktree(request: proto.codemarie.DeleteWorktreeRequest): Promise<proto.codemarie.WorktreeResult> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"deleteWorktree",
-			request,
-			proto.codemarie.DeleteWorktreeRequest.toJSON,
-			proto.codemarie.WorktreeResult.fromJSON,
-		)
-	}
-	static async switchWorktree(request: proto.codemarie.SwitchWorktreeRequest): Promise<proto.codemarie.WorktreeResult> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"switchWorktree",
-			request,
-			proto.codemarie.SwitchWorktreeRequest.toJSON,
-			proto.codemarie.WorktreeResult.fromJSON,
-		)
-	}
-	static async getAvailableBranches(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.BranchList> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"getAvailableBranches",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.BranchList.fromJSON,
-		)
-	}
-	static async getWorktreeDefaults(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.WorktreeDefaults> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"getWorktreeDefaults",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.WorktreeDefaults.fromJSON,
-		)
-	}
-	static async getWorktreeIncludeStatus(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.WorktreeIncludeStatus> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"getWorktreeIncludeStatus",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.WorktreeIncludeStatus.fromJSON,
-		)
-	}
-	static async createWorktreeInclude(
-		request: proto.codemarie.CreateWorktreeIncludeRequest,
-	): Promise<proto.codemarie.WorktreeResult> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"createWorktreeInclude",
-			request,
-			proto.codemarie.CreateWorktreeIncludeRequest.toJSON,
-			proto.codemarie.WorktreeResult.fromJSON,
-		)
-	}
-	static async checkoutBranch(request: proto.codemarie.CheckoutBranchRequest): Promise<proto.codemarie.WorktreeResult> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"checkoutBranch",
-			request,
-			proto.codemarie.CheckoutBranchRequest.toJSON,
-			proto.codemarie.WorktreeResult.fromJSON,
-		)
-	}
-	static async mergeWorktree(request: proto.codemarie.MergeWorktreeRequest): Promise<proto.codemarie.MergeWorktreeResult> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"mergeWorktree",
-			request,
-			proto.codemarie.MergeWorktreeRequest.toJSON,
-			proto.codemarie.MergeWorktreeResult.fromJSON,
-		)
-	}
-	static async trackWorktreeViewOpened(
-		request: proto.codemarie.TrackWorktreeViewOpenedRequest,
+	static async updateAutoApprovalSettings(
+		request: proto.codemarie.AutoApprovalSettingsRequest,
 	): Promise<proto.codemarie.Empty> {
-		return WorktreeServiceClient.makeUnaryRequest(
-			"trackWorktreeViewOpened",
+		return StateServiceClient.makeUnaryRequest(
+			"updateAutoApprovalSettings",
 			request,
-			proto.codemarie.TrackWorktreeViewOpenedRequest.toJSON,
+			proto.codemarie.AutoApprovalSettingsRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-}
-export class TaskServiceClient extends ProtoBusClient {
-	static override serviceName = "codemarie.TaskService"
-	static async cancelTask(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"cancelTask",
+	static async updateSettings(request: proto.codemarie.UpdateSettingsRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateSettings",
 			request,
-			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.UpdateSettingsRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async cancelBackgroundCommand(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"cancelBackgroundCommand",
+	static async updateSettingsCli(request: proto.codemarie.UpdateSettingsRequestCli): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateSettingsCli",
 			request,
-			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.UpdateSettingsRequestCli.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async clearTask(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"clearTask",
+	static async updateTaskSettings(request: proto.codemarie.UpdateTaskSettingsRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateTaskSettings",
 			request,
-			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.UpdateTaskSettingsRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async getTotalTasksSize(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Int64> {
-		return TaskServiceClient.makeUnaryRequest(
-			"getTotalTasksSize",
+	static async updateTelemetrySetting(request: proto.codemarie.TelemetrySettingRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateTelemetrySetting",
 			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.Int64.fromJSON,
-		)
-	}
-	static async deleteTasksWithIds(request: proto.codemarie.StringArrayRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"deleteTasksWithIds",
-			request,
-			proto.codemarie.StringArrayRequest.toJSON,
+			proto.codemarie.TelemetrySettingRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async newTask(request: proto.codemarie.NewTaskRequest): Promise<proto.codemarie.String> {
-		return TaskServiceClient.makeUnaryRequest(
-			"newTask",
+	static async captureOnboardingProgress(request: proto.codemarie.OnboardingProgressRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"captureOnboardingProgress",
 			request,
-			proto.codemarie.NewTaskRequest.toJSON,
-			proto.codemarie.String.fromJSON,
+			proto.codemarie.OnboardingProgressRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async showTaskWithId(request: proto.codemarie.StringRequest): Promise<proto.codemarie.TaskResponse> {
-		return TaskServiceClient.makeUnaryRequest(
-			"showTaskWithId",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.TaskResponse.fromJSON,
-		)
-	}
-	static async exportTaskWithId(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"exportTaskWithId",
+	static async dismissBanner(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"dismissBanner",
 			request,
 			proto.codemarie.StringRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async toggleTaskFavorite(request: proto.codemarie.TaskFavoriteRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"toggleTaskFavorite",
+	static async trackBannerEvent(request: proto.codemarie.TrackBannerEventRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"trackBannerEvent",
 			request,
-			proto.codemarie.TaskFavoriteRequest.toJSON,
+			proto.codemarie.TrackBannerEventRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async getTaskHistory(request: proto.codemarie.GetTaskHistoryRequest): Promise<proto.codemarie.TaskHistoryArray> {
-		return TaskServiceClient.makeUnaryRequest(
-			"getTaskHistory",
-			request,
-			proto.codemarie.GetTaskHistoryRequest.toJSON,
-			proto.codemarie.TaskHistoryArray.fromJSON,
-		)
-	}
-	static async askResponse(request: proto.codemarie.AskResponseRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"askResponse",
-			request,
-			proto.codemarie.AskResponseRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async taskFeedback(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"taskFeedback",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async taskCompletionViewChanges(request: proto.codemarie.Int64Request): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"taskCompletionViewChanges",
-			request,
-			proto.codemarie.Int64Request.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async executeQuickWin(request: proto.codemarie.ExecuteQuickWinRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"executeQuickWin",
-			request,
-			proto.codemarie.ExecuteQuickWinRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async deleteAllTaskHistory(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.DeleteAllTaskHistoryCount> {
-		return TaskServiceClient.makeUnaryRequest(
-			"deleteAllTaskHistory",
+	static async installCodemarieCli(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"installCodemarieCli",
 			request,
 			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.DeleteAllTaskHistoryCount.fromJSON,
+			proto.codemarie.Empty.fromJSON,
 		)
 	}
-	static async explainChanges(request: proto.codemarie.ExplainChangesRequest): Promise<proto.codemarie.Empty> {
-		return TaskServiceClient.makeUnaryRequest(
-			"explainChanges",
+	static async checkCliInstallation(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Boolean> {
+		return StateServiceClient.makeUnaryRequest(
+			"checkCliInstallation",
 			request,
-			proto.codemarie.ExplainChangesRequest.toJSON,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Boolean.fromJSON,
+		)
+	}
+	static async getProcessInfo(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.ProcessInfo> {
+		return StateServiceClient.makeUnaryRequest(
+			"getProcessInfo",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.ProcessInfo.fromJSON,
+		)
+	}
+	static async flushPendingState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"flushPendingState",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async refreshRemoteConfig(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"refreshRemoteConfig",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async testOtelConnection(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
+		return StateServiceClient.makeUnaryRequest(
+			"testOtelConnection",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.TestConnectionResult.fromJSON,
+		)
+	}
+	static async testPromptUploading(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
+		return StateServiceClient.makeUnaryRequest(
+			"testPromptUploading",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.TestConnectionResult.fromJSON,
 		)
 	}
 }

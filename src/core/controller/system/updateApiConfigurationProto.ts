@@ -66,9 +66,6 @@ export async function updateApiConfigurationProto(
 			planModeOpenAiModelInfo: protoApiConfiguration.planModeOpenAiModelInfo
 				? fromProtobufOpenAiCompatibleModelInfo(protoApiConfiguration.planModeOpenAiModelInfo)
 				: undefined,
-			planModeHuggingFaceModelInfo: protoApiConfiguration.planModeHuggingFaceModelInfo
-				? fromProtobufModelInfo(protoApiConfiguration.planModeHuggingFaceModelInfo)
-				: undefined,
 			planModeLiteLlmModelInfo: protoApiConfiguration.planModeLiteLlmModelInfo
 				? fromProtobufLiteLLMModelInfo(protoApiConfiguration.planModeLiteLlmModelInfo)
 				: undefined,
@@ -109,9 +106,6 @@ export async function updateApiConfigurationProto(
 				: undefined,
 			actModeGroqModelInfo: protoApiConfiguration.actModeGroqModelInfo
 				? fromProtobufModelInfo(protoApiConfiguration.actModeGroqModelInfo)
-				: undefined,
-			actModeHuggingFaceModelInfo: protoApiConfiguration.actModeHuggingFaceModelInfo
-				? fromProtobufModelInfo(protoApiConfiguration.actModeHuggingFaceModelInfo)
 				: undefined,
 			actModeHuaweiCloudMaasModelInfo: protoApiConfiguration.actModeHuaweiCloudMaasModelInfo
 				? fromProtobufModelInfo(protoApiConfiguration.actModeHuaweiCloudMaasModelInfo)

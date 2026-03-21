@@ -1,4 +1,4 @@
-import { ApiHandlerModel, ApiProviderInfo } from "@core/api"
+import { ApiProviderInfo } from "@core/api"
 import { AnthropicModelId, anthropicModels } from "@/shared/api"
 
 export { supportsReasoningEffortForModel } from "@shared/utils/reasoning-support"
@@ -7,41 +7,20 @@ const CLAUDE_VERSION_MATCH_REGEX = /[-_ ]([\d](?:\.[05])?)[-_ ]?/
 
 export function isNextGenModelProvider(providerInfo: ApiProviderInfo): boolean {
 	const providerId = normalize(providerInfo.providerId)
-	return [
-		"codemarie",
-		"anthropic",
-		"bedrock",
-		"gemini",
-		"vertex",
-		"openrouter",
-		"openai",
-		"minimax",
-		"openai-native",
-		"openai-compatible",
-		"openai-codex",
-		"baseten",
-		"vercel-ai-gateway",
-		"deepseek",
-		"oca",
-	].some((id) => providerId === id)
+	return ["anthropic", "gemini", "openrouter", "openai", "openai-native", "openai-codex", "nousResearch"].some(
+		(id) => providerId === id,
+	)
 }
 
-export function modelDoesntSupportWebp(apiHandlerModel: ApiHandlerModel): boolean {
-	const modelId = apiHandlerModel.id.toLowerCase()
-	return modelId.includes("grok")
+export function modelDoesntSupportWebp(): boolean {
+	return false
 }
 
 /**
  * Determines if reasoning content should be skipped for a given model
- * Currently skips reasoning for:
- * - Grok-4 models since they only display "thinking" without useful information
- * - Devstral models since they don't support reasoning_details field
  */
-export function shouldSkipReasoningForModel(modelId?: string): boolean {
-	if (!modelId) {
-		return false
-	}
-	return modelId.includes("grok-4") || modelId.includes("devstral") || modelId.includes("glm")
+export function shouldSkipReasoningForModel(): boolean {
+	return false
 }
 
 export function isAnthropicModelId(modelId: string): modelId is AnthropicModelId {
@@ -51,22 +30,17 @@ export function isAnthropicModelId(modelId: string): modelId is AnthropicModelId
 
 export function isClaude4PlusModelFamily(id: string): boolean {
 	const modelId = normalize(id)
-	// Claude Code short aliases are always Claude 4+
-	// These are used by ClaudeCodeHandler.getModel() when user selects "sonnet" or "opus"
-	// Check before isAnthropicModelId to avoid type guard narrowing issues
 	if (modelId === "sonnet" || modelId === "opus") {
 		return true
 	}
 	if (!isAnthropicModelId(modelId)) {
 		return false
 	}
-	// Get model version number
 	const versionMatch = modelId.match(CLAUDE_VERSION_MATCH_REGEX)
 	if (!versionMatch) {
 		return false
 	}
 	const version = Number.parseFloat(versionMatch[1])
-	// Check if version is 4.0 or higher
 	return version >= 4
 }
 
@@ -75,76 +49,9 @@ export function isGemini2dot5ModelFamily(id: string): boolean {
 	return modelId.includes("gemini-2.5")
 }
 
-export function isGrok4ModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("grok-4")
-}
-
 export function isGPT5ModelFamily(id: string): boolean {
 	const modelId = normalize(id)
 	return modelId.includes("gpt-5") || modelId.includes("gpt5")
-}
-
-export function isGptOssModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("gpt-oss") || modelId.includes("gpt_oss")
-}
-
-export function isGPT51Model(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("gpt-5.1") || modelId.includes("gpt-5-1")
-}
-
-export function isGPT52Model(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("gpt-5.2") || modelId.includes("gpt-5-2")
-}
-
-export function isGLMModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return (
-		modelId.includes("glm-5") ||
-		modelId.includes("glm-4.7") ||
-		modelId.includes("glm-4.6") ||
-		modelId.includes("glm-4.5") ||
-		modelId.includes("z-ai/glm") ||
-		modelId.includes("zai-org/glm")
-	)
-}
-
-export function isMinimaxModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("minimax")
-}
-
-export function isHermesModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return (
-		modelId.includes("hermes-4") ||
-		modelId.includes("hermes4") ||
-		modelId.includes("nous/hermes-4") ||
-		modelId.includes("nous/hermes4") ||
-		modelId.includes("nous-hermes-4") ||
-		modelId.includes("nous/hermes4") ||
-		modelId.includes("nousresearch/hermes-4") ||
-		modelId.includes("nousresearch/hermes4")
-	)
-}
-
-export function isNextGenOpenSourceModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return ["kimi-k2"].some((substring) => modelId.includes(substring))
-}
-
-export function isDevstralModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("devstral")
-}
-
-export function isTrinityModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	// OpenRouter: arcee-ai/trinity-large-preview:free and other trinity variants
-	return modelId.includes("arcee-ai/trinity") || modelId.includes("trinity")
 }
 
 export function isGemini3ModelFamily(id: string): boolean {
@@ -152,35 +59,18 @@ export function isGemini3ModelFamily(id: string): boolean {
 	return modelId.includes("gemini3") || modelId.includes("gemini-3")
 }
 
-function isDeepSeek32ModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("deepseek") && modelId.includes("3.2") && !modelId.includes("speciale")
-}
-
-export function isDeepSeekNativeModelFamily(id: string): boolean {
-	const modelId = normalize(id)
-	return modelId.includes("deepseek-chat") || modelId.includes("deepseek-reasoner")
-}
-
 export function isNextGenModelFamily(id: string): boolean {
 	const modelId = normalize(id)
 	return (
 		isClaude4PlusModelFamily(modelId) ||
 		isGemini2dot5ModelFamily(modelId) ||
-		isGrok4ModelFamily(modelId) ||
 		isGPT5ModelFamily(modelId) ||
-		isGptOssModelFamily(modelId) ||
-		isMinimaxModelFamily(modelId) ||
-		isGemini3ModelFamily(modelId) ||
-		isNextGenOpenSourceModelFamily(modelId) ||
-		isDeepSeek32ModelFamily(modelId) ||
-		isDeepSeekNativeModelFamily(modelId)
+		isGemini3ModelFamily(modelId)
 	)
 }
 
-export function isLocalModel(providerInfo: ApiProviderInfo): boolean {
-	const localProviders = ["lmstudio", "ollama"]
-	return localProviders.includes(normalize(providerInfo.providerId))
+export function isLocalModel(): boolean {
+	return false
 }
 
 /**

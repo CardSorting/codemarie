@@ -362,7 +362,6 @@ describe("getProviderModelIdKey", () => {
 		sapaicore: "SapAiCoreModelId",
 		groq: "GroqModelId",
 		baseten: "BasetenModelId",
-		huggingface: "HuggingFaceModelId",
 	}
 
 	function getProviderModelIdKey(provider: string, mode: "act" | "plan"): string | null {

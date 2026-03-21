@@ -1,4 +1,17 @@
 # Changelog
+
+## [3.85.0] - 2026-03-21 - *Provider Consolidation & Codebase Hygiene*
+
+### Removed
+- **HuggingFace Provider Removal:**
+  - Completely removed the HuggingFace provider from the application core, webview UI, and CLI.
+  - Deleted HuggingFace-specific proto definitions, handlers, and storage keys.
+  - Removed associated documentation and configuration pages.
+
+### Fixed
+- **Codebase Hygiene:**
+  - Resolved several TypeScript type-safety and linting violations in `ApiOptions.tsx`.
+  - Fixed pre-existing linting errors in `SapAiCoreModelPicker.spec.tsx` to ensure clean CI passes.
  
 ## [3.83.0] - 2026-03-21 - *Architectural Refinement & Initialization Hardening*
 
