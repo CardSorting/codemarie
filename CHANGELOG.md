@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.85.2] - 2026-03-21 - *Cleanup & Auth Refactoring*
+
+### Removed
+- **Auth & Onboarding:**
+  - Removed Codemarie authentication dependencies from the webview UI.
+  - Eliminated legacy onboarding components and state logic from `src`.
+  - Cleaned out obsolete fields (`azure_api_version`, `azure_identity`, `vertex_api_key`) from `state.proto` configuration.
+  - Removed internal tests referencing deprecated providers like `together`, `fireworks`, and `nebius`.
+
+### Added
+- Added OAuth credential storage definitions (`openai_codex_oauth_credentials`, `mcp_o_auth_secrets`) to `state.proto`.
+
 ## [3.85.0] - 2026-03-21 - *Provider Consolidation & Codebase Hygiene*
 
 ### Removed
