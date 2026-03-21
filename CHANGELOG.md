@@ -1,5 +1,19 @@
 # Changelog
  
+## [3.83.0] - 2026-03-21 - *Architectural Refinement & Initialization Hardening*
+
+### Added
+- **Proto Layer Rewrite (Core):**
+  - Removed all gRPC dependencies in favor of a lean, direct `protobufjs` implementation.
+  - Standardized on the `ProtoBus` communication layer for internal service messaging.
+  - Successfully migrated all service definitions to the new direct-access pattern.
+- **CLI Robustness & Hygiene:**
+  - Resolved all TypeScript type errors and Biome linting violations across the `cli` workspace.
+  - Hardened package configuration for more reliable builds and testing.
+- **Initialization & Performance:**
+  - Deep audit and production hardening of extension initialization to prevent infinite loop scenarios during startup.
+  - Optimized extension host performance and resolved CSP issues affecting webview script loading.
+  - Fixed button registration logic to ensure UI responsiveness in the Sidebar.
 ## [3.82.0] - 2026-03-20 - *The Hardening Wave Continues*
 
 ### Added
