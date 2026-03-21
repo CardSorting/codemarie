@@ -2,7 +2,7 @@ import { ModelInfo, NousResearchModelId, nousResearchDefaultModelId, nousResearc
 import OpenAI from "openai"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient } from "@/shared/net"
-import { ApiHandler, CommonApiHandlerOptions } from "../index"
+import { ApiHandler, CommonApiHandlerOptions } from "../api-handler-types"
 import { withRetry } from "../retry"
 import { convertToOpenAiMessages } from "../transform/openai-format"
 import { ApiStream } from "../transform/stream"

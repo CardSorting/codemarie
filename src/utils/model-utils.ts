@@ -12,14 +12,14 @@ export function isNextGenModelProvider(providerInfo: ApiProviderInfo): boolean {
 	)
 }
 
-export function modelDoesntSupportWebp(): boolean {
+export function modelDoesntSupportWebp(_modelInfo?: any): boolean {
 	return false
 }
 
 /**
  * Determines if reasoning content should be skipped for a given model
  */
-export function shouldSkipReasoningForModel(): boolean {
+export function shouldSkipReasoningForModel(_modelId?: string): boolean {
 	return false
 }
 

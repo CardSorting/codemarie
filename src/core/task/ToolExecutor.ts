@@ -24,9 +24,9 @@ import { OrchestrationController } from "../orchestration/OrchestrationControlle
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
 import { WorkspaceRootManager } from "../workspace"
-import { ToolResponse } from "."
 import { MessageStateHandler } from "./message-state"
 import { TaskState } from "./TaskState"
+import { ToolResponse } from "./task-types"
 import { AutoApprove } from "./tools/autoApprove"
 import { IPartialBlockHandler, ToolExecutorCoordinator } from "./tools/ToolExecutorCoordinator"
 import { ToolValidator } from "./tools/ToolValidator"
@@ -719,7 +719,7 @@ export class ToolExecutor {
 			if (block.name === CodemarieDefaultTool.ATTEMPT && orchestrationController) {
 				const res = block.params.result || block.params.response || "Task completed"
 				orchestrationController
-					.completeStream(String(res), (files, ops) => this.guard.validateCommit(files, ops))
+					.completeStream(String(res), (files: Set<string>, ops: any[]) => this.guard.validateCommit(files, ops))
 					.catch(() => {})
 
 				// Phase 2: Completion-time Swarm Audit

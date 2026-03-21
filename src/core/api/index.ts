@@ -1,8 +1,7 @@
-import { ApiConfiguration, ModelInfo } from "@shared/api"
+import { ApiConfiguration } from "@shared/api"
 import { Mode } from "@shared/storage/types"
-import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { Logger } from "@/shared/services/Logger"
-import { CodemarieTool } from "@/shared/tools"
+import { ApiHandler, ApiHandlerModel, ApiProviderInfo, SingleCompletionHandler } from "./api-handler-types"
 import { AnthropicHandler } from "./providers/anthropic"
 import { ClaudeCodeHandler } from "./providers/claude-code"
 import { GeminiHandler } from "./providers/gemini"
@@ -11,40 +10,8 @@ import { OpenAiHandler } from "./providers/openai"
 import { OpenAiCodexHandler } from "./providers/openai-codex"
 import { OpenAiNativeHandler } from "./providers/openai-native"
 import { OpenRouterHandler } from "./providers/openrouter"
-import { ApiStream, ApiStreamUsageChunk } from "./transform/stream"
 
-export type CommonApiHandlerOptions = {
-	onRetryAttempt?: ApiConfiguration["onRetryAttempt"]
-}
-export interface ApiHandler {
-	createMessage(
-		systemPrompt: string,
-		messages: CodemarieStorageMessage[],
-		tools?: CodemarieTool[],
-		useResponseApi?: boolean,
-	): ApiStream
-	getModel(): ApiHandlerModel
-	getApiStreamUsage?(): Promise<ApiStreamUsageChunk | undefined>
-	abort?(): void
-	embedText?(text: string): Promise<number[] | null>
-	embedBatch?(texts: string[]): Promise<(number[] | null)[]>
-}
-
-export interface ApiHandlerModel {
-	id: string
-	info: ModelInfo
-}
-
-export interface ApiProviderInfo {
-	providerId: string
-	model: ApiHandlerModel
-	mode: Mode
-	customPrompt?: string // "compact"
-}
-
-export interface SingleCompletionHandler {
-	completePrompt(prompt: string): Promise<string>
-}
+export type { ApiHandler, ApiHandlerModel, ApiProviderInfo, SingleCompletionHandler }
 
 function createHandlerForProvider(
 	apiProvider: string | undefined,

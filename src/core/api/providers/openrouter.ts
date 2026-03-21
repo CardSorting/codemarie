@@ -8,7 +8,7 @@ import type { ChatCompletionTool as OpenAITool } from "openai/resources/chat/com
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, getAxiosSettings } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
-import { ApiHandler, CommonApiHandlerOptions } from "../"
+import { ApiHandler, CommonApiHandlerOptions } from "../api-handler-types"
 import { withRetry } from "../retry"
 import { createOpenRouterStream } from "../transform/openrouter-stream"
 import { ApiStream, ApiStreamUsageChunk } from "../transform/stream"

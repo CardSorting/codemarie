@@ -2,7 +2,7 @@ import { filterMessagesForClaudeCode } from "@/integrations/claude-code/message-
 import { runClaudeCode } from "@/integrations/claude-code/run"
 import { ClaudeCodeModelId, claudeCodeDefaultModelId, claudeCodeModels } from "@/shared/api"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
-import { type ApiHandler, CommonApiHandlerOptions } from ".."
+import { ApiHandler, CommonApiHandlerOptions } from "../api-handler-types"
 import { withRetry } from "../retry"
 import { type ApiStream, ApiStreamUsageChunk } from "../transform/stream"
 

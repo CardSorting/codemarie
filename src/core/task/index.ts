@@ -58,7 +58,7 @@ import { TaskUIManager } from "./TaskUIManager"
 import { ToolExecutor } from "./ToolExecutor"
 import { extractProviderDomainFromUrl } from "./utils"
 
-export type ToolResponse = CodemarieToolResponseContent
+export type { ToolResponse } from "./task-types"
 
 type TaskParams = {
 	controller: Controller

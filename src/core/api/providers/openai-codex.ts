@@ -13,7 +13,7 @@ import { fetch } from "@/shared/net"
 import { ApiFormat } from "@/shared/proto/codemarie/common"
 import { FeatureFlag } from "@/shared/services/feature-flags/feature-flags"
 import { Logger } from "@/shared/services/Logger"
-import { ApiHandler, CommonApiHandlerOptions } from "../"
+import { ApiHandler, CommonApiHandlerOptions } from "../api-handler-types"
 import { convertToOpenAIResponsesInput } from "../transform/openai-response-format"
 import { ApiStream, ApiStreamUsageChunk } from "../transform/stream"
 

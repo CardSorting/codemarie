@@ -6,7 +6,7 @@ import type { ChatCompletionReasoningEffort, ChatCompletionTool } from "openai/r
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { createOpenAIClient, fetch } from "@/shared/net"
-import { ApiHandler, CommonApiHandlerOptions } from "../index"
+import { ApiHandler, CommonApiHandlerOptions } from "../api-handler-types"
 import { withRetry } from "../retry"
 import { convertToOpenAiMessages } from "../transform/openai-format"
 import { convertToR1Format } from "../transform/r1-format"

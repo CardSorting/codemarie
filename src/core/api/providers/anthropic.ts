@@ -5,7 +5,7 @@ import { AnthropicModelId, anthropicDefaultModelId, anthropicModels, CLAUDE_SONN
 import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { fetch } from "@/shared/net"
-import { ApiHandler, CommonApiHandlerOptions } from "../index"
+import { ApiHandler, CommonApiHandlerOptions } from "../api-handler-types"
 import { withRetry } from "../retry"
 import { sanitizeAnthropicMessages } from "../transform/anthropic-format"
 import { ApiStream } from "../transform/stream"
