@@ -6,13 +6,13 @@ import { Logger } from "@/shared/services/Logger"
 import { broadcastUiEvent as sendUiEvent } from "./core/controller/system/SystemUpdatesEmitter"
 
 const UiEventType = {
-	SHOW_WELCOME: "SHOW_WELCOME",
-	SETTINGS_BUTTON_CLICKED: "SETTINGS_BUTTON_CLICKED",
-	CHAT_BUTTON_CLICKED: "CHAT_BUTTON_CLICKED",
-	HISTORY_BUTTON_CLICKED: "HISTORY_BUTTON_CLICKED",
-	MCP_BUTTON_CLICKED: "MCP_BUTTON_CLICKED",
-	ACCOUNT_BUTTON_CLICKED: "ACCOUNT_BUTTON_CLICKED",
-	WORKTREES_BUTTON_CLICKED: "WORKTREES_BUTTON_CLICKED",
+	SHOW_WELCOME: "show_welcome",
+	SETTINGS_BUTTON_CLICKED: "settings_button_clicked",
+	CHAT_BUTTON_CLICKED: "chat_button_clicked",
+	HISTORY_BUTTON_CLICKED: "history_button_clicked",
+	MCP_BUTTON_CLICKED: "mcp_button_clicked",
+	ACCOUNT_BUTTON_CLICKED: "account_button_clicked",
+	WORKTREES_BUTTON_CLICKED: "worktrees_button_clicked",
 }
 
 import { WebviewProvider } from "./core/webview"
