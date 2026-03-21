@@ -3,7 +3,7 @@ import { DEFAULT_BROWSER_SETTINGS } from "@shared/BrowserSettings"
 import { DEFAULT_PLATFORM, type ExtensionState } from "@shared/ExtensionMessage"
 import { DEFAULT_FOCUS_CHAIN_SETTINGS } from "@shared/FocusChainSettings"
 import { DEFAULT_MCP_DISPLAY_MODE } from "@shared/McpDisplayMode"
-import { OnboardingModelGroup, type TerminalProfile } from "@shared/proto/codemarie/state"
+import { type TerminalProfile } from "@shared/proto/codemarie/state"
 import type React from "react"
 import { createContext, useCallback, useContext, useRef, useState } from "react"
 import { Environment } from "../../../src/shared/config-types"
@@ -17,7 +17,6 @@ export interface GlobalStateContextType extends ExtensionState {
 	expandTaskHeader: boolean
 	didHydrateState: boolean
 	showWelcome: boolean
-	onboardingModels: OnboardingModelGroup | undefined
 
 	// Setters and Actions
 	setState: React.Dispatch<React.SetStateAction<ExtensionState>>
@@ -28,7 +27,6 @@ export interface GlobalStateContextType extends ExtensionState {
 	setExpandTaskHeader: React.Dispatch<React.SetStateAction<boolean>>
 	setDidHydrateState: React.Dispatch<React.SetStateAction<boolean>>
 	setShowWelcome: React.Dispatch<React.SetStateAction<boolean>>
-	setOnboardingModels: React.Dispatch<React.SetStateAction<OnboardingModelGroup | undefined>>
 
 	updateRulesToggles: (key: keyof ExtensionState, toggles: Record<string, boolean>) => void
 	onRelinquishControl: (callback: () => void) => () => void
@@ -73,7 +71,6 @@ export const GlobalStateProvider: React.FC<{
 		defaultTerminalProfile: "default",
 		isNewUser: false,
 		welcomeViewCompleted: false,
-		onboardingModels: undefined,
 		mcpResponsesCollapsed: false,
 		strictPlanModeEnabled: false,
 		yoloModeToggled: false,
@@ -113,7 +110,6 @@ export const GlobalStateProvider: React.FC<{
 	const [expandTaskHeader, setExpandTaskHeader] = useState(true)
 	const [didHydrateState, setDidHydrateState] = useState(false)
 	const [showWelcome, setShowWelcome] = useState(false)
-	const [onboardingModels, setOnboardingModels] = useState<OnboardingModelGroup | undefined>(undefined)
 
 	const relinquishControlCallbacks = useRef<Set<() => void>>(new Set())
 
@@ -148,7 +144,6 @@ export const GlobalStateProvider: React.FC<{
 				expandTaskHeader,
 				didHydrateState,
 				showWelcome,
-				onboardingModels,
 				setState,
 				setMcpServers,
 				setMcpMarketplaceCatalog,
@@ -157,7 +152,6 @@ export const GlobalStateProvider: React.FC<{
 				setExpandTaskHeader,
 				setDidHydrateState,
 				setShowWelcome,
-				setOnboardingModels,
 				updateRulesToggles,
 				onRelinquishControl,
 				triggerRelinquishControl,

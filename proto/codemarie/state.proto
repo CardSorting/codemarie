@@ -16,7 +16,7 @@ service StateService {
   rpc updateSettingsCli(UpdateSettingsRequestCli) returns (Empty);
   rpc updateTaskSettings(UpdateTaskSettingsRequest) returns (Empty);
   rpc updateTelemetrySetting(TelemetrySettingRequest) returns (Empty);
-  rpc captureOnboardingProgress(OnboardingProgressRequest) returns (Empty);
+
   rpc dismissBanner(StringRequest) returns (Empty);
   rpc trackBannerEvent(TrackBannerEventRequest) returns (Empty);
   rpc installCodemarieCli(EmptyRequest) returns (Empty);
@@ -57,8 +57,9 @@ message Secrets {
   optional string auth_nonce = 20;
   optional string nous_research_api_key = 39;
   optional string embedding_api_key = 53;
-  optional string vertex_api_key = 58;
   optional string codemarie_account_id = 73;
+  optional string openai_codex_oauth_credentials = 74;
+  optional string mcp_o_auth_secrets = 75;
 }
 
 // NOTE: Add new fields under API_HANDLER_SETTINGS_FIELDS or USER_SETTINGS_FIELDS
@@ -70,8 +71,6 @@ message Settings {
   optional string claude_code_path = 14;
   optional string open_ai_base_url = 17;
   optional string gemini_base_url = 22;
-  optional string azure_api_version = 27;
-  optional bool azure_identity = 28;
   optional int32 request_timeout_ms = 32;
   optional string plan_mode_api_model_id = 44;
   optional int64 plan_mode_thinking_budget_tokens = 45;
@@ -142,7 +141,6 @@ message Settings {
   optional int32 max_swarm_depth = 192;
   optional bool safe_yolo_mode_toggled = 196;
   optional bool mas_enabled = 198;
-  optional string vertex_api_key = 200;
   map<string, string> open_ai_headers = 201;
 }
 
@@ -278,7 +276,7 @@ message UpdateSettingsRequest {
   optional int32 subagent_terminal_output_line_limit = 30;
   optional string codemarie_env = 31;
   optional bool native_tool_call_enabled = 32;
-  optional OnboardingModelGroup onboarding_models = 33;
+  reserved 33; // was onboarding_models
   optional bool codemarie_web_tools_enabled = 34;
   optional bool enable_parallel_tool_calling = 35;
   optional bool background_edit_enabled = 36;
@@ -311,27 +309,6 @@ message ProcessInfo {
   int32 process_id = 1;
   optional string version = 2;
   optional int64 uptime_ms = 3;
-}
-
-message OnboardingProgressRequest {
-  int32 step = 1;
-  optional string action = 2;
-  optional bool completed = 3;
-  optional string model_selected = 4;
-}
-
-message OnboardingModelGroup {
-  repeated OnboardingModel models = 1;
-}
-
-message OnboardingModel {
-  string id = 1;
-  string name = 2;
-  int32 score = 3;
-  int32 latency = 4;
-  string badge = 5;
-  string group = 6;
-  OpenRouterModelInfo info = 7;
 }
 
 message TrackBannerEventRequest {

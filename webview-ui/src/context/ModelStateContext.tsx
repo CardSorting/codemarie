@@ -3,54 +3,21 @@ import { RefreshModelsRequest, type RefreshModelsResponse } from "@shared/proto/
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
 import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
-import {
-	basetenDefaultModelId,
-	basetenModels,
-	groqDefaultModelId,
-	groqModels,
-	type ModelInfo,
-	openRouterDefaultModelId,
-	openRouterDefaultModelInfo,
-} from "../../../src/shared/api"
+import { type ModelInfo, openRouterDefaultModelId, openRouterDefaultModelInfo } from "../../../src/shared/api"
 import { SystemServiceClient } from "../services/protobus-client"
-import { useGlobalState } from "./GlobalStateContext"
 
 export interface ModelStateContextType {
 	openRouterModels: Record<string, ModelInfo>
-	vercelAiGatewayModels: Record<string, ModelInfo>
-	hicapModels: Record<string, ModelInfo>
-	liteLlmModels: Record<string, ModelInfo>
-	groqModels: Record<string, ModelInfo>
-	basetenModels: Record<string, ModelInfo>
 	openAiModels: string[]
 	setOpenRouterModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setVercelAiGatewayModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setHicapModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setLiteLlmModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setGroqModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
-	setBasetenModels: React.Dispatch<React.SetStateAction<Record<string, ModelInfo>>>
 	refreshOpenRouterModels: () => void
-	refreshVercelAiGatewayModels: () => void
-	refreshHicapModels: () => void
-	refreshLiteLlmModels: () => Promise<void>
 }
 
 const ModelStateContext = createContext<ModelStateContextType | undefined>(undefined)
 
 export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const state = useGlobalState()
 	const [openRouterModels, setOpenRouterModels] = useState<Record<string, ModelInfo>>({
 		[openRouterDefaultModelId]: openRouterDefaultModelInfo,
-	})
-	const [vercelAiGatewayModels, setVercelAiGatewayModels] = useState<Record<string, ModelInfo>>({})
-	const [hicapModels, setHicapModels] = useState<Record<string, ModelInfo>>({})
-	const [liteLlmModels, setLiteLlmModels] = useState<Record<string, ModelInfo>>({})
-	const [groqModelsState, setGroqModels] = useState<Record<string, ModelInfo>>({
-		[groqDefaultModelId]: groqModels[groqDefaultModelId],
-	})
-	const [basetenModelsState, setBasetenModels] = useState<Record<string, ModelInfo>>({
-		...basetenModels,
-		[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
 	})
 	const [openAiModels, _setOpenAiModels] = useState<string[]>([])
 
@@ -68,85 +35,17 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			.catch((error: Error) => console.error("Failed to refresh OpenRouter models:", error))
 	}, [])
 
-	const refreshHicapModels = useCallback(() => {
-		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.HICAP }))
-			.then((response: RefreshModelsResponse) => {
-				if (response.compatibleModels) {
-					setHicapModels({ ...response.compatibleModels.models })
-				}
-			})
-			.catch((error: Error) => console.error("Failed to refresh Hicap models:", error))
-	}, [])
-
-	const refreshLiteLlmModels = useCallback(() => {
-		return SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.LITELLM }))
-			.then((response: RefreshModelsResponse) => {
-				if (response.compatibleModels) {
-					setLiteLlmModels(fromProtobufModels(response.compatibleModels.models))
-				}
-			})
-			.catch((error: Error) => console.error("Failed to refresh LiteLLM models:", error))
-	}, [])
-
-	const refreshBasetenModels = useCallback(() => {
-		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.BASETEN }))
-			.then((response: RefreshModelsResponse) => {
-				if (response.compatibleModels) {
-					setBasetenModels({
-						[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
-						...fromProtobufModels(response.compatibleModels.models),
-					})
-				}
-			})
-			.catch((err: Error) => console.error("Failed to refresh Baseten models:", err))
-	}, [])
-
-	const refreshVercelAiGatewayModels = useCallback(() => {
-		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.VERCEL_AI_GATEWAY }))
-			.then((response: RefreshModelsResponse) => {
-				if (response.compatibleModels) {
-					setVercelAiGatewayModels(fromProtobufModels(response.compatibleModels.models))
-				}
-			})
-			.catch((error: Error) => console.error("Failed to refresh Vercel AI Gateway models:", error))
-	}, [])
-
 	useEffect(() => {
 		if (!openRouterModels || Object.keys(openRouterModels).length <= 1) refreshOpenRouterModels()
-		if (!vercelAiGatewayModels || Object.keys(vercelAiGatewayModels).length === 0) refreshVercelAiGatewayModels()
-		if (state.apiConfiguration?.basetenApiKey) refreshBasetenModels()
-		if (state.apiConfiguration?.liteLlmApiKey) refreshLiteLlmModels()
-	}, [
-		refreshOpenRouterModels,
-		refreshVercelAiGatewayModels,
-		state?.apiConfiguration?.basetenApiKey,
-		refreshBasetenModels,
-		state?.apiConfiguration?.liteLlmApiKey,
-		refreshLiteLlmModels,
-		openRouterModels,
-		vercelAiGatewayModels,
-	])
+	}, [refreshOpenRouterModels, openRouterModels])
 
 	return (
 		<ModelStateContext.Provider
 			value={{
 				openRouterModels,
-				vercelAiGatewayModels,
-				hicapModels,
-				liteLlmModels,
-				groqModels: groqModelsState,
-				basetenModels: basetenModelsState,
 				openAiModels,
 				setOpenRouterModels,
-				setVercelAiGatewayModels,
-				setHicapModels,
-				setLiteLlmModels,
-				setGroqModels,
-				setBasetenModels,
 				refreshOpenRouterModels,
-				refreshVercelAiGatewayModels,
-				refreshHicapModels,
-				refreshLiteLlmModels,
 			}}>
 			{children}
 		</ModelStateContext.Provider>

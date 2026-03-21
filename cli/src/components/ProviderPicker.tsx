@@ -21,10 +21,7 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 			return !!config.apiKey
 		case "openrouter":
 			return !!config.openRouterApiKey
-		case "bedrock":
-			return !!config.awsRegion
-		case "vertex":
-			return !!config.vertexApiKey
+
 		case "gemini":
 			return !!config.geminiApiKey
 		case "openai-native":
@@ -32,54 +29,6 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 		case "openai-codex":
 			// OpenAI Codex uses OAuth with credentials stored as JSON blob
 			return !!(config as Record<string, unknown>)["openai-codex-oauth-credentials"]
-		case "deepseek":
-			return !!config.deepSeekApiKey
-		case "xai":
-			return !!config.xaiApiKey
-		case "qwen":
-		case "qwen-code":
-			return !!config.qwenApiKey
-		case "doubao":
-			return !!config.doubaoApiKey
-		case "mistral":
-			return !!config.mistralApiKey
-		case "fireworks":
-			return !!config.fireworksApiKey
-		case "together":
-			return !!config.togetherApiKey
-		case "moonshot":
-			return !!config.moonshotApiKey
-		case "nebius":
-			return !!config.nebiusApiKey
-		case "asksage":
-			return !!config.asksageApiKey
-		case "sambanova":
-			return !!config.sambanovaApiKey
-		case "cerebras":
-			return !!config.cerebrasApiKey
-		case "sapaicore":
-			return !!(
-				config.sapAiCoreBaseUrl &&
-				config.sapAiCoreClientId &&
-				config.sapAiCoreClientSecret &&
-				config.sapAiCoreTokenUrl
-			)
-		case "zai":
-			return !!config.zaiApiKey
-		case "groq":
-			return !!config.groqApiKey
-		case "baseten":
-			return !!config.basetenApiKey
-		case "dify":
-			return !!(config.difyBaseUrl && config.difyApiKey)
-		case "minimax":
-			return !!config.minimaxApiKey
-		case "hicap":
-			return !!config.hicapApiKey
-		case "huawei-cloud-maas":
-			return !!config.huaweiCloudMaasApiKey
-		case "vercel-ai-gateway":
-			return !!config.vercelAiGatewayApiKey
 		case "nousResearch":
 			return !!config.nousResearchApiKey
 		case "openai":
@@ -88,23 +37,8 @@ function isProviderConfigured(providerId: string, config: ApiConfiguration): boo
 				config.planModeOpenAiModelId ||
 				config.actModeOpenAiModelId
 			)
-		case "ollama":
-			return !!(config.ollamaBaseUrl || config.planModeOllamaModelId || config.actModeOllamaModelId)
-		case "lmstudio":
-			return !!(config.lmStudioBaseUrl || config.planModeLmStudioModelId || config.actModeLmStudioModelId)
-		case "litellm":
-			return !!(
-				config.liteLlmBaseUrl ||
-				config.liteLlmApiKey ||
-				config.planModeLiteLlmModelId ||
-				config.actModeLiteLlmModelId
-			)
 		case "claude-code":
 			return !!config.claudeCodePath
-		case "cloudflare":
-			return !!(config.cloudflareAccountId && config.cloudflareApiToken)
-		case "oca":
-			return !!config.ocaBaseUrl
 		default:
 			return false
 	}

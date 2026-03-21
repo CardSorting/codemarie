@@ -39,11 +39,13 @@ const ReasoningEffortSelector = ({
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					{allowedEfforts.map((effort) => (
-						<SelectItem key={effort} value={effort}>
-							{effort.charAt(0).toUpperCase() + effort.slice(1)}
-						</SelectItem>
-					))}
+					{allowedEfforts
+						.filter((e): e is NonNullable<typeof e> => !!e)
+						.map((effort) => (
+							<SelectItem key={effort} value={effort}>
+								{effort.charAt(0).toUpperCase() + effort.slice(1)}
+							</SelectItem>
+						))}
 				</SelectContent>
 			</Select>
 			<p

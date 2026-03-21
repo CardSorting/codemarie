@@ -1,0 +1,163 @@
+cli/src/components/AuthView.tsx(191,56): error TS2345: Argument of type '"actModeOcaModelId"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | "openTelemetryOtlpEndpoint" | ... 68 more ... | "masEnabled"'.
+cli/src/components/AuthView.tsx(192,14): error TS2345: Argument of type 'string | number | true | AutoApprovalSettings | BrowserSettings | CodemarieRulesToggles | FocusChainSettings | Record<...> | ModelInfo' is not assignable to parameter of type 'SetStateAction<string>'.
+  Type 'number' is not assignable to type 'SetStateAction<string>'.
+cli/src/components/OcaEmployeeCheck.tsx(33,31): error TS2345: Argument of type '"ocaMode"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+cli/src/components/ProviderPicker.tsx(25,20): error TS2339: Property 'awsRegion' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(36,20): error TS2339: Property 'deepSeekApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(38,20): error TS2551: Property 'xaiApiKey' does not exist on type 'ApiHandlerOptions'. Did you mean 'apiKey'?
+cli/src/components/ProviderPicker.tsx(41,20): error TS2339: Property 'qwenApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(43,20): error TS2339: Property 'doubaoApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(45,20): error TS2339: Property 'mistralApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(47,20): error TS2339: Property 'fireworksApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(49,20): error TS2339: Property 'togetherApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(51,20): error TS2339: Property 'moonshotApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(53,20): error TS2339: Property 'nebiusApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(55,20): error TS2339: Property 'asksageApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(57,20): error TS2339: Property 'sambanovaApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(59,20): error TS2339: Property 'cerebrasApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(62,12): error TS2339: Property 'sapAiCoreBaseUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(63,12): error TS2339: Property 'sapAiCoreClientId' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(64,12): error TS2339: Property 'sapAiCoreClientSecret' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(65,12): error TS2339: Property 'sapAiCoreTokenUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(68,20): error TS2551: Property 'zaiApiKey' does not exist on type 'ApiHandlerOptions'. Did you mean 'apiKey'?
+cli/src/components/ProviderPicker.tsx(70,20): error TS2339: Property 'groqApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(72,20): error TS2339: Property 'basetenApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(74,21): error TS2339: Property 'difyBaseUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(74,43): error TS2339: Property 'difyApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(76,20): error TS2551: Property 'minimaxApiKey' does not exist on type 'ApiHandlerOptions'. Did you mean 'geminiApiKey'?
+cli/src/components/ProviderPicker.tsx(78,20): error TS2339: Property 'hicapApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(80,20): error TS2339: Property 'huaweiCloudMaasApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(82,20): error TS2339: Property 'vercelAiGatewayApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(92,21): error TS2339: Property 'ollamaBaseUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(92,45): error TS2551: Property 'planModeOllamaModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+cli/src/components/ProviderPicker.tsx(92,77): error TS2551: Property 'actModeOllamaModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'actModeApiModelId'?
+cli/src/components/ProviderPicker.tsx(94,21): error TS2339: Property 'lmStudioBaseUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(94,47): error TS2551: Property 'planModeLmStudioModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+cli/src/components/ProviderPicker.tsx(94,81): error TS2339: Property 'actModeLmStudioModelId' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(97,12): error TS2339: Property 'liteLlmBaseUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(98,12): error TS2339: Property 'liteLlmApiKey' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(99,12): error TS2551: Property 'planModeLiteLlmModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+cli/src/components/ProviderPicker.tsx(100,12): error TS2551: Property 'actModeLiteLlmModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'actModeApiModelId'?
+cli/src/components/ProviderPicker.tsx(105,21): error TS2551: Property 'cloudflareAccountId' does not exist on type 'ApiHandlerOptions'. Did you mean 'codemarieAccountId'?
+cli/src/components/ProviderPicker.tsx(105,51): error TS2339: Property 'cloudflareApiToken' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/ProviderPicker.tsx(107,20): error TS2339: Property 'ocaBaseUrl' does not exist on type 'ApiHandlerOptions'.
+cli/src/components/SettingsPanelContent.tsx(326,6): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+cli/src/components/SettingsPanelContent.tsx(334,6): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+cli/src/hooks/useOcaAuth.ts(9,32): error TS2307: Cannot find module '@/services/auth/oca/OcaAuthService' or its corresponding type declarations.
+cli/src/hooks/useOcaAuth.ts(50,12): error TS7006: Parameter 'error' implicitly has an 'any' type.
+cli/src/index.ts(27,35): error TS2724: '"@/shared/storage/types"' has no exported member named 'OPENAI_REASONING_EFFORT_OPTIONS'. Did you mean 'OpenaiReasoningEffort'?
+cli/src/utils/provider-config.ts(58,33): error TS2345: Argument of type '"actModeVercelAiGatewayModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+cli/src/utils/provider-config.ts(59,33): error TS2345: Argument of type '"planModeVercelAiGatewayModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+src/core/api/index.ts(74,30): error TS2339: Property 'azureApiVersion' does not exist on type 'Omit<ApiHandlerOptions, "apiProvider">'.
+src/core/api/index.ts(75,28): error TS2339: Property 'azureIdentity' does not exist on type 'Omit<ApiHandlerOptions, "apiProvider">'.
+src/core/api/providers/openai-codex.ts(162,28): error TS2367: This comparison appears to be unintentional because the types 'OpenaiReasoningEffort' and '"none"' have no overlap.
+src/core/api/providers/openai-native.ts(131,24): error TS2367: This comparison appears to be unintentional because the types 'OpenaiReasoningEffort' and '"none"' have no overlap.
+src/core/api/providers/openai-native.ts(246,9): error TS2322: Type '{ effort: OpenaiReasoningEffort; summary: "auto"; } | undefined' is not assignable to type '{ effort: ChatCompletionReasoningEffort; summary: "auto"; } | undefined'.
+  Type '{ effort: OpenaiReasoningEffort; summary: "auto"; }' is not assignable to type '{ effort: ChatCompletionReasoningEffort; summary: "auto"; }'.
+    Types of property 'effort' are incompatible.
+      Type 'OpenaiReasoningEffort' is not assignable to type 'ChatCompletionReasoningEffort'.
+        Type 'undefined' is not assignable to type 'ChatCompletionReasoningEffort'.
+src/core/api/providers/openai-native.ts(247,4): error TS2367: This comparison appears to be unintentional because the types 'OpenaiReasoningEffort' and '"none"' have no overlap.
+src/core/api/providers/openai.ts(133,22): error TS2367: This comparison appears to be unintentional because the types 'OpenaiReasoningEffort' and '"none"' have no overlap.
+src/core/api/transform/openrouter-stream.ts(182,69): error TS2367: This comparison appears to be unintentional because the types 'OpenaiReasoningEffort' and '"none"' have no overlap.
+src/core/api/transform/openrouter-stream.ts(184,41): error TS2367: This comparison appears to be unintentional because the types '"low" | "medium" | "high"' and '"none"' have no overlap.
+src/core/api/transform/vercel-ai-gateway-stream.ts(132,69): error TS2367: This comparison appears to be unintentional because the types 'OpenaiReasoningEffort' and '"none"' have no overlap.
+src/core/api/transform/vercel-ai-gateway-stream.ts(134,41): error TS2367: This comparison appears to be unintentional because the types '"low" | "medium" | "high"' and '"none"' have no overlap.
+src/core/api/transform/vscode-lm-format.test.ts(41,35): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(42,35): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(57,38): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(58,52): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(59,52): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelTextPart'.
+src/core/api/transform/vscode-lm-format.test.ts(62,38): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(63,52): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(64,52): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelTextPart'.
+src/core/api/transform/vscode-lm-format.test.ts(86,38): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(90,52): error TS2339: Property 'LanguageModelToolResultPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(91,57): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelToolResultPart'.
+src/core/api/transform/vscode-lm-format.test.ts(98,52): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(99,51): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelTextPart'.
+src/core/api/transform/vscode-lm-format.test.ts(122,38): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(125,52): error TS2339: Property 'LanguageModelToolCallPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(126,55): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelToolCallPart'.
+src/core/api/transform/vscode-lm-format.test.ts(132,52): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(133,51): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelTextPart'.
+src/core/api/transform/vscode-lm-format.test.ts(157,52): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(158,51): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelTextPart'.
+src/core/api/transform/vscode-lm-format.test.ts(166,28): error TS2339: Property 'LanguageModelChatMessage' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(167,15): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(168,15): error TS2339: Property 'LanguageModelToolCallPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.test.ts(202,28): error TS2339: Property 'LanguageModelChatMessage' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(34,11): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelChatMessage'.
+src/core/api/transform/vscode-lm-format.ts(35,33): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelChatMessage'.
+src/core/api/transform/vscode-lm-format.ts(42,15): error TS2339: Property 'LanguageModelChatMessage' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(43,15): error TS2339: Property 'LanguageModelChatMessage' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(71,38): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelTextPart'.
+src/core/api/transform/vscode-lm-format.ts(73,23): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(76,30): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(80,29): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(81,28): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(83,25): error TS2339: Property 'LanguageModelToolResultPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(89,26): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(93,25): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(98,34): error TS2339: Property 'LanguageModelChatMessage' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(123,19): error TS2339: Property 'LanguageModelToolCallPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(133,26): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(135,25): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(140,34): error TS2339: Property 'LanguageModelChatMessage' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(150,30): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelChatMessageRole'.
+src/core/api/transform/vscode-lm-format.ts(153,15): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(155,15): error TS2339: Property 'LanguageModelChatMessageRole' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(162,67): error TS2694: Namespace '"vscode"' has no exported member 'LanguageModelChatMessage'.
+src/core/api/transform/vscode-lm-format.ts(174,10): error TS7006: Parameter 'part' implicitly has an 'any' type.
+src/core/api/transform/vscode-lm-format.ts(175,32): error TS2339: Property 'LanguageModelTextPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(183,32): error TS2339: Property 'LanguageModelToolCallPart' does not exist on type 'typeof import("vscode")'.
+src/core/api/transform/vscode-lm-format.ts(194,13): error TS7006: Parameter 'part' implicitly has an 'any' type.
+src/core/controller/account/subscribeToAuthStatusUpdate.ts(2,32): error TS2307: Cannot find module '@services/auth/oca/OcaAuthService' or its corresponding type declarations.
+src/core/controller/system/getVsCodeLmModels.ts(16,31): error TS2339: Property 'lm' does not exist on type 'typeof import("vscode")'.
+src/core/controller/system/initializeWebview.ts(86,39): error TS2551: Property 'planModeGroqModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(89,46): error TS2345: Argument of type '"planModeGroqModelInfo" | "actModeGroqModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+  Type '"planModeGroqModelInfo"' is not assignable to type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'. Did you mean '"planModeOpenAiModelInfo"'?
+src/core/controller/system/initializeWebview.ts(94,43): error TS2551: Property 'planModeGroqModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(95,42): error TS2551: Property 'actModeGroqModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'actModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(100,15): error TS2551: Property 'planModeGroqModelInfo' does not exist on type 'Partial<GlobalStateAndSettings>'. Did you mean 'planModeOpenAiModelInfo'?
+src/core/controller/system/initializeWebview.ts(105,15): error TS2551: Property 'actModeGroqModelInfo' does not exist on type 'Partial<GlobalStateAndSettings>'. Did you mean 'actModeOpenAiModelInfo'?
+src/core/controller/system/initializeWebview.ts(130,39): error TS2551: Property 'planModeBasetenModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(133,46): error TS2345: Argument of type '"planModeBasetenModelInfo" | "actModeBasetenModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+  Type '"planModeBasetenModelInfo"' is not assignable to type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'. Did you mean '"planModeOpenAiModelInfo"'?
+src/core/controller/system/initializeWebview.ts(138,43): error TS2551: Property 'planModeBasetenModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(139,42): error TS2551: Property 'actModeBasetenModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'actModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(143,46): error TS2345: Argument of type '"planModeBasetenModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+src/core/controller/system/initializeWebview.ts(148,46): error TS2345: Argument of type '"actModeBasetenModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+src/core/controller/system/initializeWebview.ts(172,39): error TS2551: Property 'planModeHicapModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(175,46): error TS2345: Argument of type '"planModeHicapModelInfo" | "actModeHicapModelInfo"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'.
+  Type '"planModeHicapModelInfo"' is not assignable to type '"openAiBaseUrl" | "openAiHeaders" | "mcpMarketplaceEnabled" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | ... 97 more ... | "masEnabled"'. Did you mean '"planModeApiModelId"'?
+src/core/controller/system/initializeWebview.ts(180,43): error TS2551: Property 'planModeHicapModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(181,42): error TS2551: Property 'actModeHicapModelId' does not exist on type 'ApiHandlerOptions'. Did you mean 'actModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(186,15): error TS2551: Property 'planModeHicapModelInfo' does not exist on type 'Partial<GlobalStateAndSettings>'. Did you mean 'planModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(191,15): error TS2551: Property 'actModeHicapModelInfo' does not exist on type 'Partial<GlobalStateAndSettings>'. Did you mean 'actModeApiModelId'?
+src/core/controller/system/initializeWebview.ts(203,71): error TS2345: Argument of type '"liteLlmBaseUrl"' is not assignable to parameter of type '"openAiBaseUrl" | "openAiHeaders" | "openTelemetryEnabled" | "openTelemetryMetricsExporter" | "openTelemetryLogsExporter" | "openTelemetryOtlpProtocol" | "openTelemetryOtlpEndpoint" | ... 68 more ... | "masEnabled"'.
+src/core/controller/system/initializeWebview.ts(204,62): error TS2345: Argument of type '"liteLlmApiKey"' is not assignable to parameter of type '"apiKey" | "openRouterApiKey" | "openAiApiKey" | "geminiApiKey" | "openAiNativeApiKey" | "authNonce" | "nousResearchApiKey" | "codemarieAccountId" | "codemarie:codemarieAccountId" | "embeddingApiKey" | "openai-codex-oauth-credentials" | "mcpOAuthSecrets"'.
+src/core/controller/system/refreshBasetenModels.ts(24,50): error TS2345: Argument of type '"baseten"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/controller/system/refreshBasetenModels.ts(51,61): error TS2345: Argument of type '"basetenApiKey"' is not assignable to parameter of type '"apiKey" | "openRouterApiKey" | "openAiApiKey" | "geminiApiKey" | "openAiNativeApiKey" | "authNonce" | "nousResearchApiKey" | "codemarieAccountId" | "codemarie:codemarieAccountId" | "embeddingApiKey" | "openai-codex-oauth-credentials" | "mcpOAuthSecrets"'.
+src/core/controller/system/refreshBasetenModels.ts(189,36): error TS2345: Argument of type '"baseten"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/controller/system/refreshGroqModels.ts(24,50): error TS2345: Argument of type '"groq"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/controller/system/refreshGroqModels.ts(50,58): error TS2345: Argument of type '"groqApiKey"' is not assignable to parameter of type '"apiKey" | "openRouterApiKey" | "openAiApiKey" | "geminiApiKey" | "openAiNativeApiKey" | "authNonce" | "nousResearchApiKey" | "codemarieAccountId" | "codemarie:codemarieAccountId" | "embeddingApiKey" | "openai-codex-oauth-credentials" | "mcpOAuthSecrets"'.
+src/core/controller/system/refreshGroqModels.ts(199,36): error TS2345: Argument of type '"groq"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/controller/system/refreshHicapModels.ts(31,60): error TS2345: Argument of type '"hicapApiKey"' is not assignable to parameter of type '"apiKey" | "openRouterApiKey" | "openAiApiKey" | "geminiApiKey" | "openAiNativeApiKey" | "authNonce" | "nousResearchApiKey" | "codemarieAccountId" | "codemarie:codemarieAccountId" | "embeddingApiKey" | "openai-codex-oauth-credentials" | "mcpOAuthSecrets"'.
+src/core/controller/system/refreshLiteLlmModels.ts(3,40): error TS2307: Cannot find module '@/core/api/providers/litellm' or its corresponding type declarations.
+src/core/controller/system/refreshLiteLlmModels.ts(22,36): error TS2339: Property 'liteLlmBaseUrl' does not exist on type 'ApiHandlerOptions'.
+src/core/controller/system/refreshLiteLlmModels.ts(23,35): error TS2339: Property 'liteLlmApiKey' does not exist on type 'ApiHandlerOptions'.
+src/core/controller/system/refreshLiteLlmModels.ts(70,36): error TS2345: Argument of type '"liteLlm"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/controller/system/refreshModels.ts(17,34): error TS2307: Cannot find module './refreshOcaModels' or its corresponding type declarations.
+src/core/controller/system/refreshVercelAiGatewayModels.ts(89,50): error TS2345: Argument of type '"vercel"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/controller/system/refreshVercelAiGatewayModels.ts(168,36): error TS2345: Argument of type '"vercel"' is not assignable to parameter of type '"codemarie" | "openRouter"'.
+src/core/prompts/commands/deep-planning/variants/gpt51.ts(1,10): error TS2305: Module '"@utils/model-utils"' has no exported member 'isGPT51Model'.
+src/core/prompts/system-prompt/variants/native-gpt-5-1/config.ts(1,10): error TS2305: Module '"@utils/model-utils"' has no exported member 'isGPT51Model'.
+src/core/prompts/system-prompt/variants/native-gpt-5-1/config.ts(1,24): error TS2305: Module '"@utils/model-utils"' has no exported member 'isGPT52Model'.
+src/core/prompts/system-prompt/variants/native-gpt-5/config.ts(1,29): error TS2305: Module '"@utils/model-utils"' has no exported member 'isGPT51Model'.
+src/core/prompts/system-prompt/variants/native-gpt-5/config.ts(1,43): error TS2305: Module '"@utils/model-utils"' has no exported member 'isGPT52Model'.
+src/services/uri/SharedUriHandler.ts(71,39): error TS2551: Property 'handleOcaAuthCallback' does not exist on type 'Controller'. Did you mean 'handleAuthCallback'?
+src/services/uri/SharedUriHandler.ts(103,39): error TS2551: Property 'handleHicapCallback' does not exist on type 'Controller'. Did you mean 'handleAuthCallback'?
+src/shared/vsCodeSelectorUtils.ts(1,10): error TS2305: Module '"vscode"' has no exported member 'LanguageModelChatSelector'.

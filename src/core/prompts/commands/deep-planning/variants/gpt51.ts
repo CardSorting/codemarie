@@ -1,6 +1,6 @@
-import { isGPT51Model } from "@utils/model-utils"
 import { getShell } from "@utils/shell"
 import type { SystemPromptContext } from "@/core/prompts/system-prompt/types"
+import { isGPT51Model } from "@/utils/model-utils"
 import type { DeepPlanningVariant } from "../types"
 
 /**

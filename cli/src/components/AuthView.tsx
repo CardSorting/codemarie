@@ -7,17 +7,16 @@ import { Box, Text, useApp, useInput } from "ink"
 import Spinner from "ink-spinner"
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { Controller } from "@/core/controller"
-import { refreshModels as refreshOcaModels } from "@/core/controller/system/refreshModels"
+
 import { StateManager } from "@/core/storage/StateManager"
 import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
 import { AuthService } from "@/services/auth/AuthService"
 import { openAiCodexDefaultModelId, openRouterDefaultModelId } from "@/shared/api"
-import { ApiProvider } from "@/shared/proto/codemarie/common"
 import { openExternal } from "@/utils/env"
 import { COLORS } from "../constants/colors"
 import { useStdinContext } from "../context/StdinContext"
 import { useCodemarieFeaturedModels } from "../hooks/useCodemarieFeaturedModels"
-import { useOcaAuth } from "../hooks/useOcaAuth"
+
 import { useScrollableList } from "../hooks/useScrollableList"
 import { type DetectedSources, detectImportSources, type ImportSource } from "../utils/import-configs"
 import { isMouseEscapeSequence } from "../utils/input"
@@ -35,7 +34,7 @@ import {
 } from "./FeaturedModelPicker"
 import { ImportView } from "./ImportView"
 import { CUSTOM_MODEL_ID, getDefaultModelId, hasModelPicker, ModelPicker } from "./ModelPicker"
-import { OcaEmployeeCheck } from "./OcaEmployeeCheck"
+
 import { getProviderLabel } from "./ProviderPicker"
 
 type AuthStep =
@@ -48,8 +47,6 @@ type AuthStep =
 	| "success"
 	| "error"
 	| "codemarie_auth"
-	| "oca_employee_check"
-	| "oca_auth"
 	| "codemarie_model"
 	| "openai_codex_auth"
 	| "bedrock"
@@ -178,32 +175,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 	const [importSources, setImportSources] = useState<DetectedSources>({ codex: false, opencode: false })
 	const [importSource, setImportSource] = useState<ImportSource | null>(null)
 	const [bedrockConfig, setBedrockConfig] = useState<BedrockConfig | null>(null)
-
-	// OCA auth hook - enabled when step is oca_auth
-	const handleOcaAuthSuccess = useCallback(async () => {
-		await applyProviderConfig({ providerId: "oca", controller })
-		// Fetch OCA models from the API - this sets actModeOcaModelId/planModeOcaModelId in state
-		await refreshOcaModels(controller, { provider: ApiProvider.OCA })
-		const stateManager = StateManager.get()
-		stateManager.setGlobalState("welcomeViewCompleted", true)
-		await stateManager.flushPendingState()
-		setSelectedProvider("oca")
-		const actModelId = stateManager.getGlobalSettingsKey("actModeOcaModelId") || ""
-		setModelId(actModelId)
-		setStep("success")
-	}, [controller])
-
-	const handleOcaAuthError = useCallback((error: Error) => {
-		setErrorMessage(error.message)
-		setStep("error")
-	}, [])
-
-	const { startAuth: initiateOcaAuth } = useOcaAuth({
-		controller,
-		enabled: step === "oca_auth",
-		onSuccess: handleOcaAuthSuccess,
-		onError: handleOcaAuthError,
-	})
 
 	// Main menu items - conditionally include import options
 	const mainMenuItems: SelectItem[] = useMemo(() => {
@@ -339,11 +310,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 		}
 	}, [controller])
 
-	const startOcaAuth = useCallback(() => {
-		setStep("oca_auth")
-		initiateOcaAuth()
-	}, [initiateOcaAuth])
-
 	const handleMainMenuSelect = useCallback(
 		(value: string) => {
 			if (value === "exit") {
@@ -370,10 +336,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 	const handleProviderSelect = useCallback(
 		(value: string) => {
 			setSelectedProvider(value)
-			if (value === "oca") {
-				// Show employee check screen before starting auth
-				setStep("oca_employee_check")
-			} else if (value === "openai-codex") {
+			if (value === "openai-codex") {
 				setStep("openai_codex_auth")
 				startOpenAiCodexAuth()
 			} else if (value === "bedrock") {
@@ -584,12 +547,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 				setBaseUrl("")
 				setStep("modelid")
 				break
-			case "oca_employee_check":
-				setStep("provider")
-				break
-			case "oca_auth":
-				setStep("oca_employee_check")
-				break
 			case "codemarie_auth":
 				setStep("menu")
 				break
@@ -728,10 +685,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 					</Box>
 				)
 
-			case "oca_employee_check":
-				return <OcaEmployeeCheck isActive={step === "oca_employee_check"} onCancel={goBack} onSignIn={startOcaAuth} />
-
-			case "oca_auth":
 			case "codemarie_auth":
 				return (
 					<Box flexDirection="column">

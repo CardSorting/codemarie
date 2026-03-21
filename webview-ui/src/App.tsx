@@ -1,23 +1,20 @@
 import type { Boolean, EmptyRequest } from "@shared/proto/codemarie/common"
 import { useCallback, useEffect } from "react"
-import AccountView from "./components/account/AccountView"
 import ChatView from "./components/chat/ChatView"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { NotificationCenter } from "./components/common/NotificationCenter"
 import HistoryView from "./components/history/HistoryView"
 import McpView from "./components/mcp/configuration/McpConfigurationView"
-import OnboardingView from "./components/onboarding/OnboardingView"
 import SettingsView from "./components/settings/SettingsView"
 import WelcomeView from "./components/welcome/WelcomeView"
 import WorktreesView from "./components/worktrees/WorktreesView"
-import { useAuth } from "./context/AuthContext"
 import { useGlobalState } from "./context/GlobalStateContext"
 import { useNavigation } from "./context/NavigationContext"
 import { Providers } from "./Providers"
 import { SystemServiceClient } from "./services/protobus-client"
 
 const AppContent = () => {
-	const { didHydrateState, showWelcome, shouldShowAnnouncement, onboardingModels, setState } = useGlobalState()
+	const { didHydrateState, showWelcome, shouldShowAnnouncement, setState } = useGlobalState()
 
 	const {
 		activeView,
@@ -26,12 +23,9 @@ const AppContent = () => {
 		navigateToHistory,
 		hideSettings,
 		hideHistory,
-		hideAccount,
 		hideWorktrees,
 		closeMcpView,
 	} = useNavigation()
-
-	useAuth()
 
 	const showAnnouncement = shouldShowAnnouncement
 	const setShouldShowAnnouncement = useCallback(
@@ -60,7 +54,7 @@ const AppContent = () => {
 	if (showWelcome) {
 		return (
 			<ErrorBoundary>
-				{onboardingModels ? <OnboardingView onboardingModels={onboardingModels} /> : <WelcomeView />}
+				<WelcomeView />
 			</ErrorBoundary>
 		)
 	}
@@ -72,7 +66,6 @@ const AppContent = () => {
 				{activeView === "settings" && <SettingsView onDone={hideSettings} targetSection={settingsTargetSection} />}
 				{activeView === "history" && <HistoryView onDone={hideHistory} />}
 				{activeView === "mcp" && <McpView initialTab={mcpTab} onDone={closeMcpView} />}
-				{activeView === "account" && <AccountView onDone={hideAccount} />}
 				{activeView === "worktrees" && <WorktreesView onDone={hideWorktrees} />}
 				{/* Do not conditionally load ChatView, it's expensive and there's state we don't want to lose (user input, disableInput, askResponse promise, etc.) */}
 				<ChatView

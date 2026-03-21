@@ -243,8 +243,8 @@ export class OpenAiNativeHandler implements ApiHandler {
 		previousResponseId?: string
 	}): OpenAI.Responses.ResponseCreateParamsStreaming {
 		const requestedEffort = normalizeOpenaiReasoningEffort(this.options.reasoningEffort)
-		const reasoning: { effort: ChatCompletionReasoningEffort; summary: "auto" } | undefined =
-			requestedEffort === "none"
+		const reasoning: { effort: any; summary: "auto" } | undefined =
+			requestedEffort === "none" || requestedEffort === undefined
 				? undefined
 				: {
 						effort: requestedEffort,

@@ -33,3 +33,17 @@ export interface StorageAdapter {
 }
 
 export type Mode = "plan" | "act"
+export type OpenaiReasoningEffort = "low" | "medium" | "high" | "none" | undefined
+
+export const OPENAI_REASONING_EFFORT_OPTIONS = ["low", "medium", "high", "none"] as const
+
+export function isOpenaiReasoningEffort(effort: any): effort is OpenaiReasoningEffort {
+	return effort === "low" || effort === "medium" || effort === "high" || effort === "none" || effort === undefined
+}
+
+export function normalizeOpenaiReasoningEffort(effort?: any): OpenaiReasoningEffort {
+	if (isOpenaiReasoningEffort(effort)) {
+		return effort
+	}
+	return undefined
+}

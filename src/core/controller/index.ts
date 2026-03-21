@@ -31,8 +31,6 @@ import { getDb, setDbPath } from "@/infrastructure/db/Config"
 import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
 import { ExtensionRegistryInfo } from "@/registry"
 import { AuthService } from "@/services/auth/AuthService"
-import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
-import { LogoutReason } from "@/services/auth/types"
 import { BannerService } from "@/services/banner/BannerService"
 import { featureFlagsService } from "@/services/feature-flags"
 import { getDistinctId } from "@/services/logging/distinctId"
@@ -59,7 +57,6 @@ import { Task } from "../task"
 import { TaskState } from "../task/TaskState"
 import { checkCliInstallation } from "./state/checkCliInstallation"
 import { sendStateUpdate } from "./state/subscribeToState"
-import { getCodemarieOnboardingModels } from "./system/getCodemarieOnboardingModels"
 import { appendCodemarieStealthModels } from "./system/refreshOpenRouterModels"
 import { sendMcpMarketplaceCatalogEvent } from "./system/subscribeToMcpMarketplaceCatalog"
 import { sendUiEvent, UiEventType } from "./system/UiEventsService"
@@ -76,14 +73,13 @@ export class Controller {
 	mcpHub: McpHub
 	accountService: CodemarieAccountService
 	authService: AuthService
-	ocaAuthService: OcaAuthService
 	readonly stateManager: StateManager
 
 	// NEW: Add workspace manager (optional initially)
 	private workspaceManager?: WorkspaceRootManager
 	private backgroundCommandRunning = false
 	private backgroundCommandTaskId?: string
-	private previousState: any = null
+	private previousState: ExtensionState | undefined = undefined
 	// Flag to prevent duplicate cancellations from spam clicking
 	private cancelInProgress = false
 
@@ -143,7 +139,6 @@ export class Controller {
 			},
 		})
 		this.authService = AuthService.getInstance(this)
-		this.ocaAuthService = OcaAuthService.initialize(this)
 		this.accountService = CodemarieAccountService.getInstance()
 		BannerService.initialize(this)
 
@@ -220,23 +215,6 @@ export class Controller {
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
 				message: "Logout failed",
-			})
-		}
-	}
-
-	// Oca Auth methods
-	async handleOcaSignOut() {
-		try {
-			await this.ocaAuthService.handleDeauth(LogoutReason.USER_INITIATED)
-			await this.postStateToWebview()
-			HostProvider.window.showMessage({
-				type: ShowMessageType.INFORMATION,
-				message: "Successfully logged out of OCA",
-			})
-		} catch (_error) {
-			HostProvider.window.showMessage({
-				type: ShowMessageType.INFORMATION,
-				message: "OCA Logout failed",
 			})
 		}
 	}
@@ -597,23 +575,6 @@ export class Controller {
 		}
 	}
 
-	async handleOcaAuthCallback(code: string, state: string) {
-		try {
-			await this.ocaAuthService.handleAuthCallback(code, state)
-
-			await this.updateApiConfigurationWithProvider({
-				provider: "oca",
-				setWelcomeViewCompleted: true,
-			})
-		} catch (error) {
-			Logger.error("Failed to handle auth callback:", error)
-			HostProvider.window.showMessage({
-				type: ShowMessageType.ERROR,
-				message: "Failed to log in to OCA",
-			})
-		}
-	}
-
 	async handleMcpOAuthCallback(serverHash: string, code: string, state: string | null) {
 		try {
 			await this.mcpHub.completeOAuth(serverHash, code, state)
@@ -726,15 +687,6 @@ export class Controller {
 		return undefined
 	}
 
-	// Hicap
-	async handleHicapCallback(code: string) {
-		await this.updateApiConfigurationWithProvider({
-			provider: "hicap",
-			apiKeyField: "hicapApiKey",
-			apiKeyValue: code,
-		})
-	}
-
 	// Task history
 
 	async getTaskWithId(id: string): Promise<{
@@ -816,7 +768,6 @@ export class Controller {
 			platform: process.platform as Platform,
 			distinctId: getDistinctId(),
 			environment: CodemarieEnv.config().environment,
-			onboardingModels: getCodemarieOnboardingModels(),
 			apiConfiguration: sm.getApiConfiguration(),
 			backgroundCommandRunning: this.backgroundCommandRunning,
 			backgroundCommandTaskId: this.backgroundCommandTaskId,
@@ -878,7 +829,7 @@ export class Controller {
 		] as const
 
 		for (const key of globalKeys) {
-			const value = sm.getGlobalSettingsKey(key as any) ?? sm.getGlobalStateKey(key as any)
+			const value = sm.getGlobalSettingsKey(key as never) ?? sm.getGlobalStateKey(key as never)
 			state[key] = value
 		}
 
@@ -903,7 +854,7 @@ export class Controller {
 		] as const
 
 		for (const key of workspaceKeys) {
-			const value = sm.getWorkspaceStateKey(key as any)
+			const value = sm.getWorkspaceStateKey(key as never)
 			state[key === "workflowToggles" ? "localWorkflowToggles" : key] = value || {}
 		}
 

@@ -10,12 +10,11 @@ import type { TelemetrySetting } from "@shared/TelemetrySetting"
 import { useInput } from "ink"
 import React, { useCallback, useMemo, useState } from "react"
 import type { Controller } from "@/core/controller"
-import { refreshModels as refreshOcaModels } from "@/core/controller/system/refreshModels"
+
 import { StateManager } from "@/core/storage/StateManager"
-import { ApiProvider } from "@/shared/proto/codemarie/common"
 import { version as CLI_VERSION } from "../../package.json"
 import { useStdinContext } from "../context/StdinContext"
-import { useOcaAuth } from "../hooks/useOcaAuth"
+
 import { isMouseEscapeSequence } from "../utils/input"
 import { applyProviderConfig } from "../utils/provider-config"
 import { AccountSettingsTab } from "./AccountSettingsTab"
@@ -168,15 +167,6 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 	const [_modelRefreshKey, setModelRefreshKey] = useState(0)
 	const refreshModelIds = useCallback(() => setModelRefreshKey((k) => k + 1), [])
 
-	const handleOcaAuthSuccess = useCallback(async () => {
-		await applyProviderConfig({ providerId: "oca", controller })
-		if (controller) await refreshOcaModels(controller, { provider: ApiProvider.OCA })
-		setProvider("oca")
-		refreshModelIds()
-	}, [controller, refreshModelIds])
-
-	const { startAuth: startOcaAuth } = useOcaAuth({ controller, onSuccess: handleOcaAuthSuccess })
-
 	const { actModelId, planModelId } = useMemo(() => {
 		const apiConfig = stateManager.getApiConfiguration()
 		const actProvider = apiConfig.actModeApiProvider
@@ -186,8 +176,8 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		const planKey = planProvider ? getProviderModelIdKey(planProvider, "plan") : null
 
 		return {
-			actModelId: actKey && isSettingsKey(actKey) ? (stateManager.getGlobalSettingsKey(actKey) as string) || "" : "",
-			planModelId: planKey && isSettingsKey(planKey) ? (stateManager.getGlobalSettingsKey(planKey) as string) || "" : "",
+			actModelId: String((actKey && isSettingsKey(actKey) ? stateManager.getGlobalSettingsKey(actKey) : "") || ""),
+			planModelId: String((planKey && isSettingsKey(planKey) ? stateManager.getGlobalSettingsKey(planKey) : "") || ""),
 		}
 	}, [stateManager])
 
@@ -278,8 +268,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 				onSelect={(p) => {
 					setProvider(p)
 					setIsPickingProvider(false)
-					if (p === "oca") startOcaAuth()
-					else if (p !== "codemarie") setIsEnteringApiKey(true)
+					if (p !== "codemarie") setIsEnteringApiKey(true)
 				}}
 			/>
 		)
@@ -323,7 +312,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			tabContent = (
 				<ApiSettingsTab
 					actModelId={actModelId}
-					actReasoningEffort={actReasoningEffort}
+					actReasoningEffort={actReasoningEffort || "low"}
 					actThinkingEnabled={actThinkingEnabled}
 					onChangeActReasoningEffort={() => {}}
 					onChangePlanReasoningEffort={() => {}}
@@ -331,7 +320,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 					onTogglePlanThinking={() => {}}
 					onToggleSeparateModels={() => {}}
 					planModelId={planModelId}
-					planReasoningEffort={planReasoningEffort}
+					planReasoningEffort={planReasoningEffort || "low"}
 					planThinkingEnabled={planThinkingEnabled}
 					provider={provider}
 					separateModels={separateModels}

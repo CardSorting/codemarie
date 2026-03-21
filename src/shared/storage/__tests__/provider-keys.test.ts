@@ -1,16 +1,16 @@
-import { moonshotDefaultModelId } from "@shared/api"
+import { anthropicDefaultModelId } from "@shared/api"
 import { expect } from "chai"
 import { describe, it } from "mocha"
 import { getProviderDefaultModelId, getProviderModelIdKey } from "../provider-keys"
 
 describe("Provider key mapping", () => {
-	it("returns Moonshot default model ID", () => {
-		expect(getProviderDefaultModelId("moonshot")).to.equal(moonshotDefaultModelId)
+	it("returns Anthropic default model ID", () => {
+		expect(getProviderDefaultModelId("anthropic")).to.equal(anthropicDefaultModelId)
 	})
 
-	it("uses generic model key for Moonshot", () => {
-		expect(getProviderModelIdKey("moonshot", "act")).to.equal("actModeApiModelId")
-		expect(getProviderModelIdKey("moonshot", "plan")).to.equal("planModeApiModelId")
+	it("uses generic model key for Anthropic", () => {
+		expect(getProviderModelIdKey("anthropic", "act")).to.equal("actModeApiModelId")
+		expect(getProviderModelIdKey("anthropic", "plan")).to.equal("planModeApiModelId")
 	})
 
 	it("keeps provider-specific model key behavior for OpenRouter", () => {

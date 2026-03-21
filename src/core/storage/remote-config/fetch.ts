@@ -7,26 +7,9 @@ import { ConfiguredAPIKeys } from "@/shared/storage/state-keys"
 import { CodemarieEnv } from "../../../config"
 import { AuthService } from "../../../services/auth/AuthService"
 import { CODEMARIE_API_ENDPOINT } from "../../../shared/codemarie/api"
-import { APIKeySchema, type APIKeySettings, RemoteConfig, RemoteConfigSchema } from "../../../shared/remote-config/schema"
+import { RemoteConfig, RemoteConfigSchema } from "../../../shared/remote-config/schema"
 import { deleteRemoteConfigFromCache, readRemoteConfigFromCache, writeRemoteConfigToCache } from "../disk"
 import { applyRemoteConfig, clearRemoteConfig, isRemoteConfigEnabled } from "./utils"
-
-/**
- * Parses API keys from a JSON string response
- * @param value The JSON string containing API keys
- * @returns Parsed API key settings object
- */
-function parseApiKeys(value: string): APIKeySettings {
-	try {
-		if (!value) {
-			return {}
-		}
-		return APIKeySchema.parse(JSON.parse(value))
-	} catch (err) {
-		Logger.error(`Failed to parse providers api keys`, err)
-		return {}
-	}
-}
 
 /**
  * Helper function to make authenticated requests to the Codemarie API
@@ -138,28 +121,6 @@ async function fetchRemoteConfigForOrganization(organizationId: string): Promise
 }
 
 /**
- * Fetches API keys for a specific organization from the API.
- *
- * @param organizationId The organization ID to fetch API keys for
- * @returns Record of API keys (e.g., { litellm: "key" }) or undefined if fetch fails
- */
-async function fetchApiKeysForOrganization(organizationId: string): Promise<APIKeySettings> {
-	try {
-		// Fetch API keys string using helper
-		const response = await makeAuthenticatedRequest<{ providerApiKeys: string }>(
-			CODEMARIE_API_ENDPOINT.API_KEYS,
-			organizationId,
-		)
-
-		// Parse and return API keys
-		return parseApiKeys(response?.providerApiKeys)
-	} catch (error) {
-		Logger.error(`Failed to fetch API keys for organization ${organizationId}:`, error)
-		return {}
-	}
-}
-
-/**
  * Scans all user organizations to find the first one with an enabled remote configuration.
  *
  * @returns Object containing the organization ID and config, or undefined if none found
@@ -225,19 +186,8 @@ async function ensureUserInOrgWithRemoteConfig(controller: Controller): Promise<
 		// Fetch and store API keys for configured providers
 		const hasConfiguredProviders = config.providerSettings && Object.keys(config.providerSettings).length > 0
 		if (hasConfiguredProviders) {
-			const apiKeys = await fetchApiKeysForOrganization(organizationId)
-			if (config.providerSettings?.LiteLLM) {
-				if (apiKeys.litellm) {
-					configuredApiKeys.litellm = true
-					controller.stateManager.setSecret("remoteLiteLlmApiKey", apiKeys.litellm)
-				} else {
-					controller.stateManager.setSecret("remoteLiteLlmApiKey", undefined)
-				}
-			} else {
-				controller.stateManager.setSecret("remoteLiteLlmApiKey", undefined)
-			}
-		} else {
-			controller.stateManager.setSecret("remoteLiteLlmApiKey", undefined)
+			// No-op for now as LiteLLM is the only one that used this, and it's removed.
+			// In the future, other providers might need special secret handling here.
 		}
 
 		// Cache and apply the remote config

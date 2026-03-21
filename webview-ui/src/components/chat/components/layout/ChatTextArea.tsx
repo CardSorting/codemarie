@@ -14,7 +14,7 @@ import { useMentions } from "@/components/chat/hooks/useMentions"
 import { useSlashCommands } from "@/components/chat/hooks/useSlashCommands"
 import { useTextAreaHeight } from "@/components/chat/hooks/useTextAreaHeight"
 import CodemarieRulesToggleModal from "@/components/codemarie-rules/CodemarieRulesToggleModal"
-import { getModeSpecificFields, normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
+import { normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
 import Thumbnails from "@/components/ui/thumbnails"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { PLATFORM_CONFIG } from "@/config/platform.config"
@@ -415,37 +415,17 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 		// Get model display name
 		const modelDisplayName = useMemo(() => {
 			const { selectedProvider, selectedModelId } = normalizeApiConfiguration(apiConfiguration, mode)
-			const {
-				vsCodeLmModelSelector,
-				togetherModelId,
-				lmStudioModelId,
-				ollamaModelId,
-				liteLlmModelId,
-				vercelAiGatewayModelId,
-			} = getModeSpecificFields(apiConfiguration, mode)
 			const unknownModel = "unknown"
 
 			if (!apiConfiguration) {
 				return unknownModel
 			}
-			switch (selectedProvider) {
-				case "openai":
-					return `openai-compat:${selectedModelId}`
-				case "vscode-lm":
-					return `vscode-lm:${vsCodeLmModelSelector ? `${vsCodeLmModelSelector.vendor ?? ""}/${vsCodeLmModelSelector.family ?? ""}` : unknownModel}`
-				case "together":
-					return `${selectedProvider}:${togetherModelId}`
-				case "lmstudio":
-					return `${selectedProvider}:${lmStudioModelId}`
-				case "ollama":
-					return `${selectedProvider}:${ollamaModelId}`
-				case "litellm":
-					return `${selectedProvider}:${liteLlmModelId}`
-				case "vercel-ai-gateway":
-					return `${selectedProvider}:${vercelAiGatewayModelId || selectedModelId}`
-				default:
-					return `${selectedProvider}:${selectedModelId}`
+
+			if (selectedProvider === "openai") {
+				return `openai-compat:${selectedModelId}`
 			}
+
+			return `${selectedProvider}:${selectedModelId}`
 		}, [apiConfiguration, mode])
 		const togglePlanActKeys = PLATFORM_CONFIG.togglePlanActKeys
 			.replace("Meta", metaKeyChar)

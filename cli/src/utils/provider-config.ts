@@ -8,7 +8,6 @@ import { getProviderModelIdKey, ProviderToApiKeyMap } from "@shared/storage"
 import { buildApiHandler } from "@/core/api"
 import type { Controller } from "@/core/controller"
 import { refreshOpenRouterModels } from "@/core/controller/system/refreshOpenRouterModels"
-import { refreshVercelAiGatewayModels } from "@/core/controller/system/refreshVercelAiGatewayModels"
 import { StateManager } from "@/core/storage/StateManager"
 import type { BedrockConfig } from "../components/BedrockSetup"
 import { getDefaultModelId } from "../components/ModelPicker"
@@ -50,13 +49,6 @@ export async function applyProviderConfig(options: ApplyProviderConfigOptions): 
 			if (modelInfo) {
 				stateManager.setGlobalState("actModeOpenRouterModelInfo", modelInfo)
 				stateManager.setGlobalState("planModeOpenRouterModelInfo", modelInfo)
-			}
-		} else if (providerId === "vercel-ai-gateway" && controller) {
-			const vercelModels = await refreshVercelAiGatewayModels(controller)
-			const modelInfo = vercelModels?.[finalModelId]
-			if (modelInfo) {
-				stateManager.setGlobalState("actModeVercelAiGatewayModelInfo", modelInfo)
-				stateManager.setGlobalState("planModeVercelAiGatewayModelInfo", modelInfo)
 			}
 		}
 	}

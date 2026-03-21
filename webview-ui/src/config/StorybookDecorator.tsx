@@ -4,7 +4,6 @@ import "../../src/index.css"
 
 import type { Decorator } from "@storybook/react-vite"
 import React from "react"
-import { AuthContext, type AuthContextType, AuthProvider, useAuth } from "@/context/AuthContext"
 import { GlobalStateProvider } from "@/context/GlobalStateContext"
 import { ModelStateProvider } from "@/context/ModelStateContext"
 import { NavigationProvider } from "@/context/NavigationContext"
@@ -46,9 +45,7 @@ function StorybookDecoratorProvider(className = "relative"): Decorator {
 					<ModelStateProvider>
 						<NotificationProvider>
 							<NavigationProvider>
-								<AuthProvider>
-									<ThemeHandler theme={parameters?.globals?.theme}>{React.createElement(story)}</ThemeHandler>
-								</AuthProvider>
+								<ThemeHandler theme={parameters?.globals?.theme}>{React.createElement(story)}</ThemeHandler>
 							</NavigationProvider>
 						</NotificationProvider>
 					</ModelStateProvider>
@@ -58,30 +55,19 @@ function StorybookDecoratorProvider(className = "relative"): Decorator {
 	}
 }
 
-const AuthProviderWithOverrides: React.FC<{
-	overrides?: Partial<AuthContextType>
-	children: React.ReactNode
-}> = ({ overrides, children }) => {
-	const authContext = useAuth()
-	return <AuthContext.Provider value={{ ...authContext, ...overrides }}>{children}</AuthContext.Provider>
-}
-
 export const createStorybookDecorator =
 	(
 		overrideStates?: any, // ExtensionState Partial
 		classNames?: string,
-		authOverrides?: Partial<AuthContextType>,
 	) =>
 	(Story: any) => (
 		<GlobalStateProvider initialState={overrideStates}>
 			<ModelStateProvider>
 				<NotificationProvider>
 					<NavigationProvider>
-						<AuthProviderWithOverrides overrides={authOverrides}>
-							<div className={cn("max-w-lg mx-auto", classNames)}>
-								<Story />
-							</div>
-						</AuthProviderWithOverrides>
+						<div className={cn("max-w-lg mx-auto", classNames)}>
+							<Story />
+						</div>
 					</NavigationProvider>
 				</NotificationProvider>
 			</ModelStateProvider>

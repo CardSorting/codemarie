@@ -10,13 +10,8 @@ import type { Controller } from "../index"
 import { getLmStudioModels } from "./getLmStudioModels"
 import { getOllamaModels } from "./getOllamaModels"
 import { getSapAiCoreModels } from "./getSapAiCoreModels"
-import { getVsCodeLmModels } from "./getVsCodeLmModels"
-import { refreshBasetenModels } from "./refreshBasetenModels"
-import { refreshGroqModels } from "./refreshGroqModels"
-import { refreshLiteLlmModels } from "./refreshLiteLlmModels"
-import { refreshOcaModels } from "./refreshOcaModels"
+
 import { refreshOpenRouterModels } from "./refreshOpenRouterModels"
-import { refreshVercelAiGatewayModels } from "./refreshVercelAiGatewayModels"
 
 export async function refreshModels(controller: Controller, request: RefreshModelsRequest): Promise<RefreshModelsResponse> {
 	// biome-ignore lint/suspicious/noExplicitAny: provider can be any string for model dispatch
@@ -31,44 +26,7 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 				}),
 			})
 		}
-		case ApiProvider.LITELLM: {
-			const models = await refreshLiteLlmModels()
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: OpenRouterCompatibleModelInfo.fromPartial({
-					models: toProtobufModels(models),
-				}),
-			})
-		}
-		case ApiProvider.GROQ: {
-			const models = await refreshGroqModels(controller)
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: OpenRouterCompatibleModelInfo.fromPartial({
-					models: toProtobufModels(models),
-				}),
-			})
-		}
-		case ApiProvider.BASETEN: {
-			const models = await refreshBasetenModels(controller)
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: OpenRouterCompatibleModelInfo.fromPartial({
-					models: toProtobufModels(models),
-				}),
-			})
-		}
-		case ApiProvider.VERCEL_AI_GATEWAY: {
-			const models = await refreshVercelAiGatewayModels(controller)
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: OpenRouterCompatibleModelInfo.fromPartial({
-					models: toProtobufModels(models),
-				}),
-			})
-		}
-		case ApiProvider.VSCODE_LM: {
-			const response = await getVsCodeLmModels(controller, {})
-			return RefreshModelsResponse.fromPartial({
-				vsCodeLmModels: response,
-			})
-		}
+
 		case ApiProvider.SAPAICORE: {
 			const response = await getSapAiCoreModels(
 				controller,
@@ -97,12 +55,7 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 				stringArrayModels: response,
 			})
 		}
-		case ApiProvider.OCA: {
-			const response = await refreshOcaModels(controller, StringRequest.fromPartial({ value: request.baseUrl || "" }))
-			return RefreshModelsResponse.fromPartial({
-				ocaModels: response,
-			})
-		}
+
 		default: {
 			throw new Error(`RefreshModels not implemented for provider: ${provider}`)
 		}

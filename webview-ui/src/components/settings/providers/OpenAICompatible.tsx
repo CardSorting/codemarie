@@ -1,4 +1,4 @@
-import { azureOpenAiDefaultApiVersion, openAiModelInfoSaneDefaults } from "@shared/api"
+import { openAiModelInfoSaneDefaults } from "@shared/api"
 import { ApiProvider } from "@shared/proto/codemarie/common"
 import { RefreshModelsRequest } from "@shared/proto/codemarie/system"
 import { Mode } from "@shared/storage/types"
@@ -9,7 +9,7 @@ import { useExtensionState } from "@/context/ExtensionStateContext"
 import { SystemServiceClient } from "@/services/protobus-client"
 import { getAsVar, VSC_DESCRIPTION_FOREGROUND } from "@/utils/vscStyles"
 import { ApiKeyField } from "../common/ApiKeyField"
-import { BaseUrlField } from "../common/BaseUrlField"
+
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { ModelInfoView } from "../common/ModelInfoView"
 import ReasoningEffortSelector from "../ReasoningEffortSelector"
@@ -207,38 +207,6 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 					</div>
 				)
 			})()}
-
-			{remoteConfigSettings?.azureApiVersion !== undefined ? (
-				<Tooltip>
-					<TooltipTrigger>
-						<BaseUrlField
-							disabled={true}
-							initialValue={apiConfiguration?.azureApiVersion}
-							label="Set Azure API version"
-							onChange={(value) => handleFieldChange("azureApiVersion", value)}
-							placeholder={`Default: ${azureOpenAiDefaultApiVersion}`}
-							showLockIcon={true}
-						/>
-					</TooltipTrigger>
-					<TooltipContent>This setting is managed by your organization's remote configuration</TooltipContent>
-				</Tooltip>
-			) : (
-				<BaseUrlField
-					initialValue={apiConfiguration?.azureApiVersion}
-					label="Set Azure API version"
-					onChange={(value) => handleFieldChange("azureApiVersion", value)}
-					placeholder={`Default: ${azureOpenAiDefaultApiVersion}`}
-				/>
-			)}
-
-			<VSCodeCheckbox
-				checked={apiConfiguration?.azureIdentity || false}
-				onChange={(e: any) => {
-					const isChecked = e.target.checked === true
-					return handleFieldChange("azureIdentity", isChecked)
-				}}>
-				Use Azure Identity Authentication
-			</VSCodeCheckbox>
 
 			<div
 				onClick={() => setModelConfigurationSelected((val) => !val)}

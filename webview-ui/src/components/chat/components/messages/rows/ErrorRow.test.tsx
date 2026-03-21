@@ -3,21 +3,6 @@ import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import ErrorRow from "./ErrorRow"
 
-// Mock the auth context
-vi.mock("@/context/AuthContext", () => ({
-	useAuth: () => ({
-		user: null,
-		isLoginLoading: false,
-		handleSignIn: vi.fn(),
-		handleSignOut: vi.fn(),
-	}),
-}))
-
-// Mock CreditLimitError component
-vi.mock("@/components/chat/components/messages/rows/CreditLimitError", () => ({
-	default: ({ message }: { message: string }) => <div data-testid="credit-limit-error">{message}</div>,
-}))
-
 // Mock CodemarieError
 vi.mock("../../../../../../../src/services/error/CodemarieError", () => ({
 	CodemarieError: {
@@ -72,30 +57,6 @@ describe("ErrorRow", () => {
 	})
 
 	describe("API error handling", () => {
-		it("renders credit limit error when balance error is detected", async () => {
-			const mockCodemarieError = {
-				message: "Insufficient credits",
-				isErrorType: vi.fn((type) => type === "balance"),
-				_error: {
-					details: {
-						current_balance: 0,
-						total_spent: 10.5,
-						total_promotions: 5.0,
-						message: "You have run out of credits.",
-						buy_credits_url: "https://app.codemarie.bot/dashboard",
-					},
-				},
-			}
-
-			const { CodemarieError } = await import("../../../../../../../src/services/error/CodemarieError")
-			vi.mocked(CodemarieError.parse).mockReturnValue(mockCodemarieError as any)
-
-			render(<ErrorRow apiRequestFailedMessage="Insufficient credits error" errorType="error" message={mockMessage} />)
-
-			expect(screen.getByTestId("credit-limit-error")).toBeInTheDocument()
-			expect(screen.getByText("You have run out of credits.")).toBeInTheDocument()
-		})
-
 		it("renders rate limit error with request ID", async () => {
 			const mockCodemarieError = {
 				message: "Rate limit exceeded",
@@ -112,23 +73,6 @@ describe("ErrorRow", () => {
 
 			expect(screen.getByText("Rate limit exceeded")).toBeInTheDocument()
 			expect(screen.getByText("Request ID: req_123456")).toBeInTheDocument()
-		})
-
-		it("renders auth error with sign in button when user is not signed in", async () => {
-			const mockCodemarieError = {
-				message: "Authentication failed",
-				isErrorType: vi.fn((type) => type === "auth"),
-				providerId: "codemarie",
-				_error: {},
-			}
-
-			const { CodemarieError } = await import("../../../../../../../src/services/error/CodemarieError")
-			vi.mocked(CodemarieError.parse).mockReturnValue(mockCodemarieError as any)
-
-			render(<ErrorRow apiRequestFailedMessage="Authentication failed" errorType="error" message={mockMessage} />)
-
-			expect(screen.getByText("Authentication failed")).toBeInTheDocument()
-			expect(screen.getByText("Sign in to Codemarie")).toBeInTheDocument()
 		})
 
 		it("renders PowerShell troubleshooting link when error mentions PowerShell", async () => {

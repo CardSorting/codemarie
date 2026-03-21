@@ -1,8 +1,5 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { memo } from "react"
-import CreditLimitError from "@/components/chat/components/messages/rows/CreditLimitError"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/context/AuthContext"
 import { CodemarieError, CodemarieErrorType } from "../../../../../../../src/services/error/CodemarieError"
 
 const _errorColor = "var(--vscode-errorForeground)"
@@ -15,7 +12,6 @@ interface ErrorRowProps {
 }
 
 const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStreamingFailedMessage }: ErrorRowProps) => {
-	const { user: codemarieUser, isLoginLoading, handleSignIn } = useAuth()
 	const rawApiError = apiRequestFailedMessage || apiReqStreamingFailedMessage
 
 	const renderErrorContent = () => {
@@ -29,21 +25,7 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 					const errorMessage = codemarieError?._error?.message || codemarieError?.message || rawApiError
 					const requestId = codemarieError?._error?.request_id
 					const providerId = codemarieError?.providerId || codemarieError?._error?.providerId
-					const isCodemarieProvider = providerId === "codemarie"
 					const errorCode = codemarieError?._error?.code
-
-					if (codemarieError?.isErrorType(CodemarieErrorType.Balance)) {
-						const errorDetails = codemarieError._error?.details
-						return (
-							<CreditLimitError
-								buyCreditsUrl={errorDetails?.buy_credits_url}
-								currentBalance={errorDetails?.current_balance}
-								message={errorDetails?.message}
-								totalPromotions={errorDetails?.total_promotions}
-								totalSpent={errorDetails?.total_spent}
-							/>
-						)
-					}
 
 					if (codemarieError?.isErrorType(CodemarieErrorType.RateLimit)) {
 						return (
@@ -80,22 +62,8 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 
 							{/* Display raw API error if different from parsed error message */}
 							{errorMessage !== rawApiError && <div>{rawApiError}</div>}
-
-							{/* Display Login button for non-logged in users using the Codemarie provider */}
 							<div>
-								{/* The user is signed in or not using codemarie provider */}
-								{isCodemarieProvider && !codemarieUser ? (
-									<Button className="w-full mb-4" disabled={isLoginLoading} onClick={handleSignIn}>
-										Sign in to Codemarie
-										{isLoginLoading && (
-											<span className="ml-1 animate-spin">
-												<span className="codicon codicon-refresh" />
-											</span>
-										)}
-									</Button>
-								) : (
-									<span className="mb-4 text-description">(Click "Retry" below)</span>
-								)}
+								<span className="mb-4 text-description">(Click "Retry" below)</span>
 							</div>
 						</p>
 					)

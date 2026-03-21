@@ -61,19 +61,7 @@ export class SharedUriHandler {
 					Logger.warn("SharedUriHandler: Missing idToken parameter for auth callback")
 					return false
 				}
-				case "/auth/oca": {
-					Logger.log("SharedUriHandler: Oca Auth callback received:", { path: path })
 
-					const code = query.get("code")
-					const state = query.get("state")
-
-					if (code && state) {
-						await visibleWebview.controller.handleOcaAuthCallback(code, state)
-						return true
-					}
-					Logger.warn("SharedUriHandler: Missing code parameter for auth callback")
-					return false
-				}
 				case TASK_URI_PATH: {
 					const prompt = query.get("prompt")
 					if (prompt) {
@@ -97,15 +85,7 @@ export class SharedUriHandler {
 					await visibleWebview.controller.handleMcpOAuthCallback(serverHash, code, state)
 					return true
 				}
-				case "/hicap": {
-					const code = query.get("code")
-					if (code) {
-						await visibleWebview.controller.handleHicapCallback(code)
-						return true
-					}
-					Logger.warn("SharedUriHandler: Missing code parameter for Hicap callback")
-					return false
-				}
+
 				default:
 					Logger.warn(`SharedUriHandler: Unknown path: ${path}`)
 					return false

@@ -1,5 +1,6 @@
 import { Logger } from "@/shared/services/Logger"
-import { BlobStoreSettings, blobStorage } from "../../storage/CodemarieBlobStorage"
+import { blobStorage } from "../../storage/CodemarieBlobStorage"
+import { type BlobStoreSettings } from "../../storage/types"
 
 import { SyncQueue, SyncQueueItem } from "./queue"
 

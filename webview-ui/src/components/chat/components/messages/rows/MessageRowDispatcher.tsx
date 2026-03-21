@@ -677,7 +677,6 @@ const MessageRowDispatcher = ({
 							handleToggle={handleToggle}
 							isExpanded={isExpanded}
 							message={message}
-							mode={mode}
 							reasoningContent={reasoningContent}
 							responseStarted={responseStarted}
 						/>

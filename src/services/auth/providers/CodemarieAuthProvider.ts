@@ -1,5 +1,5 @@
 import axios from "axios"
-import { type JwtPayload } from "jwt-decode"
+import { type JwtPayload, jwtDecode } from "jwt-decode"
 import { CodemarieEnv, EnvironmentConfig } from "@/config"
 import { Controller } from "@/core/controller"
 import { HostProvider } from "@/hosts/host-provider"
@@ -10,7 +10,6 @@ import { CODEMARIE_API_ENDPOINT } from "@/shared/codemarie/api"
 import { fetch, getAxiosSettings } from "@/shared/net"
 import { Logger } from "@/shared/services/Logger"
 import { type CodemarieAccountUserInfo, type CodemarieAuthInfo } from "../AuthService"
-import { parseJwtPayload } from "../oca/utils/utils"
 
 interface CodemarieAuthApiUser {
 	subject: string | null
@@ -153,7 +152,7 @@ export class CodemarieAuthProvider {
 			return {}
 		}
 
-		return parseJwtPayload<TokenData>(token) || {}
+		return jwtDecode<TokenData>(token) || {}
 	}
 
 	/**

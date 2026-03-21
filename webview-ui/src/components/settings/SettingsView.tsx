@@ -15,13 +15,11 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Tab, TabContent, TabList, TabTrigger } from "@/components/ui/tab"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useAuth } from "@/context/AuthContext"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useNavigation } from "@/context/NavigationContext"
 import { useEvent } from "@/hooks/useBrowser"
 import { cn } from "@/lib/utils"
 import { StateServiceClient } from "@/services/protobus-client"
-import { isAdminOrOwner } from "../account/helpers"
 import ViewHeader from "../common/ViewHeader"
 import SectionHeader from "./SectionHeader"
 import AboutSection from "./sections/AboutSection"
@@ -53,7 +51,7 @@ interface SettingsTab {
 	tooltipText: string
 	headerText: string
 	icon: LucideIcon
-	hidden?: (params?: { activeOrganization: any | null }) => boolean
+	hidden?: () => boolean
 }
 
 export const SETTINGS_TABS: SettingsTab[] = [
@@ -105,8 +103,6 @@ export const SETTINGS_TABS: SettingsTab[] = [
 		tooltipText: "Remotely configured fields",
 		headerText: "Remote Config",
 		icon: HardDriveDownload,
-		hidden: ({ activeOrganization } = { activeOrganization: null }) =>
-			!activeOrganization || !isAdminOrOwner(activeOrganization),
 	},
 	{
 		id: "about",
@@ -167,7 +163,6 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 
 	const { version, environment } = useGlobalState()
 	const { settingsInitialModelTab } = useNavigation()
-	const { activeOrganization } = useAuth()
 
 	const [activeTab, setActiveTab] = useState<string>(targetSection || SETTINGS_TABS[0].id)
 
@@ -285,7 +280,7 @@ const SettingsView = ({ onDone, targetSection }: SettingsViewProps) => {
 					className="shrink-0 flex flex-col overflow-y-auto border-r border-sidebar-background"
 					onValueChange={setActiveTab}
 					value={activeTab}>
-					{SETTINGS_TABS.filter((tab) => !tab.hidden?.({ activeOrganization })).map(renderTabItem)}
+					{SETTINGS_TABS.filter((tab) => !tab.hidden?.()).map(renderTabItem)}
 				</TabList>
 
 				<TabContent className="flex-1 overflow-auto">{ActiveContent}</TabContent>

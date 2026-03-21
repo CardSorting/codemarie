@@ -1,6 +1,6 @@
 import { ModelFamily } from "@/shared/prompts"
 import { CodemarieDefaultTool } from "@/shared/tools"
-import { isGPT5ModelFamily, isGptOssModelFamily } from "@/utils/model-utils"
+import { isGPT5ModelFamily } from "@/utils/model-utils"
 import type { CodemarieToolSpec } from "../spec"
 import { TASK_PROGRESS_PARAMETER } from "../types"
 
@@ -81,8 +81,7 @@ const NATIVE_GPT_5: CodemarieToolSpec = {
 	id: CodemarieDefaultTool.APPLY_PATCH,
 	name: "apply_patch",
 	description: APPLY_PATCH_TOOL_DESC,
-	contextRequirements: (context) =>
-		isGPT5ModelFamily(context.providerInfo.model.id) || isGptOssModelFamily(context.providerInfo.model.id),
+	contextRequirements: (context) => isGPT5ModelFamily(context.providerInfo.model.id),
 	parameters: [
 		{
 			name: "input",

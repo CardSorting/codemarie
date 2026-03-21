@@ -1,8 +1,6 @@
 import { EmptyRequest } from "@shared/proto/index.codemarie"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
-import { RemoteConfigToggle } from "@/components/account/RemoteConfigToggle"
-import { useAuth } from "@/context/AuthContext"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
@@ -270,15 +268,12 @@ function PromptUploadingSection() {
 
 export function RemoteConfigSection({ renderSectionHeader }: RemoteConfigSectionProps) {
 	const { remoteConfigSettings, optOutOfRemoteConfig } = useGlobalState()
-	const { activeOrganization } = useAuth()
 
 	if (optOutOfRemoteConfig) {
 		return (
 			<BaseRemoteConfigSection renderSectionHeader={renderSectionHeader}>
 				<div className="flex flex-col justify-center gap-4">
-					<h3>You have opted out of remote config. Opt back in to apply it and see it here.</h3>
-
-					<RemoteConfigToggle activeOrganization={activeOrganization} />
+					<h3>You have opted out of remote config.</h3>
 				</div>
 			</BaseRemoteConfigSection>
 		)

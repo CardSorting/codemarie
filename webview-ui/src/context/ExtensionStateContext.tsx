@@ -1,39 +1,26 @@
 import type { ExtensionState } from "@shared/ExtensionMessage"
-import type { UserInfo, UserOrganization } from "@shared/proto/codemarie/account"
-import type { OnboardingModelGroup, TerminalProfile } from "@shared/proto/codemarie/state"
+import type { TerminalProfile } from "@shared/proto/codemarie/state"
 import type { ModelInfo } from "../../../src/shared/api"
 import type { McpMarketplaceCatalog, McpServer, McpViewTab } from "../../../src/shared/mcp"
-import { type CodemarieUser, useAuth } from "./AuthContext"
+
 import { useGlobalState } from "./GlobalStateContext"
 import { useModels } from "./ModelStateContext"
 import { type NavigationOptions, useNavigation, type View } from "./NavigationContext"
 import { useNotifications } from "./NotificationContext"
 
-export type { View, NavigationOptions, CodemarieUser }
+export type { View, NavigationOptions }
 
 export interface ExtensionStateContextType extends ExtensionState {
 	didHydrateState: boolean
 	showWelcome: boolean
-	onboardingModels: OnboardingModelGroup | undefined
 	openRouterModels: Record<string, ModelInfo>
-	vercelAiGatewayModels: Record<string, ModelInfo>
-	hicapModels: Record<string, ModelInfo>
-	liteLlmModels: Record<string, ModelInfo>
 	openAiModels: string[]
-	groqModels: Record<string, ModelInfo>
-	basetenModels: Record<string, ModelInfo>
 	mcpServers: McpServer[]
 	mcpMarketplaceCatalog: McpMarketplaceCatalog
 	totalTasksSize: number | null
 	lastDismissedCliBannerVersion: number
 	dismissedBanners?: Array<{ bannerId: string; dismissedAt: number }>
 	availableTerminalProfiles: TerminalProfile[]
-
-	// Auth state
-	codemarieUser: CodemarieUser | null
-	organizations: UserOrganization[] | null
-	activeOrganization: UserOrganization | null
-	isLoginLoading: boolean
 
 	// View state
 	activeView: View
@@ -50,8 +37,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setShowAnnouncement: (value: boolean) => void
 	setShouldShowAnnouncement: (value: boolean) => void
 	setMcpServers: (value: McpServer[]) => void
-	setGroqModels: (value: Record<string, ModelInfo>) => void
-	setBasetenModels: (value: Record<string, ModelInfo>) => void
+
 	updateRulesToggles: (key: keyof ExtensionState, toggles: Record<string, boolean>) => void
 	setGlobalCodemarieRulesToggles: (toggles: Record<string, boolean>) => void
 	setLocalCodemarieRulesToggles: (toggles: Record<string, boolean>) => void
@@ -68,18 +54,9 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setTotalTasksSize: (value: number | null) => void
 	setExpandTaskHeader: (value: boolean) => void
 	setShowWelcome: (value: boolean) => void
-	setOnboardingModels: (value: OnboardingModelGroup | undefined) => void
 
 	// Refresh functions
 	refreshOpenRouterModels: () => void
-	refreshVercelAiGatewayModels: () => void
-	refreshHicapModels: () => void
-	refreshLiteLlmModels: () => Promise<void>
-	setUserInfo: (userInfo?: UserInfo) => void
-
-	// Auth functions
-	handleSignIn: () => void
-	handleSignOut: () => Promise<void>
 
 	// Navigation functions
 	navigateTo: (view: View, options?: NavigationOptions) => void
@@ -116,7 +93,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 export const useExtensionState = (): ExtensionStateContextType => {
 	const globalState = useGlobalState()
 	const navigation = useNavigation()
-	const auth = useAuth()
+
 	const models = useModels()
 	const notifications = useNotifications()
 
@@ -130,22 +107,12 @@ export const useExtensionState = (): ExtensionStateContextType => {
 		setTotalTasksSize: (value: number | null) => globalState.setTotalTasksSize(value),
 		setExpandTaskHeader: (value: boolean) => globalState.setExpandTaskHeader(value),
 		setShowWelcome: (value: boolean) => globalState.setShowWelcome(value),
-		setOnboardingModels: (value: OnboardingModelGroup | undefined) => globalState.setOnboardingModels(value),
-		setUserInfo: (userInfo?: UserInfo) => globalState.setState((prev) => ({ ...prev, userInfo })),
 
 		// Navigation
 		...navigation,
 		showAnnouncement: globalState.shouldShowAnnouncement, // Mapping for compatibility
 		setShowAnnouncement: (value: boolean) => globalState.setState((prev) => ({ ...prev, shouldShowAnnouncement: value })),
 		hideAnnouncement: () => globalState.setState((prev) => ({ ...prev, shouldShowAnnouncement: false })),
-
-		// Auth
-		codemarieUser: auth.user,
-		organizations: auth.userOrganizations,
-		activeOrganization: auth.activeOrganization,
-		isLoginLoading: auth.isLoginLoading,
-		handleSignIn: auth.handleSignIn,
-		handleSignOut: auth.handleSignOut,
 
 		// Models
 		...models,

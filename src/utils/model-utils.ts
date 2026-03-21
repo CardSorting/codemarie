@@ -54,6 +54,16 @@ export function isGPT5ModelFamily(id: string): boolean {
 	return modelId.includes("gpt-5") || modelId.includes("gpt5")
 }
 
+export function isGPT51Model(id: string): boolean {
+	const modelId = normalize(id)
+	return modelId.includes("gpt-5.1") || modelId.includes("gpt5.1") || modelId.includes("gpt-5-1")
+}
+
+export function isGPT52Model(id: string): boolean {
+	const modelId = normalize(id)
+	return modelId.includes("gpt-5.2") || modelId.includes("gpt5.2") || modelId.includes("gpt-5-2")
+}
+
 export function isGemini3ModelFamily(id: string): boolean {
 	const modelId = normalize(id)
 	return modelId.includes("gemini3") || modelId.includes("gemini-3")
@@ -69,7 +79,31 @@ export function isNextGenModelFamily(id: string): boolean {
 	)
 }
 
-export function isLocalModel(): boolean {
+export function isLocalModel(_providerInfo?: ApiProviderInfo): boolean {
+	return false
+}
+
+export function isGptOssModelFamily(_id?: string): boolean {
+	return false
+}
+
+export function isDevstralModelFamily(_id?: string): boolean {
+	return false
+}
+
+export function isGLMModelFamily(_id?: string): boolean {
+	return false
+}
+
+export function isHermesModelFamily(_id?: string): boolean {
+	return false
+}
+
+export function isTrinityModelFamily(_id?: string): boolean {
+	return false
+}
+
+export function isXSModelFamily(_id?: string): boolean {
 	return false
 }
 

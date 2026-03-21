@@ -83,23 +83,9 @@ export class StateManager {
 	private modelInfoCache: {
 		codemarieModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 		openRouterModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		groqModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		basetenModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		requestyModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		huaweiCloudMaasModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		hicapModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		liteLlmModels: { data: Record<string, ModelInfo>; timestamp: number } | null
-		vercelModels: { data: Record<string, ModelInfo>; timestamp: number } | null
 	} = {
 		codemarieModels: null,
 		openRouterModels: null,
-		groqModels: null,
-		basetenModels: null,
-		requestyModels: null,
-		huaweiCloudMaasModels: null,
-		hicapModels: null,
-		liteLlmModels: null,
-		vercelModels: null,
 	}
 
 	// Debounced persistence state
@@ -439,35 +425,12 @@ export class StateManager {
 	/**
 	 * Set models cache for a specific provider (in-memory only, not persisted)
 	 */
-	setModelsCache(
-		provider:
-			| "codemarie"
-			| "openRouter"
-			| "groq"
-			| "baseten"
-			| "requesty"
-			| "huaweiCloudMaas"
-			| "hicap"
-			| "liteLlm"
-			| "vercel",
-		models: Record<string, ModelInfo>,
-	): void {
+	setModelsCache(provider: "codemarie" | "openRouter", models: Record<string, ModelInfo>): void {
 		const cacheKey = `${provider}Models` as keyof typeof this.modelInfoCache
 		this.modelInfoCache[cacheKey] = { data: models, timestamp: Date.now() }
 	}
 
-	getModelsCache(
-		provider:
-			| "codemarie"
-			| "openRouter"
-			| "groq"
-			| "baseten"
-			| "requesty"
-			| "huaweiCloudMaas"
-			| "hicap"
-			| "liteLlm"
-			| "vercel",
-	): Record<string, ModelInfo> | null {
+	getModelsCache(provider: "codemarie" | "openRouter"): Record<string, ModelInfo> | null {
 		const cacheKey = `${provider}Models` as keyof typeof this.modelInfoCache
 		const cached = this.modelInfoCache[cacheKey]
 
@@ -487,10 +450,7 @@ export class StateManager {
 	/**
 	 * Get model info by provider and model ID (from in-memory cache)
 	 */
-	getModelInfo(
-		provider: "openRouter" | "groq" | "baseten" | "requesty" | "huaweiCloudMaas" | "hicap" | "liteLlm",
-		modelId: string,
-	): ModelInfo | undefined {
+	getModelInfo(provider: "openRouter", modelId: string): ModelInfo | undefined {
 		const cacheKey = `${provider}Models` as keyof typeof this.modelInfoCache
 		const cached = this.modelInfoCache[cacheKey]
 
@@ -945,14 +905,6 @@ export class StateManager {
 	private constructApiConfigurationFromCache(): ApiConfiguration {
 		// Build secrets object
 		const secrets = Object.fromEntries(SecretKeys.map((key) => [key, this.getSecret(key)])) as Secrets
-
-		// Preserve legacy fallback behavior for LiteLLM API key:
-		// if a remoteLiteLlmApiKey is set (via remote config), it should
-		// take precedence over the local liteLlmApiKey.
-		const remoteLiteLlmApiKey = this.secretsCache.remoteLiteLlmApiKey
-		if (remoteLiteLlmApiKey !== undefined && remoteLiteLlmApiKey !== null && remoteLiteLlmApiKey !== "") {
-			secrets.liteLlmApiKey = remoteLiteLlmApiKey
-		}
 
 		// Build API handler settings object with task override support
 		const settings = Object.fromEntries(ApiHandlerSettingsKeys.map((key) => [key, this.getSettingWithOverride(key)]))

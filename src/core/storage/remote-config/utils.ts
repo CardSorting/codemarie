@@ -135,56 +135,6 @@ export function transformRemoteConfigToStateShape(remoteConfig: RemoteConfig): P
 		if (openAiSettings.openAiHeaders !== undefined) {
 			transformed.openAiHeaders = openAiSettings.openAiHeaders
 		}
-		if (openAiSettings.azureApiVersion !== undefined) {
-			transformed.azureApiVersion = openAiSettings.azureApiVersion
-		}
-		if (openAiSettings.azureIdentity !== undefined) {
-			transformed.azureIdentity = openAiSettings.azureIdentity
-		}
-	}
-
-	// Map AwsBedrock provider settings
-	const awsBedrockSettings = remoteConfig.providerSettings?.AwsBedrock
-	if (awsBedrockSettings) {
-		transformed.planModeApiProvider = "bedrock"
-		transformed.actModeApiProvider = "bedrock"
-		providers.push("bedrock")
-
-		if (awsBedrockSettings.awsRegion !== undefined) {
-			transformed.awsRegion = awsBedrockSettings.awsRegion
-		}
-		if (awsBedrockSettings.awsUseCrossRegionInference !== undefined) {
-			transformed.awsUseCrossRegionInference = awsBedrockSettings.awsUseCrossRegionInference
-		}
-		if (awsBedrockSettings.awsUseGlobalInference !== undefined) {
-			transformed.awsUseGlobalInference = awsBedrockSettings.awsUseGlobalInference
-		}
-		if (awsBedrockSettings.awsBedrockUsePromptCache !== undefined) {
-			transformed.awsBedrockUsePromptCache = awsBedrockSettings.awsBedrockUsePromptCache
-		}
-		if (awsBedrockSettings.awsBedrockEndpoint !== undefined) {
-			transformed.awsBedrockEndpoint = awsBedrockSettings.awsBedrockEndpoint
-		}
-	}
-
-	// Map LiteLLM provider settings
-	const liteLlmSettings = remoteConfig.providerSettings?.LiteLLM
-	if (liteLlmSettings) {
-		transformed.planModeApiProvider = "litellm"
-		transformed.actModeApiProvider = "litellm"
-		providers.push("litellm")
-
-		if (liteLlmSettings.baseUrl !== undefined) {
-			transformed.liteLlmBaseUrl = liteLlmSettings.baseUrl
-		}
-	}
-
-	// Map Vertex provider settings
-	const vertexSettings = remoteConfig.providerSettings?.Vertex
-	if (vertexSettings) {
-		transformed.planModeApiProvider = "vertex"
-		transformed.actModeApiProvider = "vertex"
-		providers.push("vertex")
 	}
 
 	const anthropicSettings = remoteConfig.providerSettings?.Anthropic
@@ -266,9 +216,6 @@ export function clearRemoteConfig() {
 		// the remote config codemarie rules toggle state is stored in global state
 		stateManager.setGlobalState("remoteRulesToggles", {})
 		stateManager.setGlobalState("remoteWorkflowToggles", {})
-
-		// clear secrets
-		stateManager.setSecret("remoteLiteLlmApiKey", undefined)
 	} catch (err) {
 		Logger.error("[REMOTE CONFIG] Failed to clear remote config", err)
 	}

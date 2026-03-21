@@ -18,7 +18,6 @@ export function useProtobusSubscriptions() {
 		setAvailableTerminalProfiles,
 		setDidHydrateState,
 		setShowWelcome,
-		setOnboardingModels,
 		showWelcome,
 		triggerRelinquishControl: onRelinquishControl,
 	} = useGlobalState()
@@ -26,7 +25,7 @@ export function useProtobusSubscriptions() {
 	const { navigateToMcp, navigateToHistory, navigateToChat, navigateToSettings, navigateToWorktrees, navigateToAccount } =
 		useNavigation()
 
-	const { setOpenRouterModels, setLiteLlmModels } = useModels()
+	const { setOpenRouterModels } = useModels()
 
 	const lastStateJsonRef = useRef<string | null>(null)
 
@@ -38,7 +37,7 @@ export function useProtobusSubscriptions() {
 				if (update.state) {
 					const response = update.state
 					setState((prevState) => {
-						let newStateData = prevState ? { ...prevState } : ({} as any)
+						let newStateData: any = prevState ? { ...prevState } : {}
 
 						if (response.stateJson) {
 							if (response.stateJson !== lastStateJsonRef.current) {
@@ -51,7 +50,7 @@ export function useProtobusSubscriptions() {
 							}
 						}
 
-						const partialUpdates = (response as any).partialUpdates
+						const partialUpdates = (response as { partialUpdates?: Record<string, unknown> }).partialUpdates
 						if (partialUpdates && Object.keys(partialUpdates).length > 0) {
 							for (const [key, value] of Object.entries(partialUpdates)) {
 								try {
@@ -77,14 +76,12 @@ export function useProtobusSubscriptions() {
 							autoApprovalSettings: shouldUpdateAutoApproval
 								? newStateData.autoApprovalSettings
 								: prevState?.autoApprovalSettings,
-						}
+						} as any
 
 						if (!finalState.welcomeViewCompleted && !showWelcome) {
 							setShowWelcome(true)
-							setOnboardingModels(finalState.onboardingModels)
 						} else if (finalState.welcomeViewCompleted) {
 							setShowWelcome(false)
-							setOnboardingModels(undefined)
 						}
 
 						setDidHydrateState(true)
@@ -138,10 +135,6 @@ export function useProtobusSubscriptions() {
 					})
 				}
 
-				if (update.liteLlmModels) {
-					setLiteLlmModels(fromProtobufModels(update.liteLlmModels.models))
-				}
-
 				// 5. Handle Partial Messages
 				if (update.partialMessage) {
 					const protoMessage = update.partialMessage
@@ -179,7 +172,6 @@ export function useProtobusSubscriptions() {
 		setMcpServers,
 		setMcpMarketplaceCatalog,
 		setOpenRouterModels,
-		setLiteLlmModels,
 		setAvailableTerminalProfiles,
 		navigateToMcp,
 		navigateToHistory,
@@ -189,7 +181,6 @@ export function useProtobusSubscriptions() {
 		navigateToAccount,
 		onRelinquishControl,
 		setShowWelcome,
-		setOnboardingModels,
 		setDidHydrateState,
 		showWelcome,
 	])

@@ -10,7 +10,7 @@ import { GlobalInstructionsFile } from "@shared/remote-config/schema"
 import { Mode } from "@shared/storage/types"
 import { TelemetrySetting } from "@shared/TelemetrySetting"
 import { UserInfo } from "@shared/UserInfo"
-import { BlobStoreSettings } from "./CodemarieBlobStorage"
+import { type BlobStoreSettings } from "./types"
 
 // ============================================================================
 // SINGLE SOURCE OF TRUTH FOR STORAGE KEYS
@@ -103,10 +103,7 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	openRouterProviderSorting: { default: undefined as string | undefined },
 	claudeCodePath: { default: undefined as string | undefined },
 	openAiBaseUrl: { default: undefined as string | undefined },
-	azureApiVersion: { default: undefined as string | undefined },
-	azureIdentity: { default: undefined as boolean | undefined },
 	requestTimeoutMs: { default: undefined as number | undefined },
-	vertexApiKey: { default: undefined as string | undefined },
 	geminiBaseUrl: { default: undefined as string | undefined },
 
 	// Embedding configuration
@@ -139,6 +136,7 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	actModeNousResearchModelId: { default: undefined as string | undefined },
 
 	// Model-specific settings
+	// Shared model settings
 	planModeApiProvider: { default: DEFAULT_API_PROVIDER as ApiProvider },
 	actModeApiProvider: { default: DEFAULT_API_PROVIDER as ApiProvider },
 } satisfies FieldDefinitions
@@ -211,13 +209,14 @@ const SECRETS_KEYS = [
 	"openRouterApiKey",
 	"openAiApiKey",
 	"geminiApiKey",
-	"vertexApiKey",
 	"openAiNativeApiKey",
 	"authNonce",
 	"nousResearchApiKey",
 	"codemarieAccountId",
 	"codemarie:codemarieAccountId",
 	"embeddingApiKey",
+	"openai-codex-oauth-credentials",
+	"mcpOAuthSecrets",
 ] as const
 
 // WARNING, these are not ALL of the local state keys in practice. For example, FileContextTracker
