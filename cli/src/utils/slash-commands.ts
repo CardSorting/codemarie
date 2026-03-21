@@ -104,8 +104,12 @@ export function filterCommands(commands: SlashCommandInfo[], query: string): Sla
 /**
  * Insert a slash command at the given slash index, replacing any partial query
  */
-export function insertSlashCommand(text: string, slashIndex: number, commandName: string): string {
+export function insertSlashCommand(text: string, slashIndex: number, commandName: string): { text: string; cursorPos: number } {
 	const beforeSlash = text.slice(0, slashIndex)
 	// Insert command with trailing space
-	return `${beforeSlash}/${commandName} `
+	const newText = `${beforeSlash}/${commandName} `
+	return {
+		text: newText,
+		cursorPos: newText.length,
+	}
 }

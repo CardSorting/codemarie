@@ -225,14 +225,14 @@ export const App: React.FC<AppProps> = ({
 			break
 
 		case "auth":
-			content = (
+			content = controller ? (
 				<AuthView
 					controller={controller}
 					onComplete={onComplete}
 					onError={onError}
 					onNavigateToWelcome={handleNavigateToWelcome}
 				/>
-			)
+			) : null
 			break
 
 		case "task":

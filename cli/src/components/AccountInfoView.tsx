@@ -4,11 +4,10 @@
  */
 
 import { Box, Text } from "ink"
-import React, { useCallback, useEffect, useState } from "react"
-import { Controller } from "@/core/controller"
+import React, { useEffect, useState } from "react"
+import type { Controller } from "@/core/controller"
 import { StateManager } from "@/core/storage/StateManager"
-import { CodemarieAccountService } from "@/services/account/CodemarieAccountService"
-import { AuthService, CodemarieAccountOrganization } from "@/services/auth/AuthService"
+import { useAccount } from "../hooks/useAccount"
 import { LoadingSpinner } from "./Spinner"
 
 interface AccountInfoViewProps {
@@ -26,7 +25,7 @@ function capitalize(str: string): string {
 }
 
 /**
- * Format balance as currency (balance is in microcredits, divide by 10000)
+ * Format balance as currency (balance is in microcredits)
  */
 function formatBalance(balance: number | null): string {
 	if (balance === null || balance === undefined) {
@@ -36,105 +35,23 @@ function formatBalance(balance: number | null): string {
 }
 
 export const AccountInfoView: React.FC<AccountInfoViewProps> = React.memo(({ controller }) => {
+	const { email, balance, organization, isLoading } = useAccount(controller)
 	const [provider, setProvider] = useState<string | null>(null)
-	const [balance, setBalance] = useState<number | null>(null)
-	const [organization, setOrganization] = useState<CodemarieAccountOrganization | null>(null)
-	const [email, setEmail] = useState<string | null>(null)
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
-
-	const fetchAccountInfo = useCallback(async () => {
-		try {
-			setIsLoading(true)
-			setError(null)
-
-			// Get current provider from state
-			const stateManager = StateManager.get()
-			const mode = stateManager.getGlobalSettingsKey("mode") as string
-			const providerKey = mode === "act" ? "actModeApiProvider" : "planModeApiProvider"
-			const currentProvider = stateManager.getGlobalSettingsKey(providerKey) as string
-			setProvider(currentProvider || "codemarie")
-
-			// If using Codemarie provider, fetch additional info
-			if (currentProvider === "codemarie") {
-				const authService = AuthService.getInstance(controller)
-
-				// Wait for auth to be restored - poll until we have auth info or timeout
-				let authInfo = authService.getInfo()
-				let attempts = 0
-				const maxAttempts = 20 // 2 seconds max
-				while (!authInfo?.user?.uid && attempts < maxAttempts) {
-					await new Promise((resolve) => setTimeout(resolve, 100))
-					authInfo = authService.getInfo()
-					attempts++
-				}
-
-				// Get user info
-				if (authInfo?.user?.email) {
-					setEmail(authInfo.user.email)
-				} else {
-					// User not logged in to Codemarie
-					setEmail(null)
-					setIsLoading(false)
-					return
-				}
-
-				// Get organization info
-				const organizations = authService.getUserOrganizations()
-				if (organizations) {
-					const activeOrg = organizations.find((org) => org.active)
-					if (activeOrg) {
-						setOrganization(activeOrg)
-					}
-				}
-
-				// Fetch credit balance
-				try {
-					const accountService = CodemarieAccountService.getInstance()
-					const activeOrgId = authService.getActiveOrganizationId()
-
-					if (activeOrgId) {
-						// Fetch organization balance
-						const orgBalance = await accountService.fetchOrganizationCreditsRPC(activeOrgId)
-						if (orgBalance?.balance !== undefined) {
-							setBalance(orgBalance.balance)
-						}
-					} else {
-						// Fetch personal balance
-						const balanceData = await accountService.fetchBalanceRPC()
-						if (balanceData?.balance !== undefined) {
-							setBalance(balanceData.balance)
-						}
-					}
-				} catch {
-					// Balance fetch failed, but we can still show other info
-					// Don't log to console as it pollutes CLI output
-				}
-			}
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to load account info")
-		} finally {
-			setIsLoading(false)
-		}
-	}, [controller])
 
 	useEffect(() => {
-		fetchAccountInfo()
-	}, [fetchAccountInfo])
+		// Get current provider from state
+		const stateManager = StateManager.get()
+		const mode = (stateManager.getGlobalSettingsKey("mode") as string) || "act"
+		const providerKey = mode === "act" ? "actModeApiProvider" : "planModeApiProvider"
+		const currentProvider = stateManager.getGlobalSettingsKey(providerKey) as string
+		setProvider(currentProvider || "codemarie")
+	}, [])
 
 	if (isLoading) {
 		return (
 			<Box>
 				<LoadingSpinner />
 				<Text color="gray"> Loading account info...</Text>
-			</Box>
-		)
-	}
-
-	if (error) {
-		return (
-			<Box>
-				<Text color="red">Error: {error}</Text>
 			</Box>
 		)
 	}
@@ -167,12 +84,10 @@ export const AccountInfoView: React.FC<AccountInfoViewProps> = React.memo(({ con
 			<Box>
 				<Text color="gray">Provider: </Text>
 				<Text color="cyan">Codemarie</Text>
-				{email && (
-					<Box>
-						<Text color="gray"> • </Text>
-						<Text color="white">{email}</Text>
-					</Box>
-				)}
+				<Box>
+					<Text color="gray"> • </Text>
+					<Text color="white">{email}</Text>
+				</Box>
 			</Box>
 			<Box>
 				{organization ? (

@@ -47,11 +47,17 @@ vi.mock("../vscode-shim", () => ({
 // Mock TaskContext
 vi.mock("../context/TaskContext", () => ({
 	useTaskState: vi.fn(() => ({
-		codemarieMessages: [],
+		codemarieMessages: [{ say: "text", text: "What can I do for you?", ts: 123 }],
 		mode: "act",
 	})),
 	useTaskContext: vi.fn(() => ({
 		controller: null,
+		state: {
+			codemarieMessages: [{ say: "text", text: "What can I do for you?", ts: 123 }],
+			apiConfiguration: {
+				actModeApiModelId: "claude-sonnet-4-20250514",
+			},
+		},
 	})),
 }))
 
@@ -90,7 +96,8 @@ vi.mock("./AsciiMotionCli", () => ({
 }))
 
 vi.mock("./ChatMessage", () => ({
-	ChatMessage: ({ message }: { message?: { ts?: number } }) => React.createElement(Text, null, `Message: ${message?.ts}`),
+	ChatMessage: ({ message }: { message?: { text?: string; ts?: number } }) =>
+		React.createElement(Text, null, `${message?.text || ""}`),
 }))
 
 vi.mock("./FileMentionMenu", () => ({
@@ -189,6 +196,26 @@ vi.mock("@/services/telemetry", () => ({
 	},
 }))
 
+// Helper for a mock controller
+const createMockController = (messages: any[] = [{ say: "text", text: "What can I do for you?", ts: Date.now() }]) =>
+	({
+		stateManager: {
+			getGlobalStateKey: vi.fn((key: string) => {
+				if (key === "workspaceRoots") return [{ path: "/mock/path" }]
+				if (key === "primaryRootIndex") return 0
+				return null
+			}),
+			getApiConfiguration: vi.fn(() => ({})),
+		},
+		postStateToWebview: vi.fn(),
+		getStateToPostToWebview: vi.fn().mockResolvedValue({
+			codemarieMessages: messages,
+			apiConfiguration: {
+				actModeApiModelId: "claude-sonnet-4-20250514",
+			},
+		}),
+	}) as any
+
 // Helper to create a typed mock for onExit
 const createExitMock = (): ExitMockFn => vi.fn() as ExitMockFn
 
@@ -207,7 +234,8 @@ describe("ChatView Exit and Cleanup", () => {
 
 	describe("Initial render state", () => {
 		it("should render with input field, footer, and mode toggle visible", () => {
-			const { lastFrame } = render(<ChatView onExit={mockOnExit} />)
+			const mockController = createMockController()
+			const { lastFrame } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 			const frame = lastFrame()
 
 			// Input field visible
@@ -223,7 +251,8 @@ describe("ChatView Exit and Cleanup", () => {
 
 	describe("Shutdown event handling", () => {
 		it("should subscribe on mount and unsubscribe on unmount", () => {
-			const { unmount } = render(<ChatView onExit={mockOnExit} />)
+			const mockController = createMockController()
+			const { unmount } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 			expect(shutdownMockState.listeners.length).toBe(1)
 
 			unmount()
@@ -231,7 +260,8 @@ describe("ChatView Exit and Cleanup", () => {
 		})
 
 		it("should hide input when shutdown event fires", async () => {
-			const { lastFrame } = render(<ChatView onExit={mockOnExit} />)
+			const mockController = createMockController()
+			const { lastFrame } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 
 			// Input should be visible initially
 			expect(lastFrame()).toContain("Input:")
@@ -245,7 +275,8 @@ describe("ChatView Exit and Cleanup", () => {
 		})
 
 		it("should preserve footer when shutdown event fires", async () => {
-			const { lastFrame } = render(<ChatView onExit={mockOnExit} />)
+			const mockController = createMockController()
+			const { lastFrame } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 
 			// Footer should be visible initially
 			expect(lastFrame()).toContain("@ for files")
@@ -261,7 +292,8 @@ describe("ChatView Exit and Cleanup", () => {
 
 	describe("Edge cases", () => {
 		it("should handle shutdown event when onExit prop is undefined", async () => {
-			const { lastFrame } = render(<ChatView />)
+			const mockController = createMockController()
+			const { lastFrame } = render(<ChatView controller={mockController} />)
 
 			// Fire shutdown event
 			shutdownMockState.fire()
@@ -272,7 +304,8 @@ describe("ChatView Exit and Cleanup", () => {
 		})
 
 		it("should handle multiple shutdown events gracefully", async () => {
-			const { lastFrame } = render(<ChatView onExit={mockOnExit} />)
+			const mockController = createMockController()
+			const { lastFrame } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 
 			// Fire multiple shutdown events
 			shutdownMockState.fire()
@@ -295,7 +328,8 @@ describe("ChatView UI State During Exit", () => {
 
 	it("should preserve static content and footer, only hide input during exit", async () => {
 		const onExit = createExitMock()
-		const { lastFrame } = render(<ChatView onExit={onExit} />)
+		const mockController = createMockController()
+		const { lastFrame } = render(<ChatView controller={mockController} onExit={onExit} />)
 
 		// Footer contains auto-approve toggle
 		expect(lastFrame()).toContain("Auto-approve")

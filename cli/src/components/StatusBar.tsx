@@ -5,6 +5,8 @@
 
 import { Box, Text } from "ink"
 import React, { useEffect, useMemo, useState } from "react"
+import type { GitDiffStats } from "../hooks/useGitStats"
+import { getGitBranch } from "../utils/git"
 
 interface StatusBarProps {
 	modelId: string
@@ -13,9 +15,9 @@ interface StatusBarProps {
 	totalCost?: number
 	contextWindowSize?: number
 	cwd?: string
+	gitBranch?: string | null
+	gitDiffStats?: GitDiffStats | null
 }
-
-import { getGitBranch } from "../utils/git"
 
 /**
  * Get directory basename
@@ -49,14 +51,19 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 	totalCost = 0,
 	contextWindowSize = 200000, // Default Claude context window
 	cwd,
+	gitBranch,
+	gitDiffStats,
 }) => {
-	const [branch, setBranch] = useState<string | null>(null)
+	const [localBranch, setLocalBranch] = useState<string | null>(null)
 	const dirName = useMemo(() => getDirName(cwd), [cwd])
 
+	const branch = gitBranch !== undefined ? gitBranch : localBranch
+
 	useEffect(() => {
-		// Only fetch branch if it's the first time or cwd changed
-		setBranch(getGitBranch(cwd))
-	}, [cwd])
+		if (gitBranch === undefined) {
+			setLocalBranch(getGitBranch(cwd))
+		}
+	}, [cwd, gitBranch])
 
 	const totalTokens = useMemo(() => tokensIn + tokensOut, [tokensIn, tokensOut])
 	const contextBar = useMemo(() => createContextBar(totalTokens, contextWindowSize), [totalTokens, contextWindowSize])
@@ -68,15 +75,21 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 		<Box flexDirection="column">
 			<Box gap={1}>
 				{/* Directory and branch */}
-				<Text color="gray">
-					{dirName}
+				<Box>
+					<Text color="gray">{dirName}</Text>
 					{branch && (
 						<Text color="gray">
 							{" "}
 							(<Text color="cyan">{branch}</Text>)
 						</Text>
 					)}
-				</Text>
+					{gitDiffStats && (
+						<Text>
+							{gitDiffStats.additions > 0 && <Text color="green"> +{gitDiffStats.additions}</Text>}
+							{gitDiffStats.deletions > 0 && <Text color="red"> -{gitDiffStats.deletions}</Text>}
+						</Text>
+					)}
+				</Box>
 				<Text color="gray">|</Text>
 
 				{/* Model and context bar */}

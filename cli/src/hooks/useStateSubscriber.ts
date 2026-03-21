@@ -139,8 +139,10 @@ export const useIsSpinnerActive = (): { isActive: boolean; startTime?: number } 
 		return { isActive: false }
 	}
 
-	// Look for most recent api_req_started that isn't followed by api_req_finished
-	for (let i = state.codemarieMessages.length - 1; i >= 0; i--) {
+	// Optimization: Only check the last 20 messages for API status.
+	// API requests and finishes usually happen in close proximity in the message list.
+	const startIndex = Math.max(0, state.codemarieMessages.length - 20)
+	for (let i = state.codemarieMessages.length - 1; i >= startIndex; i--) {
 		const msg = state.codemarieMessages[i]
 		if (msg.say === "api_req_started") {
 			// Check if there's an api_req_finished after this

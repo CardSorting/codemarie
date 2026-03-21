@@ -183,7 +183,8 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 				if (key.tab || key.return) {
 					const file = fileResults[selectedIndex]
 					if (file) {
-						setTextInput(insertMention(textInput, mentionInfo.atIndex, file.path))
+						const { text } = insertMention(textInput, mentionInfo.atIndex, file.path)
+						setTextInput(text)
 						setFileResults([])
 						setSelectedIndex(0)
 					}

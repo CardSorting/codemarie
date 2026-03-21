@@ -188,7 +188,8 @@ export function useTextInput(): UseTextInputReturn {
 	)
 
 	const handleCtrlShortcut = useCallback(
-		(key: string): boolean => {
+		(key: string | undefined): boolean => {
+			if (!key) return false
 			switch (key.toLowerCase()) {
 				case "a": // Ctrl+A - start of line
 					moveToStart()

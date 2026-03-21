@@ -249,11 +249,15 @@ export function extractMentionQuery(text: string): { inMentionMode: boolean; que
 	return { inMentionMode: true, query: afterAt, atIndex: lastAtIndex }
 }
 
-export function insertMention(text: string, atIndex: number, filePath: string): string {
+export function insertMention(text: string, atIndex: number, filePath: string): { text: string; cursorPos: number } {
 	const endIndex = text.indexOf(" ", atIndex)
 	const end = endIndex === -1 ? text.length : endIndex
 	// Ensure path starts with / for proper mention format
 	const normalizedPath = filePath.startsWith("/") ? filePath : `/${filePath}`
 	const mention = normalizedPath.includes(" ") ? `@"${normalizedPath}"` : `@${normalizedPath}`
-	return `${text.slice(0, atIndex) + mention} ${text.slice(end).trimStart()}`
+	const newText = `${text.slice(0, atIndex) + mention} ${text.slice(end).trimStart()}`
+	return {
+		text: newText,
+		cursorPos: atIndex + mention.length + 1,
+	}
 }

@@ -51,6 +51,12 @@ vi.mock("@shared/services/Session", () => ({
 vi.mock("../context/TaskContext", () => ({
 	useTaskContext: () => ({
 		controller: {},
+		state: {
+			codemarieMessages: [],
+			apiConfiguration: {
+				actModeApiModelId: "claude-sonnet-4-20250514",
+			},
+		},
 		clearState: vi.fn(),
 	}),
 	useTaskState: () => ({
@@ -69,13 +75,25 @@ const delay = (ms = 60) => new Promise((resolve) => setTimeout(resolve, ms))
 
 describe("Quit Command (/q and /exit)", () => {
 	const mockOnExit = vi.fn()
+	const mockController = {
+		stateManager: {
+			getGlobalStateKey: vi.fn((key: string) => {
+				if (key === "workspaceRoots") return [{ path: "/mock/path" }]
+				if (key === "primaryRootIndex") return 0
+				return null
+			}),
+			getApiConfiguration: vi.fn(() => ({})),
+		},
+		postStateToWebview: vi.fn(),
+		getStateToPostToWebview: vi.fn().mockResolvedValue({}),
+	} as any
 
 	beforeEach(() => {
 		vi.clearAllMocks()
 	})
 
 	it("should exit the application when /q is selected from slash menu", async () => {
-		const { stdin } = render(<ChatView onExit={mockOnExit} />)
+		const { stdin } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 		await delay()
 
 		// Type /q
@@ -93,7 +111,7 @@ describe("Quit Command (/q and /exit)", () => {
 	})
 
 	it("should exit the application when /exit is selected from slash menu", async () => {
-		const { stdin } = render(<ChatView onExit={mockOnExit} />)
+		const { stdin } = render(<ChatView controller={mockController} onExit={mockOnExit} />)
 		await delay()
 
 		// Type /exit
