@@ -85,407 +85,6 @@ export class AccountServiceClient extends ProtoBusClient {
 		)
 	}
 }
-export class FileServiceClient extends ProtoBusClient {
-	static override serviceName = "codemarie.FileService"
-	static async copyToClipboard(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"copyToClipboard",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async openFile(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"openFile",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async openImage(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"openImage",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async openMention(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"openMention",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async deleteRuleFile(request: proto.codemarie.RuleFileRequest): Promise<proto.codemarie.RuleFile> {
-		return FileServiceClient.makeUnaryRequest(
-			"deleteRuleFile",
-			request,
-			proto.codemarie.RuleFileRequest.toJSON,
-			proto.codemarie.RuleFile.fromJSON,
-		)
-	}
-	static async createRuleFile(request: proto.codemarie.RuleFileRequest): Promise<proto.codemarie.RuleFile> {
-		return FileServiceClient.makeUnaryRequest(
-			"createRuleFile",
-			request,
-			proto.codemarie.RuleFileRequest.toJSON,
-			proto.codemarie.RuleFile.fromJSON,
-		)
-	}
-	static async searchCommits(request: proto.codemarie.StringRequest): Promise<proto.codemarie.GitCommits> {
-		return FileServiceClient.makeUnaryRequest(
-			"searchCommits",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.GitCommits.fromJSON,
-		)
-	}
-	static async selectFiles(request: proto.codemarie.BooleanRequest): Promise<proto.codemarie.StringArrays> {
-		return FileServiceClient.makeUnaryRequest(
-			"selectFiles",
-			request,
-			proto.codemarie.BooleanRequest.toJSON,
-			proto.codemarie.StringArrays.fromJSON,
-		)
-	}
-	static async getRelativePaths(request: proto.codemarie.RelativePathsRequest): Promise<proto.codemarie.RelativePaths> {
-		return FileServiceClient.makeUnaryRequest(
-			"getRelativePaths",
-			request,
-			proto.codemarie.RelativePathsRequest.toJSON,
-			proto.codemarie.RelativePaths.fromJSON,
-		)
-	}
-	static async searchFiles(request: proto.codemarie.FileSearchRequest): Promise<proto.codemarie.FileSearchResults> {
-		return FileServiceClient.makeUnaryRequest(
-			"searchFiles",
-			request,
-			proto.codemarie.FileSearchRequest.toJSON,
-			proto.codemarie.FileSearchResults.fromJSON,
-		)
-	}
-	static async toggleCodemarieRule(
-		request: proto.codemarie.ToggleCodemarieRuleRequest,
-	): Promise<proto.codemarie.ToggleCodemarieRules> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleCodemarieRule",
-			request,
-			proto.codemarie.ToggleCodemarieRuleRequest.toJSON,
-			proto.codemarie.ToggleCodemarieRules.fromJSON,
-		)
-	}
-	static async toggleCursorRule(
-		request: proto.codemarie.ToggleCursorRuleRequest,
-	): Promise<proto.codemarie.CodemarieRulesToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleCursorRule",
-			request,
-			proto.codemarie.ToggleCursorRuleRequest.toJSON,
-			proto.codemarie.CodemarieRulesToggles.fromJSON,
-		)
-	}
-	static async toggleWindsurfRule(
-		request: proto.codemarie.ToggleWindsurfRuleRequest,
-	): Promise<proto.codemarie.CodemarieRulesToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleWindsurfRule",
-			request,
-			proto.codemarie.ToggleWindsurfRuleRequest.toJSON,
-			proto.codemarie.CodemarieRulesToggles.fromJSON,
-		)
-	}
-	static async toggleAgentsRule(
-		request: proto.codemarie.ToggleAgentsRuleRequest,
-	): Promise<proto.codemarie.CodemarieRulesToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleAgentsRule",
-			request,
-			proto.codemarie.ToggleAgentsRuleRequest.toJSON,
-			proto.codemarie.CodemarieRulesToggles.fromJSON,
-		)
-	}
-	static async refreshRules(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.RefreshedRules> {
-		return FileServiceClient.makeUnaryRequest(
-			"refreshRules",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.RefreshedRules.fromJSON,
-		)
-	}
-	static async openDiskConversationHistory(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"openDiskConversationHistory",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async toggleWorkflow(request: proto.codemarie.ToggleWorkflowRequest): Promise<proto.codemarie.CodemarieRulesToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleWorkflow",
-			request,
-			proto.codemarie.ToggleWorkflowRequest.toJSON,
-			proto.codemarie.CodemarieRulesToggles.fromJSON,
-		)
-	}
-	static async ifFileExistsRelativePath(request: proto.codemarie.StringRequest): Promise<proto.codemarie.BooleanResponse> {
-		return FileServiceClient.makeUnaryRequest(
-			"ifFileExistsRelativePath",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.BooleanResponse.fromJSON,
-		)
-	}
-	static async openFileRelativePath(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"openFileRelativePath",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async openFocusChainFile(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return FileServiceClient.makeUnaryRequest(
-			"openFocusChainFile",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async refreshHooks(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.HooksToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"refreshHooks",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.HooksToggles.fromJSON,
-		)
-	}
-	static async toggleHook(request: proto.codemarie.ToggleHookRequest): Promise<proto.codemarie.ToggleHookResponse> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleHook",
-			request,
-			proto.codemarie.ToggleHookRequest.toJSON,
-			proto.codemarie.ToggleHookResponse.fromJSON,
-		)
-	}
-	static async createHook(request: proto.codemarie.CreateHookRequest): Promise<proto.codemarie.CreateHookResponse> {
-		return FileServiceClient.makeUnaryRequest(
-			"createHook",
-			request,
-			proto.codemarie.CreateHookRequest.toJSON,
-			proto.codemarie.CreateHookResponse.fromJSON,
-		)
-	}
-	static async deleteHook(request: proto.codemarie.DeleteHookRequest): Promise<proto.codemarie.DeleteHookResponse> {
-		return FileServiceClient.makeUnaryRequest(
-			"deleteHook",
-			request,
-			proto.codemarie.DeleteHookRequest.toJSON,
-			proto.codemarie.DeleteHookResponse.fromJSON,
-		)
-	}
-	static async refreshSkills(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.RefreshedSkills> {
-		return FileServiceClient.makeUnaryRequest(
-			"refreshSkills",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.RefreshedSkills.fromJSON,
-		)
-	}
-	static async toggleSkill(request: proto.codemarie.ToggleSkillRequest): Promise<proto.codemarie.SkillsToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"toggleSkill",
-			request,
-			proto.codemarie.ToggleSkillRequest.toJSON,
-			proto.codemarie.SkillsToggles.fromJSON,
-		)
-	}
-	static async createSkillFile(request: proto.codemarie.CreateSkillRequest): Promise<proto.codemarie.SkillsToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"createSkillFile",
-			request,
-			proto.codemarie.CreateSkillRequest.toJSON,
-			proto.codemarie.SkillsToggles.fromJSON,
-		)
-	}
-	static async deleteSkillFile(request: proto.codemarie.DeleteSkillRequest): Promise<proto.codemarie.SkillsToggles> {
-		return FileServiceClient.makeUnaryRequest(
-			"deleteSkillFile",
-			request,
-			proto.codemarie.DeleteSkillRequest.toJSON,
-			proto.codemarie.SkillsToggles.fromJSON,
-		)
-	}
-}
-export class StateServiceClient extends ProtoBusClient {
-	static override serviceName = "codemarie.StateService"
-	static async getLatestState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.State> {
-		return StateServiceClient.makeUnaryRequest(
-			"getLatestState",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.State.fromJSON,
-		)
-	}
-	static async getAvailableTerminalProfiles(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TerminalProfiles> {
-		return StateServiceClient.makeUnaryRequest(
-			"getAvailableTerminalProfiles",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.TerminalProfiles.fromJSON,
-		)
-	}
-	static subscribeToState(request: proto.codemarie.EmptyRequest, callbacks: Callbacks<proto.codemarie.State>): () => void {
-		return StateServiceClient.makeStreamingRequest(
-			"subscribeToState",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.State.fromJSON,
-			callbacks,
-		)
-	}
-	static async toggleFavoriteModel(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"toggleFavoriteModel",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async resetState(request: proto.codemarie.ResetStateRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"resetState",
-			request,
-			proto.codemarie.ResetStateRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async togglePlanActModeProto(request: proto.codemarie.TogglePlanActModeRequest): Promise<proto.codemarie.Boolean> {
-		return StateServiceClient.makeUnaryRequest(
-			"togglePlanActModeProto",
-			request,
-			proto.codemarie.TogglePlanActModeRequest.toJSON,
-			proto.codemarie.Boolean.fromJSON,
-		)
-	}
-	static async updateAutoApprovalSettings(
-		request: proto.codemarie.AutoApprovalSettingsRequest,
-	): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateAutoApprovalSettings",
-			request,
-			proto.codemarie.AutoApprovalSettingsRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateSettings(request: proto.codemarie.UpdateSettingsRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateSettings",
-			request,
-			proto.codemarie.UpdateSettingsRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateSettingsCli(request: proto.codemarie.UpdateSettingsRequestCli): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateSettingsCli",
-			request,
-			proto.codemarie.UpdateSettingsRequestCli.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateTaskSettings(request: proto.codemarie.UpdateTaskSettingsRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateTaskSettings",
-			request,
-			proto.codemarie.UpdateTaskSettingsRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async updateTelemetrySetting(request: proto.codemarie.TelemetrySettingRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"updateTelemetrySetting",
-			request,
-			proto.codemarie.TelemetrySettingRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async dismissBanner(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"dismissBanner",
-			request,
-			proto.codemarie.StringRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async trackBannerEvent(request: proto.codemarie.TrackBannerEventRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"trackBannerEvent",
-			request,
-			proto.codemarie.TrackBannerEventRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async installCodemarieCli(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"installCodemarieCli",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async checkCliInstallation(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Boolean> {
-		return StateServiceClient.makeUnaryRequest(
-			"checkCliInstallation",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.Boolean.fromJSON,
-		)
-	}
-	static async getProcessInfo(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.ProcessInfo> {
-		return StateServiceClient.makeUnaryRequest(
-			"getProcessInfo",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.ProcessInfo.fromJSON,
-		)
-	}
-	static async flushPendingState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"flushPendingState",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async refreshRemoteConfig(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
-		return StateServiceClient.makeUnaryRequest(
-			"refreshRemoteConfig",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.Empty.fromJSON,
-		)
-	}
-	static async testOtelConnection(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
-		return StateServiceClient.makeUnaryRequest(
-			"testOtelConnection",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.TestConnectionResult.fromJSON,
-		)
-	}
-	static async testPromptUploading(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
-		return StateServiceClient.makeUnaryRequest(
-			"testPromptUploading",
-			request,
-			proto.codemarie.EmptyRequest.toJSON,
-			proto.codemarie.TestConnectionResult.fromJSON,
-		)
-	}
-}
 export class SystemServiceClient extends ProtoBusClient {
 	static override serviceName = "codemarie.SystemService"
 	static async getBrowserConnectionInfo(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.BrowserConnectionInfo> {
@@ -910,6 +509,241 @@ export class SystemServiceClient extends ProtoBusClient {
 		)
 	}
 }
+export class FileServiceClient extends ProtoBusClient {
+	static override serviceName = "codemarie.FileService"
+	static async copyToClipboard(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"copyToClipboard",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async openFile(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"openFile",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async openImage(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"openImage",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async openMention(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"openMention",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async deleteRuleFile(request: proto.codemarie.RuleFileRequest): Promise<proto.codemarie.RuleFile> {
+		return FileServiceClient.makeUnaryRequest(
+			"deleteRuleFile",
+			request,
+			proto.codemarie.RuleFileRequest.toJSON,
+			proto.codemarie.RuleFile.fromJSON,
+		)
+	}
+	static async createRuleFile(request: proto.codemarie.RuleFileRequest): Promise<proto.codemarie.RuleFile> {
+		return FileServiceClient.makeUnaryRequest(
+			"createRuleFile",
+			request,
+			proto.codemarie.RuleFileRequest.toJSON,
+			proto.codemarie.RuleFile.fromJSON,
+		)
+	}
+	static async searchCommits(request: proto.codemarie.StringRequest): Promise<proto.codemarie.GitCommits> {
+		return FileServiceClient.makeUnaryRequest(
+			"searchCommits",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.GitCommits.fromJSON,
+		)
+	}
+	static async selectFiles(request: proto.codemarie.BooleanRequest): Promise<proto.codemarie.StringArrays> {
+		return FileServiceClient.makeUnaryRequest(
+			"selectFiles",
+			request,
+			proto.codemarie.BooleanRequest.toJSON,
+			proto.codemarie.StringArrays.fromJSON,
+		)
+	}
+	static async getRelativePaths(request: proto.codemarie.RelativePathsRequest): Promise<proto.codemarie.RelativePaths> {
+		return FileServiceClient.makeUnaryRequest(
+			"getRelativePaths",
+			request,
+			proto.codemarie.RelativePathsRequest.toJSON,
+			proto.codemarie.RelativePaths.fromJSON,
+		)
+	}
+	static async searchFiles(request: proto.codemarie.FileSearchRequest): Promise<proto.codemarie.FileSearchResults> {
+		return FileServiceClient.makeUnaryRequest(
+			"searchFiles",
+			request,
+			proto.codemarie.FileSearchRequest.toJSON,
+			proto.codemarie.FileSearchResults.fromJSON,
+		)
+	}
+	static async toggleCodemarieRule(
+		request: proto.codemarie.ToggleCodemarieRuleRequest,
+	): Promise<proto.codemarie.ToggleCodemarieRules> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleCodemarieRule",
+			request,
+			proto.codemarie.ToggleCodemarieRuleRequest.toJSON,
+			proto.codemarie.ToggleCodemarieRules.fromJSON,
+		)
+	}
+	static async toggleCursorRule(
+		request: proto.codemarie.ToggleCursorRuleRequest,
+	): Promise<proto.codemarie.CodemarieRulesToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleCursorRule",
+			request,
+			proto.codemarie.ToggleCursorRuleRequest.toJSON,
+			proto.codemarie.CodemarieRulesToggles.fromJSON,
+		)
+	}
+	static async toggleWindsurfRule(
+		request: proto.codemarie.ToggleWindsurfRuleRequest,
+	): Promise<proto.codemarie.CodemarieRulesToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleWindsurfRule",
+			request,
+			proto.codemarie.ToggleWindsurfRuleRequest.toJSON,
+			proto.codemarie.CodemarieRulesToggles.fromJSON,
+		)
+	}
+	static async toggleAgentsRule(
+		request: proto.codemarie.ToggleAgentsRuleRequest,
+	): Promise<proto.codemarie.CodemarieRulesToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleAgentsRule",
+			request,
+			proto.codemarie.ToggleAgentsRuleRequest.toJSON,
+			proto.codemarie.CodemarieRulesToggles.fromJSON,
+		)
+	}
+	static async refreshRules(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.RefreshedRules> {
+		return FileServiceClient.makeUnaryRequest(
+			"refreshRules",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.RefreshedRules.fromJSON,
+		)
+	}
+	static async openDiskConversationHistory(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"openDiskConversationHistory",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async toggleWorkflow(request: proto.codemarie.ToggleWorkflowRequest): Promise<proto.codemarie.CodemarieRulesToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleWorkflow",
+			request,
+			proto.codemarie.ToggleWorkflowRequest.toJSON,
+			proto.codemarie.CodemarieRulesToggles.fromJSON,
+		)
+	}
+	static async ifFileExistsRelativePath(request: proto.codemarie.StringRequest): Promise<proto.codemarie.BooleanResponse> {
+		return FileServiceClient.makeUnaryRequest(
+			"ifFileExistsRelativePath",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.BooleanResponse.fromJSON,
+		)
+	}
+	static async openFileRelativePath(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"openFileRelativePath",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async openFocusChainFile(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return FileServiceClient.makeUnaryRequest(
+			"openFocusChainFile",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async refreshHooks(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.HooksToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"refreshHooks",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.HooksToggles.fromJSON,
+		)
+	}
+	static async toggleHook(request: proto.codemarie.ToggleHookRequest): Promise<proto.codemarie.ToggleHookResponse> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleHook",
+			request,
+			proto.codemarie.ToggleHookRequest.toJSON,
+			proto.codemarie.ToggleHookResponse.fromJSON,
+		)
+	}
+	static async createHook(request: proto.codemarie.CreateHookRequest): Promise<proto.codemarie.CreateHookResponse> {
+		return FileServiceClient.makeUnaryRequest(
+			"createHook",
+			request,
+			proto.codemarie.CreateHookRequest.toJSON,
+			proto.codemarie.CreateHookResponse.fromJSON,
+		)
+	}
+	static async deleteHook(request: proto.codemarie.DeleteHookRequest): Promise<proto.codemarie.DeleteHookResponse> {
+		return FileServiceClient.makeUnaryRequest(
+			"deleteHook",
+			request,
+			proto.codemarie.DeleteHookRequest.toJSON,
+			proto.codemarie.DeleteHookResponse.fromJSON,
+		)
+	}
+	static async refreshSkills(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.RefreshedSkills> {
+		return FileServiceClient.makeUnaryRequest(
+			"refreshSkills",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.RefreshedSkills.fromJSON,
+		)
+	}
+	static async toggleSkill(request: proto.codemarie.ToggleSkillRequest): Promise<proto.codemarie.SkillsToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"toggleSkill",
+			request,
+			proto.codemarie.ToggleSkillRequest.toJSON,
+			proto.codemarie.SkillsToggles.fromJSON,
+		)
+	}
+	static async createSkillFile(request: proto.codemarie.CreateSkillRequest): Promise<proto.codemarie.SkillsToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"createSkillFile",
+			request,
+			proto.codemarie.CreateSkillRequest.toJSON,
+			proto.codemarie.SkillsToggles.fromJSON,
+		)
+	}
+	static async deleteSkillFile(request: proto.codemarie.DeleteSkillRequest): Promise<proto.codemarie.SkillsToggles> {
+		return FileServiceClient.makeUnaryRequest(
+			"deleteSkillFile",
+			request,
+			proto.codemarie.DeleteSkillRequest.toJSON,
+			proto.codemarie.SkillsToggles.fromJSON,
+		)
+	}
+}
 export class TaskServiceClient extends ProtoBusClient {
 	static override serviceName = "codemarie.TaskService"
 	static async cancelTask(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
@@ -1133,6 +967,172 @@ export class WorktreeServiceClient extends ProtoBusClient {
 			request,
 			proto.codemarie.TrackWorktreeViewOpenedRequest.toJSON,
 			proto.codemarie.Empty.fromJSON,
+		)
+	}
+}
+export class StateServiceClient extends ProtoBusClient {
+	static override serviceName = "codemarie.StateService"
+	static async getLatestState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.State> {
+		return StateServiceClient.makeUnaryRequest(
+			"getLatestState",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.State.fromJSON,
+		)
+	}
+	static async getAvailableTerminalProfiles(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TerminalProfiles> {
+		return StateServiceClient.makeUnaryRequest(
+			"getAvailableTerminalProfiles",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.TerminalProfiles.fromJSON,
+		)
+	}
+	static subscribeToState(request: proto.codemarie.EmptyRequest, callbacks: Callbacks<proto.codemarie.State>): () => void {
+		return StateServiceClient.makeStreamingRequest(
+			"subscribeToState",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.State.fromJSON,
+			callbacks,
+		)
+	}
+	static async toggleFavoriteModel(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"toggleFavoriteModel",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async resetState(request: proto.codemarie.ResetStateRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"resetState",
+			request,
+			proto.codemarie.ResetStateRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async togglePlanActModeProto(request: proto.codemarie.TogglePlanActModeRequest): Promise<proto.codemarie.Boolean> {
+		return StateServiceClient.makeUnaryRequest(
+			"togglePlanActModeProto",
+			request,
+			proto.codemarie.TogglePlanActModeRequest.toJSON,
+			proto.codemarie.Boolean.fromJSON,
+		)
+	}
+	static async updateAutoApprovalSettings(
+		request: proto.codemarie.AutoApprovalSettingsRequest,
+	): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateAutoApprovalSettings",
+			request,
+			proto.codemarie.AutoApprovalSettingsRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async updateSettings(request: proto.codemarie.UpdateSettingsRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateSettings",
+			request,
+			proto.codemarie.UpdateSettingsRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async updateSettingsCli(request: proto.codemarie.UpdateSettingsRequestCli): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateSettingsCli",
+			request,
+			proto.codemarie.UpdateSettingsRequestCli.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async updateTaskSettings(request: proto.codemarie.UpdateTaskSettingsRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateTaskSettings",
+			request,
+			proto.codemarie.UpdateTaskSettingsRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async updateTelemetrySetting(request: proto.codemarie.TelemetrySettingRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"updateTelemetrySetting",
+			request,
+			proto.codemarie.TelemetrySettingRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async dismissBanner(request: proto.codemarie.StringRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"dismissBanner",
+			request,
+			proto.codemarie.StringRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async trackBannerEvent(request: proto.codemarie.TrackBannerEventRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"trackBannerEvent",
+			request,
+			proto.codemarie.TrackBannerEventRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async installCodemarieCli(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"installCodemarieCli",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async checkCliInstallation(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Boolean> {
+		return StateServiceClient.makeUnaryRequest(
+			"checkCliInstallation",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Boolean.fromJSON,
+		)
+	}
+	static async getProcessInfo(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.ProcessInfo> {
+		return StateServiceClient.makeUnaryRequest(
+			"getProcessInfo",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.ProcessInfo.fromJSON,
+		)
+	}
+	static async flushPendingState(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"flushPendingState",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async refreshRemoteConfig(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.Empty> {
+		return StateServiceClient.makeUnaryRequest(
+			"refreshRemoteConfig",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.Empty.fromJSON,
+		)
+	}
+	static async testOtelConnection(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
+		return StateServiceClient.makeUnaryRequest(
+			"testOtelConnection",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.TestConnectionResult.fromJSON,
+		)
+	}
+	static async testPromptUploading(request: proto.codemarie.EmptyRequest): Promise<proto.codemarie.TestConnectionResult> {
+		return StateServiceClient.makeUnaryRequest(
+			"testPromptUploading",
+			request,
+			proto.codemarie.EmptyRequest.toJSON,
+			proto.codemarie.TestConnectionResult.fromJSON,
 		)
 	}
 }

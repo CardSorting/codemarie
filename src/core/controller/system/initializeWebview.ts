@@ -17,6 +17,8 @@ import { sendOpenRouterModelsEvent } from "./subscribeToOpenRouterModels"
  */
 export async function initializeWebview(controller: Controller, _request: EmptyRequest): Promise<Empty> {
 	try {
+		await controller.postStateToWebview()
+
 		// Post last cached models as soon as possible for immediate availability in the UI
 		const lastCachedModels = await controller.readOpenRouterModels()
 		if (lastCachedModels) {
