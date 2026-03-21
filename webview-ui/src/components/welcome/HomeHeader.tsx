@@ -1,7 +1,7 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import CodemarieLogoVariable from "@/assets/CodemarieLogoVariable"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { UiServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 interface HomeHeaderProps {
 	shouldShowQuickWins?: boolean
@@ -12,7 +12,7 @@ const HomeHeader = ({ shouldShowQuickWins = false }: HomeHeaderProps) => {
 
 	const handleTakeATour = async () => {
 		try {
-			await UiServiceClient.openWalkthrough(EmptyRequest.create())
+			await SystemServiceClient.openWalkthrough(EmptyRequest.create())
 		} catch (error) {
 			console.error("Error opening walkthrough:", error)
 		}

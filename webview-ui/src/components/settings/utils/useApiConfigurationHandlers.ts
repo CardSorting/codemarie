@@ -3,7 +3,7 @@ import { UpdateApiConfigurationPartialRequest } from "@shared/proto/codemarie/mo
 import { convertApiConfigurationToProto } from "@shared/proto-conversions/models/api-configuration-conversion"
 import { Mode } from "@shared/storage/types"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { ModelsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 export const useApiConfigurationHandlers = () => {
 	const { apiConfiguration, planActSeparateModelsSetting } = useExtensionState()
@@ -23,7 +23,7 @@ export const useApiConfigurationHandlers = () => {
 			[field]: value,
 		})
 
-		await ModelsServiceClient.updateApiConfigurationPartial(
+		await SystemServiceClient.updateApiConfigurationPartial(
 			UpdateApiConfigurationPartialRequest.create({
 				apiConfiguration: protoConfig,
 				updateMask: [field],
@@ -46,7 +46,7 @@ export const useApiConfigurationHandlers = () => {
 			...updates,
 		})
 
-		await ModelsServiceClient.updateApiConfigurationPartial(
+		await SystemServiceClient.updateApiConfigurationPartial(
 			UpdateApiConfigurationPartialRequest.create({
 				apiConfiguration: protoConfig,
 				updateMask: Object.keys(updates),

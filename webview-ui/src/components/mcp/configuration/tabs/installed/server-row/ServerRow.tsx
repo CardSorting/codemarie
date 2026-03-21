@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { cn } from "@/lib/utils"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { getMcpServerDisplayName } from "@/utils/mcp"
 import McpPromptRow from "./McpPromptRow"
 import McpResourceRow from "./McpResourceRow"
@@ -96,7 +96,7 @@ const ServerRow = ({
 		const num = Number.parseInt(value, 10)
 		setTimeoutValue(value)
 
-		McpServiceClient.updateMcpTimeout({
+		SystemServiceClient.updateMcpTimeout({
 			serverName: server.name,
 			timeout: num,
 		} as UpdateMcpTimeoutRequest)
@@ -114,7 +114,7 @@ const ServerRow = ({
 		setIsRestarting(true)
 
 		// Make the Protobus call
-		McpServiceClient.restartMcpServer({
+		SystemServiceClient.restartMcpServer({
 			value: server.name,
 		} as StringRequest)
 			.then((response: McpServers) => {
@@ -132,7 +132,7 @@ const ServerRow = ({
 
 	const handleDelete = () => {
 		setIsDeleting(true)
-		McpServiceClient.deleteMcpServer({
+		SystemServiceClient.deleteMcpServer({
 			value: server.name,
 		} as StringRequest)
 			.then((response: McpServers) => {
@@ -151,7 +151,7 @@ const ServerRow = ({
 			return
 		}
 
-		McpServiceClient.toggleToolAutoApprove(
+		SystemServiceClient.toggleToolAutoApprove(
 			ToggleToolAutoApproveRequest.create({
 				serverName: server.name,
 				toolNames: server.tools?.map((tool) => tool.name) || [],
@@ -168,7 +168,7 @@ const ServerRow = ({
 	}
 
 	const handleToggleMcpServer = () => {
-		McpServiceClient.toggleMcpServer(
+		SystemServiceClient.toggleMcpServer(
 			ToggleMcpServerRequest.create({
 				serverName: server.name,
 				disabled: !server.disabled,
@@ -285,7 +285,7 @@ const ServerRow = ({
 							className="m-2.5 mt-0 max-w-[calc(100%-20px)]"
 							onClick={(e) => {
 								e.stopPropagation()
-								McpServiceClient.authenticateMcpServer(StringRequest.create({ value: server.name }))
+								SystemServiceClient.authenticateMcpServer(StringRequest.create({ value: server.name }))
 							}}
 							variant="default">
 							Authenticate

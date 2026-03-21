@@ -47,13 +47,7 @@
 		"onLanguage",
 		"onUri",
 		"onStartupFinished",
-		"workspaceContains:evals.env",
-		"onView:codemarie.SidebarProvider",
-		"onCommand:codemarie.plusButtonClicked",
-		"onCommand:codemarie.mcpButtonClicked",
-		"onCommand:codemarie.settingsButtonClicked",
-		"onCommand:codemarie.historyButtonClicked",
-		"onCommand:codemarie.accountButtonClicked"
+		"workspaceContains:evals.env"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {

@@ -1,9 +1,12 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { State } from "@shared/proto/codemarie/state"
+import { StateUpdate } from "@shared/proto/codemarie/system"
+import deepEqual from "fast-deep-equal"
 import { ExtensionState } from "@/shared/ExtensionMessage"
 import { Logger } from "@/shared/services/Logger"
 import { Controller } from "../index"
 import { getProtobusRequestRegistry, StreamingResponseHandler } from "../protobus-handler"
+import { broadcastStateUpdate } from "../system/SystemUpdatesEmitter"
 
 // Keep track of active state subscriptions
 const activeStateSubscriptions = new Set<StreamingResponseHandler<State>>()
@@ -40,9 +43,10 @@ export async function subscribeToState(
 
 	try {
 		await responseStream(
-			{
+			State.create({
 				stateJson: initialStateJson,
-			},
+				partialUpdates: {},
+			}),
 			false, // Not the last message
 		)
 	} catch (error) {
@@ -54,16 +58,38 @@ export async function subscribeToState(
 /**
  * Send a state update to all active subscribers
  * @param state The state to send
+ * @param previousState The previous state to calculate partial updates
  */
-export async function sendStateUpdate(state: ExtensionState): Promise<void> {
+export async function sendStateUpdate(state: ExtensionState, previousState?: ExtensionState): Promise<void> {
+	const partialUpdates: Record<string, string> = {}
+	let stateJson = ""
+
+	if (previousState) {
+		for (const key in state) {
+			const k = key as keyof ExtensionState
+			if (!deepEqual(state[k], previousState[k])) {
+				partialUpdates[k] = JSON.stringify(state[k])
+			}
+		}
+	} else {
+		stateJson = JSON.stringify(state)
+	}
+
+	// If there are no changes and it's a partial update, don't send anything
+	if (previousState && Object.keys(partialUpdates).length === 0) {
+		return
+	}
+
+	const stateProto = State.create({
+		stateJson,
+		partialUpdates,
+	})
+
 	// Send the state to all active subscribers
 	const promises = Array.from(activeStateSubscriptions).map(async (responseStream) => {
 		try {
-			const stateJson = JSON.stringify(state)
 			await responseStream(
-				{
-					stateJson,
-				},
+				stateProto,
 				false, // Not the last message
 			)
 		} catch (error) {
@@ -72,6 +98,13 @@ export async function sendStateUpdate(state: ExtensionState): Promise<void> {
 			activeStateSubscriptions.delete(responseStream)
 		}
 	})
+
+	await broadcastStateUpdate(
+		StateUpdate.create({
+			stateJson,
+			partialUpdates,
+		}),
+	)
 
 	await Promise.all(promises)
 }

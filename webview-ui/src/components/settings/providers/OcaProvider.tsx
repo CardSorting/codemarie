@@ -5,7 +5,7 @@ import { Mode } from "@shared/storage/types"
 import { VSCodeButton, VSCodeCheckbox, VSCodeLink, VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { ModelsServiceClient, OcaAccountServiceClient } from "@/services/protobus-client"
+import { OcaAccountServiceClient, SystemServiceClient } from "@/services/protobus-client"
 import { VSC_BUTTON_BACKGROUND, VSC_BUTTON_FOREGROUND, VSC_DESCRIPTION_FOREGROUND } from "@/utils/vscStyles"
 import { BaseUrlField } from "../common/BaseUrlField"
 import { useApiConfigurationHandlers } from "../utils/useApiConfigurationHandlers"
@@ -129,7 +129,7 @@ function useOcaModels({
 		setLoading(true)
 		setHasError(false)
 		try {
-			const resp = await ModelsServiceClient.refreshOcaModels(StringRequest.create({ value: url || "" }))
+			const resp = await SystemServiceClient.refreshOcaModels(StringRequest.create({ value: url || "" }))
 			// Only apply if still latest and still mounted
 			if (!unmountedRef.current && myReqId === reqIdRef.current) {
 				if (resp.error) {
@@ -190,7 +190,7 @@ function useOcaModels({
 
 		async function tryRefresh(retry = false): Promise<boolean> {
 			try {
-				const resp = await ModelsServiceClient.refreshOcaModels(StringRequest.create({ value: baseUrl || "" }))
+				const resp = await SystemServiceClient.refreshOcaModels(StringRequest.create({ value: baseUrl || "" }))
 				if (resp.error) {
 					throw new Error(resp.error)
 				}

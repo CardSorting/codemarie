@@ -47,7 +47,7 @@ import McpToolRow from "@/components/mcp/configuration/tabs/installed/server-row
 import { WithCopyButton } from "@/components/ui/copy-button"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { cn } from "@/lib/utils"
-import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
+import { FileServiceClient, SystemServiceClient } from "@/services/protobus-client"
 import { findMatchingResourceOrTemplate, getMcpServerDisplayName } from "@/utils/mcp"
 import CodeAccordian, { cleanPathPrefix } from "../../../../common/CodeAccordian"
 import { AlignmentGuard } from "./AlignmentGuard"
@@ -528,7 +528,7 @@ const MessageRowDispatcher = ({
 							className="bg-code rounded-xs overflow-hidden border border-editor-group-border py-2 px-2.5 cursor-pointer select-none"
 							onClick={() => {
 								if (tool.path) {
-									UiServiceClient.openUrl(StringRequest.create({ value: tool.path })).catch((err) => {
+									SystemServiceClient.openUrl(StringRequest.create({ value: tool.path })).catch((err) => {
 										console.error("Failed to open URL:", err)
 									})
 								}
@@ -941,7 +941,7 @@ const MessageRowDispatcher = ({
 								disabled={isBackgroundModeEnabled}
 								onClick={async () => {
 									try {
-										await UiServiceClient.setTerminalExecutionMode(BooleanRequest.create({ value: true }))
+										await SystemServiceClient.setTerminalExecutionMode(BooleanRequest.create({ value: true }))
 									} catch (error) {
 										console.error("Failed to enable background terminal:", error)
 									}

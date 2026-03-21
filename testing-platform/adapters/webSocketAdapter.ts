@@ -3,17 +3,13 @@ import { WebSocket } from "ws"
 
 const serviceNames = [
 	"codemarie.AccountService",
-	"codemarie.BrowserService",
-	"codemarie.CheckpointsService",
-	"codemarie.CommandsService",
+	"codemarie.SystemService",
 	"codemarie.FileService",
 	"codemarie.McpService",
 	"codemarie.ModelsService",
-	"codemarie.SlashService",
 	"codemarie.StateService",
 	"codemarie.TaskService",
 	"codemarie.UiService",
-	"codemarie.WebService",
 ] as const
 
 export type ServiceClients = {

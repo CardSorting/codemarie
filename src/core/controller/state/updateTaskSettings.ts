@@ -44,6 +44,7 @@ export async function updateTaskSettings(controller: Controller, request: Update
 		} = request.settings
 
 		// Batch update for simple pass-through fields
+		// biome-ignore lint/suspicious/noExplicitAny: simpleSettings can have any valid state keys
 		const filteredSettings: any = Object.fromEntries(
 			Object.entries(simpleSettings).filter(([key, value]) => key !== "openaiReasoningEffort" && value !== undefined),
 		)

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 import UseCustomPromptCheckbox from "@/components/settings/UseCustomPromptCheckbox"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useInterval } from "@/hooks/useLifecycle"
-import { ModelsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { ApiKeyField } from "../common/ApiKeyField"
 import { BaseUrlField } from "../common/BaseUrlField"
 import { DebouncedTextField } from "../common/DebouncedTextField"
@@ -36,7 +36,7 @@ export const OllamaProvider = ({ showModelOptions, isPopup, currentMode }: Ollam
 	// Poll ollama models
 	const requestOllamaModels = useCallback(async () => {
 		try {
-			const response = await ModelsServiceClient.getOllamaModels(
+			const response = await SystemServiceClient.getOllamaModels(
 				StringRequest.create({
 					value: apiConfiguration?.ollamaBaseUrl || "",
 				}),

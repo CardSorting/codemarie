@@ -184,8 +184,10 @@ describe("protobus-recorder", () => {
 
 		it("recordResponse executes post-record hooks", async () => {
 			let hookExecuted = false
+			// biome-ignore lint/suspicious/noExplicitAny: test mock
 			let hookEntry: any = null
 
+			// biome-ignore lint/suspicious/noExplicitAny: test mock
 			const mockHook = async (entry: any) => {
 				hookExecuted = true
 				hookEntry = entry

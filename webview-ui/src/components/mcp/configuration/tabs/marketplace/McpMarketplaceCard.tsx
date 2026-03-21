@@ -3,7 +3,7 @@ import { StringRequest } from "@shared/proto/codemarie/common"
 import { useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 interface McpMarketplaceCardProps {
 	item: McpMarketplaceItem
@@ -108,7 +108,7 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 									if (!isInstalled && !isDownloading) {
 										setIsDownloading(true)
 										try {
-											const response = await McpServiceClient.downloadMcp(
+											const response = await SystemServiceClient.downloadMcp(
 												StringRequest.create({ value: item.mcpId }),
 											)
 											if (response.error) {

@@ -62,6 +62,7 @@ export class ExternalDiffViewProvider extends DiffViewProvider {
 			await HostProvider.diff.saveDocument({ diffId: this.activeDiffEditorId })
 			return true
 		} catch (err: any) {
+			// biome-ignore lint/suspicious/noExplicitAny: err can be any
 			// This can happen when the task is reloaded or the diff editor is closed. So, don't
 			// consider it a real error.
 			Logger.log("Diff not found or error saving:", this.activeDiffEditorId, err)

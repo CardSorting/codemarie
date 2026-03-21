@@ -2,7 +2,7 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useNavigation } from "@/context/NavigationContext"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import ServersToggleList from "./ServersToggleList"
 
 const ConfigureServersView = () => {
@@ -51,7 +51,7 @@ const ConfigureServersView = () => {
 				<VSCodeButton
 					appearance="secondary"
 					onClick={() => {
-						McpServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
+						SystemServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
 							console.error("Error opening MCP settings:", error)
 						})
 					}}

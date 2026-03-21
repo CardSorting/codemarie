@@ -6,12 +6,13 @@
 import { Box, Text, useApp, useInput } from "ink"
 import Spinner from "ink-spinner"
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import { refreshOcaModels } from "@/core/controller/models/refreshOcaModels"
+import { Controller } from "@/core/controller"
+import { refreshModels as refreshOcaModels } from "@/core/controller/system/refreshModels"
 import { StateManager } from "@/core/storage/StateManager"
 import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
 import { AuthService } from "@/services/auth/AuthService"
 import { openAiCodexDefaultModelId, openRouterDefaultModelId } from "@/shared/api"
-import { StringRequest } from "@/shared/proto/codemarie/common"
+import { ApiProvider } from "@/shared/proto/codemarie/common"
 import { openExternal } from "@/utils/env"
 import { COLORS } from "../constants/colors"
 import { useStdinContext } from "../context/StdinContext"
@@ -56,7 +57,7 @@ type AuthStep =
 	| "bedrock_custom"
 
 interface AuthViewProps {
-	controller: any
+	controller: Controller
 	onComplete?: () => void
 	onError?: () => void
 	onNavigateToWelcome?: () => void
@@ -182,7 +183,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ controller, onComplete, onEr
 	const handleOcaAuthSuccess = useCallback(async () => {
 		await applyProviderConfig({ providerId: "oca", controller })
 		// Fetch OCA models from the API - this sets actModeOcaModelId/planModeOcaModelId in state
-		await refreshOcaModels(controller, StringRequest.create({ value: "" }))
+		await refreshOcaModels(controller, { provider: ApiProvider.OCA })
 		const stateManager = StateManager.get()
 		stateManager.setGlobalState("welcomeViewCompleted", true)
 		await stateManager.flushPendingState()

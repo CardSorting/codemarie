@@ -1,15 +1,12 @@
 syntax = "proto3";
 package codemarie;
 
-import "codemarie/browser.proto";
+import "codemarie/system.proto";
 import "codemarie/common.proto";
-import "codemarie/models.proto";
 
 
 service StateService {
   rpc getLatestState(EmptyRequest) returns (State);
-  rpc updateTerminalConnectionTimeout(UpdateTerminalConnectionTimeoutRequest) returns (UpdateTerminalConnectionTimeoutResponse);
-  rpc updateTerminalReuseEnabled(BooleanRequest) returns (Empty);
   rpc getAvailableTerminalProfiles(EmptyRequest) returns (TerminalProfiles);
   rpc subscribeToState(EmptyRequest) returns (stream State);
   rpc toggleFavoriteModel(StringRequest) returns (Empty);
@@ -21,10 +18,6 @@ service StateService {
   rpc updateTaskSettings(UpdateTaskSettingsRequest) returns (Empty);
   rpc updateTelemetrySetting(TelemetrySettingRequest) returns (Empty);
   rpc captureOnboardingProgress(OnboardingProgressRequest) returns (Empty);
-  rpc setWelcomeViewCompleted(BooleanRequest) returns (Empty);
-  rpc updateInfoBannerVersion(Int64Request) returns (Empty);
-  rpc updateModelBannerVersion(Int64Request) returns (Empty);
-  rpc updateCliBannerVersion(Int64Request) returns (Empty);
   rpc dismissBanner(StringRequest) returns (Empty);
   rpc trackBannerEvent(TrackBannerEventRequest) returns (Empty);
   rpc installCodemarieCli(EmptyRequest) returns (Empty);
@@ -286,6 +279,7 @@ message Settings {
 
 message State {
   string state_json = 1;
+  map<string, string> partial_updates = 2; // Key: field name, Value: JSON string
 }
 
 message TerminalProfiles {
@@ -424,6 +418,11 @@ message UpdateSettingsRequest {
   optional bool worktrees_enabled = 40;
   optional bool double_check_completion_enabled = 41;
   optional bool mas_enabled = 42;
+  optional int32 terminal_connection_timeout = 43;
+  optional int64 info_banner_version = 44;
+  optional int64 model_banner_version = 45;
+  optional int64 cli_banner_version = 46;
+  optional bool welcome_view_completed = 47;
 }
 
 message UpdateTerminalConnectionTimeoutRequest {

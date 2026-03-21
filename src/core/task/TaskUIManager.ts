@@ -1,5 +1,5 @@
 import { ApiHandler, ApiProviderInfo } from "@core/api"
-import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialMessage"
+import { sendPartialMessageEvent } from "@core/controller/system/subscribeToPartialMessage"
 import { formatResponse } from "@core/prompts/responses"
 import { CodemarieAsk, CodemarieSay, OrchestrationEventMetadata } from "@shared/ExtensionMessage"
 import { convertCodemarieMessageToProto } from "@shared/proto-conversions/codemarie-message"

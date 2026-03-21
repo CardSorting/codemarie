@@ -8,7 +8,7 @@ import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "reac
 import styled from "styled-components"
 import { useMount } from "@/hooks/useLifecycle"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-import { ModelsServiceClient } from "../../services/protobus-client"
+import { SystemServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ModelInfoView } from "./common/ModelInfoView"
 import ThinkingBudgetSlider from "./ThinkingBudgetSlider"
@@ -63,7 +63,7 @@ const RequestyModelPicker: React.FC<RequestyModelPickerProps> = ({ isPopup, base
 	}, [apiConfiguration, currentMode])
 
 	useMount(() => {
-		ModelsServiceClient.refreshRequestyModels(EmptyRequest.create({}))
+		SystemServiceClient.refreshRequestyModels(EmptyRequest.create({}))
 			.then((response) => {
 				setRequestyModels({
 					[requestyDefaultModelId]: requestyDefaultModelInfo,

@@ -17,6 +17,7 @@ export async function taskFeedback(controller: Controller, request: StringReques
 
 	try {
 		if (controller.task?.ulid) {
+			// biome-ignore lint/suspicious/noExplicitAny: request.value is any
 			telemetryService.captureTaskFeedback(controller.task.ulid, request.value as any)
 		} else {
 			Logger.warn("taskFeedback: No active task to receive feedback")

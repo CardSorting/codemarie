@@ -1,0 +1,1034 @@
+syntax = "proto3";
+
+package codemarie;
+
+import "codemarie/common.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+
+
+// SystemService provides methods for host-related operations
+// including browser management, web metadata, system-level slash commands,
+// model management, MCP servers, and UI interactions.
+service SystemService {
+  // --- Browser operations ---
+  rpc getBrowserConnectionInfo(EmptyRequest) returns (BrowserConnectionInfo);
+  rpc testBrowserConnection(StringRequest) returns (BrowserConnection);
+  rpc discoverBrowser(EmptyRequest) returns (BrowserConnection);
+  rpc getDetectedChromePath(EmptyRequest) returns (ChromePath);
+  rpc relaunchChromeDebugMode(EmptyRequest) returns (String);
+
+  // --- Web operations ---
+  rpc checkIsImageUrl(StringRequest) returns (IsImageUrl);
+  rpc fetchOpenGraphData(StringRequest) returns (OpenGraphData);
+  rpc openInBrowser(StringRequest) returns (Empty);
+  rpc openUrl(StringRequest) returns (Empty);
+
+  // --- Slash commands ---
+  rpc getAvailableSlashCommands(EmptyRequest) returns (SlashCommandsResponse);
+
+  // --- Commands ---
+  rpc addToCodemarie(CommandContext) returns (Empty);
+  rpc fixWithCodemarie(CommandContext) returns (Empty);
+  rpc explainWithCodemarie(CommandContext) returns (Empty);
+  rpc improveWithCodemarie(CommandContext) returns (Empty);
+
+  // --- Checkpoints ---
+  rpc checkpointDiff(Int64Request) returns (Empty);
+  rpc checkpointRestore(CheckpointRestoreRequest) returns (Empty);
+  rpc subscribeToCheckpoints(CheckpointSubscriptionRequest) returns (stream CheckpointEvent);
+  rpc getCwdHash(StringArrayRequest) returns (PathHashMap);
+
+  // --- Models ---
+  rpc refreshModels(RefreshModelsRequest) returns (RefreshModelsResponse);
+  rpc subscribeToOpenRouterModels(EmptyRequest) returns (stream OpenRouterCompatibleModelInfo);
+  rpc subscribeToLiteLlmModels(EmptyRequest) returns (stream OpenRouterCompatibleModelInfo);
+  rpc updateApiConfiguration(UpdateApiConfigurationRequestNew) returns (Empty);
+  rpc updateApiConfigurationPartial(UpdateApiConfigurationPartialRequest) returns (Empty);
+
+  // --- MCP ---
+  rpc toggleMcpServer(ToggleMcpServerRequest) returns (McpServers);
+  rpc updateMcpTimeout(UpdateMcpTimeoutRequest) returns (McpServers);
+  rpc addRemoteMcpServer(AddRemoteMcpServerRequest) returns (McpServers);
+  rpc downloadMcp(StringRequest) returns (McpDownloadResponse);
+  rpc restartMcpServer(StringRequest) returns (McpServers);
+  rpc deleteMcpServer(StringRequest) returns (McpServers);
+  rpc toggleToolAutoApprove(ToggleToolAutoApproveRequest) returns (McpServers);
+  rpc refreshMcpMarketplace(EmptyRequest) returns (McpMarketplaceCatalog);
+  rpc openMcpSettings(EmptyRequest) returns (Empty);
+  rpc authenticateMcpServer(StringRequest) returns (Empty);
+  rpc subscribeToMcpMarketplaceCatalog(EmptyRequest) returns (stream McpMarketplaceCatalog);
+  rpc getLatestMcpServers(Empty) returns (McpServers);
+  rpc subscribeToMcpServers(EmptyRequest) returns (stream McpServers);
+
+  // --- UI ---
+  rpc scrollToSettings(StringRequest) returns (KeyValuePair);
+  rpc setTerminalExecutionMode(BooleanRequest) returns (KeyValuePair);
+  rpc onDidShowAnnouncement(EmptyRequest) returns (Boolean);
+  rpc subscribeToUiEvents(EmptyRequest) returns (stream UiEvent);
+  rpc subscribeToAddToInput(EmptyRequest) returns (stream String);
+  rpc subscribeToPartialMessage(EmptyRequest) returns (stream CodemarieMessage);
+  rpc initializeWebview(EmptyRequest) returns (Empty);
+  rpc subscribeToShowWebview(EmptyRequest) returns (stream ShowWebviewEvent);
+  rpc getWebviewHtml(EmptyRequest) returns (String);
+  rpc openWalkthrough(EmptyRequest) returns (Empty);
+
+  // --- Unified System Stream ---
+  rpc subscribeToSystemUpdates(EmptyRequest) returns (stream SystemUpdate);
+}
+
+// --- Unified System Update ---
+
+message SystemUpdate {
+  oneof update {
+    StateUpdate state = 1;
+    UiEvent ui_event = 2;
+    McpServers mcp_servers = 3;
+    McpMarketplaceCatalog mcp_marketplace = 4;
+    OpenRouterCompatibleModelInfo open_router_models = 5;
+    OpenRouterCompatibleModelInfo lite_llm_models = 6;
+    CodemarieMessage partial_message = 7;
+    CheckpointEvent checkpoint_event = 8;
+  }
+}
+
+message StateUpdate {
+  string state_json = 1;
+  map<string, string> partial_updates = 2;
+}
+
+// --- Browser Messages ---
+
+message BrowserConnectionInfo {
+  bool is_connected = 1;
+  bool is_remote = 2;
+  optional string host = 3;
+}
+
+message BrowserConnection {
+  bool success = 1;
+  string message = 2;
+  optional string endpoint = 3;
+}
+
+message ChromePath {
+  string path = 1;
+  bool is_bundled = 2;
+}
+
+message IsImageUrl {
+  bool is_image = 1;
+  string url = 2;
+}
+
+message OpenGraphData {
+  string title = 1;
+  string description = 2;
+  string image = 3;
+  string url = 4;
+  string site_name = 5;
+  string type = 6;
+}
+
+// --- Slash Command Messages ---
+
+message SlashCommandInfo {
+  string name = 1;
+  string description = 2;
+  string section = 3;
+  bool cli_compatible = 4;
+}
+
+message SlashCommandsResponse {
+  repeated SlashCommandInfo commands = 1;
+}
+
+message Viewport {
+  int32 width = 1;
+  int32 height = 2;
+}
+
+// --- Commands Messages ---
+
+message CommandContext {
+  optional string file_path = 1;
+  optional string selected_text = 2;
+  optional string language = 3;
+  repeated codemarie.Diagnostic diagnostics = 4;
+}
+
+// --- Checkpoints Messages ---
+
+message CheckpointRestoreRequest {
+  Metadata metadata = 1;
+  int64 number = 2;
+  string restore_type = 3;
+  optional int64 offset = 4;
+}
+
+message CheckpointSubscriptionRequest {
+  string cwd_hash = 1;
+}
+
+message CheckpointEvent {
+  enum OperationType {
+    CHECKPOINT_INIT = 0;
+    CHECKPOINT_COMMIT = 1;
+    CHECKPOINT_RESTORE = 2;
+  }
+  OperationType operation = 1;
+  string cwd_hash = 2;
+  bool is_active = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  optional string task_id = 5;
+  optional string commit_hash = 6;
+}
+
+message PathHashMap {
+  map<string, string> path_hash = 1;
+}
+
+message BrowserSettings {
+  Viewport viewport = 1;
+  optional string remote_browser_host = 2;
+  optional bool remote_browser_enabled = 3;
+  optional string chrome_executable_path = 4;
+  optional bool disable_tool_use = 5;
+  optional string custom_args = 6;
+}
+
+// --- Models Messages ---
+
+message RefreshModelsRequest {
+  ApiProvider provider = 1;
+  optional string base_url = 2;
+  optional string api_key = 3;
+  optional string resource_group = 4;
+  optional string token_url = 5;
+  optional string client_id = 6;
+  optional string client_secret = 7;
+}
+
+message SapAiCoreModelsRequest {
+  Metadata metadata = 1;
+  string client_id = 2;
+  string client_secret = 3;
+  string token_url = 4;
+  string base_url = 5;
+  string resource_group = 6;
+}
+
+message RefreshModelsResponse {
+  oneof result {
+    OpenRouterCompatibleModelInfo compatible_models = 1;
+    CodemarieRecommendedModelsResponse recommended_models = 2;
+    StringArray string_array_models = 3;
+    VsCodeLmModelsArray vs_code_lm_models = 4;
+    SapAiCoreModelsResponse sap_ai_core_models = 5;
+    OcaCompatibleModelInfo oca_models = 6;
+  }
+}
+
+message VsCodeLmModelsArray {
+  repeated LanguageModelChatSelector models = 1;
+}
+
+message LanguageModelChatSelector {
+  optional string vendor = 1;
+  optional string family = 2;
+  optional string version = 3;
+  optional string id = 4;
+}
+
+message PriceTier {
+  int64 token_limit = 1;
+  double price = 2;
+}
+
+message ThinkingConfig {
+  optional int64 max_budget = 1;
+  optional double output_price = 2;
+  repeated PriceTier output_price_tiers = 3;
+}
+
+message ModelTier {
+  int64 context_window = 1;
+  optional double input_price = 2;
+  optional double output_price = 3;
+  optional double cache_writes_price = 4;
+  optional double cache_reads_price = 5;
+}
+
+message OpenRouterModelInfo {
+  optional int64 max_tokens = 1;
+  optional int64 context_window = 2;
+  optional bool supports_images = 3;
+  bool supports_prompt_cache = 4;
+  optional double input_price = 5;
+  optional double output_price = 6;
+  optional double cache_writes_price = 7;
+  optional double cache_reads_price = 8;
+  optional string description = 9;
+  optional ThinkingConfig thinking_config = 10;
+  optional bool supports_global_endpoint = 11;
+  repeated ModelTier tiers = 12;
+  optional string name = 13;
+  optional double temperature = 14;
+  optional bool supports_reasoning = 15;
+  optional ApiFormat api_format = 16;
+}
+
+message OpenRouterCompatibleModelInfo {
+  map<string, OpenRouterModelInfo> models = 1;
+}
+
+message CodemarieRecommendedModel {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string tags = 4;
+}
+
+message CodemarieRecommendedModelsResponse {
+  repeated CodemarieRecommendedModel recommended = 1;
+  repeated CodemarieRecommendedModel free = 2;
+}
+
+message SapAiCoreModelDeployment {
+  string model_name = 1;
+  string deployment_id = 2;
+}
+
+message SapAiCoreModelsResponse {
+  repeated SapAiCoreModelDeployment deployments = 1;
+  bool orchestration_available = 2;
+}
+
+message ModelsApiSecrets {
+  optional string api_key = 1;
+  optional string codemarie_api_key = 2;
+  optional string lite_llm_api_key = 3;
+  optional string open_router_api_key = 4;
+  optional string aws_access_key = 5;
+  optional string aws_secret_key = 6;
+  optional string aws_session_token = 7;
+  optional string aws_bedrock_api_key = 8;
+  optional string open_ai_api_key = 9;
+  optional string ollama_api_key = 10;
+  optional string gemini_api_key = 11;
+  optional string open_ai_native_api_key = 12;
+  optional string deep_seek_api_key = 13;
+  optional string requesty_api_key = 14;
+  optional string together_api_key = 15;
+  optional string fireworks_api_key = 16;
+  optional string qwen_api_key = 17;
+  optional string doubao_api_key = 18;
+  optional string mistral_api_key = 19;
+  optional string nebius_api_key = 20;
+  optional string asksage_api_key = 21;
+  optional string xai_api_key = 22;
+  optional string sambanova_api_key = 23;
+  optional string cerebras_api_key = 24;
+  optional string sap_ai_core_client_id = 25;
+  optional string sap_ai_core_client_secret = 26;
+  optional string moonshot_api_key = 27;
+  optional string codemarie_account_id = 28;
+  optional string groq_api_key = 29;
+  optional string hugging_face_api_key = 30;
+  optional string huawei_cloud_maas_api_key = 31;
+  optional string baseten_api_key = 32;
+  optional string zai_api_key = 33;
+  optional string vercel_ai_gateway_api_key = 34;
+  optional string dify_api_key = 35;
+  optional string oca_api_key = 36;
+  optional string oca_refresh_token = 37;
+  optional string minimax_api_key = 38;
+  optional string embedding_api_key = 40;
+  optional string cloudflare_api_token = 41;
+}
+
+message ModelsApiOptions {
+  optional string ulid = 1;
+  optional string lite_llm_base_url = 2;
+  optional bool lite_llm_use_prompt_cache = 3;
+  map<string, string> open_ai_headers = 4;
+  optional string anthropic_base_url = 5;
+  optional string open_router_provider_sorting = 6;
+  optional string aws_region = 7;
+  optional bool aws_use_cross_region_inference = 8;
+  optional bool aws_bedrock_use_prompt_cache = 9;
+  optional bool aws_use_profile = 10;
+  optional string aws_profile = 11;
+  optional string aws_bedrock_endpoint = 12;
+  optional string claude_code_path = 13;
+  optional string vertex_project_id = 14;
+  optional string vertex_region = 15;
+  optional string open_ai_base_url = 16;
+  optional string ollama_base_url = 17;
+  optional string ollama_api_options_ctx_num = 18;
+  optional string lm_studio_base_url = 19;
+  optional string gemini_base_url = 20;
+  optional string requesty_base_url = 21;
+  optional int64 fireworks_model_max_completion_tokens = 22;
+  optional int64 fireworks_model_max_tokens = 23;
+  optional string azure_api_version = 24;
+  optional string qwen_api_line = 25;
+  optional string asksage_api_url = 26;
+  optional int64 request_timeout_ms = 27;
+  optional string sap_ai_resource_group = 28;
+  optional string sap_ai_core_token_url = 29;
+  optional string sap_ai_core_base_url = 30;
+  optional bool sap_ai_core_use_orchestration_mode = 31;
+  optional string moonshot_api_line = 32;
+  optional string aws_authentication = 33;
+  optional string zai_api_line = 34;
+  optional string lm_studio_max_tokens = 35;
+  optional string qwen_code_oauth_path = 36;
+  optional string dify_base_url = 37;
+  optional string oca_base_url = 38;
+  optional string oca_mode = 39;
+  optional bool aws_use_global_inference = 40;
+  optional string minimax_api_line = 41;
+  optional bool azure_identity = 44;
+  optional ApiProvider embedding_provider = 45;
+  optional string embedding_model_id = 46;
+  optional string embedding_open_ai_base_url = 47;
+  optional string cloudflare_account_id = 48;
+
+  // Plan/Act configurations omitted for brevity or moved to common if shared
+  // For now migrating only what's necessary for the consolidation.
+}
+
+message ApiConfiguration {
+  ModelsApiOptions options = 1;
+  ModelsApiSecrets secrets = 2;
+}
+
+message UpdateApiConfigurationRequestNew {
+  Metadata metadata = 1;
+  ApiConfiguration updates = 2;
+  repeated string update_mask = 3;
+}
+
+message UpdateApiConfigurationPartialRequest {
+  Metadata metadata = 1;
+  optional ApiConfiguration api_configuration = 2;
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// NOTE: ModelsApiConfiguration is still needed if cited in state.proto
+message ModelsApiConfiguration {
+  optional string api_key = 1;
+  optional string codemarie_api_key = 2;
+  optional string ulid = 3;
+  optional string lite_llm_base_url = 4;
+  optional string lite_llm_api_key = 5;
+  optional bool lite_llm_use_prompt_cache = 6;
+  map<string, string> open_ai_headers = 7;
+  optional string anthropic_base_url = 8;
+  optional string open_router_api_key = 9;
+  optional string open_router_provider_sorting = 10;
+  optional string aws_access_key = 11;
+  optional string aws_secret_key = 12;
+  optional string aws_session_token = 13;
+  optional string aws_region = 14;
+  optional bool aws_use_cross_region_inference = 15;
+  optional bool aws_bedrock_use_prompt_cache = 16;
+  optional bool aws_use_profile = 17;
+  optional string aws_profile = 18;
+  optional string aws_bedrock_endpoint = 19;
+  optional string claude_code_path = 20;
+  optional string vertex_project_id = 21;
+  optional string vertex_region = 22;
+  optional string open_ai_base_url = 23;
+  optional string open_ai_api_key = 24;
+  optional string ollama_base_url = 25;
+  optional string ollama_api_options_ctx_num = 26;
+  optional string lm_studio_base_url = 27;
+  optional string gemini_api_key = 28;
+  optional string gemini_base_url = 29;
+  optional string open_ai_native_api_key = 30;
+  optional string deep_seek_api_key = 31;
+  optional string requesty_api_key = 32;
+  optional string requesty_base_url = 33;
+  optional string together_api_key = 34;
+  optional string fireworks_api_key = 35;
+  optional int64 fireworks_model_max_completion_tokens = 36;
+  optional int64 fireworks_model_max_tokens = 37;
+  optional string qwen_api_key = 38;
+  optional string doubao_api_key = 39;
+  optional string mistral_api_key = 40;
+  optional string azure_api_version = 41;
+  optional string qwen_api_line = 42;
+  optional string nebius_api_key = 43;
+  optional string asksage_api_url = 44;
+  optional string asksage_api_key = 45;
+  optional string xai_api_key = 46;
+  optional string sambanova_api_key = 47;
+  optional string cerebras_api_key = 48;
+  optional int64 request_timeout_ms = 49;
+  optional string sap_ai_core_client_id = 50;
+  optional string sap_ai_core_client_secret = 51;
+  optional string sap_ai_resource_group = 52;
+  optional string sap_ai_core_token_url = 53;
+  optional string sap_ai_core_base_url = 54;
+  optional bool sap_ai_core_use_orchestration_mode = 55;
+  optional string moonshot_api_key = 56;
+  optional string moonshot_api_line = 57;
+  optional string aws_authentication = 58;
+  optional string aws_bedrock_api_key = 59;
+  optional string codemarie_account_id = 60;
+  optional string groq_api_key = 61;
+  optional string hugging_face_api_key = 62;
+  optional string huawei_cloud_maas_api_key = 63;
+  optional string baseten_api_key = 64;
+  optional string ollama_api_key = 65;
+  optional string zai_api_key = 66;
+  optional string zai_api_line = 67;
+  optional string lm_studio_max_tokens = 68;
+  optional string vercel_ai_gateway_api_key = 69;
+  optional string qwen_code_oauth_path = 70;
+  optional string dify_api_key = 71;
+  optional string dify_base_url = 72;
+  optional string oca_base_url = 73;
+  optional string oca_api_key = 74;
+  optional string oca_refresh_token = 75;
+  optional string oca_mode = 76;
+  optional bool aws_use_global_inference = 77;
+  optional string minimax_api_key = 78;
+  optional string minimax_api_line = 79;
+  optional string hicap_model_id = 80;
+  optional string hicap_api_key = 81;
+  optional string nous_research_api_key = 85;
+  optional bool azure_identity = 86;
+  optional ApiProvider embedding_provider = 87;
+  optional string embedding_model_id = 88;
+  optional string embedding_api_key = 89;
+  optional string embedding_open_ai_base_url = 90;
+  optional string cloudflare_account_id = 91;
+  optional string cloudflare_api_token = 92;
+  
+  // Model info for OCA models
+  optional ApiProvider plan_mode_api_provider = 100;
+  optional string plan_mode_api_model_id = 101;
+  optional int64 plan_mode_thinking_budget_tokens = 102;
+  optional string plan_mode_reasoning_effort = 103;
+  optional LanguageModelChatSelector plan_mode_vs_code_lm_model_selector = 104;
+  optional bool plan_mode_aws_bedrock_custom_selected = 105;
+  optional string plan_mode_aws_bedrock_custom_model_base_id = 106;
+  optional string plan_mode_open_router_model_id = 107;
+  optional OpenRouterModelInfo plan_mode_open_router_model_info = 108;
+  optional string plan_mode_open_ai_model_id = 109;
+  optional OpenAiCompatibleModelInfo plan_mode_open_ai_model_info = 110;
+  optional string plan_mode_ollama_model_id = 111;
+  optional string plan_mode_lm_studio_model_id = 112;
+  optional string plan_mode_lite_llm_model_id = 113;
+  optional LiteLLMModelInfo plan_mode_lite_llm_model_info = 114;
+  optional string plan_mode_requesty_model_id = 115;
+  optional OpenRouterModelInfo plan_mode_requesty_model_info = 116;
+  optional string plan_mode_together_model_id = 117;
+  optional string plan_mode_fireworks_model_id = 118;
+  optional string plan_mode_sap_ai_core_model_id = 119;
+  optional string plan_mode_sap_ai_core_deployment_id = 120;
+  optional string plan_mode_groq_model_id = 121;
+  optional OpenRouterModelInfo plan_mode_groq_model_info = 122;
+  optional string plan_mode_hugging_face_model_id = 123;
+  optional OpenRouterModelInfo plan_mode_hugging_face_model_info = 124;
+  optional string plan_mode_huawei_cloud_maas_model_id = 125;
+  optional OpenRouterModelInfo plan_mode_huawei_cloud_maas_model_info = 126;
+  optional string plan_mode_baseten_model_id = 127;
+  optional OpenRouterModelInfo plan_mode_baseten_model_info = 128;
+  optional string plan_mode_vercel_ai_gateway_model_id = 129;
+  optional OpenRouterModelInfo plan_mode_vercel_ai_gateway_model_info = 130;
+  optional string plan_mode_oca_model_id = 131;
+  optional OcaModelInfo plan_mode_oca_model_info = 132;
+  optional string plan_mode_oca_reasoning_effort = 133;
+  optional string plan_mode_hicap_model_id = 134;
+  optional OpenRouterModelInfo plan_mode_hicap_model_info = 135;
+  optional string plan_mode_nous_research_model_id = 138;
+  optional string gemini_plan_mode_thinking_level = 139;
+  optional string plan_mode_codemarie_model_id = 140;
+  optional OpenRouterModelInfo plan_mode_codemarie_model_info = 141;
+
+  optional ApiProvider act_mode_api_provider = 200;
+  optional string act_mode_api_model_id = 201;
+  optional int64 act_mode_thinking_budget_tokens = 202;
+  optional string act_mode_reasoning_effort = 203;
+  optional LanguageModelChatSelector act_mode_vs_code_lm_model_selector = 204;
+  optional bool act_mode_aws_bedrock_custom_selected = 205;
+  optional string act_mode_aws_bedrock_custom_model_base_id = 206;
+  optional string act_mode_open_router_model_id = 207;
+  optional OpenRouterModelInfo act_mode_open_router_model_info = 208;
+  optional string act_mode_open_ai_model_id = 209;
+  optional OpenAiCompatibleModelInfo act_mode_open_ai_model_info = 210;
+  optional string act_mode_ollama_model_id = 211;
+  optional string act_mode_lm_studio_model_id = 212;
+  optional string act_mode_lite_llm_model_id = 213;
+  optional LiteLLMModelInfo act_mode_lite_llm_model_info = 214;
+  optional string act_mode_requesty_model_id = 215;
+  optional OpenRouterModelInfo act_mode_requesty_model_info = 216;
+  optional string act_mode_together_model_id = 217;
+  optional string act_mode_fireworks_model_id = 218;
+  optional string act_mode_sap_ai_core_model_id = 219;
+  optional string act_mode_sap_ai_core_deployment_id = 220;
+  optional string act_mode_groq_model_id = 221;
+  optional OpenRouterModelInfo act_mode_groq_model_info = 222;
+  optional string act_mode_hugging_face_model_id = 223;
+  optional OpenRouterModelInfo act_mode_hugging_face_model_info = 224;
+  optional string act_mode_huawei_cloud_maas_model_id = 225;
+  optional OpenRouterModelInfo act_mode_huawei_cloud_maas_model_info = 226;
+  optional string act_mode_baseten_model_id = 227;
+  optional OpenRouterModelInfo act_mode_baseten_model_info = 228;
+  optional string act_mode_vercel_ai_gateway_model_id = 229;
+  optional OpenRouterModelInfo act_mode_vercel_ai_gateway_model_info = 230;
+  optional string act_mode_oca_model_id = 231;
+  optional OcaModelInfo act_mode_oca_model_info = 232;
+  optional string act_mode_oca_reasoning_effort = 233;
+  optional string act_mode_hicap_model_id = 234;
+  optional OpenRouterModelInfo act_mode_hicap_model_info = 235;
+  optional string act_mode_nous_research_model_id = 238;
+  optional string gemini_act_mode_thinking_level = 239;
+  optional string act_mode_codemarie_model_id = 240;
+  optional OpenRouterModelInfo act_mode_codemarie_model_info = 241;
+}
+
+message OcaModelInfo {
+  optional int64 max_tokens = 1;
+  optional int64 context_window = 2;
+  optional bool supports_images = 3;
+  bool supports_prompt_cache = 4;
+  optional double input_price = 5;
+  optional double output_price = 6;
+  optional ThinkingConfig thinking_config = 7;
+  optional double cache_writes_price = 9;
+  optional double cache_reads_price = 10;
+  optional string description = 11;
+  optional double temperature = 13;
+  optional string survey_content = 14;
+  optional string survey_id = 15;
+  optional string banner = 16;
+  string model_name = 17;
+  optional ApiFormat api_format = 18;
+  optional bool supports_reasoning = 19;
+  repeated string reasoning_effort_options = 20;
+}
+
+message OcaCompatibleModelInfo {
+  map<string, OcaModelInfo> models = 1;
+  optional string error = 2;
+}
+
+message OpenAiCompatibleModelInfo {
+  optional int64 max_tokens = 1;
+  optional int64 context_window = 2;
+  optional bool supports_images = 3;
+  bool supports_prompt_cache = 4;
+  optional double input_price = 5;
+  optional double output_price = 6;
+  optional ThinkingConfig thinking_config = 7;
+  optional bool supports_global_endpoint = 8;
+  optional double cache_writes_price = 9;
+  optional double cache_reads_price = 10;
+  optional string description = 11;
+  repeated ModelTier tiers = 12;
+  optional double temperature = 13;
+  optional bool is_r1_format_required = 14;
+  optional ApiFormat api_format = 15;
+}
+
+message LiteLLMModelInfo {
+  optional int64 max_tokens = 1;
+  optional int64 context_window = 2;
+  optional bool supports_images = 3;
+  bool supports_prompt_cache = 4;
+  optional double input_price = 5;
+  optional double output_price = 6;
+  optional ThinkingConfig thinking_config = 7;
+  optional bool supports_global_endpoint = 8;
+  optional double cache_writes_price = 9;
+  optional double cache_reads_price = 10;
+  optional string description = 11;
+  repeated ModelTier tiers = 12;
+  optional double temperature = 13;
+  optional ApiFormat api_format = 14;
+  optional bool supports_reasoning = 15;
+}
+
+// --- MCP Messages ---
+
+message ToggleMcpServerRequest {
+  Metadata metadata = 1;
+  string server_name = 2;
+  bool disabled = 3;
+}
+
+message UpdateMcpTimeoutRequest {
+  Metadata metadata = 1;
+  string server_name = 2;
+  int32 timeout = 3;
+}
+
+message AddRemoteMcpServerRequest {
+  Metadata metadata = 1;
+  string server_name = 2;
+  string server_url = 3;
+  optional string transport_type = 4;
+}
+
+message ToggleToolAutoApproveRequest {
+  Metadata metadata = 1;
+  string server_name = 2;
+  repeated string tool_names = 3;
+  bool auto_approve = 4;
+}
+
+message McpTool {
+  string name = 1;
+  optional string description = 2;
+  optional string input_schema = 3;
+  optional bool auto_approve = 4;
+}
+
+message McpResource {
+  string uri = 1;
+  string name = 2;
+  optional string mime_type = 3;
+  optional string description = 4;
+}
+
+message McpResourceTemplate {
+  string uri_template = 1;
+  string name = 2;
+  optional string mime_type = 3;
+  optional string description = 4;
+}
+
+message McpPromptArgument {
+  string name = 1;
+  optional string description = 2;
+  optional bool required = 3;
+}
+
+message McpPrompt {
+  string name = 1;
+  optional string title = 2;
+  optional string description = 3;
+  repeated McpPromptArgument arguments = 4;
+}
+
+enum McpServerStatus {
+  MCP_SERVER_STATUS_DISCONNECTED = 0;
+  MCP_SERVER_STATUS_CONNECTED = 1;
+  MCP_SERVER_STATUS_CONNECTING = 2;
+}
+
+message McpServer {
+  string name = 1;
+  string config = 2;
+  McpServerStatus status = 3;
+  optional string error = 4;
+  repeated McpTool tools = 5;
+  repeated McpResource resources = 6;
+  repeated McpResourceTemplate resource_templates = 7;
+  optional bool disabled = 8;
+  optional int32 timeout = 9;
+  optional bool oauth_required = 10;
+  optional string oauth_auth_status = 11;
+  repeated McpPrompt prompts = 12;
+}
+
+message McpServers {
+  repeated McpServer mcp_servers = 1;
+}
+
+message McpMarketplaceItem {
+  string mcp_id = 1;
+  string github_url = 2;
+  string name = 3;
+  string author = 4;
+  string description = 5;
+  string codicon_icon = 6;
+  string logo_url = 7;
+  string category = 8;
+  repeated string tags = 9;
+  bool requires_api_key = 10;
+  optional string readme_content = 11;
+  optional string llms_installation_content = 12;
+  bool is_recommended = 13;
+  int32 github_stars = 14;
+  int32 download_count = 15;
+  string created_at = 16;
+  string updated_at = 17;
+  string last_github_sync = 18;
+}
+
+message McpMarketplaceCatalog {
+  repeated McpMarketplaceItem items = 1;
+}
+
+message McpDownloadResponse {
+  string mcp_id = 1;
+  string github_url = 2;
+  string name = 3;
+  string author = 4;
+  string description = 5;
+  string readme_content = 6;
+  string llms_installation_content = 7;
+  bool requires_api_key = 8;
+  optional string error = 9;
+}
+
+// --- UI Messages ---
+
+enum CodemarieMessageType {
+  ASK = 0;
+  SAY = 1;
+}
+
+enum CodemarieAsk {
+  FOLLOWUP = 0;
+  PLAN_MODE_RESPOND = 1;
+  COMMAND = 2;
+  COMMAND_OUTPUT = 3;
+  COMPLETION_RESULT = 4;
+  TOOL = 5;
+  API_REQ_FAILED = 6;
+  RESUME_TASK = 7;
+  RESUME_COMPLETED_TASK = 8;
+  MISTAKE_LIMIT_REACHED = 9;
+  BROWSER_ACTION_LAUNCH = 10;
+  USE_MCP_SERVER = 11;
+  NEW_TASK = 12;
+  CONDENSE = 13;
+  REPORT_BUG = 14;
+  SUMMARIZE_TASK = 15;
+  ACT_MODE_RESPOND = 16;
+  USE_SUBAGENTS = 17;
+  WAVE_APPROVAL = 18;
+}
+
+enum CodemarieSay {
+  TASK = 0;
+  ERROR = 1;
+  API_REQ_STARTED = 2;
+  API_REQ_FINISHED = 3;
+  TEXT = 4;
+  REASONING = 5;
+  COMPLETION_RESULT_SAY = 6;
+  USER_FEEDBACK = 7;
+  USER_FEEDBACK_DIFF = 8;
+  API_REQ_RETRIED = 9;
+  COMMAND_SAY = 10;
+  COMMAND_OUTPUT_SAY = 11;
+  TOOL_SAY = 12;
+  SHELL_INTEGRATION_WARNING = 13;
+  BROWSER_ACTION_LAUNCH_SAY = 14;
+  BROWSER_ACTION = 15;
+  BROWSER_ACTION_RESULT = 16;
+  MCP_SERVER_REQUEST_STARTED = 17;
+  MCP_SERVER_RESPONSE = 18;
+  MCP_NOTIFICATION = 19;
+  USE_MCP_SERVER_SAY = 20;
+  DIFF_ERROR = 21;
+  DELETED_API_REQS = 22;
+  CODEMARIEIGNORE_ERROR = 23;
+  CHECKPOINT_CREATED = 24;
+  LOAD_MCP_DOCUMENTATION = 25;
+  INFO = 26;
+  TASK_PROGRESS = 27;
+  ERROR_RETRY = 28;
+  GENERATE_EXPLANATION = 29;
+  HOOK_STATUS = 30;
+  HOOK_OUTPUT_STREAM = 31;
+  COMMAND_PERMISSION_DENIED = 32;
+  CONDITIONAL_RULES_APPLIED = 33;
+  SUBAGENT_STATUS = 34;
+  USE_SUBAGENTS_SAY = 35;
+  SUBAGENT_USAGE = 36;
+  ORCHESTRATION_EVENT = 37;
+}
+
+enum CodemarieSayToolType {
+  EDITED_EXISTING_FILE = 0;
+  NEW_FILE_CREATED = 1;
+  READ_FILE = 2;
+  LIST_FILES_TOP_LEVEL = 3;
+  LIST_FILES_RECURSIVE = 4;
+  LIST_CODE_DEFINITION_NAMES = 5;
+  SEARCH_FILES = 6;
+  WEB_FETCH = 7;
+  FILE_DELETED = 8;
+}
+
+enum BrowserAction {
+  LAUNCH = 0;
+  CLICK = 1;
+  TYPE = 2;
+  SCROLL_DOWN = 3;
+  SCROLL_UP = 4;
+  CLOSE = 5;
+}
+
+enum McpServerRequestType {
+  USE_MCP_TOOL = 0;
+  ACCESS_MCP_RESOURCE = 1;
+}
+
+enum CodemarieApiReqCancelReason {
+  STREAMING_FAILED = 0;
+  USER_CANCELLED = 1;
+  RETRIES_EXHAUSTED = 2;
+}
+
+message ConversationHistoryDeletedRange {
+  int32 start_index = 1;
+  int32 end_index = 2;
+}
+
+message CodemarieSayTool {
+  CodemarieSayToolType tool = 1;
+  string path = 2;
+  string diff = 3;
+  string content = 4;
+  string regex = 5;
+  string file_pattern = 6;
+  bool operation_is_located_in_workspace = 7;
+}
+
+message CodemarieSayBrowserAction {
+  BrowserAction action = 1;
+  string coordinate = 2;
+  string text = 3;
+}
+
+message BrowserActionResult {
+  string screenshot = 1;
+  string logs = 2;
+  string current_url = 3;
+  string current_mouse_position = 4;
+}
+
+message CodemarieAskUseMcpServer {
+  string server_name = 1;
+  McpServerRequestType type = 2;
+  string tool_name = 3;
+  string arguments = 4;
+  string uri = 5;
+}
+
+message CodemariePlanModeResponse {
+  string response = 1;
+  repeated string options = 2;
+  string selected = 3;
+}
+
+message CodemarieAskQuestion {
+  string question = 1;
+  repeated string options = 2;
+  string selected = 3;
+}
+
+message CodemarieAskNewTask {
+  string context = 1;
+}
+
+message ApiReqRetryStatus {
+  int32 attempt = 1;
+  int32 max_attempts = 2;
+  int32 delay_sec = 3;
+  string error_snippet = 4;
+}
+
+message CodemarieApiReqInfo {
+  string request = 1;
+  int32 tokens_in = 2;
+  int32 tokens_out = 3;
+  int32 cache_writes = 4;
+  int32 cache_reads = 5;
+  double cost = 6;
+  CodemarieApiReqCancelReason cancel_reason = 7;
+  string streaming_failed_message = 8;
+  ApiReqRetryStatus retry_status = 9;
+}
+
+message CodemarieModelInfo {
+  string provider_id = 1;
+  string model_id = 2;
+}
+
+message CodemarieMessage {
+  int64 ts = 1;
+  CodemarieMessageType type = 2;
+  CodemarieAsk ask = 3;
+  CodemarieSay say = 4;
+  string text = 5;
+  string reasoning = 6;
+  repeated string images = 7;
+  repeated string files = 8;
+  bool partial = 9;
+  string last_checkpoint_hash = 10;
+  bool is_checkpoint_checked_out = 11;
+  bool is_operation_outside_workspace = 12;
+  int32 conversation_history_index = 13;
+  ConversationHistoryDeletedRange conversation_history_deleted_range = 14;
+  WaveApprovalMetadata wave_approval_metadata = 24;
+  OrchestrationEventMetadata orchestration_event_metadata = 25;
+  CodemarieSayTool say_tool = 15;
+  CodemarieSayBrowserAction say_browser_action = 16;
+  BrowserActionResult browser_action_result = 17;
+  CodemarieAskUseMcpServer ask_use_mcp_server = 18;
+  CodemariePlanModeResponse plan_mode_response = 19;
+  CodemarieAskQuestion ask_question = 20;
+  CodemarieAskNewTask ask_new_task = 21;
+  CodemarieApiReqInfo api_req_info = 22;
+  CodemarieModelInfo model_info = 23;
+}
+
+message WaveApprovalAction {
+  string type = 1;
+  string file = 2;
+  string description = 3;
+}
+
+message WaveApprovalAudit {
+  bool approved = 1;
+  repeated string violations = 2;
+  optional string suggestion = 3;
+}
+
+message WaveApprovalTaskPlan {
+  repeated WaveApprovalAction actions = 1;
+}
+
+message WaveApprovalTask {
+  string id = 1;
+  string description = 2;
+  WaveApprovalTaskPlan plan = 3;
+  optional WaveApprovalAudit audit = 4;
+}
+
+message WaveApprovalMetadata {
+  string wave_id = 1;
+  optional string stream_id = 2;
+  repeated WaveApprovalTask tasks = 3;
+}
+
+message OrchestrationEventMetadata {
+  string event = 1;
+  string type = 2;
+  optional string stream_id = 3;
+  optional string worker_name = 4;
+  optional string task_id = 5;
+  optional string details = 6;
+  optional int32 total_tasks = 7;
+  double timestamp = 8;
+}
+
+message ShowWebviewEvent {
+  bool preserve_editor_focus = 1;
+}
+
+message UiEvent {
+  string type = 1;
+  optional string data_json = 2;
+}

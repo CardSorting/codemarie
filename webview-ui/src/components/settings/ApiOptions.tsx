@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { PLATFORM_CONFIG, PlatformType } from "@/config/platform.config"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useInterval } from "@/hooks/useLifecycle"
-import { ModelsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { OPENROUTER_MODEL_PICKER_Z_INDEX } from "./OpenRouterModelPicker"
 import { AnthropicProvider } from "./providers/AnthropicProvider"
 import { AskSageProvider } from "./providers/AskSageProvider"
@@ -109,7 +109,7 @@ const ApiOptions = ({
 	const requestLocalModels = useCallback(async () => {
 		if (selectedProvider === "ollama") {
 			try {
-				const response = await ModelsServiceClient.getOllamaModels(
+				const response = await SystemServiceClient.getOllamaModels(
 					StringRequest.create({
 						value: apiConfiguration?.ollamaBaseUrl || "",
 					}),

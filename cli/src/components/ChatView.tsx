@@ -107,15 +107,16 @@ import { combineHookSequences } from "@shared/combineHookSequences"
 import type { CodemarieAsk, CodemarieMessage } from "@shared/ExtensionMessage"
 import { getApiMetrics, getLastApiReqTotalTokens } from "@shared/getApiMetrics"
 import { EmptyRequest, StringRequest } from "@shared/proto/codemarie/common"
-import type { SlashCommandInfo } from "@shared/proto/codemarie/slash"
+import type { SlashCommandInfo } from "@shared/proto/codemarie/system"
 import { CLI_ONLY_COMMANDS } from "@shared/slashCommands"
 import { getProviderDefaultModelId, getProviderModelIdKey } from "@shared/storage"
 import type { Mode } from "@shared/storage/types"
+import { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { execSync } from "child_process"
 import { Box, Static, Text, useApp, useInput } from "ink"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Controller } from "@/core/controller"
-import { getAvailableSlashCommands } from "@/core/controller/slash/getAvailableSlashCommands"
+import { getAvailableSlashCommands } from "@/core/controller/system/getAvailableSlashCommands"
 import { showTaskWithId } from "@/core/controller/task/showTaskWithId"
 import { StateManager } from "@/core/storage/StateManager"
 import { telemetryService } from "@/services/telemetry"
@@ -597,7 +598,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
 	const workspacePath = useMemo(() => {
 		try {
-			const root = ctrl?.getWorkspaceManagerSync?.()?.getPrimaryRoot?.()
+			const root = ctrl?.getWorkspaceManager?.()?.getPrimaryRoot?.()
 			if (root?.path) {
 				return root.path
 			}
@@ -634,7 +635,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 			if (!ctrl) return
 			try {
 				const response = await getAvailableSlashCommands(ctrl, EmptyRequest.create())
-				const cliCommands = response.commands.filter((cmd) => cmd.cliCompatible !== false)
+				const cliCommands = response.commands.filter((cmd: SlashCommandInfo) => cmd.cliCompatible !== false)
 				// Add CLI-only commands (like /settings) that are handled locally
 				const cliOnlyCommands: SlashCommandInfo[] = CLI_ONLY_COMMANDS.map((cmd) => ({
 					name: cmd.name,
@@ -829,7 +830,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
 	// Send response to ask message
 	const sendAskResponse = useCallback(
-		async (responseType: string, text?: string) => {
+		async (responseType: CodemarieAskResponse, text?: string) => {
 			if (!ctrl?.task || !pendingAsk) return
 
 			// Expand any pasted text placeholders

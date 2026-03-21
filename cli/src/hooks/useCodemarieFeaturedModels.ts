@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { refreshCodemarieRecommendedModels } from "@/core/controller/models/refreshCodemarieRecommendedModels"
+import { refreshCodemarieRecommendedModels } from "@/core/controller/system/refreshCodemarieRecommendedModels"
 import {
 	type FeaturedModel,
 	getAllFeaturedModels,

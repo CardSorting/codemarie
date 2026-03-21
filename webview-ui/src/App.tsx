@@ -14,7 +14,7 @@ import { useAuth } from "./context/AuthContext"
 import { useGlobalState } from "./context/GlobalStateContext"
 import { useNavigation } from "./context/NavigationContext"
 import { Providers } from "./Providers"
-import { UiServiceClient } from "./services/protobus-client"
+import { SystemServiceClient } from "./services/protobus-client"
 
 const AppContent = () => {
 	const { didHydrateState, showWelcome, shouldShowAnnouncement, onboardingModels, setState } = useGlobalState()
@@ -43,7 +43,7 @@ const AppContent = () => {
 	useEffect(() => {
 		if (shouldShowAnnouncement) {
 			// Use the Protobus client instead of direct WebviewMessage
-			UiServiceClient.onDidShowAnnouncement({} as EmptyRequest)
+			SystemServiceClient.onDidShowAnnouncement({} as EmptyRequest)
 				.then((response: Boolean) => {
 					setShouldShowAnnouncement(response.value)
 				})

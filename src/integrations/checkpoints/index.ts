@@ -1,6 +1,6 @@
 import { ContextManager } from "@core/context/context-management/ContextManager"
 import { FileContextTracker } from "@core/context/context-tracking/FileContextTracker"
-import { sendRelinquishControlEvent } from "@core/controller/ui/subscribeToRelinquishControl"
+import { sendUiEvent, UiEventType } from "@core/controller/system/UiEventsService"
 import { ensureTaskDirectoryExists } from "@core/storage/disk"
 import { WorkspaceRootManager } from "@core/workspace/WorkspaceRootManager"
 import CheckpointTracker from "@integrations/checkpoints/CheckpointTracker"
@@ -399,7 +399,7 @@ export class TaskCheckpointManager implements ICheckpointManager {
 					checkpointManagerStateUpdate.conversationHistoryDeletedRange = this.state.conversationHistoryDeletedRange
 				}
 			} else {
-				sendRelinquishControlEvent()
+				sendUiEvent(UiEventType.RELINQUISH_CONTROL)
 
 				if (this.state.checkpointManagerErrorMessage !== undefined) {
 					checkpointManagerStateUpdate.checkpointManagerErrorMessage = this.state.checkpointManagerErrorMessage
@@ -410,7 +410,7 @@ export class TaskCheckpointManager implements ICheckpointManager {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Unknown error"
 			Logger.error(`[TaskCheckpointManager] Failed to restore checkpoint for task ${this.task.taskId}:`, errorMessage)
-			sendRelinquishControlEvent()
+			sendUiEvent(UiEventType.RELINQUISH_CONTROL)
 			return {
 				checkpointManagerErrorMessage: errorMessage,
 			}
@@ -424,7 +424,7 @@ export class TaskCheckpointManager implements ICheckpointManager {
 	 */
 	async presentMultifileDiff(messageTs: number, seeNewChangesSinceLastTaskCompletion: boolean): Promise<void> {
 		const relinquishButton = () => {
-			sendRelinquishControlEvent()
+			sendUiEvent(UiEventType.RELINQUISH_CONTROL)
 		}
 
 		try {

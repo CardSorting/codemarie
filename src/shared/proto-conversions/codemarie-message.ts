@@ -8,7 +8,7 @@ import {
 	CodemarieMessageType,
 	CodemarieSay,
 	CodemarieMessage as ProtoCodemarieMessage,
-} from "@shared/proto/codemarie/ui"
+} from "@shared/proto/codemarie/system"
 
 // Helper function to convert CodemarieAsk string to enum
 function convertCodemarieAskToProtoEnum(ask: AppCodemarieAsk | undefined): CodemarieAsk | undefined {
@@ -73,7 +73,8 @@ function convertProtoEnumToCodemarieAsk(ask: CodemarieAsk): AppCodemarieAsk | un
 		[CodemarieAsk.WAVE_APPROVAL]: "wave_approval",
 	}
 
-	return mapping[ask]
+	const result = (mapping as Record<number, AppCodemarieAsk>)[ask]
+	return result
 }
 
 // Helper function to convert CodemarieSay string to enum
@@ -176,7 +177,8 @@ function convertProtoEnumToCodemarieSay(say: CodemarieSay): AppCodemarieSay | un
 		[CodemarieSay.ORCHESTRATION_EVENT]: "orchestration_event",
 	}
 
-	return mapping[say]
+	const result = (mapping as Record<number, AppCodemarieSay>)[say]
+	return result
 }
 
 /**
@@ -231,11 +233,11 @@ export function convertCodemarieMessageToProto(message: AppCodemarieMessage): Pr
 			? {
 					waveId: message.waveApprovalMetadata.waveId,
 					streamId: message.waveApprovalMetadata.streamId,
-					tasks: message.waveApprovalMetadata.tasks.map((task) => ({
+					tasks: message.waveApprovalMetadata.tasks.map((task: any) => ({
 						id: task.id,
 						description: task.description,
 						plan: {
-							actions: task.plan.actions.map((action) => ({
+							actions: task.plan.actions.map((action: any) => ({
 								type: action.type,
 								file: action.file,
 								description: action.description,
@@ -335,12 +337,12 @@ export function convertProtoToCodemarieMessage(protoMessage: ProtoCodemarieMessa
 		message.waveApprovalMetadata = {
 			waveId: protoMessage.waveApprovalMetadata.waveId,
 			streamId: protoMessage.waveApprovalMetadata.streamId,
-			tasks: protoMessage.waveApprovalMetadata.tasks.map((task) => ({
+			tasks: protoMessage.waveApprovalMetadata.tasks.map((task: any) => ({
 				id: task.id,
 				description: task.description,
 				plan: {
 					actions:
-						task.plan?.actions.map((action) => ({
+						task.plan?.actions.map((action: any) => ({
 							type: action.type,
 							file: action.file,
 							description: action.description,

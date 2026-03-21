@@ -237,7 +237,7 @@ export const App: React.FC<AppProps> = ({
 
 		case "task":
 		case "welcome":
-			content = (
+			content = controller ? (
 				<TaskContextProvider controller={controller}>
 					{jsonOutput ? (
 						<TaskJsonView onComplete={onComplete} onError={onError} taskId={selectedTaskId} verbose={verbose} />
@@ -262,7 +262,7 @@ export const App: React.FC<AppProps> = ({
 						/>
 					)}
 				</TaskContextProvider>
-			)
+			) : null
 			break
 
 		case "checkpoints":

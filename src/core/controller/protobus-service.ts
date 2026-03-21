@@ -5,6 +5,7 @@ import { StreamingResponseHandler } from "./protobus-handler"
 /**
  * Generic type for service method handlers
  */
+// biome-ignore lint/suspicious/noExplicitAny: message and response can be any proto message
 export type ServiceMethodHandler = (controller: Controller, message: any) => Promise<any>
 
 /**
@@ -12,7 +13,9 @@ export type ServiceMethodHandler = (controller: Controller, message: any) => Pro
  */
 export type StreamingMethodHandler = (
 	controller: Controller,
+	// biome-ignore lint/suspicious/noExplicitAny: message can be any proto message
 	message: any,
+	// biome-ignore lint/suspicious/noExplicitAny: responseStream can be any proto message
 	responseStream: StreamingResponseHandler<any>,
 	requestId?: string,
 ) => Promise<void>
@@ -85,6 +88,7 @@ export class ServiceRegistry {
 	 * @param message The request message
 	 * @returns The response message
 	 */
+	// biome-ignore lint/suspicious/noExplicitAny: message and return can be any proto message
 	async handleRequest(controller: Controller, method: string, message: any): Promise<any> {
 		const handler = this.methodRegistry[method]
 
@@ -109,7 +113,9 @@ export class ServiceRegistry {
 	async handleStreamingRequest(
 		controller: Controller,
 		method: string,
+		// biome-ignore lint/suspicious/noExplicitAny: message can be any proto message
 		message: any,
+		// biome-ignore lint/suspicious/noExplicitAny: responseStream can be any proto message
 		responseStream: StreamingResponseHandler<any>,
 		requestId?: string,
 	): Promise<void> {
@@ -138,13 +144,16 @@ export function createServiceRegistry(serviceName: string) {
 		registerMethod: (methodName: string, handler: ServiceMethodHandler | StreamingMethodHandler, metadata?: MethodMetadata) =>
 			registry.registerMethod(methodName, handler, metadata),
 
+		// biome-ignore lint/suspicious/noExplicitAny: message and return can be any proto message
 		handleRequest: (controller: Controller, method: string, message: any) =>
 			registry.handleRequest(controller, method, message),
 
 		handleStreamingRequest: (
 			controller: Controller,
 			method: string,
+			// biome-ignore lint/suspicious/noExplicitAny: message can be any proto message
 			message: any,
+			// biome-ignore lint/suspicious/noExplicitAny: responseStream can be any proto message
 			responseStream: StreamingResponseHandler<any>,
 			requestId?: string,
 		) => registry.handleStreamingRequest(controller, method, message, responseStream, requestId),

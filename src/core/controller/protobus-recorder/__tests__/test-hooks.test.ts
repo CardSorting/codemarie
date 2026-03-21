@@ -44,6 +44,7 @@ describe("test-hooks", () => {
 	it("should execute hook and call recorder methods", async () => {
 		const mockController = {
 			getStateToPostToWebview: sinon.stub().returns({}),
+			// biome-ignore lint/suspicious/noExplicitAny: test mock
 		} as any as Controller
 
 		const hooks = testHooks(mockController)

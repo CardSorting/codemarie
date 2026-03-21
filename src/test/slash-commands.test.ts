@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, it } from "mocha"
 import "should"
 import * as sinon from "sinon"
 import { Controller } from "../core/controller"
-import { getAvailableSlashCommands } from "../core/controller/slash/getAvailableSlashCommands"
+import { getAvailableSlashCommands } from "../core/controller/system/getAvailableSlashCommands"
 import { EmptyRequest } from "../shared/proto/codemarie/common"
 import { BASE_SLASH_COMMANDS } from "../shared/slashCommands"
 

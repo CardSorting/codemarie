@@ -18,6 +18,7 @@ export interface HostBridgeClientProvider {
 /**
  * Callback interface for streaming requests
  */
+// biome-ignore lint/suspicious/noExplicitAny: T can be any
 export interface StreamingCallbacks<T = any> {
 	onResponse: (response: T) => void
 	onError?: (error: Error) => void

@@ -1,4 +1,4 @@
-import { ApiFormat } from "@shared/proto/codemarie/models"
+import { ApiFormat } from "@shared/proto/codemarie/common"
 import * as assert from "assert"
 import type { ITelemetryProvider, TelemetryProperties, TelemetrySettings } from "../providers/ITelemetryProvider"
 import { TelemetryMetadata, TelemetryService } from "../TelemetryService"

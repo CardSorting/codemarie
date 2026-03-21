@@ -13,7 +13,7 @@ export interface RequestInfo {
 	/**
 	 * Optional metadata about the request
 	 */
-	metadata?: any
+	metadata?: unknown
 
 	/**
 	 * Timestamp when the request was registered
@@ -23,6 +23,7 @@ export interface RequestInfo {
 	/**
 	 * The streaming response handler for this request
 	 */
+	// biome-ignore lint/suspicious/noExplicitAny: Message type can be any proto message
 	responseStream?: StreamingResponseHandler<any>
 }
 
@@ -46,7 +47,9 @@ export class ProtobusRequestRegistry {
 	public registerRequest(
 		requestId: string,
 		cleanup: () => void,
+		// biome-ignore lint/suspicious/noExplicitAny: Metadata and stream can be any proto message
 		metadata?: any,
+		// biome-ignore lint/suspicious/noExplicitAny: Metadata and stream can be any proto message
 		responseStream?: StreamingResponseHandler<any>,
 	): void {
 		this.activeRequests.set(requestId, {

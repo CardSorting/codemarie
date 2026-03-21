@@ -1,4 +1,4 @@
-import { sendCheckpointEvent } from "@core/controller/checkpoints/subscribeToCheckpoints"
+import { sendCheckpointEvent } from "@core/controller/system/subscribeToCheckpoints"
 import fs from "fs/promises"
 import { isBinaryFile } from "isbinaryfile"
 import * as path from "path"

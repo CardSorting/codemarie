@@ -5,7 +5,7 @@ import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mc
 import { useEffect, useState } from "react"
 import styled from "styled-components"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import ViewHeader from "../../common/ViewHeader"
 import AddRemoteServerForm from "./tabs/add-server/AddRemoteServerForm"
 import ConfigureServersView from "./tabs/installed/ConfigureServersView"
@@ -39,7 +39,7 @@ const McpConfigurationView = ({ onDone, initialTab }: McpViewProps) => {
 
 	useEffect(() => {
 		if (showMarketplace) {
-			McpServiceClient.refreshMcpMarketplace(EmptyRequest.create({}))
+			SystemServiceClient.refreshMcpMarketplace(EmptyRequest.create({}))
 				.then((response) => {
 					setMcpMarketplaceCatalog(response)
 				})
@@ -47,7 +47,7 @@ const McpConfigurationView = ({ onDone, initialTab }: McpViewProps) => {
 					console.error("Error refreshing MCP marketplace:", error)
 				})
 
-			McpServiceClient.getLatestMcpServers(EmptyRequest.create({}))
+			SystemServiceClient.getLatestMcpServers(EmptyRequest.create({}))
 				.then((response: McpServers) => {
 					if (response.mcpServers) {
 						const mcpServers = convertProtoMcpServersToMcpServers(response.mcpServers)

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 import * as vscodemodels from "vscode"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useInterval } from "@/hooks/useLifecycle"
-import { ModelsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { DROPDOWN_Z_INDEX, DropdownContainer } from "../ApiOptions"
 import { getModeSpecificFields } from "../utils/providerUtils"
 import { useApiConfigurationHandlers } from "../utils/useApiConfigurationHandlers"
@@ -24,7 +24,7 @@ export const VSCodeLmProvider = ({ currentMode }: VSCodeLmProviderProps) => {
 	// Poll VS Code LM models
 	const requestVsCodeLmModels = useCallback(async () => {
 		try {
-			const response = await ModelsServiceClient.getVsCodeLmModels(EmptyRequest.create({}))
+			const response = await SystemServiceClient.getVsCodeLmModels(EmptyRequest.create({}))
 			if (response?.models) {
 				setVsCodeLmModels(response.models)
 			}

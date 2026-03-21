@@ -3,14 +3,15 @@
  * Provides access to ExtensionState and task controller
  */
 
-import { registerPartialMessageCallback } from "@core/controller/ui/subscribeToPartialMessage"
+import { Controller } from "@core/controller"
 import type { CodemarieMessage, ExtensionState } from "@shared/ExtensionMessage"
+import { SystemUpdate } from "@shared/proto/codemarie/system"
 import { convertProtoToCodemarieMessage } from "@shared/proto-conversions/codemarie-message"
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react"
 
 interface TaskContextType {
 	state: Partial<ExtensionState>
-	controller: any
+	controller: Controller
 	isComplete: boolean
 	setIsComplete: (complete: boolean) => void
 	lastError: string | null
@@ -21,7 +22,7 @@ interface TaskContextType {
 const TaskContext = createContext<TaskContextType | undefined>(undefined)
 
 interface TaskContextProviderProps {
-	controller: any
+	controller: Controller
 	children: ReactNode
 }
 
@@ -66,21 +67,26 @@ export const TaskContextProvider: React.FC<TaskContextProviderProps> = ({ contro
 			await handleStateUpdate()
 		}
 
-		// Subscribe to partial message events (for streaming updates)
-		const unsubscribePartial = registerPartialMessageCallback((protoMessage) => {
-			const updatedMessage = convertProtoToCodemarieMessage(protoMessage) as CodemarieMessage
-			setState((prevState) => {
-				const messages = prevState.codemarieMessages || []
-				// Find and update the message by timestamp
-				const index = messages.findIndex((m) => m.ts === updatedMessage.ts)
-				if (index >= 0) {
-					const newMessages = [...messages]
-					newMessages[index] = updatedMessage
-					return { ...prevState, codemarieMessages: newMessages }
-				}
-				return prevState
-			})
-		})
+		// Subscribe to partial message events (for streaming updates) via unified system stream
+		const partialMessageHandler = (update: SystemUpdate) => {
+			if (update.partialMessage) {
+				const updatedMessage = convertProtoToCodemarieMessage(update.partialMessage) as CodemarieMessage
+				setState((prevState) => {
+					const messages = prevState.codemarieMessages || []
+					// Find and update the message by timestamp
+					const index = messages.findIndex((m) => m.ts === updatedMessage.ts)
+					if (index >= 0) {
+						const newMessages = [...messages]
+						newMessages[index] = updatedMessage
+						return { ...prevState, codemarieMessages: newMessages }
+					}
+					return prevState
+				})
+			}
+		}
+
+		const { addSystemSubscription } = require("@core/controller/system/SystemUpdatesEmitter")
+		addSystemSubscription(partialMessageHandler)
 
 		// Get initial state
 		handleStateUpdate()
@@ -88,7 +94,8 @@ export const TaskContextProvider: React.FC<TaskContextProviderProps> = ({ contro
 		// Cleanup
 		return () => {
 			controller.postStateToWebview = originalPostState
-			unsubscribePartial()
+			const { removeSystemSubscription } = require("@core/controller/system/SystemUpdatesEmitter")
+			removeSystemSubscription(partialMessageHandler)
 		}
 	}, [controller])
 

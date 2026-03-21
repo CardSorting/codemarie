@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useNavigation } from "@/context/NavigationContext"
 import { useClickAway, useWindowSize } from "@/hooks/useWindow"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 const ServersToggleModal: React.FC = () => {
 	const { mcpServers, setMcpServers } = useGlobalState()
@@ -23,7 +23,7 @@ const ServersToggleModal: React.FC = () => {
 
 	useEffect(() => {
 		if (isVisible) {
-			McpServiceClient.getLatestMcpServers(EmptyRequest.create({}))
+			SystemServiceClient.getLatestMcpServers(EmptyRequest.create({}))
 				.then((response: McpServers) => {
 					if (response.mcpServers) {
 						const mcpServers = convertProtoMcpServersToMcpServers(response.mcpServers)

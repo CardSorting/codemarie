@@ -3,7 +3,7 @@ import { Mode } from "@shared/storage/types"
 import { VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useState } from "react"
 import { useExtensionState } from "@/context/ExtensionStateContext"
-import { ModelsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { ModelInfoView } from "../common/ModelInfoView"
 import SapAiCoreModelPicker from "../SapAiCoreModelPicker"
@@ -60,7 +60,7 @@ export const SapAiCoreProvider = ({ showModelOptions, isPopup, currentMode }: Sa
 		setModelError(null)
 
 		try {
-			const response = await ModelsServiceClient.getSapAiCoreModels(
+			const response = await SystemServiceClient.getSapAiCoreModels(
 				SapAiCoreModelsRequest.create({
 					clientId: apiConfiguration.sapAiCoreClientId,
 					clientSecret: apiConfiguration.sapAiCoreClientSecret,

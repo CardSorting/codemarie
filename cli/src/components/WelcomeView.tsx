@@ -6,6 +6,7 @@
 
 import { Box, Text, useInput } from "ink"
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Controller } from "@/core/controller"
 import { StateManager } from "@/core/storage/StateManager"
 import type { ApiProvider } from "@/shared/api"
 import { getProviderDefaultModelId, getProviderModelIdKey, Mode, SettingsKey } from "@/shared/storage"
@@ -26,7 +27,7 @@ import { FileMentionMenu } from "./FileMentionMenu"
 interface WelcomeViewProps {
 	onSubmit: (prompt: string, imagePaths: string[]) => void
 	onExit?: () => void
-	controller?: any
+	controller?: Controller
 }
 
 // ASCII art Codemarie logo (Sakura Petal)
@@ -97,7 +98,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({ onSubmit, onExit, cont
 
 	const workspacePath = useMemo(() => {
 		try {
-			const root = controller?.getWorkspaceManagerSync?.()?.getPrimaryRoot?.()
+			const root = controller?.getWorkspaceManager?.()?.getPrimaryRoot?.()
 			if (root?.path) {
 				return root.path
 			}

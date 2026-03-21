@@ -239,6 +239,7 @@ export async function updateSettingsCli(controller: Controller, request: UpdateS
 
 				// Call the updated setDefaultTerminalProfile method that returns closed terminal info
 				// Use `as any` to handle type incompatibility between VSCode's TerminalInfo and standalone TerminalInfo
+				// biome-ignore lint/suspicious/noExplicitAny: terminal manager returns complex status object
 				const result = controller.task.terminalManager.setDefaultTerminalProfile(profileId) as any
 				closedCount = result.closedCount
 				busyTerminalsCount = result.busyTerminals?.length ?? 0

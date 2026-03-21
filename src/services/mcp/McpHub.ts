@@ -1,5 +1,5 @@
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
-import { sendMcpServersUpdate } from "@core/controller/mcp/subscribeToMcpServers"
+import { sendMcpServersUpdate } from "@core/controller/system/subscribeToMcpServers"
 import { getMcpSettingsFilePath as getMcpSettingsFilePathHelper } from "@core/storage/disk"
 import { StateManager } from "@core/storage/StateManager"
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"

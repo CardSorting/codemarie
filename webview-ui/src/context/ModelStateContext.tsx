@@ -14,7 +14,7 @@ import {
 	requestyDefaultModelId,
 	requestyDefaultModelInfo,
 } from "../../../src/shared/api"
-import { ModelsServiceClient } from "../services/protobus-client"
+import { SystemServiceClient } from "../services/protobus-client"
 import { useGlobalState } from "./GlobalStateContext"
 
 export interface ModelStateContextType {
@@ -69,7 +69,7 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	const [openAiModels, _setOpenAiModels] = useState<string[]>([])
 
 	const refreshOpenRouterModels = useCallback(() => {
-		ModelsServiceClient.refreshOpenRouterModelsRpc(EmptyRequest.create({}))
+		SystemServiceClient.refreshOpenRouterModelsRpc(EmptyRequest.create({}))
 			.then((response: OpenRouterCompatibleModelInfo) => {
 				const models = fromProtobufModels(response.models)
 				setOpenRouterModels({
@@ -81,7 +81,7 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	}, [])
 
 	const refreshHicapModels = useCallback(() => {
-		ModelsServiceClient.refreshHicapModels(EmptyRequest.create({}))
+		SystemServiceClient.refreshHicapModels(EmptyRequest.create({}))
 			.then((response: OpenRouterCompatibleModelInfo) => {
 				setHicapModels({ ...response.models })
 			})
@@ -89,7 +89,7 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	}, [])
 
 	const refreshLiteLlmModels = useCallback(() => {
-		return ModelsServiceClient.refreshLiteLlmModelsRpc(EmptyRequest.create({}))
+		return SystemServiceClient.refreshLiteLlmModelsRpc(EmptyRequest.create({}))
 			.then((response: OpenRouterCompatibleModelInfo) => {
 				setLiteLlmModels(fromProtobufModels(response.models))
 			})
@@ -97,7 +97,7 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	}, [])
 
 	const refreshBasetenModels = useCallback(() => {
-		ModelsServiceClient.refreshBasetenModelsRpc(EmptyRequest.create({}))
+		SystemServiceClient.refreshBasetenModelsRpc(EmptyRequest.create({}))
 			.then((response) => {
 				setBasetenModels({
 					[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
@@ -108,7 +108,7 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	}, [])
 
 	const refreshVercelAiGatewayModels = useCallback(() => {
-		ModelsServiceClient.refreshVercelAiGatewayModelsRpc(EmptyRequest.create({}))
+		SystemServiceClient.refreshVercelAiGatewayModelsRpc(EmptyRequest.create({}))
 			.then((response: OpenRouterCompatibleModelInfo) => {
 				setVercelAiGatewayModels(fromProtobufModels(response.models))
 			})
@@ -116,7 +116,7 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	}, [])
 
 	const refreshCodemarieModels = useCallback(() => {
-		ModelsServiceClient.refreshCodemarieModelsRpc(EmptyRequest.create({}))
+		SystemServiceClient.refreshCodemarieModelsRpc(EmptyRequest.create({}))
 			.then((response: OpenRouterCompatibleModelInfo) => {
 				const models = fromProtobufModels(response.models)
 				setCodemarieModels((prev) => (Object.keys(models).length > 0 ? models : (prev ?? null)))

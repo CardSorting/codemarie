@@ -1,0 +1,270 @@
+src/core/api/providers/openai-codex.ts:192:12 lint/suspicious/noExplicitAny ━━━━━━━━━━
+
+  i Unexpected any. Specify a different type.
+  
+    190 │ 					parameters: tool.function.parameters,
+    191 │ 					strict: tool.function.strict ?? true,
+  > 192 │ 				})) as any[]
+        │ 				       ^^^
+    193 │ 		}
+    194 │ 
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/core/api/providers/openai-codex.ts:242:38 lint/suspicious/noExplicitAny ━━━━━━━━━━
+
+  i Unexpected any. Specify a different type.
+  
+    240 │ 					})
+    241 │ 
+  > 242 │ 				const stream = (await (client as any).responses.create(requestBody, {
+        │ 				                                 ^^^
+    243 │ 					signal: this.abortController.signal,
+    244 │ 					headers: codexHeaders,
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/core/api/providers/openai-codex.ts:247:27 lint/suspicious/noExplicitAny ━━━━━━━━━━
+
+  i Unexpected any. Specify a different type.
+  
+    245 │ 				})) as AsyncIterable<OpenAI.Responses.ResponseStreamEvent>
+    246 │ 
+  > 247 │ 				if (typeof (stream as any)?.[Symbol.asyncIterator] !== "function") {
+        │ 				                      ^^^
+    248 │ 					throw new Error("OpenAI SDK did not return an AsyncIterable")
+    249 │ 				}
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+src/core/api/providers/openai-codex.ts:594:27 lint/suspicious/noExplicitAny ━━━━━━━━━━
+
+  i Unexpected any. Specify a different type.
+  
+    593 │ 	private async *processEvent(_event: OpenAI.Responses.ResponseStreamEvent, model: { id: string; info: ModelInfo }): ApiStream {
+  > 594 │ 		const event = _event as any
+        │ 		                        ^^^
+    595 │ 		// Handle text deltas
+    596 │ 		if (event?.type === "response.text.delta" || event?.type === "response.output_text.delta") {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+cli/src/components/ModelPicker.tsx:6:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━
+
+  × The imports and exports are not sorted.
+  
+    4 │  */
+    5 │ 
+  > 6 │ import { Box, Text } from "ink"
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    7 │ import Spinner from "ink-spinner"
+    8 │ import React, { useEffect, useMemo, useState } from "react"
+  
+  i Safe fix: Organize Imports (Biome)
+  
+      4   4 │    */
+      5   5 │   
+      6     │ - import·{·Box,·Text·}·from·"ink"
+      7     │ - import·Spinner·from·"ink-spinner"
+      8     │ - import·React,·{·useEffect,·useMemo,·useState·}·from·"react"
+      9     │ - import·{·refreshModels·as·refreshOcaModels·}·from·"@/core/controller/system/refreshModels"
+     10     │ - import·{·refreshOpenRouterModels·}·from·"@/core/controller/system/refreshOpenRouterModels"
+     11     │ - import·{
+     12     │ - → anthropicDefaultModelId,
+     13     │ - → anthropicModels,
+     14     │ - → askSageDefaultModelId,
+     15     │ - → askSageModels,
+     16     │ - → basetenDefaultModelId,
+     17     │ - → basetenModels,
+     18     │ - → bedrockDefaultModelId,
+     19     │ - → bedrockModels,
+     20     │ - → cerebrasDefaultModelId,
+     21     │ - → cerebrasModels,
+     22     │ - → claudeCodeDefaultModelId,
+     23     │ - → claudeCodeModels,
+     24     │ - → deepSeekDefaultModelId,
+     25     │ - → deepSeekModels,
+     26     │ - → doubaoDefaultModelId,
+     27     │ - → doubaoModels,
+     28     │ - → fireworksDefaultModelId,
+     29     │ - → fireworksModels,
+     30     │ - → geminiDefaultModelId,
+     31     │ - → geminiModels,
+     32     │ - → groqDefaultModelId,
+     33     │ - → groqModels,
+     34     │ - → huaweiCloudMaasDefaultModelId,
+     35     │ - → huaweiCloudMaasModels,
+     36     │ - → huggingFaceDefaultModelId,
+     37     │ - → huggingFaceModels,
+     38     │ - → internationalQwenDefaultModelId,
+     39     │ - → internationalQwenModels,
+     40     │ - → internationalZAiDefaultModelId,
+     41     │ - → internationalZAiModels,
+     42     │ - → minimaxDefaultModelId,
+     43     │ - → minimaxModels,
+     44     │ - → mistralDefaultModelId,
+     45     │ - → mistralModels,
+     46     │ - → moonshotDefaultModelId,
+     47     │ - → moonshotModels,
+     48     │ - → nebiusDefaultModelId,
+     49     │ - → nebiusModels,
+     50     │ - → nousResearchDefaultModelId,
+     51     │ - → nousResearchModels,
+     52     │ - → openAiCodexDefaultModelId,
+     53     │ - → openAiCodexModels,
+     54     │ - → openAiNativeDefaultModelId,
+     55     │ - → openAiNativeModels,
+     56     │ - → qwenCodeDefaultModelId,
+     57     │ - → qwenCodeModels,
+     58     │ - → sambanovaDefaultModelId,
+     59     │ - → sambanovaModels,
+     60     │ - → sapAiCoreDefaultModelId,
+     61     │ - → sapAiCoreModels,
+     62     │ - → vertexDefaultModelId,
+     63     │ - → vertexModels,
+     64     │ - → xaiDefaultModelId,
+     65     │ - → xaiModels,
+     66     │ - }·from·"@/shared/api"
+     67     │ - import·{·ApiProvider·}·from·"@/shared/proto/codemarie/common"
+     68     │ - import·{·Controller·}·from·"@core/controller"
+          6 │ + import·{·Controller·}·from·"@core/controller"
+          7 │ + import·{·Box,·Text·}·from·"ink"
+          8 │ + import·Spinner·from·"ink-spinner"
+          9 │ + import·React,·{·useEffect,·useMemo,·useState·}·from·"react"
+         10 │ + import·{·refreshModels·as·refreshOcaModels·}·from·"@/core/controller/system/refreshModels"
+         11 │ + import·{·refreshOpenRouterModels·}·from·"@/core/controller/system/refreshOpenRouterModels"
+         12 │ + import·{
+         13 │ + → anthropicDefaultModelId,
+         14 │ + → anthropicModels,
+         15 │ + → askSageDefaultModelId,
+         16 │ + → askSageModels,
+         17 │ + → basetenDefaultModelId,
+         18 │ + → basetenModels,
+         19 │ + → bedrockDefaultModelId,
+         20 │ + → bedrockModels,
+         21 │ + → cerebrasDefaultModelId,
+         22 │ + → cerebrasModels,
+         23 │ + → claudeCodeDefaultModelId,
+         24 │ + → claudeCodeModels,
+         25 │ + → deepSeekDefaultModelId,
+         26 │ + → deepSeekModels,
+         27 │ + → doubaoDefaultModelId,
+         28 │ + → doubaoModels,
+         29 │ + → fireworksDefaultModelId,
+         30 │ + → fireworksModels,
+         31 │ + → geminiDefaultModelId,
+         32 │ + → geminiModels,
+         33 │ + → groqDefaultModelId,
+         34 │ + → groqModels,
+         35 │ + → huaweiCloudMaasDefaultModelId,
+         36 │ + → huaweiCloudMaasModels,
+         37 │ + → huggingFaceDefaultModelId,
+         38 │ + → huggingFaceModels,
+         39 │ + → internationalQwenDefaultModelId,
+         40 │ + → internationalQwenModels,
+         41 │ + → internationalZAiDefaultModelId,
+         42 │ + → internationalZAiModels,
+         43 │ + → minimaxDefaultModelId,
+         44 │ + → minimaxModels,
+         45 │ + → mistralDefaultModelId,
+         46 │ + → mistralModels,
+         47 │ + → moonshotDefaultModelId,
+         48 │ + → moonshotModels,
+         49 │ + → nebiusDefaultModelId,
+         50 │ + → nebiusModels,
+         51 │ + → nousResearchDefaultModelId,
+         52 │ + → nousResearchModels,
+         53 │ + → openAiCodexDefaultModelId,
+         54 │ + → openAiCodexModels,
+         55 │ + → openAiNativeDefaultModelId,
+         56 │ + → openAiNativeModels,
+         57 │ + → qwenCodeDefaultModelId,
+         58 │ + → qwenCodeModels,
+         59 │ + → sambanovaDefaultModelId,
+         60 │ + → sambanovaModels,
+         61 │ + → sapAiCoreDefaultModelId,
+         62 │ + → sapAiCoreModels,
+         63 │ + → vertexDefaultModelId,
+         64 │ + → vertexModels,
+         65 │ + → xaiDefaultModelId,
+         66 │ + → xaiModels,
+         67 │ + }·from·"@/shared/api"
+         68 │ + import·{·ApiProvider·}·from·"@/shared/proto/codemarie/common"
+     69  69 │   import { filterOpenRouterModelIds } from "@/shared/utils/model-filters"
+     70  70 │   import { COLORS } from "../constants/colors"
+  
+
+cli/src/context/TaskContext.tsx:7:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━
+
+  × The imports and exports are not sorted.
+  
+  > 7 │ import type { CodemarieMessage, ExtensionState } from "@shared/ExtensionMessage"
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    8 │ import { convertProtoToCodemarieMessage } from "@shared/proto-conversions/codemarie-message"
+    9 │ import { Controller } from "@core/controller"
+  
+  i Safe fix: Organize Imports (Biome)
+  
+      5   5 │   
+      6   6 │   
+      7     │ - import·type·{·CodemarieMessage,·ExtensionState·}·from·"@shared/ExtensionMessage"
+      8     │ - import·{·convertProtoToCodemarieMessage·}·from·"@shared/proto-conversions/codemarie-message"
+      9     │ - import·{·Controller·}·from·"@core/controller"
+     10     │ - import·{·SystemUpdate·}·from·"@shared/proto/codemarie/system"
+          7 │ + import·{·Controller·}·from·"@core/controller"
+          8 │ + import·type·{·CodemarieMessage,·ExtensionState·}·from·"@shared/ExtensionMessage"
+          9 │ + import·{·SystemUpdate·}·from·"@shared/proto/codemarie/system"
+         10 │ + import·{·convertProtoToCodemarieMessage·}·from·"@shared/proto-conversions/codemarie-message"
+     11  11 │   import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react"
+     12  12 │   
+  
+
+cli/src/context/TaskContext.tsx format ━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+      4   4 │    */
+      5   5 │   
+      6     │ - 
+      7   6 │   import type { CodemarieMessage, ExtensionState } from "@shared/ExtensionMessage"
+      8   7 │   import { convertProtoToCodemarieMessage } from "@shared/proto-conversions/codemarie-message"
+  
+
+src/core/api/providers/openai-codex.ts format ━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     58  58 │   	}
+     59  59 │   
+     60     │ - → private·normalizeUsage(usage:·OpenAI.Chat.Completions.ChatCompletion.Usage·|·undefined,·_model:·{·id:·string;·info:·ModelInfo·}):·ApiStreamUsageChunk·|·undefined·{
+         60 │ + → private·normalizeUsage(
+         61 │ + → → usage:·OpenAI.Chat.Completions.ChatCompletion.Usage·|·undefined,
+         62 │ + → → _model:·{·id:·string;·info:·ModelInfo·},
+         63 │ + → ):·ApiStreamUsageChunk·|·undefined·{
+     61  64 │   		if (!usage) {
+     62  65 │   			return undefined
+    ······· │ 
+    484 487 │   	}
+    485 488 │   
+    486     │ - → private·async·*makeCodexRequest(requestBody:·OpenAI.Responses.ResponseCreateParamsStreaming,·model:·{·id:·string;·info:·ModelInfo·},·accessToken:·string):·ApiStream·{
+        489 │ + → private·async·*makeCodexRequest(
+        490 │ + → → requestBody:·OpenAI.Responses.ResponseCreateParamsStreaming,
+        491 │ + → → model:·{·id:·string;·info:·ModelInfo·},
+        492 │ + → → accessToken:·string,
+        493 │ + → ):·ApiStream·{
+    487 494 │   		const url = `${CODEX_API_BASE_URL}/responses`
+    488 495 │   
+  
+
+Checked 3 files in 146ms. No fixes applied.
+Found 4 errors.
+Found 4 infos.
+check ━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

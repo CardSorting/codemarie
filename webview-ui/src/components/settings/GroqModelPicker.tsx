@@ -7,7 +7,7 @@ import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "@/hooks/useLifecycle"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-import { ModelsServiceClient } from "../../services/protobus-client"
+import { SystemServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ModelInfoView } from "./common/ModelInfoView"
 import { getModeSpecificFields, normalizeApiConfiguration } from "./utils/providerUtils"
@@ -53,7 +53,7 @@ const GroqModelPicker: React.FC<GroqModelPickerProps> = ({ isPopup, currentMode 
 	}, [apiConfiguration, currentMode])
 
 	useMount(() => {
-		ModelsServiceClient.refreshGroqModelsRpc(EmptyRequest.create({}))
+		SystemServiceClient.refreshGroqModelsRpc(EmptyRequest.create({}))
 			.then((response) => {
 				setGroqModels({
 					[groqDefaultModelId]: groqModels[groqDefaultModelId],

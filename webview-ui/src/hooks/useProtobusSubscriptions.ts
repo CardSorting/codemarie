@@ -8,7 +8,7 @@ import { openRouterDefaultModelId, openRouterDefaultModelInfo } from "../../../s
 import { useGlobalState } from "../context/GlobalStateContext"
 import { useModels } from "../context/ModelStateContext"
 import { useNavigation } from "../context/NavigationContext"
-import { McpServiceClient, ModelsServiceClient, StateServiceClient, UiServiceClient } from "../services/protobus-client"
+import { StateServiceClient, SystemServiceClient } from "../services/protobus-client"
 
 export function useProtobusSubscriptions() {
 	const {
@@ -28,202 +28,151 @@ export function useProtobusSubscriptions() {
 
 	const { setOpenRouterModels, setLiteLlmModels } = useModels()
 
-	const stateSubscriptionRef = useRef<(() => void) | null>(null)
-	const mcpButtonUnsubscribeRef = useRef<(() => void) | null>(null)
-	const historyButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
-	const chatButtonUnsubscribeRef = useRef<(() => void) | null>(null)
-	const accountButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
-	const settingsButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
-	const worktreesButtonClickedSubscriptionRef = useRef<(() => void) | null>(null)
-	const partialMessageUnsubscribeRef = useRef<(() => void) | null>(null)
-	const mcpMarketplaceUnsubscribeRef = useRef<(() => void) | null>(null)
-	const openRouterModelsUnsubscribeRef = useRef<(() => void) | null>(null)
-	const liteLlmModelsUnsubscribeRef = useRef<(() => void) | null>(null)
-	const relinquishControlUnsubscribeRef = useRef<(() => void) | null>(null)
 	const lastStateJsonRef = useRef<string | null>(null)
-	const mcpServersSubscriptionRef = useRef<(() => void) | null>(null)
 
 	useEffect(() => {
-		// Set up state subscription
-		stateSubscriptionRef.current = StateServiceClient.subscribeToState(EmptyRequest.create({}), {
-			onResponse: (response) => {
-				if (response.stateJson && response.stateJson !== lastStateJsonRef.current) {
-					lastStateJsonRef.current = response.stateJson
+		// Single unified subscription for all system updates
+		const unsubscribe = SystemServiceClient.subscribeToSystemUpdates(EmptyRequest.create({}), {
+			onResponse: (update) => {
+				// 1. Handle State Updates
+				if (update.state) {
+					const response = update.state
+					setState((prevState) => {
+						let newStateData = prevState ? { ...prevState } : ({} as any)
+
+						if (response.stateJson) {
+							if (response.stateJson !== lastStateJsonRef.current) {
+								lastStateJsonRef.current = response.stateJson
+								try {
+									newStateData = JSON.parse(response.stateJson)
+								} catch (e) {
+									console.error("Error parsing full state JSON:", e)
+								}
+							}
+						}
+
+						const partialUpdates = (response as any).partialUpdates
+						if (partialUpdates && Object.keys(partialUpdates).length > 0) {
+							for (const [key, value] of Object.entries(partialUpdates)) {
+								try {
+									newStateData[key] = JSON.parse(value as string)
+								} catch (e) {
+									console.error(`Error parsing partial update for ${key}:`, e)
+								}
+							}
+						}
+
+						const incomingVersion = newStateData.autoApprovalSettings?.version ?? 1
+						const currentVersion = prevState?.autoApprovalSettings?.version ?? 1
+						const shouldUpdateAutoApproval = incomingVersion > currentVersion
+
+						if (newStateData.currentTaskItem?.id === prevState?.currentTaskItem?.id) {
+							newStateData.codemarieMessages = newStateData.codemarieMessages?.length
+								? newStateData.codemarieMessages
+								: prevState?.codemarieMessages
+						}
+
+						const finalState = {
+							...newStateData,
+							autoApprovalSettings: shouldUpdateAutoApproval
+								? newStateData.autoApprovalSettings
+								: prevState?.autoApprovalSettings,
+						}
+
+						if (!finalState.welcomeViewCompleted && !showWelcome) {
+							setShowWelcome(true)
+							setOnboardingModels(finalState.onboardingModels)
+						} else if (finalState.welcomeViewCompleted) {
+							setShowWelcome(false)
+							setOnboardingModels(undefined)
+						}
+
+						setDidHydrateState(true)
+						return finalState
+					})
+				}
+
+				// 2. Handle UI Events
+				if (update.uiEvent) {
+					const event = update.uiEvent
+					switch (event.type) {
+						case "mcp_button_clicked":
+							navigateToMcp()
+							break
+						case "history_button_clicked":
+							navigateToHistory()
+							break
+						case "chat_button_clicked":
+							navigateToChat()
+							break
+						case "settings_button_clicked":
+							navigateToSettings()
+							break
+						case "worktrees_button_clicked":
+							navigateToWorktrees()
+							break
+						case "account_button_clicked":
+							navigateToAccount()
+							break
+						case "relinquish_control":
+							onRelinquishControl()
+							break
+					}
+				}
+
+				// 3. Handle MCP Updates
+				if (update.mcpServers) {
+					setMcpServers(convertProtoMcpServersToMcpServers(update.mcpServers.mcpServers))
+				}
+
+				if (update.mcpMarketplace) {
+					setMcpMarketplaceCatalog(update.mcpMarketplace)
+				}
+
+				// 4. Handle Model Updates
+				if (update.openRouterModels) {
+					const models = fromProtobufModels(update.openRouterModels.models)
+					setOpenRouterModels({
+						[openRouterDefaultModelId]: openRouterDefaultModelInfo,
+						...models,
+					})
+				}
+
+				if (update.liteLlmModels) {
+					setLiteLlmModels(fromProtobufModels(update.liteLlmModels.models))
+				}
+
+				// 5. Handle Partial Messages
+				if (update.partialMessage) {
+					const protoMessage = update.partialMessage
 					try {
-						const stateData = JSON.parse(response.stateJson)
+						if (!protoMessage.ts || protoMessage.ts <= 0) return
+						const partialMessage = convertProtoToCodemarieMessage(protoMessage)
 						setState((prevState) => {
-							const incomingVersion = stateData.autoApprovalSettings?.version ?? 1
-							const currentVersion = prevState.autoApprovalSettings?.version ?? 1
-							const shouldUpdateAutoApproval = incomingVersion > currentVersion
-
-							if (stateData.currentTaskItem?.id === prevState.currentTaskItem?.id) {
-								stateData.codemarieMessages = stateData.codemarieMessages?.length
-									? stateData.codemarieMessages
-									: prevState.codemarieMessages
+							const lastIndex = findLastIndex(prevState.codemarieMessages, (msg) => msg.ts === partialMessage.ts)
+							if (lastIndex !== -1) {
+								const newCodemarieMessages = [...prevState.codemarieMessages]
+								newCodemarieMessages[lastIndex] = partialMessage
+								return { ...prevState, codemarieMessages: newCodemarieMessages }
 							}
-
-							const newState = {
-								...stateData,
-								autoApprovalSettings: shouldUpdateAutoApproval
-									? stateData.autoApprovalSettings
-									: prevState.autoApprovalSettings,
-							}
-
-							if (!newState.welcomeViewCompleted && !showWelcome) {
-								setShowWelcome(true)
-								setOnboardingModels(newState.onboardingModels)
-							} else if (newState.welcomeViewCompleted) {
-								setShowWelcome(false)
-								setOnboardingModels(undefined)
-							}
-
-							setDidHydrateState(true)
-							return newState
+							return prevState
 						})
 					} catch (error) {
-						console.error("Error parsing state JSON:", error)
+						console.error("Failed to process partial message:", error)
 					}
 				}
 			},
-			onError: (error) => console.error("Error in state subscription:", error),
-			onComplete: () => console.log("State subscription completed"),
-		})
-
-		// UI Event Subscriptions
-		mcpButtonUnsubscribeRef.current = UiServiceClient.subscribeToMcpButtonClicked(
-			{},
-			{
-				onResponse: () => navigateToMcp(),
-				onError: (err) => console.error("McpButton error:", err),
-				onComplete: () => {},
-			},
-		)
-		historyButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToHistoryButtonClicked(
-			{},
-			{
-				onResponse: () => navigateToHistory(),
-				onError: (err) => console.error("HistoryButton error:", err),
-				onComplete: () => {},
-			},
-		)
-		chatButtonUnsubscribeRef.current = UiServiceClient.subscribeToChatButtonClicked(
-			{},
-			{
-				onResponse: () => navigateToChat(),
-				onError: (err) => console.error("ChatButton error:", err),
-				onComplete: () => {},
-			},
-		)
-		settingsButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToSettingsButtonClicked(
-			{},
-			{
-				onResponse: () => navigateToSettings(),
-				onError: (err) => console.error("SettingsButton error:", err),
-				onComplete: () => {},
-			},
-		)
-		worktreesButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToWorktreesButtonClicked(
-			{},
-			{
-				onResponse: () => navigateToWorktrees(),
-				onError: (err) => console.error("WorktreesButton error:", err),
-				onComplete: () => {},
-			},
-		)
-		accountButtonClickedSubscriptionRef.current = UiServiceClient.subscribeToAccountButtonClicked(
-			{},
-			{
-				onResponse: () => navigateToAccount(),
-				onError: (err) => console.error("AccountButton error:", err),
-				onComplete: () => {},
-			},
-		)
-		relinquishControlUnsubscribeRef.current = UiServiceClient.subscribeToRelinquishControl(
-			{},
-			{
-				onResponse: () => onRelinquishControl(),
-				onError: (err) => console.error("RelinquishControl error:", err),
-				onComplete: () => {},
-			},
-		)
-
-		// Functional Subscriptions
-		mcpServersSubscriptionRef.current = McpServiceClient.subscribeToMcpServers(EmptyRequest.create(), {
-			onResponse: (response) => {
-				if (response.mcpServers) {
-					setMcpServers(convertProtoMcpServersToMcpServers(response.mcpServers))
-				}
-			},
-			onError: (err) => console.error("McpServers error:", err),
-			onComplete: () => {},
-		})
-
-		partialMessageUnsubscribeRef.current = UiServiceClient.subscribeToPartialMessage(EmptyRequest.create({}), {
-			onResponse: (protoMessage) => {
-				try {
-					if (!protoMessage.ts || protoMessage.ts <= 0) return
-					const partialMessage = convertProtoToCodemarieMessage(protoMessage)
-					setState((prevState) => {
-						const lastIndex = findLastIndex(prevState.codemarieMessages, (msg) => msg.ts === partialMessage.ts)
-						if (lastIndex !== -1) {
-							const newCodemarieMessages = [...prevState.codemarieMessages]
-							newCodemarieMessages[lastIndex] = partialMessage
-							return { ...prevState, codemarieMessages: newCodemarieMessages }
-						}
-						return prevState
-					})
-				} catch (error) {
-					console.error("Failed to process partial message:", error)
-				}
-			},
-			onError: (err) => console.error("PartialMessage error:", err),
-			onComplete: () => {},
-		})
-
-		mcpMarketplaceUnsubscribeRef.current = McpServiceClient.subscribeToMcpMarketplaceCatalog(EmptyRequest.create({}), {
-			onResponse: (catalog) => setMcpMarketplaceCatalog(catalog),
-			onError: (err) => console.error("McpMarketplace error:", err),
-			onComplete: () => {},
-		})
-
-		openRouterModelsUnsubscribeRef.current = ModelsServiceClient.subscribeToOpenRouterModels(EmptyRequest.create({}), {
-			onResponse: (response) => {
-				const models = fromProtobufModels(response.models)
-				setOpenRouterModels({
-					[openRouterDefaultModelId]: openRouterDefaultModelInfo,
-					...models,
-				})
-			},
-			onError: (err) => console.error("OpenRouterModels error:", err),
-			onComplete: () => {},
-		})
-
-		liteLlmModelsUnsubscribeRef.current = ModelsServiceClient.subscribeToLiteLlmModels(EmptyRequest.create({}), {
-			onResponse: (response) => setLiteLlmModels(fromProtobufModels(response.models)),
-			onError: (err) => console.error("LiteLlmModels error:", err),
-			onComplete: () => {},
+			onError: (error) => console.error("Error in system updates subscription:", error),
 		})
 
 		// Initializations
-		UiServiceClient.initializeWebview(EmptyRequest.create({})).catch(console.error)
+		SystemServiceClient.initializeWebview(EmptyRequest.create({})).catch(console.error)
 		StateServiceClient.getAvailableTerminalProfiles(EmptyRequest.create({}))
 			.then((response) => setAvailableTerminalProfiles(response.profiles))
 			.catch(console.error)
 
 		return () => {
-			stateSubscriptionRef.current?.()
-			mcpButtonUnsubscribeRef.current?.()
-			historyButtonClickedSubscriptionRef.current?.()
-			chatButtonUnsubscribeRef.current?.()
-			accountButtonClickedSubscriptionRef.current?.()
-			settingsButtonClickedSubscriptionRef.current?.()
-			worktreesButtonClickedSubscriptionRef.current?.()
-			partialMessageUnsubscribeRef.current?.()
-			mcpMarketplaceUnsubscribeRef.current?.()
-			openRouterModelsUnsubscribeRef.current?.()
-			liteLlmModelsUnsubscribeRef.current?.()
-			relinquishControlUnsubscribeRef.current?.()
-			mcpServersSubscriptionRef.current?.()
+			unsubscribe()
 		}
 	}, [
 		setState,

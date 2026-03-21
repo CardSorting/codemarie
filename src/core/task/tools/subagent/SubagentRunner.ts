@@ -22,7 +22,7 @@ import { getContextWindowInfo } from "@/core/context/context-management/context-
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { HostRegistryInfo } from "@/registry"
 import { CodemarieError, CodemarieErrorType } from "@/services/error"
-import { ApiFormat } from "@/shared/proto/codemarie/models"
+import { ApiFormat } from "@/shared/proto/codemarie/common"
 import { calculateApiCostAnthropic, calculateApiCostOpenAI } from "@/utils/cost"
 import { isNextGenModelFamily } from "@/utils/model-utils"
 import { UniversalGuard } from "../../../policy/UniversalGuard"

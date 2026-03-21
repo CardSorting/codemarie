@@ -1,6 +1,7 @@
 import { ProtobusResponse } from "@/shared/ExtensionMessage"
 import { ProtobusRequest } from "@/shared/WebviewMessage"
 
+// biome-ignore lint/suspicious/noExplicitAny: controller can be any type
 export type ProtobusPostRecordHook = (entry: ProtobusLogEntry, controller?: any) => Promise<void> | void
 
 export type ProtobusRequestFilter = (request: ProtobusRequest) => boolean
@@ -11,10 +12,10 @@ export interface ProtobusLogEntry {
 	method: string
 	isStreaming: boolean
 	request: {
-		message: any
+		message: unknown
 	}
 	response?: {
-		message?: any
+		message?: unknown
 		error?: string
 		isStreaming?: boolean
 		sequenceNumber?: number

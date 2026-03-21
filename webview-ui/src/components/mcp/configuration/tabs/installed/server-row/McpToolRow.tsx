@@ -3,7 +3,7 @@ import { ToggleToolAutoApproveRequest } from "@shared/proto/codemarie/mcp"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 type McpToolRowProps = {
 	tool: McpTool
@@ -19,7 +19,7 @@ const McpToolRow = ({ tool, serverName }: McpToolRowProps) => {
 			return
 		}
 
-		McpServiceClient.toggleToolAutoApprove(
+		SystemServiceClient.toggleToolAutoApprove(
 			ToggleToolAutoApproveRequest.create({
 				serverName,
 				toolNames: [tool.name],

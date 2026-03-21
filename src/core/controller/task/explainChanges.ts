@@ -1,12 +1,18 @@
 import CheckpointTracker from "@integrations/checkpoints/CheckpointTracker"
 import { findLast } from "@shared/array"
 import { Empty } from "@shared/proto/codemarie/common"
+import { UiEvent } from "@shared/proto/codemarie/system"
 import { ExplainChangesRequest } from "@shared/proto/codemarie/task"
 import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/index.host"
 import { Logger } from "@/shared/services/Logger"
 import { Controller } from ".."
-import { sendRelinquishControlEvent } from "../ui/subscribeToRelinquishControl"
+import { broadcastUiEvent as sendUiEvent } from "../system/SystemUpdatesEmitter"
+
+const UiEventType = {
+	RELINQUISH_CONTROL: "RELINQUISH_CONTROL",
+}
+
 import {
 	buildDiffContent,
 	openDiffView,
@@ -26,7 +32,7 @@ import {
  */
 export async function explainChanges(controller: Controller, request: ExplainChangesRequest): Promise<Empty> {
 	const relinquishButton = () => {
-		sendRelinquishControlEvent()
+		sendUiEvent(UiEvent.fromPartial({ type: UiEventType.RELINQUISH_CONTROL }))
 	}
 
 	try {
@@ -40,6 +46,7 @@ export async function explainChanges(controller: Controller, request: ExplainCha
 			return Empty.create({})
 		}
 
+		// biome-ignore lint/suspicious/noExplicitAny: checkpointManager can be any
 		const checkpointManager = controller.task.checkpointManager as any
 		if (!checkpointManager) {
 			HostProvider.window.showMessage({
@@ -73,6 +80,7 @@ export async function explainChanges(controller: Controller, request: ExplainCha
 
 		// Find the message
 		const codemarieMessages = messageStateHandler.getCodemarieMessages()
+		// biome-ignore lint/suspicious/noExplicitAny: messages are any
 		const messageIndex = codemarieMessages.findIndex((m: any) => m.ts === request.messageTs)
 		const message = codemarieMessages[messageIndex]
 
@@ -130,10 +138,12 @@ export async function explainChanges(controller: Controller, request: ExplainCha
 		// Get changed files (using seeNewChangesSinceLastTaskCompletion logic)
 		const lastTaskCompletedMessageCheckpointHash = findLast(
 			codemarieMessages.slice(0, messageIndex),
+			// biome-ignore lint/suspicious/noExplicitAny: messages are any
 			(m: any) => m.say === "completion_result",
 		)?.lastCheckpointHash
 
 		const firstCheckpointMessageCheckpointHash = codemarieMessages.find(
+			// biome-ignore lint/suspicious/noExplicitAny: messages are any
 			(m: any) => m.say === "checkpoint_created",
 		)?.lastCheckpointHash
 
@@ -246,7 +256,7 @@ export async function explainChanges(controller: Controller, request: ExplainCha
 			type: ShowMessageType.ERROR,
 			message: `Failed to explain changes: ${errorMessage}`,
 		})
-		sendRelinquishControlEvent()
+		sendUiEvent(UiEvent.fromPartial({ type: UiEventType.RELINQUISH_CONTROL }))
 		return Empty.create({})
 	}
 }

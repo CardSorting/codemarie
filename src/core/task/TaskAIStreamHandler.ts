@@ -20,7 +20,7 @@ import {
 	getLocalWindsurfRules,
 	refreshExternalRulesToggles,
 } from "@core/context/instructions/user-instructions/external-rules"
-import { sendPartialMessageEvent } from "@core/controller/ui/subscribeToPartialMessage"
+import { sendPartialMessageEvent } from "@core/controller/system/subscribeToPartialMessage"
 import { getHooksEnabledSafe } from "@core/hooks/hooks-utils"
 import { executePreCompactHookWithCleanup, HookExecution } from "@core/hooks/precompact-executor"
 import { CodemarieIgnoreController } from "@core/ignore/CodemarieIgnoreController"
@@ -50,7 +50,7 @@ import { HostProvider } from "@/hosts/host-provider"
 import { CodemarieError, CodemarieErrorType, ErrorService } from "@/services/error"
 import { CodemarieClient } from "@/shared/codemarie"
 import { CodemarieContent, CodemarieStorageMessage } from "@/shared/messages"
-import { ApiFormat } from "@/shared/proto/codemarie/models"
+import { ApiFormat } from "@/shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
 import { RuleContextBuilder } from "../context/instructions/user-instructions/RuleContextBuilder"
 import { discoverSkills, getAvailableSkills } from "../context/instructions/user-instructions/skills"

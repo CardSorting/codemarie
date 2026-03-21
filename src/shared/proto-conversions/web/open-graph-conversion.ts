@@ -1,5 +1,5 @@
 import { OpenGraphData as DomainOpenGraphData } from "@integrations/misc/link-preview"
-import { OpenGraphData as ProtoOpenGraphData } from "@shared/proto/codemarie/web"
+import { OpenGraphData as ProtoOpenGraphData } from "@shared/proto/codemarie/system"
 
 /**
  * Converts domain OpenGraphData objects to proto OpenGraphData objects

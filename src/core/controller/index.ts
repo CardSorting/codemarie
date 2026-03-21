@@ -57,12 +57,12 @@ import { clearRemoteConfig } from "../storage/remote-config/utils"
 import { type PersistenceErrorEvent, StateManager } from "../storage/StateManager"
 import { Task } from "../task"
 import { TaskState } from "../task/TaskState"
-import { sendMcpMarketplaceCatalogEvent } from "./mcp/subscribeToMcpMarketplaceCatalog"
-import { getCodemarieOnboardingModels } from "./models/getCodemarieOnboardingModels"
-import { appendCodemarieStealthModels } from "./models/refreshOpenRouterModels"
 import { checkCliInstallation } from "./state/checkCliInstallation"
 import { sendStateUpdate } from "./state/subscribeToState"
-import { sendChatButtonClickedEvent } from "./ui/subscribeToChatButtonClicked"
+import { getCodemarieOnboardingModels } from "./system/getCodemarieOnboardingModels"
+import { appendCodemarieStealthModels } from "./system/refreshOpenRouterModels"
+import { sendMcpMarketplaceCatalogEvent } from "./system/subscribeToMcpMarketplaceCatalog"
+import { sendUiEvent, UiEventType } from "./system/UiEventsService"
 
 /*
 https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/weather-webview/src/providers/WeatherViewProvider.ts
@@ -83,7 +83,7 @@ export class Controller {
 	private workspaceManager?: WorkspaceRootManager
 	private backgroundCommandRunning = false
 	private backgroundCommandTaskId?: string
-
+	private previousState: any = null
 	// Flag to prevent duplicate cancellations from spam clicking
 	private cancelInProgress = false
 
@@ -632,7 +632,7 @@ export class Controller {
 	}
 
 	async handleTaskCreation(prompt: string) {
-		await sendChatButtonClickedEvent()
+		await sendUiEvent(UiEventType.CHAT_BUTTON_CLICKED)
 		await this.initTask(prompt)
 	}
 
@@ -811,179 +811,143 @@ export class Controller {
 
 		this.postStateTimer = setTimeout(async () => {
 			const state = await this.getStateToPostToWebview()
-			await sendStateUpdate(state)
+			await sendStateUpdate(state, this.previousState)
+			this.previousState = state
 			this.postStateTimer = null
 		}, 50)
 	}
 
 	async getStateToPostToWebview(): Promise<ExtensionState> {
-		// Get API configuration from cache for immediate access
-		const onboardingModels = getCodemarieOnboardingModels()
-		const apiConfiguration = this.stateManager.getApiConfiguration()
-		const lastShownAnnouncementId = this.stateManager.getGlobalStateKey("lastShownAnnouncementId")
-		const taskHistory = this.stateManager.getGlobalStateKey("taskHistory")
-		const autoApprovalSettings = this.stateManager.getGlobalSettingsKey("autoApprovalSettings")
-		const browserSettings = this.stateManager.getGlobalSettingsKey("browserSettings")
-		const focusChainSettings = this.stateManager.getGlobalSettingsKey("focusChainSettings")
-		const preferredLanguage = this.stateManager.getGlobalSettingsKey("preferredLanguage")
-		const mode = this.stateManager.getGlobalSettingsKey("mode")
-		const strictPlanModeEnabled = this.stateManager.getGlobalSettingsKey("strictPlanModeEnabled")
-		const yoloModeToggled = this.stateManager.getGlobalSettingsKey("yoloModeToggled")
-		const useAutoCondense = this.stateManager.getGlobalSettingsKey("useAutoCondense")
-		const subagentsEnabled = this.stateManager.getGlobalSettingsKey("subagentsEnabled")
-		const userInfo = this.stateManager.getGlobalStateKey("userInfo")
-		const mcpMarketplaceEnabled = this.stateManager.getGlobalStateKey("mcpMarketplaceEnabled")
-		const mcpDisplayMode = this.stateManager.getGlobalStateKey("mcpDisplayMode")
-		const telemetrySetting = this.stateManager.getGlobalSettingsKey("telemetrySetting")
-		const planActSeparateModelsSetting = this.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
-		const enableCheckpointsSetting = this.stateManager.getGlobalSettingsKey("enableCheckpointsSetting")
-		const globalCodemarieRulesToggles = this.stateManager.getGlobalSettingsKey("globalCodemarieRulesToggles")
-		const globalWorkflowToggles = this.stateManager.getGlobalSettingsKey("globalWorkflowToggles")
-		const globalSkillsToggles = this.stateManager.getGlobalSettingsKey("globalSkillsToggles")
-		const localSkillsToggles = this.stateManager.getWorkspaceStateKey("localSkillsToggles")
-		const remoteRulesToggles = this.stateManager.getGlobalStateKey("remoteRulesToggles")
-		const remoteWorkflowToggles = this.stateManager.getGlobalStateKey("remoteWorkflowToggles")
-		const shellIntegrationTimeout = this.stateManager.getGlobalSettingsKey("shellIntegrationTimeout")
-		const terminalReuseEnabled = this.stateManager.getGlobalStateKey("terminalReuseEnabled")
-		const vscodeTerminalExecutionMode = this.stateManager.getGlobalStateKey("vscodeTerminalExecutionMode")
-		const defaultTerminalProfile = this.stateManager.getGlobalSettingsKey("defaultTerminalProfile")
-		const isNewUser = this.stateManager.getGlobalStateKey("isNewUser")
-		// Can be undefined but is set to either true or false by the migration that runs on extension launch in extension.ts
-		const welcomeViewCompleted = !!this.stateManager.getGlobalStateKey("welcomeViewCompleted")
+		const sm = this.stateManager
 
-		const customPrompt = this.stateManager.getGlobalSettingsKey("customPrompt")
-		const mcpResponsesCollapsed = this.stateManager.getGlobalStateKey("mcpResponsesCollapsed")
-		const terminalOutputLineLimit = this.stateManager.getGlobalSettingsKey("terminalOutputLineLimit")
-		const maxConsecutiveMistakes = this.stateManager.getGlobalSettingsKey("maxConsecutiveMistakes")
-		const favoritedModelIds = this.stateManager.getGlobalStateKey("favoritedModelIds")
-		const lastDismissedInfoBannerVersion = this.stateManager.getGlobalStateKey("lastDismissedInfoBannerVersion") || 0
-		const lastDismissedModelBannerVersion = this.stateManager.getGlobalStateKey("lastDismissedModelBannerVersion") || 0
-		const lastDismissedCliBannerVersion = this.stateManager.getGlobalStateKey("lastDismissedCliBannerVersion") || 0
-		const dismissedBanners = this.stateManager.getGlobalStateKey("dismissedBanners")
-		const doubleCheckCompletionEnabled = this.stateManager.getGlobalSettingsKey("doubleCheckCompletionEnabled")
-		const masEnabled = this.stateManager.getGlobalSettingsKey("masEnabled") ?? true
+		// 1. Fetch all simple settings/state using a helper or direct access
+		const state: any = {
+			version: ExtensionRegistryInfo.version,
+			platform: process.platform as Platform,
+			distinctId: getDistinctId(),
+			environment: CodemarieEnv.config().environment,
+			onboardingModels: getCodemarieOnboardingModels(),
+			apiConfiguration: sm.getApiConfiguration(),
+			backgroundCommandRunning: this.backgroundCommandRunning,
+			backgroundCommandTaskId: this.backgroundCommandTaskId,
+			welcomeViewCompleted: !!sm.getGlobalStateKey("welcomeViewCompleted"),
+			hooksEnabled: getHooksEnabledSafe(),
+			remoteConfigSettings: sm.getRemoteConfigSettings(),
+			workspaceRoots: this.workspaceManager?.getRoots() ?? [],
+			primaryRootIndex: this.workspaceManager?.getPrimaryIndex() ?? 0,
+			isMultiRootWorkspace: (this.workspaceManager?.getRoots().length ?? 0) > 1,
+			banners: BannerService.get().getActiveBanners() ?? [],
+			welcomeBanners: BannerService.get().getWelcomeBanners() ?? [],
+			swarmState: this.task?.taskState.swarmState,
+			currentFocusChainChecklist: this.task?.taskState.currentFocusChainChecklist || null,
+			checkpointManagerErrorMessage: this.task?.taskState.checkpointManagerErrorMessage,
+		}
 
-		const localCodemarieRulesToggles = this.stateManager.getWorkspaceStateKey("localCodemarieRulesToggles")
-		const localWindsurfRulesToggles = this.stateManager.getWorkspaceStateKey("localWindsurfRulesToggles")
-		const localCursorRulesToggles = this.stateManager.getWorkspaceStateKey("localCursorRulesToggles")
-		const localAgentsRulesToggles = this.stateManager.getWorkspaceStateKey("localAgentsRulesToggles")
-		const workflowToggles = this.stateManager.getWorkspaceStateKey("workflowToggles")
+		// 2. Fetch global settings/state keys
+		const globalKeys = [
+			"lastShownAnnouncementId",
+			"autoApprovalSettings",
+			"browserSettings",
+			"focusChainSettings",
+			"preferredLanguage",
+			"mode",
+			"strictPlanModeEnabled",
+			"yoloModeToggled",
+			"useAutoCondense",
+			"subagentsEnabled",
+			"userInfo",
+			"mcpMarketplaceEnabled",
+			"mcpDisplayMode",
+			"telemetrySetting",
+			"planActSeparateModelsSetting",
+			"enableCheckpointsSetting",
+			"globalCodemarieRulesToggles",
+			"globalWorkflowToggles",
+			"globalSkillsToggles",
+			"remoteRulesToggles",
+			"remoteWorkflowToggles",
+			"shellIntegrationTimeout",
+			"terminalReuseEnabled",
+			"vscodeTerminalExecutionMode",
+			"defaultTerminalProfile",
+			"isNewUser",
+			"customPrompt",
+			"mcpResponsesCollapsed",
+			"terminalOutputLineLimit",
+			"maxConsecutiveMistakes",
+			"favoritedModelIds",
+			"lastDismissedInfoBannerVersion",
+			"lastDismissedModelBannerVersion",
+			"lastDismissedCliBannerVersion",
+			"dismissedBanners",
+			"doubleCheckCompletionEnabled",
+			"masEnabled",
+			"multiRootEnabled",
+			"codemarieWebToolsEnabled",
+			"worktreesEnabled",
+		] as const
 
-		const currentTaskItem = this.task?.taskId ? (taskHistory || []).find((item) => item.id === this.task?.taskId) : undefined
-		// Spread to create new array reference - React needs this to detect changes in useEffect dependencies
-		const codemarieMessages = [...(this.task?.messageStateHandler.getCodemarieMessages() || [])].slice(-20) // Optimization: only send the latest 20 messages for the primary sidebar sync
-		const checkpointManagerErrorMessage = this.task?.taskState.checkpointManagerErrorMessage
+		for (const key of globalKeys) {
+			const value = sm.getGlobalSettingsKey(key as any) ?? sm.getGlobalStateKey(key as any)
+			state[key] = value
+		}
 
-		const processedTaskHistory = this.includeHistory
-			? (taskHistory || [])
+		// 3. Set Defaults for mandatory fields that might be undefined
+		state.enableCheckpointsSetting = state.enableCheckpointsSetting ?? true
+		state.masEnabled = state.masEnabled ?? true
+		state.lastDismissedInfoBannerVersion = state.lastDismissedInfoBannerVersion || 0
+		state.lastDismissedModelBannerVersion = state.lastDismissedModelBannerVersion || 0
+		state.lastDismissedCliBannerVersion = state.lastDismissedCliBannerVersion || 0
+		state.globalCodemarieRulesToggles = state.globalCodemarieRulesToggles || {}
+		state.globalWorkflowToggles = state.globalWorkflowToggles || {}
+		state.globalSkillsToggles = state.globalSkillsToggles || {}
+
+		// 4. Fetch workspace state keys
+		const workspaceKeys = [
+			"localSkillsToggles",
+			"localCodemarieRulesToggles",
+			"localWindsurfRulesToggles",
+			"localCursorRulesToggles",
+			"localAgentsRulesToggles",
+			"workflowToggles",
+		] as const
+
+		for (const key of workspaceKeys) {
+			const value = sm.getWorkspaceStateKey(key as any)
+			state[key === "workflowToggles" ? "localWorkflowToggles" : key] = value || {}
+		}
+
+		// 5. Handle complex/derived fields
+		const taskHistory = sm.getGlobalStateKey("taskHistory") || []
+		state.currentTaskItem = this.task?.taskId ? taskHistory.find((item) => item.id === this.task?.taskId) : undefined
+		state.codemarieMessages = [...(this.task?.messageStateHandler.getCodemarieMessages() || [])].slice(-20)
+		state.taskHistory = this.includeHistory
+			? taskHistory
 					.filter((item) => item.ts && item.task)
 					.sort((a, b) => b.ts - a.ts)
-					.slice(0, 10) // Optimization: only send the latest 10 tasks to the main sidebar UI to reduce serialization overhead
+					.slice(0, 10)
 			: []
 
-		const latestAnnouncementId = getLatestAnnouncementId()
-		const shouldShowAnnouncement = lastShownAnnouncementId !== latestAnnouncementId
-		const platform = process.platform as Platform
-		const distinctId = getDistinctId()
-		const version = ExtensionRegistryInfo.version
-		const codemarieConfig = CodemarieEnv.config()
-		const environment = codemarieConfig.environment
-		const banners = BannerService.get().getActiveBanners() ?? []
-		const welcomeBanners = BannerService.get().getWelcomeBanners() ?? []
+		state.shouldShowAnnouncement = sm.getGlobalStateKey("lastShownAnnouncementId") !== getLatestAnnouncementId()
 
-		// Check OpenAI Codex authentication status
-		let openAiCodexIsAuthenticated = false
+		// Feature flag mappings
+		state.multiRootSetting = { user: state.multiRootEnabled, featureFlag: true }
+		state.codemarieWebToolsEnabled = {
+			user: state.codemarieWebToolsEnabled,
+			featureFlag: featureFlagsService.getWebtoolsEnabled(),
+		}
+		state.worktreesEnabled = {
+			user: state.worktreesEnabled,
+			featureFlag: featureFlagsService.getWorktreesEnabled(),
+		}
+
 		try {
-			openAiCodexIsAuthenticated = openAiCodexOAuthManager.isAuthenticated()
+			state.openAiCodexIsAuthenticated = openAiCodexOAuthManager.isAuthenticated()
 		} catch (error) {
 			Logger.error("[Controller] Failed to check OpenAI Codex auth status:", error)
 		}
 
-		return {
-			version,
-			apiConfiguration,
-			currentTaskItem,
-			codemarieMessages,
-			currentFocusChainChecklist: this.task?.taskState.currentFocusChainChecklist || null,
-			checkpointManagerErrorMessage,
-			autoApprovalSettings,
-			browserSettings,
-			focusChainSettings,
-			preferredLanguage,
-			mode,
-			strictPlanModeEnabled,
-			yoloModeToggled,
-			useAutoCondense,
-			subagentsEnabled,
-			userInfo,
-			mcpMarketplaceEnabled,
-			mcpDisplayMode,
-			telemetrySetting,
-			planActSeparateModelsSetting,
-			enableCheckpointsSetting: enableCheckpointsSetting ?? true,
-			platform,
-			environment,
-			distinctId,
-			globalCodemarieRulesToggles: globalCodemarieRulesToggles || {},
-			localCodemarieRulesToggles: localCodemarieRulesToggles || {},
-			localWindsurfRulesToggles: localWindsurfRulesToggles || {},
-			localCursorRulesToggles: localCursorRulesToggles || {},
-			localAgentsRulesToggles: localAgentsRulesToggles || {},
-			localWorkflowToggles: workflowToggles || {},
-			globalWorkflowToggles: globalWorkflowToggles || {},
-			globalSkillsToggles: globalSkillsToggles || {},
-			localSkillsToggles: localSkillsToggles || {},
-			remoteRulesToggles: remoteRulesToggles,
-			remoteWorkflowToggles: remoteWorkflowToggles,
-			shellIntegrationTimeout,
-			terminalReuseEnabled,
-			vscodeTerminalExecutionMode: vscodeTerminalExecutionMode,
-			defaultTerminalProfile,
-			isNewUser,
-			welcomeViewCompleted,
-			onboardingModels,
-			mcpResponsesCollapsed,
-			terminalOutputLineLimit,
-			maxConsecutiveMistakes,
-			customPrompt,
-			taskHistory: processedTaskHistory,
-			shouldShowAnnouncement,
-			favoritedModelIds,
-			backgroundCommandRunning: this.backgroundCommandRunning,
-			backgroundCommandTaskId: this.backgroundCommandTaskId,
-			// NEW: Add workspace information
-			workspaceRoots: this.workspaceManager?.getRoots() ?? [],
-			primaryRootIndex: this.workspaceManager?.getPrimaryIndex() ?? 0,
-			isMultiRootWorkspace: (this.workspaceManager?.getRoots().length ?? 0) > 1,
-			multiRootSetting: {
-				user: this.stateManager.getGlobalStateKey("multiRootEnabled"),
-				featureFlag: true, // Multi-root workspace is now always enabled
-			},
-			codemarieWebToolsEnabled: {
-				user: this.stateManager.getGlobalSettingsKey("codemarieWebToolsEnabled"),
-				featureFlag: featureFlagsService.getWebtoolsEnabled(),
-			},
-			worktreesEnabled: {
-				user: this.stateManager.getGlobalSettingsKey("worktreesEnabled"),
-				featureFlag: featureFlagsService.getWorktreesEnabled(),
-			},
-			hooksEnabled: getHooksEnabledSafe(),
-			lastDismissedInfoBannerVersion,
-			lastDismissedModelBannerVersion,
-			remoteConfigSettings: this.stateManager.getRemoteConfigSettings(),
-			lastDismissedCliBannerVersion,
-			dismissedBanners,
-			nativeToolCallSetting: this.stateManager.getGlobalStateKey("nativeToolCallEnabled"),
-			enableParallelToolCalling: this.stateManager.getGlobalSettingsKey("enableParallelToolCalling"),
-			backgroundEditEnabled: this.stateManager.getGlobalSettingsKey("backgroundEditEnabled"),
-			optOutOfRemoteConfig: this.stateManager.getGlobalSettingsKey("optOutOfRemoteConfig"),
-			doubleCheckCompletionEnabled,
-			masEnabled,
-			swarmState: this.task?.taskState.swarmState,
-			banners,
-			welcomeBanners,
-			openAiCodexIsAuthenticated,
-		}
+		return state as ExtensionState
 	}
 
 	async clearTask() {

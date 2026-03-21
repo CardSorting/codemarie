@@ -10,7 +10,7 @@ import { buildExternalBasicHeaders } from "@/services/EnvUtils"
 import { featureFlagsService } from "@/services/feature-flags"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import { fetch } from "@/shared/net"
-import { ApiFormat } from "@/shared/proto/codemarie/models"
+import { ApiFormat } from "@/shared/proto/codemarie/common"
 import { FeatureFlag } from "@/shared/services/feature-flags/feature-flags"
 import { Logger } from "@/shared/services/Logger"
 import { ApiHandler, CommonApiHandlerOptions } from "../"
@@ -57,6 +57,7 @@ export class OpenAiCodexHandler implements ApiHandler {
 		this.sessionId = uuidv7()
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: OpenAI SDK types for Responses API usage are incomplete in the official types
 	private normalizeUsage(usage: any, _model: { id: string; info: ModelInfo }): ApiStreamUsageChunk | undefined {
 		if (!usage) {
 			return undefined
@@ -151,16 +152,16 @@ export class OpenAiCodexHandler implements ApiHandler {
 
 	private buildRequestBody(
 		model: { id: string; info: ModelInfo },
-		formattedInput: any,
+		formattedInput: OpenAI.Responses.ResponseCreateParamsStreaming["input"],
 		systemPrompt: string,
 		tools?: ChatCompletionTool[],
 		previousResponseId?: string,
-	): any {
+	): OpenAI.Responses.ResponseCreateParamsStreaming {
 		// Determine reasoning effort
 		const reasoningEffort = normalizeOpenaiReasoningEffort(this.options.reasoningEffort)
 		const includeReasoning = reasoningEffort !== "none"
 
-		const body: any = {
+		const body: OpenAI.Responses.ResponseCreateParamsStreaming = {
 			model: model.id,
 			input: formattedInput,
 			stream: true,
@@ -182,22 +183,23 @@ export class OpenAiCodexHandler implements ApiHandler {
 		// Pass through strict value from tool (MCP/custom tools have strict: false, built-in tools default to true)
 		if (tools && tools.length > 0) {
 			body.tools = tools
-				.filter((tool: any) => tool?.type === "function")
-				.map((tool: any) => ({
+				.filter((tool) => tool?.type === "function")
+				.map((tool) => ({
 					type: "function",
 					name: tool.function.name,
 					description: tool.function.description,
 					parameters: tool.function.parameters,
 					strict: tool.function.strict ?? true,
-				}))
+					// biome-ignore lint/suspicious/noExplicitAny: OpenAI SDK types for Responses API are still evolving
+				})) as any[]
 		}
 
 		return body
 	}
 
 	private async *executeRequest(
-		requestBody: any,
-		fallbackRequestBody: any,
+		requestBody: OpenAI.Responses.ResponseCreateParamsStreaming,
+		fallbackRequestBody: OpenAI.Responses.ResponseCreateParamsStreaming,
 		model: { id: string; info: ModelInfo },
 		accessToken: string,
 		useWebsocketMode: boolean,
@@ -239,11 +241,13 @@ export class OpenAiCodexHandler implements ApiHandler {
 						fetch, // Use shared fetch for proxy support
 					})
 
+				// biome-ignore lint/suspicious/noExplicitAny: responses is not yet in the official OpenAI SDK types
 				const stream = (await (client as any).responses.create(requestBody, {
 					signal: this.abortController.signal,
 					headers: codexHeaders,
-				})) as AsyncIterable<any>
+				})) as AsyncIterable<OpenAI.Responses.ResponseStreamEvent>
 
+				// biome-ignore lint/suspicious/noExplicitAny: asyncIterator check requires any cast for the union type
 				if (typeof (stream as any)?.[Symbol.asyncIterator] !== "function") {
 					throw new Error("OpenAI SDK did not return an AsyncIterable")
 				}
@@ -483,7 +487,11 @@ export class OpenAiCodexHandler implements ApiHandler {
 		}
 	}
 
-	private async *makeCodexRequest(requestBody: any, model: { id: string; info: ModelInfo }, accessToken: string): ApiStream {
+	private async *makeCodexRequest(
+		requestBody: OpenAI.Responses.ResponseCreateParamsStreaming,
+		model: { id: string; info: ModelInfo },
+		accessToken: string,
+	): ApiStream {
 		const url = `${CODEX_API_BASE_URL}/responses`
 
 		// Get ChatGPT account ID for organization subscriptions
@@ -590,7 +598,9 @@ export class OpenAiCodexHandler implements ApiHandler {
 		}
 	}
 
-	private async *processEvent(event: any, model: { id: string; info: ModelInfo }): ApiStream {
+	private async *processEvent(_event: OpenAI.Responses.ResponseStreamEvent, model: { id: string; info: ModelInfo }): ApiStream {
+		// biome-ignore lint/suspicious/noExplicitAny: event union is too complex to handle with type guards here
+		const event = _event as any
 		// Handle text deltas
 		if (event?.type === "response.text.delta" || event?.type === "response.output_text.delta") {
 			if (event?.delta) {

@@ -1,11 +1,16 @@
 import { Empty } from "@shared/proto/codemarie/common"
 import { ResetStateRequest } from "@shared/proto/codemarie/state"
+import { UiEvent } from "@shared/proto/codemarie/system"
 import { resetGlobalState, resetWorkspaceState } from "@/core/storage/utils/state-helpers"
 import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/host/window"
 import { Logger } from "@/shared/services/Logger"
 import { Controller } from ".."
-import { sendChatButtonClickedEvent } from "../ui/subscribeToChatButtonClicked"
+import { broadcastUiEvent as sendUiEvent } from "../system/SystemUpdatesEmitter"
+
+const UiEventType = {
+	CHAT_BUTTON_CLICKED: "CHAT_BUTTON_CLICKED",
+}
 
 /**
  * Resets the extension state to its defaults
@@ -40,7 +45,7 @@ export async function resetState(controller: Controller, request: ResetStateRequ
 		})
 		await controller.postStateToWebview()
 
-		await sendChatButtonClickedEvent()
+		await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.CHAT_BUTTON_CLICKED }))
 
 		return Empty.create()
 	} catch (error) {

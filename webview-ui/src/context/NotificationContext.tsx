@@ -1,6 +1,6 @@
 import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
-import { UiServiceClient } from "../services/protobus-client"
+import { SystemServiceClient } from "../services/protobus-client"
 
 export interface Notification {
 	id: string
@@ -29,7 +29,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
 	// Register the ProtoBus notification handler
 	useEffect(() => {
-		const ProtoBusClientBase = Object.getPrototypeOf(UiServiceClient)
+		const ProtoBusClientBase = Object.getPrototypeOf(SystemServiceClient)
 		if (ProtoBusClientBase.setNotificationHandler) {
 			ProtoBusClientBase.setNotificationHandler(addNotification)
 		}

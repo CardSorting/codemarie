@@ -1,16 +1,20 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-
 import assert from "node:assert"
 import { DIFF_VIEW_URI_SCHEME } from "@hosts/vscode/VscodeDiffViewProvider"
+import { UiEvent } from "@shared/proto/codemarie/system"
 import * as vscode from "vscode"
 import { Logger } from "@/shared/services/Logger"
-import { sendAccountButtonClickedEvent } from "./core/controller/ui/subscribeToAccountButtonClicked"
-import { sendChatButtonClickedEvent } from "./core/controller/ui/subscribeToChatButtonClicked"
-import { sendHistoryButtonClickedEvent } from "./core/controller/ui/subscribeToHistoryButtonClicked"
-import { sendMcpButtonClickedEvent } from "./core/controller/ui/subscribeToMcpButtonClicked"
-import { sendSettingsButtonClickedEvent } from "./core/controller/ui/subscribeToSettingsButtonClicked"
-import { sendWorktreesButtonClickedEvent } from "./core/controller/ui/subscribeToWorktreesButtonClicked"
+import { broadcastUiEvent as sendUiEvent } from "./core/controller/system/SystemUpdatesEmitter"
+
+const UiEventType = {
+	SHOW_WELCOME: "SHOW_WELCOME",
+	SETTINGS_BUTTON_CLICKED: "SETTINGS_BUTTON_CLICKED",
+	CHAT_BUTTON_CLICKED: "CHAT_BUTTON_CLICKED",
+	HISTORY_BUTTON_CLICKED: "HISTORY_BUTTON_CLICKED",
+	MCP_BUTTON_CLICKED: "MCP_BUTTON_CLICKED",
+	ACCOUNT_BUTTON_CLICKED: "ACCOUNT_BUTTON_CLICKED",
+	WORKTREES_BUTTON_CLICKED: "WORKTREES_BUTTON_CLICKED",
+}
+
 import { WebviewProvider } from "./core/webview"
 import { createCodemarieAPI } from "./exports"
 import { initializeTestMode } from "./services/test/TestMode"
@@ -22,12 +26,14 @@ import { vscodeHostBridgeClient } from "@/hosts/vscode/hostbridge/client/host-pr
 import { createStorageContext } from "@/shared/storage/storage-context"
 import { readTextFromClipboard, writeTextToClipboard } from "@/utils/env"
 import { initialize, tearDown } from "./common"
-import { addToCodemarie } from "./core/controller/commands/addToCodemarie"
-import { explainWithCodemarie } from "./core/controller/commands/explainWithCodemarie"
-import { fixWithCodemarie } from "./core/controller/commands/fixWithCodemarie"
-import { improveWithCodemarie } from "./core/controller/commands/improveWithCodemarie"
-import { sendAddToInputEvent } from "./core/controller/ui/subscribeToAddToInput"
-import { sendShowWebviewEvent } from "./core/controller/ui/subscribeToShowWebview"
+import { addToCodemarie } from "./core/controller/system/addToCodemarie"
+import { explainWithCodemarie } from "./core/controller/system/explainWithCodemarie"
+import { fixWithCodemarie } from "./core/controller/system/fixWithCodemarie"
+import { improveWithCodemarie } from "./core/controller/system/improveWithCodemarie"
+import {
+	broadcastUiEvent as sendAddToInputEvent,
+	broadcastUiEvent as sendShowWebviewEvent,
+} from "./core/controller/system/SystemUpdatesEmitter"
 import { HookDiscoveryCache } from "./core/hooks/HookDiscoveryCache"
 import {
 	cleanupMcpMarketplaceCatalogFromGlobalState,
@@ -84,38 +90,38 @@ export async function activate(context: vscode.ExtensionContext) {
 				const sidebarInstance = await WebviewProvider.getInstancePromise()
 				await sidebarInstance.controller.clearTask()
 				await sidebarInstance.controller.postStateToWebview()
-				await sendChatButtonClickedEvent()
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.SHOW_WELCOME }))
 			}),
 		)
 		context.subscriptions.push(
 			vscode.commands.registerCommand(commands.SettingsButton, async () => {
 				await WebviewProvider.getInstancePromise()
-				await sendSettingsButtonClickedEvent()
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.SETTINGS_BUTTON_CLICKED }))
 			}),
 		)
 		context.subscriptions.push(
 			vscode.commands.registerCommand(commands.HistoryButton, async () => {
 				const sidebarInstance = await WebviewProvider.getInstancePromise()
 				await sidebarInstance.controller.requestTaskHistory()
-				await sendHistoryButtonClickedEvent()
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.HISTORY_BUTTON_CLICKED }))
 			}),
 		)
 		context.subscriptions.push(
 			vscode.commands.registerCommand(commands.McpButton, async () => {
 				await WebviewProvider.getInstancePromise()
-				await sendMcpButtonClickedEvent()
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.MCP_BUTTON_CLICKED }))
 			}),
 		)
 		context.subscriptions.push(
 			vscode.commands.registerCommand(commands.AccountButton, async () => {
 				await WebviewProvider.getInstancePromise()
-				await sendAccountButtonClickedEvent()
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.ACCOUNT_BUTTON_CLICKED }))
 			}),
 		)
 		context.subscriptions.push(
 			vscode.commands.registerCommand(commands.WorktreesButton, async () => {
 				await WebviewProvider.getInstancePromise()
-				await sendWorktreesButtonClickedEvent()
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.WORKTREES_BUTTON_CLICKED }))
 			}),
 		)
 		Logger.log("[Extension] Core commands registered")
@@ -265,6 +271,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		context.subscriptions.push(
 			vscode.commands.registerCommand(commands.TerminalOutput, async () => {
 				const terminal = vscode.window.activeTerminal
+				await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.SHOW_WELCOME }))
 				if (!terminal) {
 					return
 				}
@@ -289,7 +296,12 @@ export async function activate(context: vscode.ExtensionContext) {
 					// Ensure the sidebar view is visible but preserve editor focus
 					await showWebview(true)
 
-					await sendAddToInputEvent(`Terminal output:\n\`\`\`\n${terminalContents}\n\`\`\``)
+					await sendAddToInputEvent(
+						UiEvent.fromPartial({
+							type: "ADD_TO_INPUT",
+							dataJson: JSON.stringify({ input: `Terminal output:\n\`\`\`\n${terminalContents}\n\`\`\`` }),
+						}),
+					)
 
 					Logger.log("addSelectedTerminalOutputToChat", terminalContents, terminal.name)
 				} catch (error) {
@@ -441,7 +453,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				webviewProvider.getWebview()?.show(preserveEditorFocus)
 
 				// Send show webview event with preserveEditorFocus flag
-				sendShowWebviewEvent(preserveEditorFocus)
+				sendShowWebviewEvent(
+					UiEvent.fromPartial({
+						type: "SHOW_WEBVIEW",
+						dataJson: JSON.stringify({ preserveEditorFocus }),
+					}),
+				)
 				telemetryService.captureButtonClick("command_focusChatInput", webviewProvider.controller?.task?.ulid)
 			}),
 		)

@@ -1,5 +1,5 @@
 import { Controller } from "@core/controller"
-import { sendChatButtonClickedEvent } from "@core/controller/ui/subscribeToChatButtonClicked"
+import { sendUiEvent, UiEventType } from "@core/controller/system/UiEventsService"
 import { Logger } from "@/shared/services/Logger"
 import { CodemarieAPI } from "./codemarie"
 
@@ -9,7 +9,7 @@ export function createCodemarieAPI(sidebarController: Controller): CodemarieAPI 
 			await sidebarController.clearTask()
 			await sidebarController.postStateToWebview()
 
-			await sendChatButtonClickedEvent()
+			await sendUiEvent(UiEventType.CHAT_BUTTON_CLICKED)
 			await sidebarController.initTask(task, images)
 		},
 

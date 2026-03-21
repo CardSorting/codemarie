@@ -10,7 +10,7 @@ import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState }
 import styled from "styled-components"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useMount } from "@/hooks/useLifecycle"
-import { ModelsServiceClient, StateServiceClient } from "@/services/protobus-client"
+import { StateServiceClient, SystemServiceClient } from "@/services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ContextWindowSwitcher } from "./common/ContextWindowSwitcher"
 import { ModelInfoView } from "./common/ModelInfoView"
@@ -126,7 +126,7 @@ const CodemarieModelPicker: React.FC<CodemarieModelPickerProps> = ({ isPopup, cu
 
 	const refreshCodemarieRecommendedModels = useCallback(async (): Promise<boolean> => {
 		try {
-			const response = await ModelsServiceClient.makeUnaryRequest(
+			const response = await SystemServiceClient.makeUnaryRequest(
 				"refreshCodemarieRecommendedModelsRpc",
 				EmptyRequest.create({}),
 				EmptyRequest.toJSON,

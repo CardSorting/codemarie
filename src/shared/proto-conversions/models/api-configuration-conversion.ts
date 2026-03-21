@@ -1,12 +1,12 @@
+import { ApiProvider as ProtoApiProvider } from "@shared/proto/codemarie/common"
 import {
 	LiteLLMModelInfo,
 	OpenAiCompatibleModelInfo,
 	OpenRouterModelInfo,
 	ModelsApiConfiguration as ProtoApiConfiguration,
-	ApiProvider as ProtoApiProvider,
 	OcaModelInfo as ProtoOcaModelInfo,
 	ThinkingConfig,
-} from "@shared/proto/codemarie/models"
+} from "@shared/proto/codemarie/system"
 import {
 	ApiConfiguration,
 	ApiProvider,

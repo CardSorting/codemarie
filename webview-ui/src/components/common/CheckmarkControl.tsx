@@ -1,6 +1,6 @@
 import { flip, offset, shift, useFloating } from "@floating-ui/react"
-import { CheckpointRestoreRequest } from "@shared/proto/codemarie/checkpoints"
 import { Int64Request } from "@shared/proto/codemarie/common"
+import { CheckpointRestoreRequest } from "@shared/proto/codemarie/system"
 import { CodemarieCheckpointRestore } from "@shared/WebviewMessage"
 import { BookmarkIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -9,7 +9,7 @@ import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { Button } from "@/components/ui/button"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { cn } from "@/lib/utils"
-import { CheckpointsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 interface CheckmarkControlProps {
 	messageTs?: number
@@ -102,7 +102,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 		setRestoreTaskDisabled(true)
 		try {
 			const restoreType: CodemarieCheckpointRestore = "task"
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType,
@@ -119,7 +119,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 		setRestoreWorkspaceDisabled(true)
 		try {
 			const restoreType: CodemarieCheckpointRestore = "workspace"
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType,
@@ -136,7 +136,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 		setRestoreBothDisabled(true)
 		try {
 			const restoreType: CodemarieCheckpointRestore = "taskAndWorkspace"
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType,
@@ -221,7 +221,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 						onClick={async () => {
 							setCompareDisabled(true)
 							try {
-								await CheckpointsServiceClient.checkpointDiff(
+								await SystemServiceClient.checkpointDiff(
 									Int64Request.create({
 										value: messageTs,
 									}),

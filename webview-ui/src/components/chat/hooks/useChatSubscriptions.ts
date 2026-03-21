@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { UiServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import type { ChatState } from "../types/chatTypes"
 
 /**
@@ -15,7 +15,7 @@ export const useChatSubscriptions = (
 
 	// Subscribe to show webview events from the backend
 	useEffect(() => {
-		const cleanup = UiServiceClient.subscribeToShowWebview(
+		const cleanup = SystemServiceClient.subscribeToShowWebview(
 			{},
 			{
 				onResponse: (event) => {
@@ -38,7 +38,7 @@ export const useChatSubscriptions = (
 
 	// Set up addToInput subscription
 	useEffect(() => {
-		const cleanup = UiServiceClient.subscribeToAddToInput(
+		const cleanup = SystemServiceClient.subscribeToAddToInput(
 			{},
 			{
 				onResponse: (event) => {

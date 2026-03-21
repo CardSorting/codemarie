@@ -2,7 +2,7 @@ import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import styled from "styled-components"
 import { LINKS } from "@/constants"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 type AddLocalServerFormProps = {
 	onServerAdded: () => void
@@ -22,7 +22,7 @@ const AddLocalServerForm = ({}: AddLocalServerFormProps) => {
 			<VSCodeButton
 				appearance="primary"
 				onClick={() => {
-					McpServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
+					SystemServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
 						console.error("Error opening MCP settings:", error)
 					})
 				}}

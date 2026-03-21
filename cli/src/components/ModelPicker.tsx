@@ -3,11 +3,12 @@
  * Supports static model lists and async loading for OpenRouter
  */
 
+import { Controller } from "@core/controller"
 import { Box, Text } from "ink"
 import Spinner from "ink-spinner"
 import React, { useEffect, useMemo, useState } from "react"
-import { refreshOcaModels } from "@/core/controller/models/refreshOcaModels"
-import { refreshOpenRouterModels } from "@/core/controller/models/refreshOpenRouterModels"
+import { refreshModels as refreshOcaModels } from "@/core/controller/system/refreshModels"
+import { refreshOpenRouterModels } from "@/core/controller/system/refreshOpenRouterModels"
 import {
 	type ApiProvider,
 	anthropicDefaultModelId,
@@ -65,7 +66,7 @@ import {
 	xaiDefaultModelId,
 	xaiModels,
 } from "@/shared/api"
-import { StringRequest } from "@/shared/proto/codemarie/common"
+import { ApiProvider as ProtoApiProvider } from "@/shared/proto/codemarie/common"
 import { filterOpenRouterModelIds } from "@/shared/utils/model-filters"
 import { COLORS } from "../constants/colors"
 import { getOpenRouterDefaultModelId, usesOpenRouterModels } from "../utils/openrouter-models"
@@ -127,7 +128,7 @@ export function getModelList(provider: string): string[] {
 
 interface ModelPickerProps {
 	provider: string
-	controller: any
+	controller: Controller
 	onChange: (modelId: string) => void
 	onSubmit: (modelId: string) => void
 	isActive?: boolean
@@ -144,7 +145,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ provider, controller, 
 			refreshOpenRouterModels(controller)
 				.then((models) => {
 					const modelIds = Object.keys(models).sort((a, b) => a.localeCompare(b))
-					const filtered = filterOpenRouterModelIds(modelIds, provider as ApiProvider)
+					const filtered = filterOpenRouterModelIds(modelIds, provider as unknown as ApiProvider)
 					setAsyncModels(filtered)
 				})
 				.finally(() => {
@@ -152,10 +153,10 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ provider, controller, 
 				})
 		} else if (provider === "oca") {
 			setIsLoading(true)
-			refreshOcaModels(controller, StringRequest.create({ value: "" }))
+			refreshOcaModels(controller, { provider: ProtoApiProvider.OCA })
 				.then((result) => {
-					if (result.models) {
-						const modelIds = Object.keys(result.models).sort((a, b) => a.localeCompare(b))
+					if (result.ocaModels?.models) {
+						const modelIds = Object.keys(result.ocaModels.models).sort((a, b) => a.localeCompare(b))
 						setAsyncModels(modelIds)
 					}
 				})

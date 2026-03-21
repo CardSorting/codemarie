@@ -1,4 +1,4 @@
-import { sendShowWebviewEvent } from "@core/controller/ui/subscribeToShowWebview"
+import { sendShowWebviewEvent } from "@core/controller/system/subscribeToShowWebview"
 import { WebviewProvider } from "@core/webview"
 import * as vscode from "vscode"
 import { handleProtobusRequest, handleProtobusRequestCancel } from "@/core/controller/protobus-handler"

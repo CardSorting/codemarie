@@ -37,11 +37,12 @@ import {
 	xaiModels,
 } from "@shared/api"
 import type { CodemarieAsk, CodemarieMessage as CodemarieMessageType } from "@shared/ExtensionMessage"
+import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { CLI_ONLY_COMMANDS, VSCODE_ONLY_COMMANDS } from "@shared/slashCommands"
 import { getProviderModelIdKey } from "@shared/storage/provider-keys"
 import { CodemarieEndpoint } from "@/config.js"
 import { Controller } from "@/core/controller"
-import { getAvailableSlashCommands } from "@/core/controller/slash/getAvailableSlashCommands"
+import { getAvailableSlashCommands } from "@/core/controller/system/getAvailableSlashCommands"
 import { StateManager } from "@/core/storage/StateManager"
 import { AuthHandler } from "@/hosts/external/AuthHandler.js"
 import { ExternalCommentReviewController } from "@/hosts/external/ExternalCommentReviewController.js"
@@ -1130,7 +1131,7 @@ export class CodemarieAgent implements acp.Agent {
 	private async sendAvailableCommands(sessionId: string, controller: Controller): Promise<void> {
 		try {
 			// Get all available commands from Codemarie
-			const response = await getAvailableSlashCommands(controller, {})
+			const response = await getAvailableSlashCommands(controller, EmptyRequest.create())
 
 			// Filter out CLI-only and VS Code-only commands
 			const cliOnlyNames = new Set(CLI_ONLY_COMMANDS.map((c) => c.name))

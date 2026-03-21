@@ -6,7 +6,7 @@ import { Fzf } from "fzf"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "@/hooks/useLifecycle"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-import { ModelsServiceClient } from "../../services/protobus-client"
+import { SystemServiceClient } from "../../services/protobus-client"
 import { highlight } from "../history/HistoryView"
 import { ModelInfoView } from "./common/ModelInfoView"
 import { getModeSpecificFields, normalizeApiConfiguration } from "./utils/providerUtils"
@@ -51,7 +51,7 @@ const HuggingFaceModelPicker: React.FC<HuggingFaceModelPickerProps> = ({ isPopup
 	}, [apiConfiguration, currentMode])
 
 	useMount(() => {
-		ModelsServiceClient.refreshHuggingFaceModels(EmptyRequest.create({}))
+		SystemServiceClient.refreshHuggingFaceModels(EmptyRequest.create({}))
 			.then((response) => {
 				setHuggingFaceModels({
 					[huggingFaceDefaultModelId]: huggingFaceModels[huggingFaceDefaultModelId],

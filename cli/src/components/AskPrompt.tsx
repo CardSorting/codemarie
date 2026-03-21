@@ -4,6 +4,7 @@
  */
 
 import type { CodemarieAsk, CodemarieMessage } from "@shared/ExtensionMessage"
+import type { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { Box, Text, useApp, useInput } from "ink"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useStdinContext } from "../context/StdinContext"
@@ -78,7 +79,7 @@ export const AskPrompt: React.FC<AskPromptProps> = ({ onRespond }) => {
 	}, [lastAskMessage])
 
 	const sendResponse = useCallback(
-		async (responseType: string, text?: string) => {
+		async (responseType: CodemarieAskResponse, text?: string) => {
 			if (responded || !controller?.task) {
 				return
 			}
@@ -229,6 +230,7 @@ export const AskPrompt: React.FC<AskPromptProps> = ({ onRespond }) => {
 					<Box flexDirection="column" marginTop={1}>
 						<Text color="cyan">Select an option (enter number):</Text>
 						{parts.options.map((opt, idx) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: options are static for this ask
 							<Box key={idx} marginLeft={2}>
 								<Text>{`${idx + 1}. ${opt}`}</Text>
 							</Box>
@@ -269,6 +271,7 @@ export const AskPrompt: React.FC<AskPromptProps> = ({ onRespond }) => {
 					<Box flexDirection="column" marginTop={1}>
 						<Text color="cyan">Select an option (enter number):</Text>
 						{parts.options.map((opt, idx) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: options are static for this ask
 							<Box key={idx} marginLeft={2}>
 								<Text>{`${idx + 1}. ${opt}`}</Text>
 							</Box>

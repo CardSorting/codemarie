@@ -1,11 +1,11 @@
-import { CheckpointRestoreRequest } from "@shared/proto/codemarie/checkpoints"
+import { CheckpointRestoreRequest } from "@shared/proto/codemarie/system"
 import { CodemarieCheckpointRestore } from "@shared/WebviewMessage"
 import React, { forwardRef, useMemo, useRef, useState } from "react"
 import DynamicTextArea from "react-textarea-autosize"
 import { highlightText } from "@/components/chat/components/layout/task-header/Highlights"
 import Thumbnails from "@/components/ui/thumbnails"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { CheckpointsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 interface UserMessageProps {
 	text?: string
@@ -49,7 +49,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ text, images, files, messageT
 		}
 
 		try {
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType: type,

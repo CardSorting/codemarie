@@ -7,15 +7,6 @@ import "codemarie/common.proto";
 
 // Service for account-related operations
 service AccountService {
-  // Handles the user clicking the login link in the UI.
-  // Generates a secure nonce for state validation, stores it in secrets,
-  // and opens the authentication URL in the external browser.
-  rpc accountLoginClicked(EmptyRequest) returns (String);
-
-  // Handles the user clicking the logout button in the UI.
-  // Clears API keys and user state.
-  rpc accountLogoutClicked(EmptyRequest) returns (Empty);
-
   // Subscribe to auth status update events (when authentication state changes)
   rpc subscribeToAuthStatusUpdate(EmptyRequest) returns (stream AuthState);
 
@@ -35,21 +26,26 @@ service AccountService {
 
   rpc setUserOrganization(UserOrganizationUpdateRequest) returns (Empty);
 
-  rpc openrouterAuthClicked(EmptyRequest) returns (Empty);
+  // Consolidated sign-in for various providers
+  rpc signIn(SignInRequest) returns (Empty);
 
-  rpc requestyAuthClicked(StringRequest) returns (Empty);
-
-  rpc hicapAuthClicked(EmptyRequest) returns (Empty);
+  // Consolidated sign-out for various providers
+  rpc signOut(SignOutRequest) returns (Empty);
 
   // Returns a link the webview can use to redirect back to the user's IDE.
   rpc getRedirectUrl(EmptyRequest) returns (String);
+}
 
-  // OpenAI Codex OAuth authentication
-  // Starts the OAuth flow and opens browser for user to sign in with ChatGPT Plus/Pro
-  rpc openAiCodexSignIn(EmptyRequest) returns (Empty);
+// Request for sign-in
+message SignInRequest {
+  ApiProvider provider = 1;
+  optional string base_url = 2; // For providers that need a base URL
+  optional string api_key = 3;  // For providers that take a direct API key
+}
 
-  // Signs out of OpenAI Codex and clears stored credentials
-  rpc openAiCodexSignOut(EmptyRequest) returns (Empty);
+// Request for sign-out
+message SignOutRequest {
+  ApiProvider provider = 1;
 }
 
 message AuthStateChangedRequest {
@@ -57,8 +53,20 @@ message AuthStateChangedRequest {
   UserInfo user = 2;
 }
 
+message OcaUserInfo {
+  string uid = 1;
+  optional string display_name = 2;
+  optional string email = 3;
+}
+
+message OcaAuthState {
+  optional OcaUserInfo user = 1;
+  optional string api_key = 2;
+}
+
 message AuthState {
   optional UserInfo user = 1;
+  optional OcaAuthState oca_user = 2;
 }
 
 // User's information

@@ -5,7 +5,7 @@
 
 import type { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
-import type { ApiProvider, ModelInfo } from "@shared/api"
+import type { ModelInfo } from "@shared/api"
 import { getProviderModelIdKey, isSettingsKey, ProviderToApiKeyMap } from "@shared/storage"
 import { isOpenaiReasoningEffort, OPENAI_REASONING_EFFORT_OPTIONS, type OpenaiReasoningEffort } from "@shared/storage/types"
 import type { TelemetrySetting } from "@shared/TelemetrySetting"
@@ -14,12 +14,12 @@ import Spinner from "ink-spinner"
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { buildApiHandler } from "@/core/api"
 import type { Controller } from "@/core/controller"
-import { refreshOcaModels } from "@/core/controller/models/refreshOcaModels"
+import { refreshModels as refreshOcaModels } from "@/core/controller/system/refreshModels"
 import { StateManager } from "@/core/storage/StateManager"
 import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
 import { CodemarieAccountService } from "@/services/account/CodemarieAccountService"
 import { AuthService, CodemarieAccountOrganization } from "@/services/auth/AuthService"
-import { StringRequest } from "@/shared/proto/codemarie/common"
+import { ApiProvider } from "@/shared/proto/codemarie/common"
 import { openExternal } from "@/utils/env"
 import { supportsReasoningEffortForModel } from "@/utils/model-utils"
 import { version as CLI_VERSION } from "../../package.json"
@@ -268,7 +268,7 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 		await applyProviderConfig({ providerId: "oca", controller })
 		// Fetch OCA models from the API - this sets actModeOcaModelId/planModeOcaModelId in state
 		if (controller) {
-			await refreshOcaModels(controller, StringRequest.create({ value: "" }))
+			await refreshOcaModels(controller, { provider: ApiProvider.OCA })
 		}
 		setProvider("oca")
 		refreshModelIds()
@@ -1311,7 +1311,8 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 			}
 
 			// Check if this provider needs an API key
-			const keyField = ProviderToApiKeyMap[providerId as ApiProvider]
+			// biome-ignore lint/suspicious/noExplicitAny: ProviderToApiKeyMap is used as a lookup table
+			const keyField = (ProviderToApiKeyMap as any)[providerId]
 			if (keyField) {
 				// Provider needs an API key - go to API key entry mode
 				// Pre-fill with existing key if configured
@@ -1711,13 +1712,15 @@ export const SettingsPanelContent: React.FC<SettingsPanelContentProps> = ({
 						Select: {label}
 					</Text>
 					<Box marginTop={1}>
-						<ModelPicker
-							controller={controller}
-							isActive={isPickingModel}
-							onChange={() => {}}
-							onSubmit={handleModelSelect}
-							provider={provider}
-						/>
+						{controller && (
+							<ModelPicker
+								controller={controller}
+								isActive={isPickingModel}
+								onChange={() => {}}
+								onSubmit={handleModelSelect}
+								provider={provider}
+							/>
+						)}
 					</Box>
 					<Box marginTop={1}>
 						<Text color="gray">Type to search, arrows to navigate, Enter to select, Esc to cancel</Text>

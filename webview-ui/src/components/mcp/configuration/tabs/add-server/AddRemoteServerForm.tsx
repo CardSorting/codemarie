@@ -5,7 +5,7 @@ import { VSCodeButton, VSCodeLink, VSCodeRadio, VSCodeRadioGroup, VSCodeTextFiel
 import { useState } from "react"
 import { LINKS } from "@/constants"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 type TransportType = "streamableHttp" | "sse"
 
@@ -41,7 +41,7 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 		setIsSubmitting(true)
 
 		try {
-			const servers: McpServers = await McpServiceClient.addRemoteMcpServer(
+			const servers: McpServers = await SystemServiceClient.addRemoteMcpServer(
 				AddRemoteMcpServerRequest.create({
 					serverName: serverName.trim(),
 					serverUrl: serverUrl.trim(),
@@ -128,7 +128,7 @@ const AddRemoteServerForm = ({ onServerAdded }: { onServerAdded: () => void }) =
 				<VSCodeButton
 					appearance="secondary"
 					onClick={() => {
-						McpServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
+						SystemServiceClient.openMcpSettings(EmptyRequest.create({})).catch((error) => {
 							console.error("Error opening MCP settings:", error)
 						})
 					}}

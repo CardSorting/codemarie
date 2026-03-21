@@ -48,7 +48,7 @@ import { WithCopyButton } from "@/components/ui/copy-button"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useSize } from "@/hooks/useBrowser"
 import { cn } from "@/lib/utils"
-import { FileServiceClient, UiServiceClient } from "@/services/protobus-client"
+import { FileServiceClient, SystemServiceClient } from "@/services/protobus-client"
 import { findMatchingResourceOrTemplate, getMcpServerDisplayName } from "@/utils/mcp"
 import CodeAccordian, { cleanPathPrefix } from "../../../../common/CodeAccordian"
 import { AlignmentGuard } from "./AlignmentGuard"
@@ -707,7 +707,7 @@ export const ChatRowContent = memo(
 								onClick={() => {
 									// Open the URL in the default browser using Protobus
 									if (tool.path) {
-										UiServiceClient.openUrl(StringRequest.create({ value: tool.path })).catch((err) => {
+										SystemServiceClient.openUrl(StringRequest.create({ value: tool.path })).catch((err) => {
 											console.error("Failed to open URL:", err)
 										})
 									}
@@ -1151,7 +1151,9 @@ export const ChatRowContent = memo(
 									onClick={async () => {
 										try {
 											// Enable background terminal execution mode
-											await UiServiceClient.setTerminalExecutionMode(BooleanRequest.create({ value: true }))
+											await SystemServiceClient.setTerminalExecutionMode(
+												BooleanRequest.create({ value: true }),
+											)
 										} catch (error) {
 											console.error("Failed to enable background terminal:", error)
 										}

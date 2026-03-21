@@ -41,6 +41,7 @@ function withRecordingMiddleware(postMessage: PostMessageToWebview, controller: 
  */
 function recordRequest(request: ProtobusRequest, controller: Controller): void {
 	try {
+		// biome-ignore lint/suspicious/noExplicitAny: ProtobusRequest can be any
 		ProtobusRecorderBuilder.getRecorder(controller).recordRequest(request as any)
 	} catch (e) {
 		Logger.warn("Failed to record Protobus request:", e)
@@ -116,6 +117,7 @@ async function handleStreamingRequest(
 	request: ProtobusRequest,
 ): Promise<void> {
 	// Create a response stream function
+	// biome-ignore lint/suspicious/noExplicitAny: response from handler can be any
 	const responseStream: StreamingResponseHandler<any> = async (response: any, isLast = false, sequenceNumber?: number) => {
 		await postMessageToWebview({
 			type: "protobus_response",
@@ -185,6 +187,7 @@ export function getProtobusRequestRegistry(): ProtobusRequestRegistry {
 	return requestRegistry
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: handler can be any
 function getHandler(serviceName: string, methodName: string): any {
 	// Get the service handler from the config
 	const serviceConfig = serviceHandlers[serviceName]

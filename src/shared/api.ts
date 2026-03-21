@@ -1,4 +1,4 @@
-import { ApiFormat } from "./proto/codemarie/models"
+import { ApiFormat } from "./proto/codemarie/common"
 import type { ApiHandlerSettings } from "./storage/state-keys"
 
 export type ApiProvider =

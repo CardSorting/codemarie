@@ -1,4 +1,4 @@
-import { clearOnboardingModelsCache, getCodemarieOnboardingModels } from "@/core/controller/models/getCodemarieOnboardingModels"
+import { clearOnboardingModelsCache, getCodemarieOnboardingModels } from "@/core/controller/system/getCodemarieOnboardingModels"
 import type { OnboardingModel } from "@/shared/proto/codemarie/state"
 import { FEATURE_FLAGS, FeatureFlag, FeatureFlagDefaultValue } from "@/shared/services/feature-flags/feature-flags"
 import { Logger } from "@/shared/services/Logger"

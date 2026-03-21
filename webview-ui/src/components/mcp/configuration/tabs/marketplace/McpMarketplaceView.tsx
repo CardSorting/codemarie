@@ -10,7 +10,7 @@ import {
 } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { McpServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import McpMarketplaceCard from "./McpMarketplaceCard"
 import McpSubmitCard from "./McpSubmitCard"
 
@@ -69,7 +69,7 @@ const McpMarketplaceView = () => {
 			setError(null)
 
 			if (showMarketplace) {
-				McpServiceClient.refreshMcpMarketplace(EmptyRequest.create({}))
+				SystemServiceClient.refreshMcpMarketplace(EmptyRequest.create({}))
 					.then((response) => {
 						setMcpMarketplaceCatalog(response)
 					})

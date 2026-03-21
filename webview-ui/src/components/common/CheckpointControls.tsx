@@ -1,12 +1,12 @@
-import { CheckpointRestoreRequest } from "@shared/proto/codemarie/checkpoints"
 import { Int64Request } from "@shared/proto/codemarie/common"
+import { CheckpointRestoreRequest } from "@shared/proto/codemarie/system"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
 import styled from "styled-components"
 import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { useClickAway } from "@/hooks/useWindow"
-import { CheckpointsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 
 interface CheckpointOverlayProps {
 	messageTs?: number
@@ -44,7 +44,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 	const handleRestoreTask = async () => {
 		setRestoreTaskDisabled(true)
 		try {
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType: "task",
@@ -59,7 +59,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 	const handleRestoreWorkspace = async () => {
 		setRestoreWorkspaceDisabled(true)
 		try {
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType: "workspace",
@@ -74,7 +74,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 	const handleRestoreBoth = async () => {
 		setRestoreBothDisabled(true)
 		try {
-			await CheckpointsServiceClient.checkpointRestore(
+			await SystemServiceClient.checkpointRestore(
 				CheckpointRestoreRequest.create({
 					number: messageTs,
 					restoreType: "taskAndWorkspace",
@@ -126,7 +126,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 				onClick={async () => {
 					setCompareDisabled(true)
 					try {
-						await CheckpointsServiceClient.checkpointDiff(
+						await SystemServiceClient.checkpointDiff(
 							Int64Request.create({
 								value: messageTs,
 							}),

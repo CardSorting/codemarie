@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import UseCustomPromptCheckbox from "@/components/settings/UseCustomPromptCheckbox"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useInterval } from "@/hooks/useLifecycle"
-import { ModelsServiceClient } from "@/services/protobus-client"
+import { SystemServiceClient } from "@/services/protobus-client"
 import { BaseUrlField } from "../common/BaseUrlField"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { DropdownContainer } from "../common/ModelSelector"
@@ -55,7 +55,7 @@ export const LMStudioProvider = ({ currentMode }: LMStudioProviderProps) => {
 
 	// Poll LM Studio models
 	const requestLmStudioModels = useCallback(async () => {
-		await ModelsServiceClient.getLmStudioModels({
+		await SystemServiceClient.getLmStudioModels({
 			value: endpoint,
 		})
 			.then((response) => {

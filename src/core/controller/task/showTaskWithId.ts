@@ -1,8 +1,13 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
+import { UiEvent } from "@shared/proto/codemarie/system"
 import { TaskResponse } from "@shared/proto/codemarie/task"
 import { Logger } from "@/shared/services/Logger"
 import { Controller } from ".."
-import { sendChatButtonClickedEvent } from "../ui/subscribeToChatButtonClicked"
+import { broadcastUiEvent as sendUiEvent } from "../system/SystemUpdatesEmitter"
+
+const UiEventType = {
+	CHAT_BUTTON_CLICKED: "CHAT_BUTTON_CLICKED",
+}
 
 /**
  * Shows a task with the specified ID
@@ -24,7 +29,7 @@ export async function showTaskWithId(controller: Controller, request: StringRequ
 			await controller.initTask(undefined, undefined, undefined, historyItem)
 
 			// Send UI update to show the chat view
-			await sendChatButtonClickedEvent()
+			await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.CHAT_BUTTON_CLICKED }))
 
 			// Return task data for Protobus response
 			return TaskResponse.create({
@@ -48,7 +53,7 @@ export async function showTaskWithId(controller: Controller, request: StringRequ
 		await controller.initTask(undefined, undefined, undefined, fetchedItem)
 
 		// Send UI update to show the chat view
-		await sendChatButtonClickedEvent()
+		await sendUiEvent(UiEvent.fromPartial({ type: UiEventType.CHAT_BUTTON_CLICKED }))
 
 		return TaskResponse.create({
 			id: fetchedItem.id,

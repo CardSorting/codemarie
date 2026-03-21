@@ -265,6 +265,7 @@ export async function updateSettings(controller: Controller, request: UpdateSett
 			if (controller.task) {
 				// Call the updated setDefaultTerminalProfile method that returns closed terminal info
 				// Use `as any` to handle type incompatibility between VSCode's TerminalInfo and standalone TerminalInfo
+				// biome-ignore lint/suspicious/noExplicitAny: terminal profile casting
 				const result = controller.task.terminalManager.setDefaultTerminalProfile(profileId) as any
 				closedCount = result.closedCount
 				busyTerminalsCount = result.busyTerminals?.length ?? 0
@@ -336,6 +337,27 @@ export async function updateSettings(controller: Controller, request: UpdateSett
 
 		if (request.doubleCheckCompletionEnabled !== undefined) {
 			controller.stateManager.setGlobalState("doubleCheckCompletionEnabled", request.doubleCheckCompletionEnabled)
+		}
+
+		// Update banner versions
+		if (request.infoBannerVersion !== undefined) {
+			controller.stateManager.setGlobalState("lastDismissedInfoBannerVersion", Number(request.infoBannerVersion))
+		}
+		if (request.modelBannerVersion !== undefined) {
+			controller.stateManager.setGlobalState("lastDismissedModelBannerVersion", Number(request.modelBannerVersion))
+		}
+		if (request.cliBannerVersion !== undefined) {
+			controller.stateManager.setGlobalState("lastDismissedCliBannerVersion", Number(request.cliBannerVersion))
+		}
+
+		// Update welcome view completed
+		if (request.welcomeViewCompleted !== undefined) {
+			controller.stateManager.setGlobalState("welcomeViewCompleted", request.welcomeViewCompleted)
+		}
+
+		// Update terminal connection timeout
+		if (request.terminalConnectionTimeout !== undefined) {
+			controller.stateManager.setGlobalState("shellIntegrationTimeout", Number(request.terminalConnectionTimeout))
 		}
 
 		// Post updated state to webview
