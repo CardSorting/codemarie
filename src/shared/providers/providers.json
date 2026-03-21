@@ -1,10 +1,6 @@
 {
 	"list": [
 		{
-			"value": "codemarie",
-			"label": "CodeMarie"
-		},
-		{
 			"value": "openai-codex",
 			"label": "ChatGPT Subscription"
 		},
@@ -83,10 +79,6 @@
 		{
 			"value": "baseten",
 			"label": "Baseten"
-		},
-		{
-			"value": "requesty",
-			"label": "Requesty"
 		},
 		{
 			"value": "fireworks",

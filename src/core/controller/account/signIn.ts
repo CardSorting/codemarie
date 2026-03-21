@@ -3,7 +3,6 @@ import { ApiProvider, Empty } from "@shared/proto/codemarie/common"
 import { ShowMessageType } from "@shared/proto/host/window"
 import { HostProvider } from "@/hosts/host-provider"
 import { openAiCodexOAuthManager } from "@/integrations/openai-codex/oauth"
-import { toRequestyServiceUrl } from "@/shared/clients/requesty"
 import { Logger } from "@/shared/services/Logger"
 import { openExternal } from "@/utils/env"
 import type { Controller } from "../index"
@@ -16,18 +15,6 @@ export async function signIn(controller: Controller, request: SignInRequest): Pr
 			const callbackUrl = await HostProvider.get().getCallbackUrl("/openrouter")
 			const authUrl = `https://openrouter.ai/auth?callback_url=${encodeURIComponent(callbackUrl)}`
 			await openExternal(authUrl)
-			return {}
-		}
-		case ApiProvider.REQUESTY: {
-			const customBaseUrl = request.baseUrl || undefined
-			const callbackUrl = await HostProvider.get().getCallbackUrl("/requesty")
-			const baseUrl = toRequestyServiceUrl(customBaseUrl, "app")
-			if (!baseUrl) {
-				throw new Error("Invalid Requesty base URL")
-			}
-			const authUrl = new URL("oauth/authorize", baseUrl)
-			authUrl.searchParams.set("callback_url", callbackUrl)
-			await openExternal(authUrl.toString())
 			return {}
 		}
 		case ApiProvider.HICAP: {

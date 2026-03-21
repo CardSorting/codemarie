@@ -13,7 +13,6 @@ export type ApiProvider =
 	| "gemini"
 	| "openai-native"
 	| "openai-codex"
-	| "requesty"
 	| "together"
 	| "deepseek"
 	| "qwen"
@@ -21,7 +20,6 @@ export type ApiProvider =
 	| "doubao"
 	| "mistral"
 	| "vscode-lm"
-	| "codemarie"
 	| "litellm"
 	| "moonshot"
 	| "nebius"
@@ -785,18 +783,6 @@ export const openRouterDefaultModelInfo: ModelInfo = {
 	cacheReadsPrice: 0.3,
 	description:
 		"Claude Sonnet 4.5 delivers superior intelligence across coding, agentic search, and AI agent capabilities. It's a powerful choice for agentic coding, and can complete tasks across the entire software development lifecycle, from initial planning to bug fixes, maintenance to large refactors. It offers strong performance in both planning and solving for complex coding tasks, making it an ideal choice to power end-to-end software development processes.\n\nRead more in the [blog post here](https://www.anthropic.com/claude/sonnet)",
-}
-
-// Codemarie custom model - Devstral
-export const codemarieDevstralModelInfo: ModelInfo = {
-	contextWindow: 256000,
-	supportsImages: false,
-	supportsPromptCache: false,
-	inputPrice: 0,
-	outputPrice: 0,
-	cacheReadsPrice: 0,
-	cacheWritesPrice: 0,
-	description: "A stealth model for agentic coding tasks",
 }
 
 export const OPENROUTER_PROVIDER_PREFERENCES: Record<string, { order: string[]; allow_fallbacks: boolean }> = {
@@ -3743,22 +3729,6 @@ export const groqModels = {
 			"Kimi K2 model gets a new version update: Agentic coding: more accurate, better generalization across scaffolds. Frontend coding: improved aesthetics and functionalities on web, 3d, and other tasks. Context length: extended from 128k to 256k, providing better long-horizon support.",
 	},
 } as const satisfies Record<string, ModelInfo>
-
-// Requesty
-// https://requesty.ai/models
-export const requestyDefaultModelId = "anthropic/claude-3-7-sonnet-latest"
-export const requestyDefaultModelInfo: ModelInfo = {
-	maxTokens: 8192,
-	contextWindow: 200_000,
-	supportsImages: true,
-
-	supportsPromptCache: true,
-	inputPrice: 3.0,
-	outputPrice: 15.0,
-	cacheWritesPrice: 3.75,
-	cacheReadsPrice: 0.3,
-	description: "Anthropic's most intelligent model. Highest level of intelligence and capability.",
-}
 
 // SAP AI Core
 export type SapAiCoreModelId = keyof typeof sapAiCoreModels

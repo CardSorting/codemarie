@@ -1,4 +1,6 @@
-import { StringRequest } from "@shared/proto/codemarie/common"
+import { ApiProvider } from "@shared/api"
+import { ApiProvider as ApiProviderProto } from "@shared/proto/codemarie/common"
+import { RefreshModelsRequest } from "@shared/proto/codemarie/system"
 import PROVIDERS from "@shared/providers/providers.json"
 import { Mode } from "@shared/storage/types"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
@@ -19,7 +21,6 @@ import { BedrockProvider } from "./providers/BedrockProvider"
 import { CerebrasProvider } from "./providers/CerebrasProvider"
 import { ClaudeCodeProvider } from "./providers/ClaudeCodeProvider"
 import { CloudflareProvider } from "./providers/CloudflareProvider"
-import { CodemarieProvider } from "./providers/CodemarieProvider"
 import { DeepSeekProvider } from "./providers/DeepSeekProvider"
 import { DifyProvider } from "./providers/DifyProvider"
 import { DoubaoProvider } from "./providers/DoubaoProvider"
@@ -44,7 +45,6 @@ import { OpenAiCodexProvider } from "./providers/OpenAiCodexProvider"
 import { OpenRouterProvider } from "./providers/OpenRouterProvider"
 import { QwenCodeProvider } from "./providers/QwenCodeProvider"
 import { QwenProvider } from "./providers/QwenProvider"
-import { RequestyProvider } from "./providers/RequestyProvider"
 import { SambanovaProvider } from "./providers/SambanovaProvider"
 import { SapAiCoreProvider } from "./providers/SapAiCoreProvider"
 import { TogetherProvider } from "./providers/TogetherProvider"
@@ -61,7 +61,6 @@ interface ApiOptionsProps {
 	modelIdErrorMessage?: string
 	isPopup?: boolean
 	currentMode: Mode
-	initialModelTab?: "recommended" | "free"
 }
 
 // This is necessary to ensure dropdown opens downward, important for when this is used in popup
@@ -88,14 +87,7 @@ declare module "vscode" {
 	}
 }
 
-const ApiOptions = ({
-	showModelOptions,
-	apiErrorMessage,
-	modelIdErrorMessage,
-	isPopup,
-	currentMode,
-	initialModelTab,
-}: ApiOptionsProps) => {
+const ApiOptions = ({ showModelOptions, apiErrorMessage, modelIdErrorMessage, isPopup, currentMode }: ApiOptionsProps) => {
 	// Use full context state for immediate save payload
 	const { apiConfiguration, remoteConfigSettings } = useExtensionState()
 
@@ -109,13 +101,14 @@ const ApiOptions = ({
 	const requestLocalModels = useCallback(async () => {
 		if (selectedProvider === "ollama") {
 			try {
-				const response = await SystemServiceClient.getOllamaModels(
-					StringRequest.create({
-						value: apiConfiguration?.ollamaBaseUrl || "",
+				const response = await SystemServiceClient.refreshModels(
+					RefreshModelsRequest.create({
+						provider: ApiProviderProto.OLLAMA,
+						baseUrl: apiConfiguration?.ollamaBaseUrl || "",
 					}),
 				)
-				if (response?.values) {
-					setOllamaModels(response.values)
+				if (response?.stringArrayModels?.values) {
+					setOllamaModels(response.stringArrayModels.values)
 				}
 			} catch (error) {
 				console.error("Failed to fetch Ollama models:", error)
@@ -184,7 +177,7 @@ const ApiOptions = ({
 	}, [searchableItems, searchTerm, fzf, currentProviderLabel])
 
 	const handleProviderChange = (newProvider: string) => {
-		handleModeFieldChange({ plan: "planModeApiProvider", act: "actModeApiProvider" }, newProvider as any, currentMode)
+		handleModeFieldChange({ plan: "planModeApiProvider", act: "actModeApiProvider" }, newProvider as ApiProvider, currentMode)
 		setIsDropdownVisible(false)
 		setSelectedIndex(-1)
 	}
@@ -310,20 +303,29 @@ const ApiOptions = ({
 						}}
 						value={searchTerm}>
 						{searchTerm && searchTerm !== currentProviderLabel && (
-							<div
+							<span
 								aria-label="Clear search"
 								className="input-icon-button codicon codicon-close"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)
 								}}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ") {
+										setSearchTerm("")
+										setIsDropdownVisible(true)
+									}
+								}}
+								role="button"
 								slot="end"
 								style={{
 									display: "flex",
 									justifyContent: "center",
 									alignItems: "center",
 									height: "100%",
+									cursor: "pointer",
 								}}
+								tabIndex={0}
 							/>
 						)}
 					</VSCodeTextField>
@@ -350,15 +352,6 @@ const ApiOptions = ({
 
 			{apiConfiguration && selectedProvider === "hicap" && (
 				<HicapProvider currentMode={currentMode} isPopup={isPopup} showModelOptions={showModelOptions} />
-			)}
-
-			{apiConfiguration && selectedProvider === "codemarie" && (
-				<CodemarieProvider
-					currentMode={currentMode}
-					initialModelTab={initialModelTab}
-					isPopup={isPopup}
-					showModelOptions={showModelOptions}
-				/>
 			)}
 
 			{apiConfiguration && selectedProvider === "asksage" && (
@@ -435,10 +428,6 @@ const ApiOptions = ({
 
 			{apiConfiguration && selectedProvider === "gemini" && (
 				<GeminiProvider currentMode={currentMode} isPopup={isPopup} showModelOptions={showModelOptions} />
-			)}
-
-			{apiConfiguration && selectedProvider === "requesty" && (
-				<RequestyProvider currentMode={currentMode} isPopup={isPopup} showModelOptions={showModelOptions} />
 			)}
 
 			{apiConfiguration && selectedProvider === "fireworks" && (

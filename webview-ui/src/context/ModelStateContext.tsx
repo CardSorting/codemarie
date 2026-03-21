@@ -1,5 +1,5 @@
-import { EmptyRequest } from "@shared/proto/codemarie/common"
-import type { OpenRouterCompatibleModelInfo } from "@shared/proto/codemarie/models"
+import { ApiProvider } from "@shared/proto/codemarie/common"
+import { RefreshModelsRequest, type RefreshModelsResponse } from "@shared/proto/codemarie/system"
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
 import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
@@ -69,57 +69,69 @@ export const ModelStateProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	const [openAiModels, _setOpenAiModels] = useState<string[]>([])
 
 	const refreshOpenRouterModels = useCallback(() => {
-		SystemServiceClient.refreshOpenRouterModelsRpc(EmptyRequest.create({}))
-			.then((response: OpenRouterCompatibleModelInfo) => {
-				const models = fromProtobufModels(response.models)
-				setOpenRouterModels({
-					[openRouterDefaultModelId]: openRouterDefaultModelInfo,
-					...models,
-				})
+		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.OPENROUTER }))
+			.then((response: RefreshModelsResponse) => {
+				if (response.compatibleModels) {
+					const models = fromProtobufModels(response.compatibleModels.models)
+					setOpenRouterModels({
+						[openRouterDefaultModelId]: openRouterDefaultModelInfo,
+						...models,
+					})
+				}
 			})
 			.catch((error: Error) => console.error("Failed to refresh OpenRouter models:", error))
 	}, [])
 
 	const refreshHicapModels = useCallback(() => {
-		SystemServiceClient.refreshHicapModels(EmptyRequest.create({}))
-			.then((response: OpenRouterCompatibleModelInfo) => {
-				setHicapModels({ ...response.models })
+		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.HICAP }))
+			.then((response: RefreshModelsResponse) => {
+				if (response.compatibleModels) {
+					setHicapModels({ ...response.compatibleModels.models })
+				}
 			})
 			.catch((error: Error) => console.error("Failed to refresh Hicap models:", error))
 	}, [])
 
 	const refreshLiteLlmModels = useCallback(() => {
-		return SystemServiceClient.refreshLiteLlmModelsRpc(EmptyRequest.create({}))
-			.then((response: OpenRouterCompatibleModelInfo) => {
-				setLiteLlmModels(fromProtobufModels(response.models))
+		return SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.LITELLM }))
+			.then((response: RefreshModelsResponse) => {
+				if (response.compatibleModels) {
+					setLiteLlmModels(fromProtobufModels(response.compatibleModels.models))
+				}
 			})
 			.catch((error: Error) => console.error("Failed to refresh LiteLLM models:", error))
 	}, [])
 
 	const refreshBasetenModels = useCallback(() => {
-		SystemServiceClient.refreshBasetenModelsRpc(EmptyRequest.create({}))
-			.then((response) => {
-				setBasetenModels({
-					[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
-					...fromProtobufModels(response.models),
-				})
+		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.BASETEN }))
+			.then((response: RefreshModelsResponse) => {
+				if (response.compatibleModels) {
+					setBasetenModels({
+						[basetenDefaultModelId]: basetenModels[basetenDefaultModelId],
+						...fromProtobufModels(response.compatibleModels.models),
+					})
+				}
 			})
-			.catch((err) => console.error("Failed to refresh Baseten models:", err))
+			.catch((err: Error) => console.error("Failed to refresh Baseten models:", err))
 	}, [])
 
 	const refreshVercelAiGatewayModels = useCallback(() => {
-		SystemServiceClient.refreshVercelAiGatewayModelsRpc(EmptyRequest.create({}))
-			.then((response: OpenRouterCompatibleModelInfo) => {
-				setVercelAiGatewayModels(fromProtobufModels(response.models))
+		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.VERCEL_AI_GATEWAY }))
+			.then((response: RefreshModelsResponse) => {
+				if (response.compatibleModels) {
+					setVercelAiGatewayModels(fromProtobufModels(response.compatibleModels.models))
+				}
 			})
 			.catch((error: Error) => console.error("Failed to refresh Vercel AI Gateway models:", error))
 	}, [])
 
 	const refreshCodemarieModels = useCallback(() => {
-		SystemServiceClient.refreshCodemarieModelsRpc(EmptyRequest.create({}))
-			.then((response: OpenRouterCompatibleModelInfo) => {
-				const models = fromProtobufModels(response.models)
-				setCodemarieModels((prev) => (Object.keys(models).length > 0 ? models : (prev ?? null)))
+		SystemServiceClient.refreshModels(RefreshModelsRequest.create({ provider: ApiProvider.CODEMARIE }))
+			.then((response: RefreshModelsResponse) => {
+				if (response.compatibleModels) {
+					const models = fromProtobufModels(response.compatibleModels.models)
+					setCodemarieModels((prev) => (Object.keys(models).length > 0 ? models : (prev ?? null)))
+				}
 			})
 			.catch((error: Error) => console.error("Failed to refresh Codemarie models:", error))
 	}, [])

@@ -9,8 +9,8 @@ import { PLATFORM_CONFIG } from "../config/platform.config"
 
 export interface Callbacks<TResponse> {
 	onResponse: (response: TResponse) => void
-	onError: (error: Error) => void
-	onComplete: () => void
+	onError?: (error: Error) => void
+	onComplete?: () => void
 }
 
 /* biome-ignore lint/complexity/noStaticOnlyClass: ProtoBusClient is used as a namespace for Protobus methods */

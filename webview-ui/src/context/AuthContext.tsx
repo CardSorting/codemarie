@@ -1,5 +1,5 @@
-import type { UserOrganization } from "@shared/proto/codemarie/account"
-import { EmptyRequest } from "@shared/proto/codemarie/common"
+import { type AuthState, SignInRequest, SignOutRequest, type UserOrganization } from "@shared/proto/codemarie/account"
+import { ApiProvider, EmptyRequest } from "@shared/proto/codemarie/common"
 import deepEqual from "fast-deep-equal"
 import type React from "react"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
@@ -52,8 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 	const handleSignIn = useCallback(() => {
 		try {
 			setIsLoginLoading(true)
-			AccountServiceClient.accountLoginClicked(EmptyRequest.create())
-				.catch((err) => console.error("Failed to get login URL:", err))
+			AccountServiceClient.signIn(SignInRequest.create({ provider: ApiProvider.CODEMARIE }))
+				.catch((err: Error) => console.error("Failed to sign in:", err))
 				.finally(() => {
 					setIsLoginLoading(false)
 				})
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 	const handleSignOut = useCallback(async () => {
 		try {
-			await AccountServiceClient.accountLogoutClicked(EmptyRequest.create()).catch((err) =>
+			await AccountServiceClient.signOut(SignOutRequest.create({ provider: ApiProvider.CODEMARIE })).catch((err: Error) =>
 				console.error("Failed to logout:", err),
 			)
 		} catch (error) {
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 	// Handle auth status update events
 	useEffect(() => {
 		const cancelSubscription = AccountServiceClient.subscribeToAuthStatusUpdate(EmptyRequest.create(), {
-			onResponse: async (response) => {
+			onResponse: async (response: AuthState) => {
 				setUser((oldUser) => {
 					if (!response?.user?.uid) {
 						return null

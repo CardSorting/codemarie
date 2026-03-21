@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react"
 import styled from "styled-components"
 import { useGlobalState } from "@/context/GlobalStateContext"
 import { BROWSER_VIEWPORT_PRESETS } from "../../../../../src/shared/BrowserSettings"
-import { BrowserServiceClient } from "../../../services/protobus-client"
+import { SystemServiceClient } from "../../../services/protobus-client"
 import CollapsibleContent from "../CollapsibleContent"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import Section from "../Section"
@@ -67,12 +67,12 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 
 	// Request detected Chrome path on mount
 	useEffect(() => {
-		BrowserServiceClient.getDetectedChromePath(EmptyRequest.create({}))
-			.then((result) => {
+		SystemServiceClient.getDetectedChromePath(EmptyRequest.create({}))
+			.then((result: any) => {
 				setDetectedChromePath(result.path)
 				setIsBundled(result.isBundled)
 			})
-			.catch((error) => {
+			.catch((error: any) => {
 				console.error("Error getting detected Chrome path:", error)
 			})
 	}, [])
@@ -80,20 +80,20 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 	// Function to check connection once without changing UI state immediately
 	const checkConnectionOnce = useCallback(() => {
 		if (browserSettings.remoteBrowserHost) {
-			BrowserServiceClient.testBrowserConnection(StringRequest.create({ value: browserSettings.remoteBrowserHost }))
-				.then((result) => {
+			SystemServiceClient.testBrowserConnection(StringRequest.create({ value: browserSettings.remoteBrowserHost }))
+				.then((result: any) => {
 					setConnectionStatus(result.success)
 				})
-				.catch((error) => {
+				.catch((error: any) => {
 					console.error("Error testing browser connection:", error)
 					setConnectionStatus(false)
 				})
 		} else {
-			BrowserServiceClient.discoverBrowser(EmptyRequest.create({}))
-				.then((result) => {
+			SystemServiceClient.discoverBrowser(EmptyRequest.create({}))
+				.then((result: any) => {
 					setConnectionStatus(result.success)
 				})
-				.catch((error) => {
+				.catch((error: any) => {
 					console.error("Error discovering browser:", error)
 					setConnectionStatus(false)
 				})
@@ -132,15 +132,15 @@ export const BrowserSettingsSection: React.FC<BrowserSettingsSectionProps> = ({ 
 		setDebugMode(true)
 		setRelaunchResult(null)
 
-		BrowserServiceClient.relaunchChromeDebugMode(EmptyRequest.create({}))
-			.then((result) => {
+		SystemServiceClient.relaunchChromeDebugMode(EmptyRequest.create({}))
+			.then((result: any) => {
 				setRelaunchResult({
 					success: true,
 					message: result.value,
 				})
 				setDebugMode(false)
 			})
-			.catch((error) => {
+			.catch((error: any) => {
 				console.error("Error relaunching Chrome:", error)
 				setRelaunchResult({
 					success: false,

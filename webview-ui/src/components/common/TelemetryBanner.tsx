@@ -1,17 +1,12 @@
-import { TelemetrySettingEnum, TelemetrySettingRequest } from "@shared/proto/codemarie/state"
 import { useCallback } from "react"
 import { useNavigation } from "@/context/NavigationContext"
-import { StateServiceClient } from "@/services/protobus-client"
-
-const telemetryRequest = TelemetrySettingRequest.create({
-	setting: TelemetrySettingEnum.ENABLED,
-})
+import { updateSetting } from "../settings/utils/settingsHandlers"
 
 export const TelemetryBanner: React.FC = () => {
 	const { navigateToSettings } = useNavigation()
 
 	const handleClose = useCallback(() => {
-		StateServiceClient.updateTelemetrySetting(telemetryRequest).catch(console.error)
+		updateSetting("telemetrySetting", "enabled")
 	}, [])
 
 	const handleOpenSettings = useCallback(() => {

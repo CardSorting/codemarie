@@ -1,9 +1,7 @@
-import { UpdateTerminalConnectionTimeoutResponse } from "@shared/proto/index.codemarie"
 import { VSCodeCheckbox, VSCodeDropdown, VSCodeOption, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import React, { useState } from "react"
 import { PLATFORM_CONFIG, PlatformType } from "@/config/platform.config"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { StateServiceClient } from "../../../services/protobus-client"
 import Section from "../Section"
 import TerminalOutputLineLimitSlider from "../TerminalOutputLineLimitSlider"
 import { updateSetting } from "../utils/settingsHandlers"
@@ -39,18 +37,8 @@ export const TerminalSettingsSection: React.FC<TerminalSettingsSectionProps> = (
 		setInputError(null)
 		const timeoutMs = Math.round(seconds * 1000)
 
-		StateServiceClient.updateTerminalConnectionTimeout({ timeoutMs })
-			.then((response: UpdateTerminalConnectionTimeoutResponse) => {
-				const timeoutMs = response.timeoutMs
-				// Backend calls postStateToWebview(), so state will update via subscription
-				// Just sync the input value with the confirmed backend value
-				if (timeoutMs !== undefined) {
-					setInputValue((timeoutMs / 1000).toString())
-				}
-			})
-			.catch((error) => {
-				console.error("Failed to update terminal connection timeout:", error)
-			})
+		updateSetting("shellIntegrationTimeout", timeoutMs)
+		// UI update is handled via subscription to global state
 	}
 
 	const handleInputBlur = () => {

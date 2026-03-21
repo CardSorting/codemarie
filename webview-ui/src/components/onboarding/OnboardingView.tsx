@@ -1,4 +1,5 @@
 import type { ModelInfo } from "@shared/api"
+import { ApiProvider } from "@shared/proto/codemarie/common"
 import type { OnboardingModel, OnboardingModelGroup, OpenRouterModelInfo } from "@shared/proto/index.codemarie"
 import { AlertCircleIcon, CircleCheckIcon, CircleIcon, ListIcon, LoaderCircleIcon, StarIcon, ZapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -13,6 +14,7 @@ import { useNavigation } from "@/context/NavigationContext"
 import { cn } from "@/lib/utils"
 import { AccountServiceClient, StateServiceClient } from "@/services/protobus-client"
 import ApiConfigurationSection from "../settings/sections/ApiConfigurationSection"
+import { updateSetting } from "../settings/utils/settingsHandlers"
 import { useApiConfigurationHandlers } from "../settings/utils/useApiConfigurationHandlers"
 import {
 	getCapabilities,
@@ -340,14 +342,14 @@ const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingMode
 				case "signup":
 					setStepNumber(stepNumber + 1)
 					setIsActionLoading(true)
-					await AccountServiceClient.accountLoginClicked({})
+					await AccountServiceClient.signIn({ provider: ApiProvider.CODEMARIE })
 						.catch(() => {})
 						.finally(() => setIsActionLoading(false))
 					await finishOnboarding(true, stepNumber + 1)
 					break
 				case "signin":
 					setIsActionLoading(true)
-					await AccountServiceClient.accountLoginClicked({})
+					await AccountServiceClient.signIn({ provider: ApiProvider.CODEMARIE })
 						.catch(() => {})
 						.finally(() => setIsActionLoading(false))
 					await finishOnboarding(true, stepNumber + 1)
@@ -361,7 +363,7 @@ const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingMode
 					setStepNumber(stepNumber - 1)
 					break
 				case "done":
-					await StateServiceClient.setWelcomeViewCompleted({ value: true }).catch(() => {})
+					updateSetting("welcomeViewCompleted", true)
 					setShowWelcome(false)
 					await finishOnboarding(false, stepNumber)
 					break

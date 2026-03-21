@@ -1,7 +1,5 @@
 import { ApiProvider, EmptyRequest, Metadata, StringRequest } from "@shared/proto/codemarie/common"
 import {
-	CodemarieRecommendedModel,
-	CodemarieRecommendedModelsResponse,
 	OpenRouterCompatibleModelInfo,
 	RefreshModelsRequest,
 	RefreshModelsResponse,
@@ -12,14 +10,11 @@ import type { Controller } from "../index"
 import { getSapAiCoreModels } from "./getSapAiCoreModels"
 import { getVsCodeLmModels } from "./getVsCodeLmModels"
 import { refreshBasetenModels } from "./refreshBasetenModels"
-import { refreshCodemarieModels } from "./refreshCodemarieModels"
-import { CodemarieRecommendedModelsData, refreshCodemarieRecommendedModels } from "./refreshCodemarieRecommendedModels"
 import { refreshGroqModels } from "./refreshGroqModels"
 import { refreshHuggingFaceModels } from "./refreshHuggingFaceModels"
 import { refreshLiteLlmModels } from "./refreshLiteLlmModels"
 import { refreshOcaModels } from "./refreshOcaModels"
 import { refreshOpenRouterModels } from "./refreshOpenRouterModels"
-import { refreshRequestyModels } from "./refreshRequestyModels"
 import { refreshVercelAiGatewayModels } from "./refreshVercelAiGatewayModels"
 
 export async function refreshModels(controller: Controller, request: RefreshModelsRequest): Promise<RefreshModelsResponse> {
@@ -29,14 +24,6 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 	switch (provider) {
 		case ApiProvider.OPENROUTER: {
 			const models = await refreshOpenRouterModels(controller)
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: OpenRouterCompatibleModelInfo.fromPartial({
-					models: toProtobufModels(models),
-				}),
-			})
-		}
-		case ApiProvider.CODEMARIE: {
-			const models = await refreshCodemarieModels(controller)
 			return RefreshModelsResponse.fromPartial({
 				compatibleModels: OpenRouterCompatibleModelInfo.fromPartial({
 					models: toProtobufModels(models),
@@ -69,18 +56,6 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 		}
 		case ApiProvider.HUGGINGFACE: {
 			const response = await refreshHuggingFaceModels(controller, EmptyRequest.create({}))
-			return RefreshModelsResponse.fromPartial({
-				compatibleModels: response,
-			})
-		}
-		case ApiProvider.REQUESTY: {
-			const protoApiConfiguration = {
-				// biome-ignore lint/suspicious/noExplicitAny: request can be any for model options
-				...(request as any).options,
-				// biome-ignore lint/suspicious/noExplicitAny: request can be any for model secrets
-				...(request as any).secrets,
-			}
-			const response = await refreshRequestyModels(controller, protoApiConfiguration)
 			return RefreshModelsResponse.fromPartial({
 				compatibleModels: response,
 			})
@@ -122,22 +97,7 @@ export async function refreshModels(controller: Controller, request: RefreshMode
 			})
 		}
 		default: {
-			// Specific handling for recommended models if CODEMARIE is requested but we need free models
-			// Note: This logic can be refined based on additional request flags if needed
-			if (provider === ApiProvider.CODEMARIE) {
-				const data = await refreshCodemarieRecommendedModels()
-				return RefreshModelsResponse.fromPartial({
-					recommendedModels: toProtoRecommendedModels(data),
-				})
-			}
 			throw new Error(`RefreshModels not implemented for provider: ${provider}`)
 		}
 	}
-}
-
-function toProtoRecommendedModels(data: CodemarieRecommendedModelsData): CodemarieRecommendedModelsResponse {
-	return CodemarieRecommendedModelsResponse.fromPartial({
-		recommended: data.recommended.map((m) => CodemarieRecommendedModel.fromPartial(m)),
-		free: data.free.map((m) => CodemarieRecommendedModel.fromPartial(m)),
-	})
 }

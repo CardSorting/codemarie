@@ -1,4 +1,6 @@
-import { BooleanRequest, EmptyRequest } from "@shared/proto/codemarie/common"
+import { SignInRequest } from "@shared/proto/codemarie/account"
+import { ApiProvider } from "@shared/proto/codemarie/common"
+import { UpdateSettingsRequest } from "@shared/proto/codemarie/state"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { memo, useEffect, useState } from "react"
 import CodemarieLogoWhite from "@/assets/CodemarieLogoWhite"
@@ -17,8 +19,8 @@ const WelcomeView = memo(() => {
 
 	const handleLogin = () => {
 		setIsLoading(true)
-		AccountServiceClient.accountLoginClicked(EmptyRequest.create())
-			.catch((err) => console.error("Failed to get login URL:", err))
+		AccountServiceClient.signIn(SignInRequest.create({ provider: ApiProvider.CODEMARIE }))
+			.catch((err: Error) => console.error("Failed to sign in:", err))
 			.finally(() => {
 				setIsLoading(false)
 			})
@@ -26,7 +28,7 @@ const WelcomeView = memo(() => {
 
 	const handleSubmit = async () => {
 		try {
-			await StateServiceClient.setWelcomeViewCompleted(BooleanRequest.create({ value: true }))
+			await StateServiceClient.updateSettings(UpdateSettingsRequest.create({ welcomeViewCompleted: true }))
 		} catch (error) {
 			console.error("Failed to update API configuration or complete welcome view:", error)
 		}

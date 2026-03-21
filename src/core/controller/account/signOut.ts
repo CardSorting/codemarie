@@ -24,11 +24,6 @@ export async function signOut(controller: Controller, request: SignOutRequest): 
 			await controller.postStateToWebview()
 			return {}
 		}
-		case ApiProvider.REQUESTY: {
-			await controller.stateManager.setSecret("requestyApiKey", "")
-			await controller.postStateToWebview()
-			return {}
-		}
 		default:
 			// For other providers, we might just clear keys if needed,
 			// but currently only these have specific signOut logic.

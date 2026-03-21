@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { useGlobalState } from "@/context/GlobalStateContext"
-import { StateServiceClient } from "@/services/protobus-client"
 import Section from "../Section"
+import { updateSetting } from "../utils/settingsHandlers"
 
 interface DebugSectionProps {
 	onResetState: (resetGlobalState?: boolean) => Promise<void>
@@ -26,11 +26,10 @@ const DebugSection = ({ onResetState, renderSectionHeader }: DebugSectionProps) 
 			</Section>
 			<Section>
 				<Button
-					onClick={async () =>
-						await StateServiceClient.setWelcomeViewCompleted({ value: false })
-							.catch(() => {})
-							.finally(() => setShowWelcome(true))
-					}
+					onClick={async () => {
+						updateSetting("welcomeViewCompleted", false)
+						setShowWelcome(true)
+					}}
 					variant="secondary">
 					Reset Onboarding State
 				</Button>

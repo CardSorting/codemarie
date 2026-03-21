@@ -1,5 +1,5 @@
 import { ApiConfiguration } from "@shared/api"
-import { UpdateApiConfigurationPartialRequest } from "@shared/proto/codemarie/models"
+import { UpdateApiConfigurationPartialRequest } from "@shared/proto/codemarie/system"
 import { convertApiConfigurationToProto } from "@shared/proto-conversions/models/api-configuration-conversion"
 import { Mode } from "@shared/storage/types"
 import { useExtensionState } from "@/context/ExtensionStateContext"
