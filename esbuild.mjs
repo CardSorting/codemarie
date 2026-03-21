@@ -28,11 +28,29 @@ const aliasResolverPlugin = {
 			"@packages": path.resolve(__dirname, "src/packages"),
 		}
 
+		// Handle relative .js/.jsx -> .ts/.tsx mapping
+		build.onResolve({ filter: /^\.\.?\// }, (args) => {
+			if (args.path.endsWith(".js") || args.path.endsWith(".jsx")) {
+				const tsPath = path.resolve(args.resolveDir, args.path.replace(/\.js$/, ".ts").replace(/\.jsx$/, ".tsx"))
+				if (fs.existsSync(tsPath)) {
+					return { path: tsPath }
+				}
+			}
+		})
+
 		// For each alias entry, create a resolver
 		Object.entries(aliases).forEach(([alias, aliasPath]) => {
 			const aliasRegex = new RegExp(`^${alias}($|/.*)`)
 			build.onResolve({ filter: aliasRegex }, (args) => {
 				const importPath = args.path.replace(alias, aliasPath)
+
+				// If it's a file ending in .js/.jsx, try to find the .ts/.tsx equivalent first
+				if (importPath.endsWith(".js") || importPath.endsWith(".jsx")) {
+					const tsPath = importPath.replace(/\.js$/, ".ts").replace(/\.jsx$/, ".tsx")
+					if (fs.existsSync(tsPath)) {
+						return { path: tsPath }
+					}
+				}
 
 				// First, check if the path exists as is
 				if (fs.existsSync(importPath)) {
