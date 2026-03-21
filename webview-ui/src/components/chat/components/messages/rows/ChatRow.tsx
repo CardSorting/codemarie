@@ -72,6 +72,7 @@ import { RequestStartRow } from "./RequestStartRow"
 import SearchResultsDisplay from "./SearchResultsDisplay"
 import SubagentStatusRow from "./SubagentStatusRow"
 import { ThinkingRow } from "./ThinkingRow"
+import { QuoteButtonState } from "./types"
 import UserMessage from "./UserMessage"
 import WaveApprovalRow from "./WaveApprovalRow"
 
@@ -94,12 +95,7 @@ interface ChatRowProps {
 	isRequestInProgress?: boolean
 }
 
-export interface QuoteButtonState {
-	visible: boolean
-	top: number
-	left: number
-	selectedText: string
-}
+export type { QuoteButtonState }
 
 interface ChatRowContentProps extends Omit<ChatRowProps, "onHeightChange"> {}
 
@@ -152,7 +148,6 @@ export const ChatRowContent = memo(
 		sendMessageFromChatRow,
 		onSetQuote,
 		onCancelCommand,
-		mode,
 		isRequestInProgress,
 		reasoningContent,
 		responseStarted,
@@ -222,12 +217,12 @@ export const ChatRowContent = memo(
 			prevIsLastRef.current = isLast
 		}, [isLast, message.ask, message.say])
 
-		const [cost, _apiReqCancelReason, apiReqStreamingFailedMessage] = useMemo(() => {
+		const [cost, _apiReqCancelReason, apiReqStreamingFailedMessage, retryStatus] = useMemo(() => {
 			if (message.text != null && message.say === "api_req_started") {
 				const info: CodemarieApiReqInfo = JSON.parse(message.text)
 				return [info.cost, info.cancelReason, info.streamingFailedMessage, info.retryStatus]
 			}
-			return [undefined, undefined, undefined, undefined, undefined]
+			return [undefined, undefined, undefined, undefined]
 		}, [message.text, message.say])
 
 		// when resuming task last won't be api_req_failed but a resume_task message so api_req_started will show loading spinner. that's why we just remove the last api_req_started that failed without streaming anything
@@ -875,9 +870,9 @@ export const ChatRowContent = memo(
 								handleToggle={handleToggle}
 								isExpanded={isExpanded}
 								message={message}
-								mode={mode}
 								reasoningContent={reasoningContent}
 								responseStarted={responseStarted}
+								retryStatus={retryStatus}
 							/>
 						)
 					case "api_req_finished":

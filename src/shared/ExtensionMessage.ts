@@ -425,7 +425,7 @@ export interface CodemariePlanModeResponse {
 	interactiveClarifications?: Array<{
 		label: string
 		type: "provide_path" | "clarify_intent" | "select_variant" | "confirm_risk"
-		data?: Record<string, any>
+		data?: Record<string, unknown>
 	}>
 	swarmConsensus?: {
 		agreementScore: number
@@ -485,7 +485,7 @@ export interface CodemarieAskQuestion {
 	interactiveClarifications?: Array<{
 		label: string
 		type: "provide_path" | "clarify_intent" | "select_variant" | "confirm_risk"
-		data?: Record<string, any>
+		data?: Record<string, unknown>
 	}>
 	swarmConsensus?: {
 		agreementScore: number

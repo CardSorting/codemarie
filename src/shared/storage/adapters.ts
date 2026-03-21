@@ -1,12 +1,6 @@
 import { AwsClient } from "aws4fetch"
 import { Logger } from "../services/Logger"
-import type { BlobStoreSettings } from "./CodemarieBlobStorage"
-
-export interface StorageAdapter {
-	read(path: string): Promise<string | undefined>
-	write(path: string, value: string): Promise<void>
-	remove(path: string): Promise<void>
-}
+import type { BlobStoreSettings, StorageAdapter } from "./types"
 
 function createAdapter(client: AwsClient, endpoint: string, bucket: string): StorageAdapter {
 	const base = `${endpoint}/${bucket}`
@@ -83,8 +77,8 @@ function createR2Adapter(settings: BlobStoreSettings): StorageAdapter | undefine
 			accessKeyId,
 			secretAccessKey,
 		})
-		const endpoint = settings.endpoint ?? `https://${accountId}.r2.cloudflarestorage.com`
-		return createAdapter(client, endpoint, bucket)
+		const r2Endpoint = endpoint ?? `https://${accountId}.r2.cloudflarestorage.com`
+		return createAdapter(client, r2Endpoint, bucket)
 	} catch (error) {
 		Logger.error("[StorageAdapter] Failed to create R2 adapter:", error)
 		return undefined

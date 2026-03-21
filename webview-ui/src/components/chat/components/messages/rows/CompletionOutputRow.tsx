@@ -6,9 +6,9 @@ import { CopyButton } from "@/components/ui/copy-button"
 import { PLATFORM_CONFIG, PlatformType } from "@/config/platform.config"
 import { cn } from "@/lib/utils"
 import { TaskServiceClient } from "@/services/protobus-client"
-import { QuoteButtonState } from "./ChatRow"
 import { MarkdownRow } from "./MarkdownRow"
 import QuoteButton from "./QuoteButton"
+import { QuoteButtonState } from "./types"
 
 interface CompletionOutputRowProps {
 	text: string

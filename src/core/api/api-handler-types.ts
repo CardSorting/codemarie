@@ -1,3 +1,8 @@
+/**
+ * Shared types for API handlers.
+ * Extracted to a separate file to break circular dependencies between
+ * API providers and the main API factory.
+ */
 import { ApiConfiguration, ModelInfo } from "@shared/api"
 import { Mode } from "@shared/storage/types"
 import { CodemarieStorageMessage } from "@/shared/messages/content"

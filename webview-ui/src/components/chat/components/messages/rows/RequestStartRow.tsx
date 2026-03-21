@@ -1,6 +1,5 @@
 import type { CodemarieMessage, CodemarieSayTool } from "@shared/ExtensionMessage"
-import type { Mode } from "@shared/storage/types"
-import type { LucideIcon } from "lucide-react"
+import { type LucideIcon, RefreshCwIcon } from "lucide-react"
 import type React from "react"
 import { useMemo } from "react"
 import { cleanPathPrefix } from "@/components/common/CodeAccordian"
@@ -17,10 +16,15 @@ interface RequestStartRowProps {
 	reasoningContent?: string
 	responseStarted?: boolean
 	codemarieMessages: CodemarieMessage[]
-	mode?: Mode
 	classNames?: string
 	isExpanded: boolean
 	handleToggle: () => void
+	retryStatus?: {
+		attempt: number
+		maxAttempts: number
+		delaySec: number
+		errorSnippet?: string
+	}
 }
 
 // State type for api_req_started rendering
@@ -134,10 +138,10 @@ export const RequestStartRow: React.FC<RequestStartRowProps> = ({
 	reasoningContent,
 	responseStarted,
 	codemarieMessages,
-	mode,
 	handleToggle,
 	isExpanded,
 	message,
+	retryStatus,
 }) => {
 	// Derive explicit state
 	const hasError = !!(apiRequestFailedMessage || apiReqStreamingFailedMessage)
@@ -247,12 +251,23 @@ export const RequestStartRow: React.FC<RequestStartRowProps> = ({
 				))}
 
 			{apiReqState === "error" && (
-				<ErrorRow
-					apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
-					apiRequestFailedMessage={apiRequestFailedMessage}
-					errorType="error"
-					message={message}
-				/>
+				<div className="flex flex-col gap-2">
+					{retryStatus && (
+						<div className="flex items-center gap-2 px-3 py-2 bg-editor-warning-background border border-editor-warning-border rounded-sm text-sm text-editor-warning-foreground">
+							<RefreshCwIcon className="size-4 animate-spin-slow" />
+							<span>
+								Retrying... Attempt {retryStatus.attempt} of {retryStatus.maxAttempts} (Wait:{" "}
+								{retryStatus.delaySec}s)
+							</span>
+						</div>
+					)}
+					<ErrorRow
+						apiReqStreamingFailedMessage={apiReqStreamingFailedMessage}
+						apiRequestFailedMessage={apiRequestFailedMessage}
+						errorType="error"
+						message={message}
+					/>
+				</div>
 			)}
 		</div>
 	)

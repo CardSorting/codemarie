@@ -1,14 +1,35 @@
-export const OPENAI_REASONING_EFFORT_OPTIONS = ["none", "low", "medium", "high", "xhigh"] as const
+/**
+ * Shared types for storage.
+ * Extracted to a separate file to break circular dependencies between
+ * storage implementations and adapters.
+ */
+export interface BlobStoreSettings {
+	bucket: string
+	adapterType: "s3" | "r2" | string
+	accessKeyId: string
+	secretAccessKey: string
+	region?: string
+	endpoint?: string
+	accountId?: string
 
-export type OpenaiReasoningEffort = (typeof OPENAI_REASONING_EFFORT_OPTIONS)[number]
-
-export function isOpenaiReasoningEffort(value: unknown): value is OpenaiReasoningEffort {
-	return typeof value === "string" && OPENAI_REASONING_EFFORT_OPTIONS.includes(value as OpenaiReasoningEffort)
+	/** Interval between sync attempts in milliseconds (default: 30000 = 30s) */
+	intervalMs?: number
+	/** Maximum number of retries before giving up on an item (default: 5) */
+	maxRetries?: number
+	/** Batch size - how many items to process per interval (default: 10) */
+	batchSize?: number
+	/** Maximum queue size before eviction (default: 1000) */
+	maxQueueSize?: number
+	/** Maximum age for failed items in milliseconds (default: 7 days) */
+	maxFailedAgeMs?: number
+	/** Whether to backfill existing unsynced items on startup (default: false) */
+	backfillEnabled?: boolean
 }
 
-export function normalizeOpenaiReasoningEffort(effort?: string): OpenaiReasoningEffort {
-	const value = (effort || "medium").toLowerCase()
-	return isOpenaiReasoningEffort(value) ? value : "medium"
+export interface StorageAdapter {
+	read(path: string): Promise<string | undefined>
+	write(path: string, value: string): Promise<void>
+	remove(path: string): Promise<void>
 }
 
 export type Mode = "plan" | "act"
