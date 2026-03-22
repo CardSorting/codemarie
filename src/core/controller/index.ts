@@ -35,6 +35,7 @@ import { LogoutReason } from "@/services/auth/types"
 import { BannerService } from "@/services/banner/BannerService"
 import { featureFlagsService } from "@/services/feature-flags"
 import { getDistinctId } from "@/services/logging/distinctId"
+import { SuggestionService } from "@/services/suggestion/SuggestionService"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieExtensionContext } from "@/shared/codemarie"
 import { getAxiosSettings } from "@/shared/net"
@@ -77,6 +78,7 @@ export class Controller {
 	authService: AuthService
 	ocaAuthService: OcaAuthService
 	readonly stateManager: StateManager
+	readonly suggestionService: SuggestionService
 
 	// NEW: Add workspace manager (optional initially)
 	private workspaceManager?: WorkspaceRootManager
@@ -124,6 +126,7 @@ export class Controller {
 		Session.reset() // Reset session on controller initialization
 		PromptRegistry.getInstance() // Ensure prompts and tools are registered
 		this.stateManager = StateManager.get()
+		this.suggestionService = new SuggestionService()
 		StateManager.get().registerCallbacks({
 			onPersistenceError: async ({ error }: PersistenceErrorEvent) => {
 				// Just log - don't call reInitialize() (that sets isInitialized=false which
@@ -948,6 +951,8 @@ export class Controller {
 			useAutoCondense,
 			subagentsEnabled,
 			userInfo,
+			promptSuggestions: this.suggestionService.getCachedSuggestions(),
+			isGeneratingPromptSuggestions: this.suggestionService.getIsGenerating(),
 			mcpMarketplaceEnabled,
 			mcpDisplayMode,
 			telemetrySetting,

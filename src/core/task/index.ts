@@ -659,6 +659,18 @@ export class Task {
 		if (this.taskState.abort && type !== "resume_task" && type !== "resume_completed_task") {
 			throw new Error("Codemarie instance aborted")
 		}
+
+		// Refresh suggestions when asking the user for input
+		if (!this.taskState.abort) {
+			this.controller.suggestionService
+				.getSuggestions(this.messageStateHandler.getApiConversationHistory(), this.ulid)
+				.then(() => {
+					this.postStateToWebview()
+				})
+				.catch((error) => {
+					Logger.error("Failed to refresh suggestions in ask():", error)
+				})
+		}
 		let askTs: number
 		if (partial !== undefined) {
 			const codemarieMessages = this.messageStateHandler.getCodemarieMessages()
@@ -1229,6 +1241,9 @@ export class Task {
 
 		this.taskState.isInitialized = true
 		this.taskState.abort = false // Reset abort flag when resuming task
+
+		// Refresh suggestions before asking for followup
+		await this.controller.suggestionService.getSuggestions(this.messageStateHandler.getApiConversationHistory(), this.ulid)
 
 		const { response, text, images, files } = await this.ask(askType) // calls poststatetowebview
 

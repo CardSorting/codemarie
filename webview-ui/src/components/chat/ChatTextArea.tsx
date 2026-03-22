@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { usePlatform } from "@/context/PlatformContext"
 import { cn } from "@/lib/utils"
-import { FileServiceClient, StateServiceClient } from "@/services/grpc-client"
+import { FileServiceClient, StateServiceClient, UiServiceClient } from "@/services/grpc-client"
 import {
 	ContextMenuOptionType,
 	getContextMenuOptionIndex,
@@ -42,6 +42,7 @@ import {
 	validateSlashCommand,
 } from "@/utils/slash-commands"
 import CodemarieRulesToggleModal from "../codemarie-rules/CodemarieRulesToggleModal"
+import PromptSuggestions from "./PromptSuggestions"
 import ServersToggleModal from "./ServersToggleModal"
 
 const { MAX_IMAGES_AND_FILES_PER_MESSAGE } = CHAT_CONSTANTS
@@ -215,7 +216,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 		const {
 			mode,
 			apiConfiguration,
-			openRouterModels,
 			platform,
 			localWorkflowToggles,
 			globalWorkflowToggles,
@@ -223,6 +223,8 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			remoteConfigSettings,
 			navigateToSettingsModelPicker,
 			mcpServers,
+			promptSuggestions,
+			isGeneratingPromptSuggestions,
 		} = useExtensionState()
 		const [isTextAreaFocused, setIsTextAreaFocused] = useState(false)
 		const [isDraggingOver, setIsDraggingOver] = useState(false)
@@ -446,230 +448,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				}
 			},
 			[setInputValue, slashCommandsQuery, cursorPosition],
-		)
-		const handleKeyDown = useCallback(
-			(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-				const isSelectAllShortcut =
-					(event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "a"
-				if (isSelectAllShortcut) {
-					event.preventDefault()
-					event.stopPropagation()
-					const textArea = event.currentTarget
-					textArea.setSelectionRange(0, textArea.value.length)
-					setCursorPosition(0)
-					return
-				}
-
-				if (showSlashCommandsMenu) {
-					if (event.key === "Escape") {
-						setShowSlashCommandsMenu(false)
-						setSlashCommandsQuery("")
-						return
-					}
-
-					if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-						event.preventDefault()
-						setSelectedSlashCommandsIndex((prevIndex) => {
-							const direction = event.key === "ArrowUp" ? -1 : 1
-							// Get commands with workflow toggles
-							const allCommands = getMatchingSlashCommands(
-								slashCommandsQuery,
-								localWorkflowToggles,
-								globalWorkflowToggles,
-								remoteWorkflowToggles,
-								remoteConfigSettings?.remoteGlobalWorkflows,
-								mcpServers,
-							)
-
-							if (allCommands.length === 0) {
-								return prevIndex
-							}
-
-							// Calculate total command count
-							const totalCommandCount = allCommands.length
-
-							// Create wraparound navigation - moves from last item to first and vice versa
-							const newIndex = (prevIndex + direction + totalCommandCount) % totalCommandCount
-							return newIndex
-						})
-						return
-					}
-
-					if ((event.key === "Enter" || event.key === "Tab") && selectedSlashCommandsIndex !== -1) {
-						event.preventDefault()
-						const commands = getMatchingSlashCommands(
-							slashCommandsQuery,
-							localWorkflowToggles,
-							globalWorkflowToggles,
-							remoteWorkflowToggles,
-							remoteConfigSettings?.remoteGlobalWorkflows,
-							mcpServers,
-						)
-						if (commands.length > 0) {
-							handleSlashCommandsSelect(commands[selectedSlashCommandsIndex])
-						}
-						return
-					}
-				}
-				if (showContextMenu) {
-					if (event.key === "Escape") {
-						setShowContextMenu(false)
-						setSelectedType(null)
-						setSelectedMenuIndex(DEFAULT_CONTEXT_MENU_OPTION)
-						setSearchQuery("")
-						return
-					}
-
-					if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-						event.preventDefault()
-						setSelectedMenuIndex((prevIndex) => {
-							const direction = event.key === "ArrowUp" ? -1 : 1
-							const options = getContextMenuOptions(searchQuery, selectedType, queryItems, fileSearchResults)
-							const optionsLength = options.length
-
-							if (optionsLength === 0) {
-								return prevIndex
-							}
-
-							// Find selectable options (non-URL types)
-							const selectableOptions = options.filter(
-								(option) =>
-									option.type !== ContextMenuOptionType.URL && option.type !== ContextMenuOptionType.NoResults,
-							)
-
-							if (selectableOptions.length === 0) {
-								return -1 // No selectable options
-							}
-
-							// Find the index of the next selectable option
-							const currentSelectableIndex = selectableOptions.indexOf(options[prevIndex])
-
-							const newSelectableIndex =
-								(currentSelectableIndex + direction + selectableOptions.length) % selectableOptions.length
-
-							// Find the index of the selected option in the original options array
-							return options.indexOf(selectableOptions[newSelectableIndex])
-						})
-						return
-					}
-					if ((event.key === "Enter" || event.key === "Tab") && selectedMenuIndex !== -1) {
-						event.preventDefault()
-						const selectedOption = getContextMenuOptions(searchQuery, selectedType, queryItems, fileSearchResults)[
-							selectedMenuIndex
-						]
-						if (
-							selectedOption &&
-							selectedOption.type !== ContextMenuOptionType.URL &&
-							selectedOption.type !== ContextMenuOptionType.NoResults
-						) {
-							// Use label if it contains workspace prefix, otherwise use value
-							const mentionValue = selectedOption.label?.includes(":") ? selectedOption.label : selectedOption.value
-							handleMentionSelect(selectedOption.type, mentionValue)
-						}
-						return
-					}
-				}
-
-				// Safari does not support InputEvent.isComposing (always false), so we need to fallback to keyCode === 229 for it
-				const isComposing = isSafari ? event.nativeEvent.keyCode === 229 : (event.nativeEvent?.isComposing ?? false)
-				if (event.key === "Enter" && !event.shiftKey && !isComposing) {
-					event.preventDefault()
-
-					if (!sendingDisabled) {
-						setIsTextAreaFocused(false)
-						onSend()
-					}
-				}
-
-				if (event.key === "Backspace" && !isComposing) {
-					const charBeforeCursor = inputValue[cursorPosition - 1]
-					const charAfterCursor = inputValue[cursorPosition + 1]
-
-					const charBeforeIsWhitespace =
-						charBeforeCursor === " " || charBeforeCursor === "\n" || charBeforeCursor === "\r\n"
-					const charAfterIsWhitespace =
-						charAfterCursor === " " || charAfterCursor === "\n" || charAfterCursor === "\r\n"
-
-					// Check if we're right after a space that follows a mention or slash command
-					if (
-						charBeforeIsWhitespace &&
-						inputValue.slice(0, cursorPosition - 1).match(new RegExp(`${mentionRegex.source}$`))
-					) {
-						// File mention handling
-						const newCursorPosition = cursorPosition - 1
-						if (!charAfterIsWhitespace) {
-							event.preventDefault()
-							textAreaRef.current?.setSelectionRange(newCursorPosition, newCursorPosition)
-							setCursorPosition(newCursorPosition)
-						}
-						setCursorPosition(newCursorPosition)
-						setJustDeletedSpaceAfterMention(true)
-						setJustDeletedSpaceAfterSlashCommand(false)
-					} else if (charBeforeIsWhitespace && inputValue.slice(0, cursorPosition - 1).match(slashCommandDeleteRegex)) {
-						// New slash command handling
-						const newCursorPosition = cursorPosition - 1
-						if (!charAfterIsWhitespace) {
-							event.preventDefault()
-							textAreaRef.current?.setSelectionRange(newCursorPosition, newCursorPosition)
-							setCursorPosition(newCursorPosition)
-						}
-						setCursorPosition(newCursorPosition)
-						setJustDeletedSpaceAfterSlashCommand(true)
-						setJustDeletedSpaceAfterMention(false)
-					}
-					// Handle the second backspace press for mentions or slash commands
-					else if (justDeletedSpaceAfterMention) {
-						const { newText, newPosition } = removeMention(inputValue, cursorPosition)
-						if (newText !== inputValue) {
-							event.preventDefault()
-							setInputValue(newText)
-							setIntendedCursorPosition(newPosition)
-						}
-						setJustDeletedSpaceAfterMention(false)
-						setShowContextMenu(false)
-					} else if (justDeletedSpaceAfterSlashCommand) {
-						// New slash command deletion
-						const { newText, newPosition } = removeSlashCommand(inputValue, cursorPosition)
-						if (newText !== inputValue) {
-							event.preventDefault()
-							setInputValue(newText)
-							setIntendedCursorPosition(newPosition)
-						}
-						setJustDeletedSpaceAfterSlashCommand(false)
-						setShowSlashCommandsMenu(false)
-					}
-					// Default case - reset flags if none of the above apply
-					else {
-						setJustDeletedSpaceAfterMention(false)
-						setJustDeletedSpaceAfterSlashCommand(false)
-					}
-				}
-			},
-			[
-				onSend,
-				showContextMenu,
-				searchQuery,
-				selectedMenuIndex,
-				handleMentionSelect,
-				selectedType,
-				inputValue,
-				cursorPosition,
-				setInputValue,
-				justDeletedSpaceAfterMention,
-				queryItems,
-				fileSearchResults,
-				showSlashCommandsMenu,
-				selectedSlashCommandsIndex,
-				slashCommandsQuery,
-				handleSlashCommandsSelect,
-				sendingDisabled,
-				globalWorkflowToggles,
-				justDeletedSpaceAfterSlashCommand,
-				localWorkflowToggles,
-				mcpServers,
-				remoteConfigSettings?.remoteGlobalWorkflows,
-				remoteWorkflowToggles,
-			],
 		)
 
 		// Effect to set cursor position after state updates
@@ -1341,6 +1119,260 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				),
 			)
 		}
+
+		const handleSuggestionSelect = useCallback(
+			(suggestion: string) => {
+				setInputValue(suggestion)
+				textAreaRef.current?.focus()
+				// Trigger any necessary updates (like highlight)
+				setTimeout(() => {
+					updateHighlights()
+				}, 0)
+				// Capture telemetry via gRPC
+				UiServiceClient.onSuggestionClicked(StringRequest.create({ value: suggestion }))
+			},
+			[setInputValue, updateHighlights],
+		)
+
+		const handleKeyDown = useCallback(
+			(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+				const isSelectAllShortcut =
+					(event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "a"
+				if (isSelectAllShortcut) {
+					event.preventDefault()
+					event.stopPropagation()
+					const textArea = event.currentTarget
+					textArea.setSelectionRange(0, textArea.value.length)
+					setCursorPosition(0)
+					return
+				}
+
+				if (showSlashCommandsMenu) {
+					if (event.key === "Escape") {
+						setShowSlashCommandsMenu(false)
+						setSlashCommandsQuery("")
+						return
+					}
+
+					if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+						event.preventDefault()
+						setSelectedSlashCommandsIndex((prevIndex) => {
+							const direction = event.key === "ArrowUp" ? -1 : 1
+							// Get commands with workflow toggles
+							const allCommands = getMatchingSlashCommands(
+								slashCommandsQuery,
+								localWorkflowToggles,
+								globalWorkflowToggles,
+								remoteWorkflowToggles,
+								remoteConfigSettings?.remoteGlobalWorkflows,
+								mcpServers,
+							)
+
+							if (allCommands.length === 0) {
+								return prevIndex
+							}
+
+							// Calculate total command count
+							const totalCommandCount = allCommands.length
+
+							// Create wraparound navigation - moves from last item to first and vice versa
+							const newIndex = (prevIndex + direction + totalCommandCount) % totalCommandCount
+							return newIndex
+						})
+						return
+					}
+
+					if ((event.key === "Enter" || event.key === "Tab") && selectedSlashCommandsIndex !== -1) {
+						event.preventDefault()
+						const commands = getMatchingSlashCommands(
+							slashCommandsQuery,
+							localWorkflowToggles,
+							globalWorkflowToggles,
+							remoteWorkflowToggles,
+							remoteConfigSettings?.remoteGlobalWorkflows,
+							mcpServers,
+						)
+						if (commands.length > 0) {
+							handleSlashCommandsSelect(commands[selectedSlashCommandsIndex])
+						}
+						return
+					}
+				}
+				if (showContextMenu) {
+					if (event.key === "Escape") {
+						setShowContextMenu(false)
+						setSelectedType(null)
+						setSelectedMenuIndex(DEFAULT_CONTEXT_MENU_OPTION)
+						setSearchQuery("")
+						return
+					}
+
+					if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+						event.preventDefault()
+						setSelectedMenuIndex((prevIndex) => {
+							const direction = event.key === "ArrowUp" ? -1 : 1
+							const options = getContextMenuOptions(searchQuery, selectedType, queryItems, fileSearchResults)
+							const optionsLength = options.length
+
+							if (optionsLength === 0) {
+								return prevIndex
+							}
+
+							// Find selectable options (non-URL types)
+							const selectableOptions = options.filter(
+								(option) =>
+									option.type !== ContextMenuOptionType.URL && option.type !== ContextMenuOptionType.NoResults,
+							)
+
+							if (selectableOptions.length === 0) {
+								return -1 // No selectable options
+							}
+
+							// Find the index of the next selectable option
+							const currentSelectableIndex = selectableOptions.indexOf(options[prevIndex])
+
+							const newSelectableIndex =
+								(currentSelectableIndex + direction + selectableOptions.length) % selectableOptions.length
+
+							// Find the index of the selected option in the original options array
+							return options.indexOf(selectableOptions[newSelectableIndex])
+						})
+						return
+					}
+					if ((event.key === "Enter" || event.key === "Tab") && selectedMenuIndex !== -1) {
+						event.preventDefault()
+						const selectedOption = getContextMenuOptions(searchQuery, selectedType, queryItems, fileSearchResults)[
+							selectedMenuIndex
+						]
+						if (
+							selectedOption &&
+							selectedOption.type !== ContextMenuOptionType.URL &&
+							selectedOption.type !== ContextMenuOptionType.NoResults
+						) {
+							// Use label if it contains workspace prefix, otherwise use value
+							const mentionValue = selectedOption.label?.includes(":") ? selectedOption.label : selectedOption.value
+							handleMentionSelect(selectedOption.type, mentionValue)
+						}
+						return
+					}
+				}
+
+				// Safari does not support InputEvent.isComposing (always false), so we need to fallback to keyCode === 229 for it
+				const isComposing = isSafari ? event.nativeEvent.keyCode === 229 : (event.nativeEvent?.isComposing ?? false)
+				if (event.key === "Enter" && !event.shiftKey && !isComposing) {
+					event.preventDefault()
+
+					if (!sendingDisabled) {
+						setIsTextAreaFocused(false)
+						onSend()
+					}
+				}
+
+				if (event.key === "Backspace" && !isComposing) {
+					const charBeforeCursor = inputValue[cursorPosition - 1]
+					const charAfterCursor = inputValue[cursorPosition + 1]
+
+					const charBeforeIsWhitespace =
+						charBeforeCursor === " " || charBeforeCursor === "\n" || charBeforeCursor === "\r\n"
+					const charAfterIsWhitespace =
+						charAfterCursor === " " || charAfterCursor === "\n" || charAfterCursor === "\r\n"
+
+					// Check if we're right after a space that follows a mention or slash command
+					if (
+						charBeforeIsWhitespace &&
+						inputValue.slice(0, cursorPosition - 1).match(new RegExp(`${mentionRegex.source}$`))
+					) {
+						// File mention handling
+						const newCursorPosition = cursorPosition - 1
+						if (!charAfterIsWhitespace) {
+							event.preventDefault()
+							textAreaRef.current?.setSelectionRange(newCursorPosition, newCursorPosition)
+							setCursorPosition(newCursorPosition)
+						}
+						setCursorPosition(newCursorPosition)
+						setJustDeletedSpaceAfterMention(true)
+						setJustDeletedSpaceAfterSlashCommand(false)
+					} else if (charBeforeIsWhitespace && inputValue.slice(0, cursorPosition - 1).match(slashCommandDeleteRegex)) {
+						// New slash command handling
+						const newCursorPosition = cursorPosition - 1
+						if (!charAfterIsWhitespace) {
+							event.preventDefault()
+							textAreaRef.current?.setSelectionRange(newCursorPosition, newCursorPosition)
+							setCursorPosition(newCursorPosition)
+						}
+						setCursorPosition(newCursorPosition)
+						setJustDeletedSpaceAfterSlashCommand(true)
+						setJustDeletedSpaceAfterMention(false)
+					}
+					// Handle the second backspace press for mentions or slash commands
+					else if (justDeletedSpaceAfterMention) {
+						const { newText, newPosition } = removeMention(inputValue, cursorPosition)
+						if (newText !== inputValue) {
+							event.preventDefault()
+							setInputValue(newText)
+							setIntendedCursorPosition(newPosition)
+						}
+						setJustDeletedSpaceAfterMention(false)
+						setShowContextMenu(false)
+					} else if (justDeletedSpaceAfterSlashCommand) {
+						// New slash command deletion
+						const { newText, newPosition } = removeSlashCommand(inputValue, cursorPosition)
+						if (newText !== inputValue) {
+							event.preventDefault()
+							setInputValue(newText)
+							setIntendedCursorPosition(newPosition)
+						}
+						setJustDeletedSpaceAfterSlashCommand(false)
+						setShowSlashCommandsMenu(false)
+					}
+					// Default case - reset flags if none of the above apply
+					else {
+						setJustDeletedSpaceAfterMention(false)
+						setJustDeletedSpaceAfterSlashCommand(false)
+					}
+				}
+
+				// Suggestion shortcuts: Cmd+1, Cmd+2, Cmd+3 (or Ctrl on Windows)
+				const isModKey = platform === "darwin" ? event.metaKey : event.ctrlKey
+				if (isModKey && !event.shiftKey && !event.altKey) {
+					if (event.key === "1" || event.key === "2" || event.key === "3") {
+						const index = Number.parseInt(event.key) - 1
+						if (promptSuggestions && promptSuggestions[index]) {
+							event.preventDefault()
+							handleSuggestionSelect(promptSuggestions[index])
+						}
+					}
+				}
+			},
+			[
+				onSend,
+				showContextMenu,
+				searchQuery,
+				selectedMenuIndex,
+				handleMentionSelect,
+				selectedType,
+				inputValue,
+				cursorPosition,
+				setInputValue,
+				justDeletedSpaceAfterMention,
+				queryItems,
+				fileSearchResults,
+				showSlashCommandsMenu,
+				selectedSlashCommandsIndex,
+				slashCommandsQuery,
+				handleSlashCommandsSelect,
+				sendingDisabled,
+				globalWorkflowToggles,
+				justDeletedSpaceAfterSlashCommand,
+				localWorkflowToggles,
+				mcpServers,
+				remoteConfigSettings?.remoteGlobalWorkflows,
+				remoteWorkflowToggles,
+				platform,
+				promptSuggestions,
+				handleSuggestionSelect,
+			],
+		)
 		// Replace Meta with the platform specific key and uppercase the command letter.
 		const togglePlanActKeys = usePlatform()
 			.togglePlanActKeys.replace("Meta", metaKeyChar)
@@ -1348,6 +1380,11 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
 		return (
 			<div>
+				<PromptSuggestions
+					isLoading={isGeneratingPromptSuggestions}
+					onSelect={handleSuggestionSelect}
+					suggestions={promptSuggestions || []}
+				/>
 				<div
 					className="relative flex transition-colors ease-in-out duration-100 px-3.5 py-2.5"
 					onDragEnter={handleDragEnter}

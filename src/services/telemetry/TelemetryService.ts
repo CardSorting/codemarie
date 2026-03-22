@@ -281,6 +281,10 @@ export class TelemetryService {
 			SUBAGENT_COMPLETED: "task.subagent_completed",
 			// Skills telemetry events
 			SKILL_USED: "task.skill_used",
+			// Tracks when AI-driven suggestions are generated
+			SUGGESTION_GENERATED: "task.suggestion_generated",
+			// Tracks when a user clicks an AI-driven suggestion
+			SUGGESTION_CLICKED: "task.suggestion_clicked",
 		},
 		// UI interaction events for tracking user engagement
 		UI: {
@@ -2217,6 +2221,30 @@ export class TelemetryService {
 			const contextStr = context ? ` [Context: ${context}]` : ""
 			Logger.error(`[Telemetry] Failed to capture telemetry${contextStr}:`, error)
 		}
+	}
+
+	/**
+	 * Records when AI-driven prompt suggestions are generated
+	 * @param ulid Unique identifier for the task
+	 * @param count Number of suggestions generated
+	 */
+	public captureSuggestionGenerated(ulid: string, count: number) {
+		this.capture({
+			event: TelemetryService.EVENTS.TASK.SUGGESTION_GENERATED,
+			properties: { ulid, count },
+		})
+	}
+
+	/**
+	 * Records when a user clicks an AI-driven prompt suggestion
+	 * @param ulid Unique identifier for the task
+	 * @param suggestion The text of the suggestion clicked
+	 */
+	public captureSuggestionClicked(ulid: string, suggestion: string) {
+		this.capture({
+			event: TelemetryService.EVENTS.TASK.SUGGESTION_CLICKED,
+			properties: { ulid, suggestion_length: suggestion.length },
+		})
 	}
 
 	/**

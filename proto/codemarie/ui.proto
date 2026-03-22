@@ -284,4 +284,7 @@ service UiService {
 
   // Opens the Codemarie walkthrough
   rpc openWalkthrough(EmptyRequest) returns (Empty);
+
+  // Records that a prompt suggestion was clicked
+  rpc onSuggestionClicked(StringRequest) returns (Empty);
 }

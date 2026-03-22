@@ -91,6 +91,8 @@ export interface ExtensionState {
 	focusChainSettings: FocusChainSettings
 	customPrompt?: string
 	favoritedModelIds: string[]
+	promptSuggestions?: string[]
+	isGeneratingPromptSuggestions?: boolean
 	// NEW: Add workspace information
 	workspaceRoots: WorkspaceRoot[]
 	primaryRootIndex: number
