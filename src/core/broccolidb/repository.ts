@@ -1,6 +1,7 @@
 import * as crypto from "node:crypto"
 import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
 import { Logger } from "@/shared/services/Logger"
+import { SpiderViolation } from "../policy/SpiderEngine.js"
 import { Connection } from "./connection.js"
 import { AgentGitError } from "./errors.js"
 import { executor } from "./executor.js"
@@ -576,43 +577,63 @@ export class Repository {
 
 			// --- Pass 5.1: Structural Audit (Spider Integration) ---
 			if (this.agentContext?.spiderService) {
-				const files = await this.files().listFiles(branchName)
-				const auditFiles: { filePath: string; content: string }[] = []
+				const d = data as any
+				const isDiff = options.type === "diff"
+				const changedPaths = isDiff ? Object.keys(d.changes || {}) : Object.keys(d.tree || {})
 
-				for (const f of files) {
-					try {
-						const content = await this.files().readFile(branchName, f.path, { skipIgnore: true })
-						auditFiles.push({ filePath: f.path, content: content.content })
-					} catch (_e) {
-						/* skip missing */
+				const spiderChanges: { filePath: string; content?: string }[] = []
+				const isSnapshot = options.type === "snapshot" || !isDiff
+				let audit: { entropy: number; violations: SpiderViolation[]; mermaid: string }
+
+				if (isSnapshot) {
+					// For snapshots/full trees, we better do a full rebuild to stay in sync
+					const fullList: { filePath: string; content: string }[] = []
+					for (const [path, hash] of Object.entries(d.tree || {})) {
+						if (typeof path === "string" && (path.endsWith(".ts") || path.endsWith(".tsx"))) {
+							const fileItem = await this.db.selectOne("files", [{ column: "id", value: hash as string }])
+							if (fileItem) fullList.push({ filePath: path, content: fileItem.content })
+						}
 					}
+					audit = await this.agentContext.spiderService.auditStructure(fullList)
+				} else {
+					// Incremental structural update
+					for (const path of changedPaths) {
+						if (path.endsWith(".ts") || path.endsWith(".tsx")) {
+							const hash = d.changes[path]
+							if (hash) {
+								const fileItem = await this.db.selectOne("files", [{ column: "id", value: hash }])
+								if (fileItem) spiderChanges.push({ filePath: path, content: fileItem.content })
+							} else {
+								spiderChanges.push({ filePath: path }) // Deletion
+							}
+						}
+					}
+
+					if (spiderChanges.length > 0) {
+						this.agentContext.spiderService.applyChanges(spiderChanges)
+					}
+
+					audit = await this.agentContext.spiderService.auditStructure()
 				}
 
-				if (auditFiles.length > 0) {
-					const audit = await this.agentContext.spiderService.auditStructure(auditFiles)
-					metadata.spider_entropy = audit.entropy
-					metadata.spider_violations = audit.violations
+				metadata.spider_entropy = audit.entropy
+				metadata.spider_violations = audit.violations
 
-					if (audit.entropy > 0.4) {
-						metadata.structuralWarnings = metadata.structuralWarnings || []
-						metadata.structuralWarnings.push(`High architectural entropy detected: ${audit.entropy.toFixed(2)}`)
-					}
+				if (audit.entropy > 0.4) {
+					metadata.structuralWarnings = metadata.structuralWarnings || []
+					metadata.structuralWarnings.push(`High architectural entropy detected: ${audit.entropy.toFixed(2)}`)
+				}
 
-					// Persist graph knowledge periodically or on significant structural events
-					const commitCount = await this.db
-						.selectWhere("nodes", [{ column: "repoPath", value: this.basePath }])
-						.then((r) => r.length)
-					if (commitCount % 5 === 0 || audit.entropy > 0.1 || audit.violations.length > 0) {
-						const kbId = await this.agentContext.spiderService.persistStructuralKnowledge(
-							audit.entropy,
-							audit.mermaid,
-							{
-								nodeId,
-								branch: branchName,
-							},
-						)
-						metadata.spider_graph_kb = kbId
-					}
+				// Persist graph knowledge periodically or on significant structural events
+				const commitCount = await this.db
+					.selectWhere("nodes", [{ column: "repoPath", value: this.basePath }])
+					.then((r) => r.length)
+				if (commitCount % 5 === 0 || audit.entropy > 0.1 || audit.violations.length > 0) {
+					const kbId = await this.agentContext.spiderService.persistStructuralKnowledge(audit.entropy, audit.mermaid, {
+						nodeId,
+						branch: branchName,
+					})
+					metadata.spider_graph_kb = kbId
 				}
 			}
 		}

@@ -116,6 +116,16 @@ export class SpiderEngine {
 	}
 
 	/**
+	 * Clears all nodes from the structural graph and the underlying project.
+	 */
+	public clearNodes() {
+		this.nodes.clear()
+		for (const sourceFile of this.project.getSourceFiles()) {
+			this.project.removeSourceFile(sourceFile)
+		}
+	}
+
+	/**
 	 * Builds a structural graph of the provided files.
 	 */
 	public buildGraph(files: { filePath: string; content: string }[]): void {
@@ -310,19 +320,31 @@ export class SpiderEngine {
 		return JSON.parse(content)
 	}
 
-	private resolveImportToNodeId(sourcePath: string, specifier: string): string | null {
+	public resolveImportToNodeId(sourcePath: string, specifier: string): string | null {
 		if (specifier.startsWith(".")) {
 			const abs = path.resolve(this.cwd, path.dirname(sourcePath), specifier)
 			const rel = path.relative(this.cwd, abs).replace(/\\/g, "/")
 			if (this.nodes.has(rel)) return rel
 			if (this.nodes.has(`${rel}.ts`)) return `${rel}.ts`
 			if (this.nodes.has(`${rel}.tsx`)) return `${rel}.tsx`
+
+			// Handle directory index files
+			const indexTs = path.join(rel, "index.ts").replace(/\\/g, "/")
+			if (this.nodes.has(indexTs)) return indexTs
+			const indexTsx = path.join(rel, "index.tsx").replace(/\\/g, "/")
+			if (this.nodes.has(indexTsx)) return indexTsx
 		}
 		if (specifier.startsWith("@/")) {
 			const rel = specifier.replace("@/", "src/").replace(/\\/g, "/")
 			if (this.nodes.has(rel)) return rel
 			if (this.nodes.has(`${rel}.ts`)) return `${rel}.ts`
 			if (this.nodes.has(`${rel}.tsx`)) return `${rel}.tsx`
+
+			// Handle directory index files for aliases
+			const indexTs = path.join(rel, "index.ts").replace(/\\/g, "/")
+			if (this.nodes.has(indexTs)) return indexTs
+			const indexTsx = path.join(rel, "index.tsx").replace(/\\/g, "/")
+			if (this.nodes.has(indexTsx)) return indexTsx
 		}
 		return null
 	}

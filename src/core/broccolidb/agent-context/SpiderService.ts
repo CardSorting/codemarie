@@ -7,24 +7,26 @@ import type { ServiceContext } from "./types.js"
 export class SpiderService {
 	private engine: SpiderEngine
 	private discovery: StructuralDiscoveryService
+	private bootstrapped = false
 
 	constructor(private ctx: ServiceContext) {
 		this.engine = new SpiderEngine(ctx.workspace.workspacePath)
 		this.discovery = new StructuralDiscoveryService(() => this.engine)
 	}
 
-	/**
-	 * Runs a full structural audit on the given files.
-	 * Returns entropy score and any critical violations.
-	 */
-	async auditStructure(files: { filePath: string; content: string }[]): Promise<{
+	async auditStructure(files?: { filePath: string; content: string }[]): Promise<{
 		entropy: number
 		violations: SpiderViolation[]
 		mermaid: string
 	}> {
 		try {
+			if (!this.bootstrapped && !files) {
+				await this.bootstrapGraph()
+			}
 			this.discovery.clearCache()
-			this.engine.buildGraph(files)
+			if (files) {
+				this.engine.buildGraph(files)
+			}
 			const entropyReport = this.engine.computeEntropy()
 			const entropy = entropyReport.score
 			const violations = this.engine.getViolations()
@@ -38,9 +40,25 @@ export class SpiderService {
 	}
 
 	/**
+	 * Incrementally updates the structural graph with a set of changes.
+	 * If content is missing, the node is removed.
+	 */
+	applyChanges(changes: { filePath: string; content?: string }[]): void {
+		this.discovery.clearCache()
+		for (const change of changes) {
+			if (change.content !== undefined) {
+				this.engine.updateNode(change.filePath, change.content)
+			} else {
+				this.engine.removeNode(change.filePath)
+			}
+		}
+	}
+
+	/**
 	 * Bootstraps the structural graph from the latest repository head.
 	 */
 	async bootstrapGraph(): Promise<void> {
+		if (this.bootstrapped) return
 		try {
 			const repoPath = this.ctx.workspace.workspacePath
 			const db = this.ctx.workspace.getDb()
@@ -64,6 +82,7 @@ export class SpiderService {
 
 			this.discovery.clearCache()
 			this.engine.buildGraph(auditFiles)
+			this.bootstrapped = true
 			Logger.info(`[SpiderService] Graph bootstrapped with ${auditFiles.length} files on branch ${branchName}.`)
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e)

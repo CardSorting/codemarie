@@ -48,7 +48,7 @@ export class StructuralDiscoveryService {
 		const inverseGraph: Map<string, string[]> = new Map()
 		for (const node of engine.nodes.values()) {
 			for (const imp of node.imports) {
-				const resolved = this.resolveInternal(node.id, imp, engine)
+				const resolved = engine.resolveImportToNodeId(node.id, imp)
 				if (resolved) {
 					const existing = inverseGraph.get(resolved) || []
 					existing.push(node.id)
@@ -99,17 +99,5 @@ export class StructuralDiscoveryService {
 			return `📍 MODERATE IMPORTANCE: ${radius.affectedNodes.length} components depend on this file.`
 		}
 		return `🍃 PERIPHERAL: No incoming dependencies detected. Low risk for side effects.`
-	}
-
-	private resolveInternal(sourceId: string, specifier: string, engine: SpiderEngine): string | null {
-		// Reuse engine's resolution if possible or implement minimal one
-		if (specifier.startsWith(".")) {
-			const abs = path.resolve(engine.cwd, path.dirname(sourceId), specifier)
-			const rel = path.relative(engine.cwd, abs).replace(/\\/g, "/")
-			if (engine.nodes.has(rel)) return rel
-			if (engine.nodes.has(`${rel}.ts`)) return `${rel}.ts`
-			if (engine.nodes.has(`${rel}.tsx`)) return `${rel}.tsx`
-		}
-		return null
 	}
 }
