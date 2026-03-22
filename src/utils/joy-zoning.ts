@@ -1,13 +1,43 @@
+import * as fs from "fs"
 import * as path from "path"
 import { CallExpression, ImportDeclaration, Project, SyntaxKind } from "ts-morph"
 
 export type Layer = "domain" | "core" | "infrastructure" | "plumbing" | "ui"
 
 /**
- * Determines the layer of a given file path based on Joy-Zoning conventions.
+ * Determines the layer of a given file path based on Joy-Zoning conventions or spider.spec.json.
  */
 export function getLayer(filePath: string): Layer {
 	const normalized = filePath.replace(/\\/g, "/")
+
+	// Try to load spider.spec.json for custom domain/layer mappings
+	try {
+		const specPath = path.resolve(process.cwd(), "spider.spec.json")
+		if (fs.existsSync(specPath)) {
+			const spec = JSON.parse(fs.readFileSync(specPath, "utf-8"))
+			if (spec.resources) {
+				// Check if any resource path matches
+				for (const [_key, resource] of Object.entries(spec.resources)) {
+					const res = resource as { path?: string; domain?: string }
+					if (res.path && normalized.includes(res.path)) {
+						if (res.domain) {
+							const domainToLayer: Record<string, Layer> = {
+								ui: "ui",
+								api: "infrastructure",
+								admin: "infrastructure",
+								domain: "domain",
+								core: "core",
+							}
+							return domainToLayer[res.domain] || "infrastructure"
+						}
+					}
+				}
+			}
+		}
+	} catch (_e) {
+		// Fallback to default logic
+	}
+
 	if (normalized.includes("src/domain/")) return "domain"
 	if (normalized.includes("src/infrastructure/")) return "infrastructure"
 	if (normalized.includes("src/plumbing/")) return "plumbing"
@@ -182,7 +212,7 @@ export function suggestLayerForContent(content: string): { layer: Layer; reason:
 /**
  * Extracts a target file path from various common tool parameter names.
  */
-export function getTargetPath(params: any): string | null {
+export function getTargetPath(params: Record<string, unknown>): string | null {
 	if (!params) return null
 	const rawPath = params.path || params.file_path || params.target_file || params.absolutePath
 	if (typeof rawPath !== "string") return null

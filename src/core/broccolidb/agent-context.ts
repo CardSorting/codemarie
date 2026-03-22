@@ -1,8 +1,11 @@
 import * as crypto from "node:crypto"
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
+import { BufferedDbPool, type WriteOp } from "@/infrastructure/db/BufferedDbPool.js"
+import { SpiderViolation } from "../policy/SpiderEngine.js"
 import { AuditService } from "./agent-context/AuditService.js"
 import { GraphService } from "./agent-context/GraphService.js"
 import { ReasoningService } from "./agent-context/ReasoningService.js"
+import { SpiderService } from "./agent-context/SpiderService.js"
+import { BlastRadius } from "./agent-context/StructuralDiscoveryService.js"
 import { TaskService } from "./agent-context/TaskService.js"
 
 import type {
@@ -50,14 +53,15 @@ export class AgentContext {
 	private aiService: AiService | null
 	private kbCache: LRUCache<string, KnowledgeBaseItem>
 	private workspace: Workspace
-	private localBuffer: any[] = []
-	private ephemeralState = new Map<string, any>()
+	private localBuffer: WriteOp[] = []
+	private ephemeralState = new Map<string, unknown>()
 	private autoFlushLimit = 25
 	readonly userId: string
 	private _graphService?: GraphService
 	private _reasoningService?: ReasoningService
 	private _taskService?: TaskService
 	private _auditService?: AuditService
+	private _spiderService?: SpiderService
 	private _serviceContext: ServiceContext
 
 	constructor(workspace: Workspace, _depthLimit = 0, aiService?: AiService) {
@@ -99,14 +103,60 @@ export class AgentContext {
 		return this._auditService
 	}
 
+	public get spiderService(): SpiderService {
+		if (!this._spiderService) this._spiderService = new SpiderService(this._serviceContext)
+		return this._spiderService
+	}
+
+	public get structuralDiscoveryService() {
+		return this.spiderService.getDiscovery()
+	}
+
+	/**
+	 * Fetches the most recent structural metadata from the repository nodes.
+	 */
+	public async getLatestStructuralMetadata(): Promise<{
+		entropy: number
+		violations: SpiderViolation[]
+		graphKb?: string
+	} | null> {
+		const results = await this.workspace
+			.getDb()
+			.selectWhere("nodes", [{ column: "repoPath", value: this.workspace.workspacePath }], undefined, {
+				orderBy: { column: "timestamp", direction: "desc" },
+				limit: 1,
+			})
+
+		if (results.length === 0 || !results[0].metadata) return null
+		const meta = JSON.parse(results[0].metadata)
+		return {
+			entropy: meta.spider_entropy || 0,
+			violations: meta.spider_violations || [],
+			graphKb: meta.spider_graph_kb,
+		}
+	}
+
+	/**
+	 * Returns the architectural blast radius and importance summary for a file.
+	 */
+	public getStructuralImpact(filePath: string): { summary: string; blastRadius: BlastRadius } {
+		const discovery = this.structuralDiscoveryService
+		return {
+			summary: discovery.getImportanceSummary(filePath),
+			blastRadius: discovery.getBlastRadius(filePath),
+		}
+	}
+
 	// ─── OPTIMIZATION WRAPPERS ───
 
 	/**
 	 * Batches operations locally before flushing to the database pool.
 	 * "Typical Fix 1: Memory batching"
 	 */
-	private async _push(op: any, agentId?: string) {
-		this.localBuffer.push({ ...op, agentId: agentId || (op as any).values?.agentId || (op as any).where?.[0]?.value })
+	private async _push(op: WriteOp, agentId?: string) {
+		// biome-ignore lint/suspicious/noExplicitAny: complex union in BufferedDbPool
+		const where = op.where as any
+		this.localBuffer.push({ ...op, agentId: agentId || op.values?.agentId || where?.[0]?.value })
 		if (this.localBuffer.length >= this.autoFlushLimit) {
 			await this.flush()
 		}
@@ -129,10 +179,10 @@ export class AgentContext {
 	 * Stores temporary session state that never touches the DB.
 	 * "Typical Fix 2: Ephemeral state"
 	 */
-	setEphemeral(key: string, value: any) {
+	setEphemeral(key: string, value: unknown) {
 		this.ephemeralState.set(key, value)
 	}
-	getEphemeral(key: string): any {
+	getEphemeral(key: string): unknown {
 		return this.ephemeralState.get(key)
 	}
 
@@ -140,7 +190,7 @@ export class AgentContext {
 	 * Typical Fix 3: Event logs instead of mutations.
 	 * "Append events instead of rewriting records."
 	 */
-	async logEvent(type: string, data: any, agentId?: string): Promise<void> {
+	async logEvent(type: string, data: unknown, agentId?: string): Promise<void> {
 		await this._push(
 			{
 				type: "insert",
@@ -174,7 +224,7 @@ export class AgentContext {
 		return this.taskService.spawnTask(taskId, agentId, description, linkedKnowledgeIds)
 	}
 
-	async updateTaskStatus(taskId: string, status: TaskItem["status"], result?: any) {
+	async updateTaskStatus(taskId: string, status: TaskItem["status"], result?: unknown) {
 		return this.taskService.updateTaskStatus(taskId, status, result)
 	}
 
@@ -203,10 +253,10 @@ export class AgentContext {
 	}
 
 	// ─── KNOWLEDGE BASES (Delegated) ───
-	async addKnowledge(kbId: string, type: KnowledgeBaseItem["type"], content: string, options?: any) {
+	async addKnowledge(kbId: string, type: KnowledgeBaseItem["type"], content: string, options?: Record<string, unknown>) {
 		return this.graphService.addKnowledge(kbId, type, content, options)
 	}
-	async annotateKnowledge(targetId: string, agentId: string, annotation: string, metadata?: any) {
+	async annotateKnowledge(targetId: string, agentId: string, annotation: string, metadata?: Record<string, unknown>) {
 		return this.graphService.annotateKnowledge(targetId, agentId, annotation, metadata)
 	}
 	async updateKnowledge(kbId: string, patch: Partial<KnowledgeBaseItem>) {
@@ -414,7 +464,7 @@ export class AgentContext {
 		queryEmbedding?: number[],
 		options: { augmentWithGraph?: boolean } = {},
 	): Promise<KnowledgeBaseItem[]> {
-		let rows: any[] = []
+		let rows: Record<string, unknown>[] = []
 
 		if (tags && tags.length > 0) {
 			// In SQLite we can't do array-contains-any easily without complex queries,
@@ -434,7 +484,7 @@ export class AgentContext {
 
 			// Post-filter by tags
 			rows = rows.filter((r) => {
-				const rowTags = JSON.parse(r.tags || "[]") as string[]
+				const rowTags = JSON.parse((r.tags as string) || "[]") as string[]
 				return tags.some((t) => rowTags.includes(t))
 			})
 		} else {
@@ -456,12 +506,12 @@ export class AgentContext {
 			(r) =>
 				({
 					...r,
-					itemId: r.id,
-					tags: JSON.parse(r.tags || "[]"),
-					edges: JSON.parse(r.edges || "[]"),
-					inboundEdges: JSON.parse(r.inboundEdges || "[]"),
-					embedding: r.embedding ? JSON.parse(r.embedding) : undefined,
-					metadata: JSON.parse(r.metadata || "{}"),
+					itemId: r.id as string,
+					tags: JSON.parse((r.tags as string) || "[]"),
+					edges: JSON.parse((r.edges as string) || "[]"),
+					inboundEdges: JSON.parse((r.inboundEdges as string) || "[]"),
+					embedding: r.embedding ? JSON.parse(r.embedding as string) : undefined,
+					metadata: JSON.parse((r.metadata as string) || "{}"),
 				}) as KnowledgeBaseItem,
 		)
 
@@ -474,11 +524,12 @@ export class AgentContext {
 
 		// If vector search is available, rank by cosine similarity
 		if (queryEmbedding && queryEmbedding.length > 0) {
+			const qEmb = queryEmbedding
 			const scored = candidates
 				.filter((c) => c.embedding && c.embedding.length > 0)
 				.map((c) => ({
 					item: c,
-					similarity: this.cosineSimilarity(queryEmbedding!, c.embedding!),
+					similarity: this.cosineSimilarity(qEmb, c.embedding as number[]),
 				}))
 				.sort((a, b) => b.similarity - a.similarity)
 
@@ -535,8 +586,12 @@ export class AgentContext {
 		if (options.augmentWithGraph && finalResults.length > 0) {
 			const neighborIds = new Set<string>()
 			for (const item of finalResults) {
-				;(item.edges || []).forEach((e) => neighborIds.add(e.targetId))
-				;(item.inboundEdges || []).forEach((e) => neighborIds.add(e.targetId))
+				for (const e of item.edges || []) {
+					neighborIds.add(e.targetId)
+				}
+				for (const e of item.inboundEdges || []) {
+					neighborIds.add(e.targetId)
+				}
 			}
 
 			// Filter out IDs already in finalResults
@@ -571,9 +626,13 @@ export class AgentContext {
 			mA = 0,
 			mB = 0
 		for (let i = 0; i < a.length; i++) {
-			dot += a[i]! * b[i]!
-			mA += a[i]! * a[i]!
-			mB += b[i]! * b[i]!
+			const valA = a[i]
+			const valB = b[i]
+			if (valA !== undefined && valB !== undefined) {
+				dot += valA * valB
+				mA += valA * valA
+				mB += valB * valB
+			}
 		}
 		return dot / (Math.sqrt(mA) * Math.sqrt(mB))
 	}

@@ -6,7 +6,9 @@ import * as path from "path"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { StateManager } from "../storage/StateManager"
-import { TspPolicyPlugin } from "./TspPolicyPlugin"
+import { SpiderEngine } from "./SpiderEngine.js"
+import { SpiderRefactorer } from "./SpiderRefactorer.js"
+import { TspPolicyPlugin } from "./TspPolicyPlugin.js"
 
 export interface PolicyResult {
 	success: boolean
@@ -30,11 +32,15 @@ export interface PolicyResult {
  */
 export class FluidPolicyEngine {
 	private readonly tspPlugin = new TspPolicyPlugin()
+	private readonly spiderEngine: SpiderEngine
 	private mode: "plan" | "act" = "act"
 	private commitSeal: string | null = null
 	private sealReason: string | null = null
-	private cachedRules: any[] | null = null
+	// biome-ignore lint/suspicious/noExplicitAny: complex rule structure
+	private cachedRules: Record<string, any>[] | null = null
 	private layerCache: Map<string, string> = new Map()
+	private sessionFiles: Map<string, string> = new Map()
+	private globalGraphBootstrapped = false
 
 	constructor(
 		private cwd: string,
@@ -42,7 +48,9 @@ export class FluidPolicyEngine {
 		private stateManager?: StateManager,
 		private virtualResolver?: (path: string) => string | undefined,
 		private controller?: OrchestrationController,
-	) {}
+	) {
+		this.spiderEngine = new SpiderEngine(this.cwd)
+	}
 
 	/**
 	 * Increments and persists the strike count for a file.
@@ -51,7 +59,7 @@ export class FluidPolicyEngine {
 		if (!this.streamId) return 0
 		const key = `strikes:${path.basename(filePath)}`
 		const currentRaw = await orchestrator.recallMemory(this.streamId, key)
-		const newCount = (currentRaw ? Number.parseInt(currentRaw) : 0) + 1
+		const newCount = (currentRaw ? Number.parseInt(currentRaw, 10) : 0) + 1
 		await orchestrator.storeMemory(this.streamId, key, newCount.toString())
 
 		// --- BroccoliDB Native Persistence ---
@@ -180,13 +188,19 @@ export class FluidPolicyEngine {
 			block.params?.content
 		) {
 			const filePath = path.resolve(this.cwd, block.params.path)
-			const content = block.params.content!
+			const content = block.params.content as string
+
+			// Update Spider session cache
+			this.sessionFiles.set(filePath, content)
+			this.spiderEngine.buildGraph(Array.from(this.sessionFiles.entries()).map(([p, c]) => ({ filePath: p, content: c })))
 
 			const [astValidation, supremeCourtResult] = await Promise.all([
 				// 1. AST Validation (TSP)
 				Promise.resolve(this.tspPlugin.validateSource(filePath, content, this.virtualResolver)),
 				// 2. Supreme Court Pass (LLM + BroccoliDB)
 				this.executeSupremeCourtPass(filePath, content),
+				// 3. Global Structural Bootstrap
+				this.ensureGlobalGraph(),
 			])
 
 			// Block on AST Failure (Strike 1 Domain)
@@ -206,13 +220,28 @@ export class FluidPolicyEngine {
 				}
 
 				// Strike 2+ or other layers: Warning only
+				const entropy = this.spiderEngine.computeEntropy()
+				const latestSnapshot = await this.spiderEngine.getLatestSnapshot()
+				const delta = latestSnapshot ? this.spiderEngine.compareWith(latestSnapshot) : 0
+
+				if (this.streamId) {
+					await orchestrator.storeMemory(this.streamId, "last_entropy_score", entropy.score.toString())
+					if (delta > 0.01) {
+						await orchestrator.storeMemory(this.streamId, "entropy_decay", delta.toString())
+					}
+				}
+
 				return {
 					success: true,
 					warning:
 						layer === "domain"
 							? `⚠️ ARCHITECTURAL WARNING (Strike ${strikes} — enforcement degraded): Domain layer file \`${path.basename(filePath)}\` has ${astValidation.errors.length} unresolved violation(s):\n${violationSummary}\n\nThe write is ALLOWED to prevent deadlock.`
-							: `⚠️ ARCHITECTURAL WARNING: ${layer.toUpperCase()} layer file \`${path.basename(filePath)}\` has ${astValidation.errors.length} violation(s):\n${violationSummary}`,
+							: `⚠️ ARCHITECTURAL WARNING: ${layer.toUpperCase()} layer file \`${path.basename(filePath)}\` has ${astValidation.errors.length} violation(s):\n${violationSummary}` +
+								(delta > 0.01
+									? `\n\n🕷️ ARCHITECTURAL DECAY: Entropy increased by ${(delta * 100).toFixed(1)}%.`
+									: ""),
 					violations: astValidation.errors,
+					entropyScore: entropy.score,
 					correctionHint: this.getCorrectionHint(astValidation.errors),
 				}
 			}
@@ -277,9 +306,36 @@ export class FluidPolicyEngine {
 		if (!layer) {
 			const { getLayer } = require("@/utils/joy-zoning")
 			layer = getLayer(filePath)
-			this.layerCache.set(filePath, layer!)
+			if (layer) {
+				this.layerCache.set(filePath, layer)
+			}
 		}
-		return layer!
+		return layer ?? "infrastructure"
+	}
+
+	/**
+	 * Ensures the SpiderEngine has a global view of the codebase by bootstrapping from BroccoliDB.
+	 */
+	private async ensureGlobalGraph(): Promise<void> {
+		if (this.globalGraphBootstrapped || !this.controller) return
+
+		try {
+			const ctx = await this.controller.getAgentContext()
+			await ctx.spiderService.bootstrapGraph()
+
+			// Transfer the bootstrapped nodes to our local engine
+			const globalEngine = ctx.spiderService.getEngine()
+			for (const node of globalEngine.nodes.values()) {
+				this.spiderEngine.nodes.set(node.id, { ...node })
+			}
+
+			this.globalGraphBootstrapped = true
+			const { Logger: Log } = require("@/shared/services/Logger")
+			Log.info("[FluidPolicyEngine] Global architectural graph bootstrapped.")
+		} catch (e) {
+			const { Logger: Log } = require("@/shared/services/Logger")
+			Log.error("[FluidPolicyEngine] Bootstrap failed:", e)
+		}
 	}
 
 	private async executeSupremeCourtPass(filePath: string, content: string): Promise<PolicyResult | null> {
@@ -338,12 +394,50 @@ export class FluidPolicyEngine {
 		globalFileReadCount = 0,
 	): Promise<string> {
 		const absolutePath = path.resolve(this.cwd, filePath)
+
+		// Update Spider session cache
+		this.sessionFiles.set(absolutePath, content)
+		this.spiderEngine.updateNode(absolutePath, content)
+
+		// Ensure global graph is available for broader context
+		await this.ensureGlobalGraph()
+
+		const entropy = this.spiderEngine.computeEntropy()
+		const latestSnapshot = await this.spiderEngine.getLatestSnapshot()
+		const delta = latestSnapshot ? this.spiderEngine.compareWith(latestSnapshot) : 0
+
+		if (this.streamId) {
+			await orchestrator.storeMemory(this.streamId, "last_entropy_score", entropy.score.toString())
+			if (delta > 0.01) {
+				await orchestrator.storeMemory(this.streamId, "entropy_decay", delta.toString())
+			}
+		}
+
 		const layerContext = this.getFileLayerContext(absolutePath)
 		const validation = this.tspPlugin.validateSource(absolutePath, content, this.virtualResolver)
 		const { getLayer } = require("@/utils/joy-zoning")
 		const layer = getLayer(absolutePath)
+		const refactorSuggestions = SpiderRefactorer.getRefactoringSuggestions(this.spiderEngine)
 
-		let header = `${layerContext}\n`
+		let structuralImpact = ""
+		if (this.controller) {
+			try {
+				const ctx = await this.controller.getAgentContext()
+				const impact = ctx.getStructuralImpact(absolutePath)
+				structuralImpact = `🔍 STRUCTURAL INTELLIGENCE:\n  ${impact.summary}\n`
+				if (impact.blastRadius.criticalDependents.length > 0) {
+					structuralImpact += `  ⚠️ CRITICAL DEPENDENTS: ${impact.blastRadius.criticalDependents.map((d: string) => path.basename(d)).join(", ")}\n`
+				}
+			} catch {
+				/* skip */
+			}
+		}
+
+		let header = `${layerContext}\n${structuralImpact}`
+
+		if (refactorSuggestions.length > 0) {
+			header += `🕷️ ARCHITECTURAL REFACTORING OPPORTUNITIES:\n${refactorSuggestions.map((s) => `  - [${s.type}] ${s.target}: ${s.reason} (${s.benefit})`).join("\n")}\n`
+		}
 
 		if (!validation.success) {
 			header += `⚠️ Existing issues in this file:\n${validation.errors.map((v) => `  - ${v}`).join("\n")}\nKeep these in mind — avoid propagating these patterns.\n`
@@ -426,7 +520,7 @@ export class FluidPolicyEngine {
 	/**
 	 * Validates the outcome of a tool execution.
 	 */
-	public async validatePostExecution(block: ToolUse, toolOutput: any, prevResultHash?: string): Promise<PolicyResult> {
+	public async validatePostExecution(block: ToolUse, toolOutput: unknown, prevResultHash?: string): Promise<PolicyResult> {
 		const result: PolicyResult = { success: true }
 
 		// Architectural Policy: Audit file changes via AST (warning-only, never blocks post-execution)
@@ -438,8 +532,13 @@ export class FluidPolicyEngine {
 					const validation = this.tspPlugin.validateSource(filePath, content, this.virtualResolver)
 					if (!validation.success || (validation.warnings && validation.warnings.length > 0)) {
 						const allIssues = [...(validation.warnings || []), ...validation.errors]
+						const entropy = this.spiderEngine.computeEntropy()
+						if (this.streamId) {
+							await orchestrator.storeMemory(this.streamId, "last_entropy_score", entropy.score.toString())
+						}
 						result.violations = validation.errors
 						result.warning = `⚠️ ${path.basename(filePath)}:\n${allIssues.map((v) => `  - ${v}`).join("\n")}`
+						result.entropyScore = entropy.score
 						result.correctionHint = this.getCorrectionHint(validation.errors)
 					}
 				} catch {
@@ -454,10 +553,27 @@ export class FluidPolicyEngine {
 			const currentHash = createHash("sha256").update(resultStr).digest("hex")
 
 			if (currentHash !== prevResultHash) {
+				const entropyReport = this.spiderEngine.computeEntropy()
+				const latestSnapshot = await this.spiderEngine.getLatestSnapshot()
+				const delta = latestSnapshot ? this.spiderEngine.compareWith(latestSnapshot) : 0
+
+				if (this.streamId) {
+					await orchestrator.storeMemory(this.streamId, "last_entropy_score", entropyReport.score.toString())
+					if (delta > 0.01) {
+						await orchestrator.storeMemory(this.streamId, "entropy_decay", delta.toString())
+					}
+				}
+
 				result.warning =
 					(result.warning ? `${result.warning}\n` : "") +
-					"⚠️ ENTROPY WARNING: Tool output has diverged from expected hash. Structural stability may be compromised."
-				result.entropyScore = 1.0 // Simple toggle for now
+					`⚠️ ENTROPY WARNING: Tool output has diverged. Structural health: ${(entropyReport.score * 100).toFixed(1)}% decay.` +
+					(delta > 0.01 ? `\n🕷️ DECAY SINCE LAST SNAPSHOT: +${(delta * 100).toFixed(1)}%` : "")
+				result.entropyScore = entropyReport.score
+			}
+
+			// Take a snapshot if successful and divergence is low
+			if (result.success && result.entropyScore !== undefined && result.entropyScore < 0.2) {
+				await this.spiderEngine.takeSnapshot()
 			}
 		}
 

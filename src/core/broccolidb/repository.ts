@@ -29,6 +29,7 @@ export interface Usage {
 export interface MemoryNode {
 	id: string
 	parentId: string | null
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic commit payload
 	data: any
 	message: string
 	timestamp: number
@@ -43,8 +44,8 @@ export interface MemoryNode {
 				isHierarchical?: boolean
 				taskId?: string
 				decisionIds?: string[]
-				environment?: any
-				[key: string]: any
+				environment?: unknown
+				[key: string]: unknown
 		  }
 		| undefined
 }
@@ -127,7 +128,7 @@ export interface PatchData {
 	baseNodeId: string
 	targetNodeId: string
 	nodes: MemoryNode[]
-	files: Record<string, any>
+	files: Record<string, string>
 }
 
 // ─── Repository ───
@@ -139,14 +140,17 @@ export class Repository {
 
 	private nodeCache: LRUCache<string, MemoryNode>
 	private refCache: LRUCache<string, string>
-	public agentContext: any | null // AgentContext interface for reasoning audits
+	// biome-ignore lint/suspicious/noExplicitAny: AgentContext interface for reasoning audits
+	public agentContext: any | null
 	public strictReasoning = false // If true, commits with logical contradictions are blocked
 	private fileCache = new LRUCache<string, FileEntry>(500, 300000) // 5 min TTL
 	private rawTreeCache = new LRUCache<string, TreeSnapshot>(1000, 300000) // 5 min TTL
 	private treeCache = new LRUCache<string, Record<string, string>>(512, 300000) // 5 min TTL
 
+	// biome-ignore lint/suspicious/noExplicitAny: dynamic hook payload
 	private hooks: Record<string, ((data: any) => Promise<void>)[]> = {}
 
+	// biome-ignore lint/suspicious/noExplicitAny: AgentContext interface
 	constructor(dbOrConnection: BufferedDbPool | Connection, basePathOrRepoId: string, agentContext?: any) {
 		this.agentContext = agentContext || null
 		this.nodeCache = new LRUCache<string, MemoryNode>(1000, 600000) // 10 min TTL
@@ -161,7 +165,7 @@ export class Repository {
 	}
 
 	files(): FileTree {
-		return new FileTree(this.db as any, this)
+		return new FileTree(this.db, this)
 	}
 	getBasePath(): string {
 		return this.basePath
@@ -290,6 +294,7 @@ export class Repository {
 
 			for (const row of rows) {
 				const node: MemoryNode = {
+					// biome-ignore lint/suspicious/noExplicitAny: dynamic row payload
 					...(row as any),
 					data: JSON.parse(row.data),
 					tree: row.tree ? JSON.parse(row.tree) : undefined,
@@ -379,12 +384,14 @@ export class Repository {
 
 	async commit(
 		branchName: string,
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic commit payload
 		data: any,
 		author: string,
 		message = "",
 		options: {
 			type?: "snapshot" | "summary" | "diff" | "hypothesis" | "conclusion"
 			usage?: Usage
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic metadata
 			metadata?: Record<string, any>
 			decisionIds?: string[]
 		} = {},
@@ -404,8 +411,10 @@ export class Repository {
 						(options.type === "hypothesis" || options.type === "conclusion")
 					) {
 						const kbIds: string[] = []
-						if (data.knowledgeIds) kbIds.push(...data.knowledgeIds)
-						if (data.factId) kbIds.push(data.factId)
+						// biome-ignore lint/suspicious/noExplicitAny: dynamic data payload
+						const d = data as Record<string, any>
+						if (d.knowledgeIds) kbIds.push(...d.knowledgeIds)
+						if (d.factId) kbIds.push(d.factId)
 
 						if (kbIds.length > 0) {
 							const reports = await this.agentContext.detectContradictions(kbIds)
@@ -418,7 +427,7 @@ export class Repository {
 						}
 					}
 
-					await this.commitInTransaction(null as any, branchName, nodeId, data, author, message, options, agentId)
+					await this.commitInTransaction(null, branchName, nodeId, data, author, message, options, agentId)
 					await this.db.commitWork(agentId)
 				} catch (e) {
 					await this.db.rollbackWork(agentId)
@@ -440,6 +449,7 @@ export class Repository {
 		nodeId: string,
 		author: string,
 		message: string,
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic commit payload
 		data: any,
 		options: { usage?: Usage } = {},
 	) {
@@ -466,15 +476,18 @@ export class Repository {
 	 * This allows external components (like FileTree) to batch file writes and commits together.
 	 */
 	public async commitInTransaction(
+		// biome-ignore lint/suspicious/noExplicitAny: transaction object
 		_transaction: any, // Ignored in SQLite but kept for interface compatibility
 		branchName: string,
 		nodeId: string,
+		// biome-ignore lint/suspicious/noExplicitAny: dynamic commit payload
 		data: any,
 		author: string,
 		message = "",
 		options: {
 			type?: "snapshot" | "summary" | "diff" | "hypothesis" | "conclusion"
 			usage?: Usage
+			// biome-ignore lint/suspicious/noExplicitAny: dynamic metadata
 			metadata?: Record<string, any>
 			decisionIds?: string[]
 		} = {},
@@ -501,7 +514,7 @@ export class Repository {
 				}
 			: undefined
 
-		const metadata: any = {
+		const metadata: Record<string, any> = {
 			...options.metadata,
 			decisionIds: options.decisionIds || [],
 			environment: EnvironmentTracker.capture(),
@@ -512,8 +525,9 @@ export class Repository {
 		if (this.agentContext) {
 			// 1. Merkle-Reasoning Proof
 			if (options.type === "conclusion") {
-				const treeHash = metadata.treeHash || "empty"
-				const knowledgeIds = data.knowledgeIds || []
+				const treeHash = (metadata as any).treeHash || "empty"
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic conclusion data
+				const knowledgeIds = (data as any).knowledgeIds || []
 				const pedigreeHash = crypto.createHash("sha256").update(JSON.stringify(knowledgeIds)).digest("hex")
 				metadata.proofHash = crypto
 					.createHash("sha256")
@@ -524,8 +538,11 @@ export class Repository {
 			// 2. Constitutional Audit (Path-bound rules)
 			const constraints = await this.agentContext.getLogicalConstraints()
 			if (constraints.length > 0) {
-				const changedPaths = options.type === "diff" ? Object.keys(data.changes || {}) : Object.keys(data.tree || {})
+				// biome-ignore lint/suspicious/noExplicitAny: dynamic commit data
+				const d = data as any
+				const changedPaths = options.type === "diff" ? Object.keys(d.changes || {}) : Object.keys(d.tree || {})
 				for (const path of changedPaths) {
+					// biome-ignore lint/suspicious/noExplicitAny: complex constraint structure
 					const matchingConstraints = constraints.filter((c: any) => {
 						const pattern = c.pathPattern.replace(/\*/g, ".*")
 						return new RegExp(`^${pattern}$`).test(path)
@@ -533,7 +550,8 @@ export class Repository {
 
 					for (const constraint of matchingConstraints) {
 						const rule = await this.agentContext.getKnowledge(constraint.knowledgeId)
-						const casHash = options.type === "diff" ? data.changes[path] : data.tree[path]
+						// biome-ignore lint/suspicious/noExplicitAny: dynamic data path access
+						const casHash = options.type === "diff" ? (data as any).changes[path] : (data as any).tree[path]
 						const fileItem = await this.db.selectOne("files", [{ column: "id", value: casHash }])
 
 						if (fileItem && rule) {
@@ -555,6 +573,48 @@ export class Repository {
 					}
 				}
 			}
+
+			// --- Pass 5.1: Structural Audit (Spider Integration) ---
+			if (this.agentContext?.spiderService) {
+				const files = await this.files().listFiles(branchName)
+				const auditFiles: { filePath: string; content: string }[] = []
+
+				for (const f of files) {
+					try {
+						const content = await this.files().readFile(branchName, f.path, { skipIgnore: true })
+						auditFiles.push({ filePath: f.path, content: content.content })
+					} catch (_e) {
+						/* skip missing */
+					}
+				}
+
+				if (auditFiles.length > 0) {
+					const audit = await this.agentContext.spiderService.auditStructure(auditFiles)
+					metadata.spider_entropy = audit.entropy
+					metadata.spider_violations = audit.violations
+
+					if (audit.entropy > 0.4) {
+						metadata.structuralWarnings = metadata.structuralWarnings || []
+						metadata.structuralWarnings.push(`High architectural entropy detected: ${audit.entropy.toFixed(2)}`)
+					}
+
+					// Persist graph knowledge periodically or on significant structural events
+					const commitCount = await this.db
+						.selectWhere("nodes", [{ column: "repoPath", value: this.basePath }])
+						.then((r) => r.length)
+					if (commitCount % 5 === 0 || audit.entropy > 0.1 || audit.violations.length > 0) {
+						const kbId = await this.agentContext.spiderService.persistStructuralKnowledge(
+							audit.entropy,
+							audit.mermaid,
+							{
+								nodeId,
+								branch: branchName,
+							},
+						)
+						metadata.spider_graph_kb = kbId
+					}
+				}
+			}
 		}
 
 		const newNode = {
@@ -568,7 +628,8 @@ export class Repository {
 			type: options.type || "snapshot",
 			usage: usage ? JSON.stringify(usage) : null,
 			metadata: JSON.stringify(metadata),
-			tree: options.type === "snapshot" ? JSON.stringify(data.tree || {}) : null, // Logic for legacy flat trees
+			// biome-ignore lint/suspicious/noExplicitAny: legacy flat tree access
+			tree: options.type === "snapshot" ? JSON.stringify((data as any).tree || {}) : null, // Logic for legacy flat trees
 		}
 
 		await this.db.push(
@@ -873,9 +934,9 @@ export class Repository {
 				// Default to snapshot spread if no LCA
 				const targetNode = await this.checkout(targetBranch)
 				const sourceNode = await this.checkout(sourceBranch)
-				const mergedData = { ...targetNode?.data, ...sourceNode?.data }
-				const treeA = targetNode?.tree || targetNode?.data?.tree || {}
-				const treeB = sourceNode?.tree || sourceNode?.data?.tree || {}
+				const mergedData = { ...(targetNode?.data as any), ...(sourceNode?.data as any) }
+				const treeA = targetNode?.tree || (targetNode?.data as any)?.tree || {}
+				const treeB = sourceNode?.tree || (sourceNode?.data as any)?.tree || {}
 				const mergedTree = { ...treeA, ...treeB }
 
 				const res = await this.commit(
@@ -987,10 +1048,10 @@ export class Repository {
 				try {
 					const sourceNode = await this.getNode(sourceHead)
 					const kbIds: string[] = []
-					if (sourceNode.data.knowledgeIds) kbIds.push(...sourceNode.data.knowledgeIds)
-					if (sourceNode.data.factId) kbIds.push(sourceNode.data.factId)
-					if (sourceNode.data.factAId) kbIds.push(sourceNode.data.factAId)
-					if (sourceNode.data.factBId) kbIds.push(sourceNode.data.factBId)
+					if ((sourceNode.data as any).knowledgeIds) kbIds.push(...(sourceNode.data as any).knowledgeIds)
+					if ((sourceNode.data as any).factId) kbIds.push((sourceNode.data as any).factId)
+					if ((sourceNode.data as any).factAId) kbIds.push((sourceNode.data as any).factAId)
+					if ((sourceNode.data as any).factBId) kbIds.push((sourceNode.data as any).factBId)
 
 					if (kbIds.length > 0) {
 						const pedigree = await this.agentContext.getReasoningPedigree(kbIds[0])
@@ -1072,7 +1133,7 @@ export class Repository {
 		if (!lcaId) {
 			// If no LCA, everything in source might be new
 			const sourceNode = await this.getNode(sourceHead)
-			const sourceTree = sourceNode.tree || (await this.resolveTree(sourceNode))
+			const sourceTree = (sourceNode as any).tree || (await this.resolveTree(sourceNode))
 			return {
 				hasConflicts: false,
 				conflicts: [],
@@ -1089,10 +1150,12 @@ export class Repository {
 		let affectedPaths: string[] = []
 		if (sourceNode.metadata?.isHierarchical && baseNode.metadata?.isHierarchical) {
 			// O(log N) Affected Path detection via hash diffing
-			affectedPaths = await this.calculateAffectedPaths(baseNode.metadata.treeHash!, sourceNode.metadata.treeHash!)
+			const baseHash = (baseNode.metadata as any).treeHash
+			const sourceHash = (sourceNode.metadata as any).treeHash
+			affectedPaths = await this.calculateAffectedPaths(baseHash, sourceHash)
 		} else {
-			const sourceTree = sourceNode.tree || (await this.resolveTree(sourceNode))
-			const baseTree = baseNode.tree || (await this.resolveTree(baseNode))
+			const sourceTree = (sourceNode as any).tree || (await this.resolveTree(sourceNode))
+			const baseTree = (baseNode as any).tree || (await this.resolveTree(baseNode))
 			affectedPaths = Object.keys(sourceTree).filter((p) => sourceTree[p] !== baseTree[p])
 		}
 
@@ -1254,10 +1317,10 @@ export class Repository {
 			try {
 				// Extract KB IDs from the source commit's data
 				const kbIds: string[] = []
-				if (sourceNode.data.knowledgeIds) kbIds.push(...sourceNode.data.knowledgeIds)
-				if (sourceNode.data.factId) kbIds.push(sourceNode.data.factId)
-				if (sourceNode.data.factAId) kbIds.push(sourceNode.data.factAId)
-				if (sourceNode.data.factBId) kbIds.push(sourceNode.data.factBId)
+				if ((sourceNode.data as any).knowledgeIds) kbIds.push(...(sourceNode.data as any).knowledgeIds)
+				if ((sourceNode.data as any).factId) kbIds.push((sourceNode.data as any).factId)
+				if ((sourceNode.data as any).factAId) kbIds.push((sourceNode.data as any).factAId)
+				if ((sourceNode.data as any).factBId) kbIds.push((sourceNode.data as any).factBId)
 
 				if (kbIds.length > 0) {
 					const auditRes = await this.agentContext.detectContradictions(kbIds, 2)
@@ -1282,6 +1345,7 @@ export class Repository {
 
 	// ─── Summarize (Memory Compaction) ───
 
+	// biome-ignore lint/suspicious/noExplicitAny: summary data payload
 	async summarize(branchName: string, summaryData: any, author: string, message = "Memory Compaction"): Promise<string> {
 		return this.commit(branchName, summaryData, author, message, { type: "summary" })
 	}
@@ -1384,7 +1448,7 @@ export class Repository {
 
 			if (mode === "soft") {
 				const diffNodeId = this.generateNodeId()
-				const tree = targetNode.tree || (await this.resolveTree(targetNode))
+				const tree = (targetNode as any).tree || (await this.resolveTree(targetNode))
 				const metadata = { ...options.metadata, resetMode: "soft", environment: EnvironmentTracker.capture() }
 
 				const diffNode = {

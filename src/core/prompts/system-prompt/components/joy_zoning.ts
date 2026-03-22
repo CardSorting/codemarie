@@ -55,18 +55,30 @@ export async function getJoyZoningSection(_variant?: PromptVariant, context?: Sy
 			}
 
 			// Surface last checkpoint
-			const allMemory = await dbPool.selectAllFrom("agent_memory")
+			interface MemoryItem {
+				streamId: string
+				key: string
+				updatedAt: number
+			}
+			const allMemory = (await dbPool.selectAllFrom("agent_memory")) as unknown as MemoryItem[]
 			const checkpoint = allMemory
-				.filter((m: any) => m.streamId === latestStream.id && m.key.startsWith("checkpoint_"))
-				.sort((a: any, b: any) => b.updatedAt - a.updatedAt)[0]
+				.filter((m: MemoryItem) => m.streamId === latestStream.id && m.key.startsWith("checkpoint_"))
+				.sort((a: MemoryItem, b: MemoryItem) => b.updatedAt - a.updatedAt)[0]
 			if (checkpoint) {
 				parts.push(`📍 Last Checkpoint: ${new Date(checkpoint.updatedAt as number).toLocaleString()}`)
 			}
 
-			if (digest.avgEntropy > 0.3) {
+			const lastEntropy = await orchestrator.recallMemory(latestStream.id, "last_entropy_score")
+			if (lastEntropy) {
+				const score = Number.parseFloat(lastEntropy)
 				parts.push(
-					`📉 HIGH ENTROPY: This stream is showing significant tool result divergence (Score: ${digest.avgEntropy}). Proceed with caution and perform deeper verification.`,
+					`🕷️ Structural Entropy: ${(score * 100).toFixed(1)}% ${score > 0.6 ? "(CRITICAL)" : score > 0.4 ? "(WARNING)" : "(STABLE)"}`,
 				)
+			}
+
+			const decay = await orchestrator.recallMemory(latestStream.id, "entropy_decay")
+			if (decay) {
+				parts.push(`🕷️ ARCHITECTURAL DECAY: +${(Number.parseFloat(decay) * 100).toFixed(1)}% (CAUTION)`)
 			}
 
 			if (parts.length > 0) {
