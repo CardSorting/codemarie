@@ -169,6 +169,75 @@ export class SuggestionService {
 		}
 	}
 
+	private async getProjectPatterns(): Promise<string> {
+		if (!this.agentContext) return ""
+		try {
+			const patterns = await this.agentContext.searchKnowledge(
+				"dominant design patterns, error handling conventions, and naming styles in this project",
+				["code", "documentation"],
+				2,
+			)
+			if (patterns && patterns.length > 0) {
+				return patterns.map((p: any) => p.content).join("\n---\n")
+			}
+		} catch (err) {
+			Logger.warn("[SuggestionService] Failed to gather project patterns", err)
+		}
+		return ""
+	}
+
+	private async getSmartSymbolContext(filePath: string | undefined, diagnostics: Diagnostic[]): Promise<string> {
+		if (!this.agentContext || !filePath || diagnostics.length === 0) return ""
+		try {
+			const relPath = await asRelativePath(filePath)
+			const spiderService = (this.agentContext as any)._spiderService || (this.agentContext as any).getSpiderService?.()
+			if (!spiderService) return ""
+
+			const engine = spiderService.getEngine()
+			const targetNode =
+				engine.nodes.get(relPath) || engine.nodes.get(`${relPath}.ts`) || engine.nodes.get(`${relPath}.tsx`)
+			if (!targetNode) return ""
+
+			// Extract symbols from error lines
+			const errorSymbols: Set<string> = new Set()
+			for (const d of diagnostics) {
+				const symbols = d.message.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
+				symbols.forEach((s) => {
+					if (s.length > 4) errorSymbols.add(s)
+				})
+			}
+
+			if (errorSymbols.size === 0) return ""
+
+			let context = "Oracle Symbol Resolution:\n"
+			const { loadRequiredLanguageParsers } = require("@/services/tree-sitter/languageParser.js")
+			const { parseFile } = require("@/services/tree-sitter/index.js")
+
+			const resolvedPaths: string[] = []
+			for (const symbol of Array.from(errorSymbols).slice(0, 3)) {
+				// Search for symbol definition project-wide
+				const searchResults = await this.agentContext.searchKnowledge(`definition of ${symbol}`, ["code"], 1)
+				if (searchResults?.[0] && searchResults[0].filePath) {
+					resolvedPaths.push(require("path").resolve(engine.cwd, searchResults[0].filePath))
+				}
+			}
+
+			if (resolvedPaths.length > 0) {
+				const parsers = await loadRequiredLanguageParsers(resolvedPaths)
+				for (const absPath of resolvedPaths.slice(0, 2)) {
+					const definitions = await parseFile(absPath, parsers)
+					if (definitions) {
+						context += `Resolved Symbol from ${require("path").basename(absPath)}:\n${definitions}\n`
+					}
+				}
+			}
+			return context
+		} catch (err) {
+			Logger.warn("[SuggestionService] Failed to perform smart symbol expansion", err)
+			return ""
+		}
+	}
+
 	private async getDiagnosticGrounding(filePath: string | undefined, diagnostics: Diagnostic[]): Promise<string> {
 		if (!this.agentContext || !filePath || diagnostics.length === 0) return ""
 		try {
@@ -331,6 +400,8 @@ export class SuggestionService {
 				skeleton: Date.now(),
 				imports: Date.now(),
 				diagGrounding: Date.now(),
+				projectPatterns: Date.now(),
+				smartSymbols: Date.now(),
 			}
 
 			const rawDiagnostics = await HostProvider.workspace.getDiagnostics({})
@@ -338,15 +409,25 @@ export class SuggestionService {
 				.flatMap((fd: FileDiagnostics) => fd.diagnostics || [])
 				.filter((d) => d.severity === 0) // Focus on errors for grounding
 
-			const [deepContext, diagnosticsSummary, gitStatusSummary, fileSkeleton, importContext, diagnosticGrounding] =
-				await Promise.all([
-					this.getDeepContext(filePath, fileSnippet),
-					this.getDiagnosticsContext(),
-					this.getGitStatusContext(),
-					this.getFileSkeleton(filePath),
-					this.getImportContext(filePath),
-					this.getDiagnosticGrounding(filePath, activeFileDiagnostics),
-				])
+			const [
+				deepContext,
+				diagnosticsSummary,
+				gitStatusSummary,
+				fileSkeleton,
+				importContext,
+				diagnosticGrounding,
+				projectPatterns,
+				smartSymbolContext,
+			] = await Promise.all([
+				this.getDeepContext(filePath, fileSnippet),
+				this.getDiagnosticsContext(),
+				this.getGitStatusContext(),
+				this.getFileSkeleton(filePath),
+				this.getImportContext(filePath),
+				this.getDiagnosticGrounding(filePath, activeFileDiagnostics),
+				this.getProjectPatterns(),
+				this.getSmartSymbolContext(filePath, activeFileDiagnostics),
+			])
 
 			const componentLatencies = {
 				deep: Date.now() - componentStarts.deep,
@@ -355,6 +436,8 @@ export class SuggestionService {
 				skeleton: Date.now() - componentStarts.skeleton,
 				imports: Date.now() - componentStarts.imports,
 				diagGrounding: Date.now() - componentStarts.diagGrounding,
+				projectPatterns: Date.now() - componentStarts.projectPatterns,
+				smartSymbols: Date.now() - componentStarts.smartSymbols,
 			}
 
 			const { structuralImpact, semanticContext } = deepContext
@@ -379,6 +462,12 @@ ${fileSkeleton || "No structural data available."}
 <import_context>
 ${importContext || "No internal symbols resolved."}
 </import_context>
+<smart_symbol_context>
+${smartSymbolContext || "No project-wide symbols resolved."}
+</smart_symbol_context>
+<project_patterns>
+${projectPatterns || "Standard project conventions apply."}
+</project_patterns>
 <diagnostic_deep_context>
 ${diagnosticGrounding || "No detailed grounding required."}
 </diagnostic_deep_context>
@@ -389,23 +478,23 @@ ${diagnosticsSummary || "No problems detected."}
 ${gitStatusSummary || "No pending changes."}
 </git_status>
 
-Your task is to generate 3 short, diverse prompt suggestions (under 60 chars each) that the user might want to run next.
+Your task is to generate 3 diverse and actionable prompt suggestions (under 80 chars each) categorized by "Oracle Modes".
+
+Oracle Modes (Output exactly one of each):
+1. ORACLE FIX: High-precision resolution of the most critical issue in <diagnostics> or <diagnostic_deep_context>.
+2. ORACLE DESIGN: Architectural improvement or refactor grounded in <project_patterns> and <structural_impact>.
+3. ORACLE LEARN: Discovery suggestion focused on explaining complex logic in <file_snippet> or <smart_symbol_context>.
 
 Architectural Guardrails:
-- Respect the <structural_impact>. If importance is HIGH, prioritize safety and stability.
-- Ground suggestions in the <file_skeleton> and <import_context>. Use existing APIs correctly.
-- Prioritize solving issues in <diagnostics>.
-- Avoid suggesting changes that would increase architectural entropy or introduce circular dependencies.
-
-Categorize your suggestions internally as:
-1. PRIMARY FIX: Addressing an current error or warning.
-2. TECHNICAL IMPROVEMENT: Refactoring, testing, or optimization.
-3. LOGICAL NEXT STEP: Implementing a related feature or expanding the logic.
+- Strictly adhere to <project_patterns>. Use the project's preferred idioms.
+- Respect the <structural_impact>. If importance is HIGH, avoid suggestions that change the public API or core contracts.
+- Ground suggestions in the <file_skeleton>, <import_context>, and <smart_symbol_context>. Use existing types and symbols correctly.
+- Prioritize solving errors in <diagnostics>.
 
 Example output format:
-Add unit tests for this function
-Fix the type mismatch in the loop
-Refactor to use a builder pattern
+Fix the type mismatch in the login handler
+Refactor SuggestionService to use the Oracle Design mode
+Explain how the SpiderEngine resolves symbols in this module
 
 Output ONLY the suggestions, one per line, no numbering, no tags, and no extra text.`
 
