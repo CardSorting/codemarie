@@ -23,6 +23,8 @@ export class SuggestionService {
 	private isGenerating = false
 	private lastFetchTime = 0
 	private readonly DEBOUNCE_INTERVAL = 10000 // 10 seconds
+	private readonly SUGGESTION_HISTORY_SIZE = 6
+	private suggestionHistory: string[] = []
 	private agentContext?: any // AgentContext
 	private workspace?: any // Workspace
 	private suggestionCache = new Map<string, CachedSuggestions>()
@@ -167,6 +169,34 @@ export class SuggestionService {
 		}
 	}
 
+	private async getDiagnosticGrounding(filePath: string | undefined, diagnostics: Diagnostic[]): Promise<string> {
+		if (!this.agentContext || !filePath || diagnostics.length === 0) return ""
+		try {
+			const errorSymbols: Set<string> = new Set()
+			// Extract symbols from error lines (rough heuristic)
+			for (const d of diagnostics.slice(0, 3)) {
+				const symbols = d.message.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
+				symbols.forEach((s) => {
+					if (s.length > 3) errorSymbols.add(s)
+				})
+			}
+
+			if (errorSymbols.size === 0) return ""
+
+			let grounding = "Diagnostic Deep Grounding:\n"
+			for (const symbol of Array.from(errorSymbols).slice(0, 3)) {
+				const searchResults = await this.agentContext.searchKnowledge(`definition of ${symbol}`, ["code"], 1)
+				if (searchResults?.[0]) {
+					grounding += `Symbol '${symbol}':\n${searchResults[0].content}\n`
+				}
+			}
+			return grounding
+		} catch (err) {
+			Logger.warn("[SuggestionService] Failed to gather diagnostic grounding", err)
+			return ""
+		}
+	}
+
 	private calculateContentHash(content: string, filePath: string): string {
 		return crypto.createHash("md5").update(`${filePath}:${content}`).digest("hex")
 	}
@@ -261,8 +291,30 @@ export class SuggestionService {
 						return this.lastSuggestions
 					}
 
-					// Increased window to 200 lines for better context
-					fileSnippet = content.split("\n").slice(0, 200).join("\n")
+					// Semantic Importance Window
+					const lines = content.split("\n")
+					let fileSnippetContent = ""
+
+					if (this.agentContext && lines.length > 100) {
+						// Identify the most semantically important block in the file
+						try {
+							const relPath = await asRelativePath(filePath)
+							const importantBlocks = await this.agentContext.searchKnowledge(
+								`core logic and important functions in ${relPath}`,
+								["code"],
+								1,
+							)
+							if (importantBlocks?.[0]) {
+								fileSnippetContent = `// Semantically Important Block:\n${importantBlocks[0].content}\n\n`
+							}
+						} catch {}
+					}
+
+					// Always include the first 100 lines for structural context if not already covered
+					if (fileSnippetContent.length < 500) {
+						fileSnippetContent += lines.slice(0, 100).join("\n")
+					}
+					fileSnippet = fileSnippetContent
 				} catch (err) {
 					Logger.error(`Failed to read active file for suggestions: ${filePath}`, err)
 				}
@@ -271,14 +323,39 @@ export class SuggestionService {
 			// BroccoliDB Deep Context
 			await this.ensureContext()
 
-			// Parallel Context Gathering
-			const [deepContext, diagnosticsSummary, gitStatusSummary, fileSkeleton, importContext] = await Promise.all([
-				this.getDeepContext(filePath, fileSnippet),
-				this.getDiagnosticsContext(),
-				this.getGitStatusContext(),
-				this.getFileSkeleton(filePath),
-				this.getImportContext(filePath),
-			])
+			// Parallel Context Gathering (Components Latency Tracking)
+			const componentStarts = {
+				deep: Date.now(),
+				diagnostics: Date.now(),
+				git: Date.now(),
+				skeleton: Date.now(),
+				imports: Date.now(),
+				diagGrounding: Date.now(),
+			}
+
+			const rawDiagnostics = await HostProvider.workspace.getDiagnostics({})
+			const activeFileDiagnostics = (rawDiagnostics.fileDiagnostics || [])
+				.flatMap((fd: FileDiagnostics) => fd.diagnostics || [])
+				.filter((d) => d.severity === 0) // Focus on errors for grounding
+
+			const [deepContext, diagnosticsSummary, gitStatusSummary, fileSkeleton, importContext, diagnosticGrounding] =
+				await Promise.all([
+					this.getDeepContext(filePath, fileSnippet),
+					this.getDiagnosticsContext(),
+					this.getGitStatusContext(),
+					this.getFileSkeleton(filePath),
+					this.getImportContext(filePath),
+					this.getDiagnosticGrounding(filePath, activeFileDiagnostics),
+				])
+
+			const componentLatencies = {
+				deep: Date.now() - componentStarts.deep,
+				diagnostics: Date.now() - componentStarts.diagnostics,
+				git: Date.now() - componentStarts.git,
+				skeleton: Date.now() - componentStarts.skeleton,
+				imports: Date.now() - componentStarts.imports,
+				diagGrounding: Date.now() - componentStarts.diagGrounding,
+			}
 
 			const { structuralImpact, semanticContext } = deepContext
 
@@ -302,6 +379,9 @@ ${fileSkeleton || "No structural data available."}
 <import_context>
 ${importContext || "No internal symbols resolved."}
 </import_context>
+<diagnostic_deep_context>
+${diagnosticGrounding || "No detailed grounding required."}
+</diagnostic_deep_context>
 <diagnostics>
 ${diagnosticsSummary || "No problems detected."}
 </diagnostics>
@@ -359,7 +439,15 @@ Output ONLY the suggestions, one per line, no numbering, no tags, and no extra t
 					const suggestions = fullText
 						.split("\n")
 						.map((s) => s.trim())
-						.filter((s) => s.length > 0 && !s.startsWith("-") && !/^\d+\./.test(s))
+						.filter((s) => {
+							const isClean = s.length > 0 && !s.startsWith("-") && !/^\d+\./.test(s)
+							const isDuplicate = this.suggestionHistory.some(
+								(prev) =>
+									prev.toLowerCase() === s.toLowerCase() ||
+									(s.length > 10 && prev.includes(s.substring(0, 10))),
+							)
+							return isClean && !isDuplicate
+						})
 						.slice(0, 3)
 
 					if (suggestions.length === 0) throw new Error("Empty suggestions from AI")
@@ -381,6 +469,9 @@ Output ONLY the suggestions, one per line, no numbering, no tags, and no extra t
 				this.lastSuggestions = suggestions
 				this.lastFetchTime = Date.now()
 
+				// Update History (maintain distinct suggestions)
+				this.suggestionHistory = [...suggestions, ...this.suggestionHistory].slice(0, this.SUGGESTION_HISTORY_SIZE)
+
 				// Update cache
 				if (filePath && contentHash) {
 					this.suggestionCache.set(filePath, {
@@ -394,7 +485,7 @@ Output ONLY the suggestions, one per line, no numbering, no tags, and no extra t
 			const latency = Date.now() - startTime
 			if (ulid) {
 				telemetryService.captureSuggestionGenerated(ulid, suggestions.length)
-				Logger.info(`Generated ${suggestions.length} suggestions in ${latency}ms (ulid: ${ulid})`)
+				Logger.info(`Generated suggestions in ${latency}ms. Component Latencies: ${JSON.stringify(componentLatencies)}`)
 			}
 
 			return this.lastSuggestions
