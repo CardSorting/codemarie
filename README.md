@@ -25,14 +25,18 @@ CodeMarie moves beyond simple context windows via a persistent **Knowledge Graph
 *   **Speculative Pipeline**: Preview multi-hop impact of intent grounded changes (`MEM_BLAST`) before execution.
 
 ### 🕷️ Spider Structural Intelligence Engine
-CodeMarie v3.81.0 introduces the **Spider Engine**, a high-performance structural analysis suite:
-*   **Incremental $O(C)$ Audits**: Replaces expensive full-repo scans with near-instantaneous incremental updates based on commit payloads.
-*   **Weighted Entropy Scoring**: Quantifies architectural health via the **Four Pillar Model** (Depth, Naming, Orphans, and Coupling).
-*   **Structural Sovereignty**: Proactive enforcement of layering and reachability constraints to prevent architectural decay.
-*   **Blast Radius Analysis**: Precisely map the impact of proposed changes across the dependency web before they are committed.
+CodeMarie v3.81.0 introduces the **Spider Engine**, representing a fundamental shift from static code analysis to **Structural Intelligence**:
+*   **The Proposition**: To combat "Architectural Decay," Spider treats the codebase as a living **Dependency Web**. It identifies not just syntax errors, but the growth of **Structural Entropy**—disorder that accumulates as systems evolve.
+*   **Incremental $O(C)$ Audits**: Unlike traditional liners that require a full scan, Spider uses a cas-hash based incremental model. This enables near-instantaneous audits on every commit, sensing "vibrations" and "tears" in the web's tension as they happen.
+*   **The Four Pillar Model**:
+    *   **Cognitive Depth**: Penalizing hierarchy nesting that exceeds human (and LLM) reasoning limits.
+    *   **Semantic Consistency**: Enforcing predictable naming patterns to maintain a high-fidelity mental model.
+    *   **Ecological Integrity**: Identifying and pruning "Dark Matter" (orphaned modules) that create hidden maintenance weight.
+    *   **Modular Sovereignty**: Strictly enforcing layer boundaries to prevent "Circular Fragility."
+*   **Blast Radius Intelligence**: Leverage the dependency graph to predict the multi-hop impact of a change before a single line is written.
 
 > [!TIP]
-> Dive into the philosophical foundations in the [Spider Theory Guide](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER_THEORY.md) or check the [Technical Integration](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER.md).
+> For a deep dive into the philosophy and principles behind the engine, see [Spider Theory: Structural Entropy & Architectural Sovereignty](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER_THEORY.md).
 
 ### 🐝 Multi-Agent System (MAS) & Unified Cognitive Fabric
 CodeMarie v3.78.0 introduces the **Unified Cognitive Fabric** and complete **Production Hardening**, where sub-agents operate as a single, interconnected, and fully verified mind:
