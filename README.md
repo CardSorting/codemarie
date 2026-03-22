@@ -5,7 +5,7 @@
 **CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing distributed agentic workflows, and ensuring transactional stability across your workspace.
 
 > [!IMPORTANT]
-> **State-of-the-Art Production Hardening (v3.78.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and speculative merging leverages authentic LCA graph conflict resolution and dual-branch blast-radius intersection tracking.
+> **State-of-the-Art Production Hardening (v3.81.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and speculative merging leverages authentic LCA graph conflict resolution and dual-branch blast-radius intersection tracking.
 
 ---
 
@@ -23,6 +23,16 @@ CodeMarie moves beyond simple context windows via a persistent **Knowledge Graph
 *   **Semantic Compaction**: Automatically landmarks high-value architectural decisions to survive context prunings.
 *   **Knowledge Graph (KG) Resilience**: Self-healing graph nodes that automatically repair broken semantic links during repo churn.
 *   **Speculative Pipeline**: Preview multi-hop impact of intent grounded changes (`MEM_BLAST`) before execution.
+
+### 🕷️ Spider Structural Intelligence Engine
+CodeMarie v3.81.0 introduces the **Spider Engine**, a high-performance structural analysis suite:
+*   **Incremental $O(C)$ Audits**: Replaces expensive full-repo scans with near-instantaneous incremental updates based on commit payloads.
+*   **Weighted Entropy Scoring**: Quantifies architectural health via the **Four Pillar Model** (Depth, Naming, Orphans, and Coupling).
+*   **Structural Sovereignty**: Proactive enforcement of layering and reachability constraints to prevent architectural decay.
+*   **Blast Radius Analysis**: Precisely map the impact of proposed changes across the dependency web before they are committed.
+
+> [!TIP]
+> Dive into the philosophical foundations in the [Spider Theory Guide](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER_THEORY.md) or check the [Technical Integration](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER.md).
 
 ### 🐝 Multi-Agent System (MAS) & Unified Cognitive Fabric
 CodeMarie v3.78.0 introduces the **Unified Cognitive Fabric** and complete **Production Hardening**, where sub-agents operate as a single, interconnected, and fully verified mind:
@@ -105,7 +115,7 @@ graph TD
 
     subgraph "Fluid Policy & Enforcement"
         Controller --> JZ[Joy-Zoning Guard]:::warning
-        JZ <--> Validator[AST Structural Validator]:::warning
+        JZ <--> Spider[Spider Structural Engine]:::warning
     end
     
     subgraph "Transactional Persistence Layer"

@@ -2,6 +2,9 @@
 
 The **Spider Engine** is a high-performance structural analysis system integrated into BroccoliDB and the Fluid Policy Engine. It uses Abstract Syntax Tree (AST) parsing to build a comprehensive dependency graph of the codebase, enabling proactive architectural enforcement, entropy detection, and automated refactoring.
 
+> [!TIP]
+> For a deep dive into the philosophy and principles behind the engine, see [Spider Theory: Structural Entropy & Architectural Sovereignty](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER_THEORY.md).
+
 ## 🏗️ Architecture
 
 The Spider ecosystem is composed of several specialized services:
