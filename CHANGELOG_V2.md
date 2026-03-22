@@ -1,5 +1,22 @@
 # Changelog (V2)
- 
+
+## [3.82.0] - 2026-03-22
+
+### Added
+- **Oracle Grade Suggestion Engine (Rounds 1-6 Hardening)**:
+  - Developed a high-precision, architecturally-aware suggestion engine with **8-way Parallelized Context Gathering**.
+  - Introduced **Smart Symbol Expansion** (Spider-Powered): Resolving workspace-wide definitions for symbols involved in active diagnostics.
+  - Implemented **Project-Wide Consistency Injection**: Automatically extracting and enforcing architectural patterns and design idioms from the AgentContext.
+  - Added **Semantic Importance Windowing**: Using BroccoliDB to ground suggestions in the most critical code blocks rather than just file headers.
+  - Defined **Oracle Modes** (Fix, Design, Learn) for intent-based diversity in AI-prompted suggestions.
+  - Integrated **Granular Telemetry** for monitoring component-level latency (Diagnostics, Broccoli, Tree-Sitter, Git).
+  - Full model personalization: Honoring user-selected models across all API providers with modern high-performance fallbacks.
+
+### Fixed
+- **Suggestion Latency**: Optimized context pipelines to maintain <2s generation even with deep workspace grounding.
+- **Redundant Suggestions**: Implemented a similarity filter and history buffer to prevent repetitive prompt cycles.
+- **Dependency Guarding**: Infused system prompts with architectural guardrails to prevent circular dependencies in AI-generated plans.
+
 ## [3.81.0] - 2026-03-22
  
 ### Added

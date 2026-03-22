@@ -5,7 +5,7 @@
 **CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing distributed agentic workflows, and ensuring transactional stability across your workspace.
 
 > [!IMPORTANT]
-> **State-of-the-Art Production Hardening (v3.81.0)**: This release converts all mock MAS functionality into fully functional subsystems. The Swarm Consensus Engine now spawns true parallel Sub-Agent streams, and speculative merging leverages authentic LCA graph conflict resolution and dual-branch blast-radius intersection tracking.
+> **Oracle Grade Release (v3.82.0)**: This release introduces the **Oracle Grade Suggestion Engine**, a state-of-the-art diagnostic and architectural oracle. It leverages workspace-wide symbol resolution (Spider-Powered) and project-wide pattern enforcement to provide hyper-grounded suggestions that preserve structural integrity.
 
 ---
 
@@ -34,6 +34,16 @@ CodeMarie v3.81.0 introduces the **Spider Engine**, representing a fundamental s
     *   **Ecological Integrity**: Identifying and pruning "Dark Matter" (orphaned modules) that create hidden maintenance weight.
     *   **Modular Sovereignty**: Strictly enforcing layer boundaries to prevent "Circular Fragility."
 *   **Blast Radius Intelligence**: Leverage the dependency graph to predict the multi-hop impact of a change before a single line is written.
+
+### 🔮 Oracle Grade Suggestion Engine
+CodeMarie v3.82.0 pioneers the **Oracle Grade Suggestion Engine**, transforming prompt suggestions into an architectural and diagnostic compass:
+*   **Spider-Powered Symbol Resolution**: Automatically identifies and resolves the definitions of types causing workspace errors, providing the AI with the exact grounding needed for definitive fixes.
+*   **Project-Wide Consistency**: Using `AgentContext`, the engine extracts and enforces your project's dominant idioms, error handling conventions, and naming styles.
+*   **8-Way Parallelized Grounding**: Simultaneously gathers intelligence from Diagnostics, Git, BroccoliDB, Tree-Sitter, and the SpiderEngine with zero detectable latency regression.
+*   **Intent-Based Suggestions (Oracle Modes)**:
+    *   **Oracle Fix**: Precision resolution of active diagnostics.
+    *   **Oracle Design**: Architectural improvements grounded in project-wide structural impact.
+    *   **Oracle Learn**: Discovery-focused suggestions for explaining complex logic.
 
 > [!TIP]
 > For a deep dive into the philosophy and principles behind the engine, see [Spider Theory: Structural Entropy & Architectural Sovereignty](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER_THEORY.md).
@@ -120,6 +130,11 @@ graph TD
     subgraph "Fluid Policy & Enforcement"
         Controller --> JZ[Joy-Zoning Guard]:::warning
         JZ <--> Spider[Spider Structural Engine]:::warning
+    end
+
+    subgraph "Intelligent Suggestions"
+        Controller --> SugS[Oracle Suggestion Service]:::secondary
+        SugS <--> SugCache[(Lru Suggestion Cache)]:::database
     end
     
     subgraph "Transactional Persistence Layer"
