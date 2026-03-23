@@ -1339,7 +1339,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 						const index = Number.parseInt(event.key) - 1
 						if (promptSuggestions && promptSuggestions[index]) {
 							event.preventDefault()
-							handleSuggestionSelect(promptSuggestions[index])
+							handleSuggestionSelect(promptSuggestions[index].text)
 						}
 					}
 				}
