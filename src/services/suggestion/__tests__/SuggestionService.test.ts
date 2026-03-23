@@ -124,6 +124,7 @@ describe("SuggestionService", () => {
 			"@/services/tree-sitter/index.js": mockTreeSitterIndex,
 			"@/services/telemetry": mockTelemetryService,
 			"@/utils/path": mockPathUtils,
+			"@/utils/string": { calculateSimilarity: sinon.stub().returns(0) },
 			"fs/promises": mockFs,
 		}).SuggestionService
 
@@ -154,9 +155,10 @@ describe("SuggestionService", () => {
 		buildApiHandlerStub.throws(new Error("AI error"))
 
 		const suggestions = await service.getSuggestions()
-		// biome-ignore lint/suspicious/noExplicitAny: Access text on fallback objects
 		assert.ok(
-			suggestions.some((s: any) => s.text.includes("Refactor") || s.text.includes("test") || s.text.includes("Explain")),
+			suggestions.some(
+				(s: { text: string }) => s.text.includes("Refactor") || s.text.includes("test") || s.text.includes("Explain"),
+			),
 		)
 		assert.strictEqual(suggestions.length, 3)
 	})

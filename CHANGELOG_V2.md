@@ -1,5 +1,14 @@
 # Changelog (V2)
 
+## [3.83.0] - 2026-03-23
+
+### Added
+- **Deep Production Hardening (Phase 2)**:
+  - **Tool Parameter Unification**: System-wide unification of file-related tool parameters to consistently use `path`.
+  - **Global Normalization Layer**: Implemented a resilient parameter normalization layer in `ToolExecutorCoordinator` to handle `absolutePath` vs `path` inconsistencies automatically.
+  - **Suggestion Engine Hardening**: Achieved 100% type safety in `SuggestionService` and introduced **Deep Workspace Discovery** using `README.md` and `package.json` for superior contextual grounding.
+  - **Architectural Refinement**: Simplified tool handlers and strengthened type definitions across the core execution and suggestion modules.
+
 ## [3.82.8] - 2026-03-23
 
 ### Added

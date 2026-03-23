@@ -13,6 +13,7 @@ import { CodemarieStorageMessage } from "@/shared/messages/content"
 import type { Diagnostic, FileDiagnostics } from "@/shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
 import { asRelativePath } from "@/utils/path"
+import { calculateSimilarity } from "@/utils/string"
 
 const execAsync = promisify(exec)
 
@@ -379,38 +380,7 @@ export class SuggestionService {
 			const mode = stateManager.getGlobalSettingsKey("mode")
 			const suggestionApiConfig = { ...apiConfig }
 
-			const activeProvider = mode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider
-
-			// User-Selected Model Integration
-			const isModelSet = mode === "plan" ? !!apiConfig.planModeApiModelId : !!apiConfig.actModeApiModelId
-			if (!isModelSet || activeProvider === "openrouter" || activeProvider === "openai") {
-				switch (activeProvider) {
-					case "openrouter":
-						suggestionApiConfig.actModeApiModelId = "google/gemini-2.0-flash-001"
-						suggestionApiConfig.planModeApiModelId = "google/gemini-2.0-flash-001"
-						break
-					case "openai":
-						suggestionApiConfig.actModeApiModelId = "gpt-4o-mini"
-						suggestionApiConfig.planModeApiModelId = "gpt-4o-mini"
-						break
-					case "anthropic":
-						suggestionApiConfig.actModeApiModelId = "claude-3-5-haiku-20241022"
-						suggestionApiConfig.planModeApiModelId = "claude-3-5-haiku-20241022"
-						break
-					case "gemini":
-						suggestionApiConfig.actModeApiModelId = "gemini-1.5-flash"
-						suggestionApiConfig.planModeApiModelId = "gemini-1.5-flash"
-						break
-					case "vertex":
-						suggestionApiConfig.actModeApiModelId = "gemini-1.5-flash"
-						suggestionApiConfig.planModeApiModelId = "gemini-1.5-flash"
-						break
-					case "bedrock":
-						suggestionApiConfig.actModeApiModelId = "anthropic.claude-3-5-haiku-20241022-v1:0"
-						suggestionApiConfig.planModeApiModelId = "anthropic.claude-3-5-haiku-20241022-v1:0"
-						break
-				}
-			}
+			// Use user-provided models for suggestion generation (no hardcoded/retired fallbacks)
 
 			// Ensure thinking is disabled for background suggestions to prevent budget collisions and latency
 			suggestionApiConfig.actModeThinkingBudgetTokens = 0
@@ -496,6 +466,7 @@ export class SuggestionService {
 				.flatMap((fd: FileDiagnostics) => fd.diagnostics || [])
 				.filter((d) => d.severity === 0) // Focus on errors for grounding
 
+			// Run context gathering components in parallel with individual error isolation
 			const [
 				deepContext,
 				diagnosticsSummary,
@@ -506,14 +477,14 @@ export class SuggestionService {
 				projectPatterns,
 				smartSymbolContext,
 			] = await Promise.all([
-				this.getDeepContext(filePath, fileSnippet),
-				this.getDiagnosticsContext(),
-				this.getGitStatusContext(),
-				this.getFileSkeleton(filePath),
-				this.getImportContext(filePath),
-				this.getDiagnosticGrounding(filePath, activeFileDiagnostics),
-				this.getProjectPatterns(),
-				this.getSmartSymbolContext(filePath, activeFileDiagnostics),
+				this.wrapContextCall("DeepContext", this.getDeepContext(filePath, fileSnippet), null),
+				this.wrapContextCall("Diagnostics", this.getDiagnosticsContext(), null),
+				this.wrapContextCall("GitStatus", this.getGitStatusContext(), ""),
+				this.wrapContextCall("FileSkeleton", this.getFileSkeleton(filePath), ""),
+				this.wrapContextCall("ImportContext", this.getImportContext(filePath), ""),
+				this.wrapContextCall("DiagnosticGrounding", this.getDiagnosticGrounding(filePath, activeFileDiagnostics), ""),
+				this.wrapContextCall("ProjectPatterns", this.getProjectPatterns(), ""),
+				this.wrapContextCall("SmartSymbolContext", this.getSmartSymbolContext(filePath, activeFileDiagnostics), ""),
 			])
 
 			const componentLatencies = {
@@ -527,7 +498,7 @@ export class SuggestionService {
 				smartSymbols: Date.now() - componentStarts.smartSymbols,
 			}
 
-			const { structuralImpact, semanticContext } = deepContext
+			const { structuralImpact, semanticContext } = deepContext || { structuralImpact: null, semanticContext: [] }
 
 			// Structured Prompting with XML-style tags
 			const systemPrompt = `You are a strict, hyper-aware AI Oracle embedded in the user's IDE.
@@ -658,7 +629,6 @@ Output ONLY the JSON, no tags, and no extra text.`
 
 					if (!Array.isArray(rawSuggestions)) throw new Error("AI response is not an array")
 
-					const { calculateSimilarity } = require("@/utils/string.ts")
 					const finalSuggestions: PromptSuggestion[] = []
 
 					for (const s of rawSuggestions.slice(0, 3)) {
@@ -743,7 +713,9 @@ Output ONLY the JSON, no tags, and no extra text.`
 			const latency = Date.now() - startTime
 			if (ulid) {
 				telemetryService.captureSuggestionGenerated(ulid, suggestions.length)
-				Logger.info(`Generated suggestions in ${latency}ms. Component Latencies: ${JSON.stringify(componentLatencies)}`)
+				Logger.info(
+					`[SuggestionService] Performance [${ulid}]: total=${latency}ms, ${JSON.stringify(componentLatencies)}`,
+				)
 			}
 
 			return this.lastSuggestions
@@ -875,6 +847,15 @@ Output ONLY the JSON, no tags, and no extra text.`
 			}
 		} catch (err) {
 			Logger.warn("[SuggestionService] Failed to perform proactive warmup", err)
+		}
+	}
+
+	private async wrapContextCall<T>(name: string, promise: Promise<T>, fallback: T): Promise<T> {
+		try {
+			return await promise
+		} catch (err) {
+			Logger.warn(`[SuggestionService] Context component failed: ${name}`, err)
+			return fallback
 		}
 	}
 }
