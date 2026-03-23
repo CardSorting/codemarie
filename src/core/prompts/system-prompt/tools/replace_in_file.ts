@@ -88,12 +88,12 @@ const NATIVE_NEXT_GEN: CodemarieToolSpec = {
 	id,
 	name: "replace_in_file",
 	description:
-		"[IMPORTANT: Always output the absolutePath first] Request to replace sections of content in an existing file using SEARCH/REPLACE blocks that define exact changes to specific parts of the file. This tool should be used when you need to make targeted changes to specific parts of a file.",
+		"[IMPORTANT: Always output the path first] Request to replace sections of content in an existing file using SEARCH/REPLACE blocks that define exact changes to specific parts of the file. This tool should be used when you need to make targeted changes to specific parts of a file.",
 	parameters: [
 		{
-			name: "absolutePath",
+			name: "path",
 			required: true,
-			instruction: "The absolute path to the file to write to.",
+			instruction: `The path of the file to modify (relative to the current working directory {{CWD}})`,
 		},
 		{
 			name: "diff",

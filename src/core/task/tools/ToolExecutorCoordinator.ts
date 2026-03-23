@@ -204,6 +204,26 @@ export class ToolExecutorCoordinator {
 		if (!handler) {
 			throw new Error(`No handler registered for tool: ${block.name}`)
 		}
+
+		// Production Hardening: Global parameter normalization
+		// Ensures tools that expect 'path' can also handle 'absolutePath' from older models/variants
+		this.normalizeToolParameters(block)
+
 		return handler.execute(config, block)
+	}
+
+	/**
+	 * Normalizes tool parameters to ensure consistency across different model variants.
+	 * Currently handles 'path' vs 'absolutePath' unification.
+	 */
+	private normalizeToolParameters(block: ToolUse): void {
+		if (!block.params) {
+			return
+		}
+
+		// Fallback for path naming inconsistencies
+		if (!block.params.path && block.params.absolutePath) {
+			block.params.path = block.params.absolutePath
+		}
 	}
 }

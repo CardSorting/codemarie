@@ -2,6 +2,9 @@ import * as crypto from "node:crypto"
 import { exec } from "child_process"
 import * as fs from "fs/promises"
 import { promisify } from "util"
+import type { AgentContext, KnowledgeBaseItem } from "@/core/broccolidb/agent-context"
+import type { BlastRadius } from "@/core/broccolidb/agent-context/StructuralDiscoveryService"
+import type { Workspace } from "@/core/broccolidb/workspace"
 import { StateManager } from "@/core/storage/StateManager"
 import { HostProvider } from "@/hosts/host-provider"
 import { telemetryService } from "@/services/telemetry"
@@ -26,8 +29,8 @@ export class SuggestionService {
 	private readonly DEBOUNCE_INTERVAL = 10000 // 10 seconds
 	private readonly SUGGESTION_HISTORY_SIZE = 6
 	private suggestionHistory: PromptSuggestion[] = []
-	private agentContext?: any // AgentContext
-	private workspace?: any // Workspace
+	private agentContext?: AgentContext
+	private workspace?: Workspace
 	private activeRequestId = 0
 	private static readonly MAX_PARSER_CACHE_SIZE = 20
 	private static parserCache = new Map<string, { parser: any; lastUsed: number }>() // LRU-managed parsers
@@ -98,7 +101,7 @@ export class SuggestionService {
 
 		try {
 			const stateManager = StateManager.get()
-			const machineId = ((stateManager as any).getGlobalStateKey("codemarie.generatedMachineId") as string) || "anonymous"
+			const machineId = (stateManager.getGlobalStateKey("codemarie.generatedMachineId") as string) || "anonymous"
 			const paths = await HostProvider.workspace.getWorkspacePaths({})
 			const cwd = paths.paths?.[0] || process.cwd()
 			const workspaceId = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 12)
@@ -120,7 +123,7 @@ export class SuggestionService {
 	private async getDeepContext(
 		filePath: string | undefined,
 		fileSnippet: string,
-	): Promise<{ structuralImpact: any; semanticContext: string[] }> {
+	): Promise<{ structuralImpact: { summary: string; blastRadius: BlastRadius } | null; semanticContext: string[] }> {
 		if (!this.agentContext || !filePath) {
 			return { structuralImpact: null, semanticContext: [] }
 		}
@@ -134,7 +137,7 @@ export class SuggestionService {
 				["code"],
 				2,
 			)
-			const semanticContext = searchResults.map((res: any) => res.content)
+			const semanticContext = searchResults.map((res: KnowledgeBaseItem) => res.content)
 			return { structuralImpact, semanticContext }
 		} catch (err) {
 			Logger.warn("[SuggestionService] Failed to gather deep context", err)
@@ -259,7 +262,7 @@ export class SuggestionService {
 				2,
 			)
 			if (patterns && patterns.length > 0) {
-				return patterns.map((p: any) => p.content).join("\n---\n")
+				return patterns.map((p: KnowledgeBaseItem) => p.content).join("\n---\n")
 			}
 		} catch (err) {
 			Logger.warn("[SuggestionService] Failed to gather project patterns", err)
@@ -309,8 +312,8 @@ export class SuggestionService {
 
 				// Search for symbol definition project-wide
 				const searchResults = await this.agentContext.searchKnowledge(`definition of ${symbol}`, ["code"], 1)
-				if (searchResults?.[0] && searchResults[0].filePath) {
-					resolvedPaths.push(require("path").resolve(engine.cwd, searchResults[0].filePath))
+				if (searchResults?.[0] && searchResults[0].metadata?.filePath) {
+					resolvedPaths.push(require("path").resolve(engine.cwd, searchResults[0].metadata.filePath as string))
 				}
 			}
 
@@ -671,8 +674,9 @@ Output ONLY the JSON, no tags, and no extra text.`
 							// If importance is high, bias the impact score up
 							let impact = 0.1
 							if (structuralImpact) {
-								if (structuralImpact.importance === "HIGH") impact = 0.8
-								else if (structuralImpact.importance === "MEDIUM") impact = 0.5
+								const score = structuralImpact.blastRadius.centralityScore
+								if (score > 0.2) impact = 0.8
+								else if (score > 0) impact = 0.5
 
 								// Scale by blast radius if available
 								if (structuralImpact.blastRadius?.affectedNodes) {
@@ -758,13 +762,57 @@ Output ONLY the JSON, no tags, and no extra text.`
 		const suggestions: PromptSuggestion[] = []
 		if (filePath) {
 			const relPath = await asRelativePath(filePath)
-			suggestions.push({ text: `Refactor ${relPath}`, type: "design", impact: 0.3 })
+			suggestions.push({ text: `Explain ${require("path").basename(relPath)} to me`, type: "learn", impact: 0.1 })
 			suggestions.push({ text: `Add unit tests for ${relPath}`, type: "design", impact: 0.2 })
-			suggestions.push({ text: `Explain ${relPath} to me`, type: "learn", impact: 0.1 })
+			suggestions.push({ text: `Refactor ${relPath} for better readability`, type: "design", impact: 0.3 })
 		} else {
-			suggestions.push({ text: "Help me find where the core logic is", type: "learn", impact: 0.1 })
-			suggestions.push({ text: "Explain the project structure", type: "learn", impact: 0.1 })
-			suggestions.push({ text: "What's the best way to get started?", type: "learn", impact: 0.1 })
+			// Deep Workspace Discovery
+			let workspaceName = "this project"
+			let projectContext = ""
+			try {
+				const paths = await HostProvider.workspace.getWorkspacePaths({})
+				if (paths.paths?.[0]) {
+					const rootDir = paths.paths[0]
+					const pathNode = require("path")
+					workspaceName = pathNode.basename(rootDir)
+
+					// Production Hardening: Try to find README for better context
+					const fsNode = require("fs")
+					const files = fsNode.readdirSync(rootDir)
+
+					const readme = files.find((f: string) => f.toLowerCase().startsWith("readme.md"))
+					if (readme) {
+						projectContext = " based on the README"
+						suggestions.push({
+							text: `Summarize ${workspaceName} for me${projectContext}`,
+							type: "learn",
+							impact: 0.15,
+						})
+					}
+
+					// Try to find main package/entry point
+					const packageJson = files.find((f: string) => f === "package.json")
+					if (packageJson) {
+						suggestions.push({
+							text: `What are the main scripts and dependencies in ${workspaceName}?`,
+							type: "learn",
+							impact: 0.1,
+						})
+					}
+				}
+			} catch {}
+
+			suggestions.push({ text: `Explain the ${workspaceName} project structure`, type: "learn", impact: 0.1 })
+			suggestions.push({
+				text: `Help me find where the core logic is in ${workspaceName}`,
+				type: "learn",
+				impact: 0.1,
+			})
+			suggestions.push({
+				text: `What's the best way to get started with ${workspaceName}?`,
+				type: "learn",
+				impact: 0.1,
+			})
 		}
 		this.lastSuggestions = suggestions.slice(0, 3)
 		return this.lastSuggestions

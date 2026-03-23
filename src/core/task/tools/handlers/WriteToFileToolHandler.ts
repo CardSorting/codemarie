@@ -28,11 +28,11 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 	constructor(private validator: ToolValidator) {}
 
 	getDescription(block: ToolUse): string {
-		return `[${block.name} for '${block.params.path || block.params.absolutePath}']`
+		return `[${block.name} for '${block.params.path}']`
 	}
 
 	async handlePartialBlock(block: ToolUse, uiHelpers: StronglyTypedUIHelpers): Promise<void> {
-		const rawRelPath = block.params.path || block.params.absolutePath
+		const rawRelPath = block.params.path
 		const rawContent = block.params.content // for write_to_file
 		const rawDiff = block.params.diff // for replace_in_file
 
@@ -56,10 +56,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 			// Create and show partial UI message
 			const sharedMessageProps: CodemarieSayTool = {
 				tool: fileExists ? "editedExistingFile" : "newFileCreated",
-				path: getReadablePath(
-					config.cwd,
-					uiHelpers.removeClosingTag(block, block.params.path ? "path" : "absolutePath", relPath),
-				),
+				path: getReadablePath(config.cwd, uiHelpers.removeClosingTag(block, "path", relPath)),
 				content: diff || content,
 				operationIsLocatedInWorkspace: await isLocatedInWorkspace(relPath),
 				startLineNumbers: matchIndices?.map((idx) =>
@@ -93,7 +90,7 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 	}
 
 	async execute(config: TaskConfig, block: ToolUse): Promise<ToolResponse> {
-		const rawRelPath = block.params.path || block.params.absolutePath
+		const rawRelPath = block.params.path
 		const rawContent = block.params.content // for write_to_file
 		const rawDiff = block.params.diff // for replace_in_file
 
@@ -104,10 +101,9 @@ export class WriteToFileToolHandler implements IFullyManagedTool {
 		if (!rawRelPath) {
 			config.taskState.consecutiveMistakeCount++
 			await config.services.diffViewProvider.reset()
-			return await config.callbacks.sayAndCreateMissingParamError(
-				block.name,
-				block.params.absolutePath ? "absolutePath" : "path",
-			)
+			// Use the specific parameter name that was likely expected by the model
+			const expectedParam = block.isNativeToolCall ? "path" : "path" // We've unified them to 'path' now
+			return await config.callbacks.sayAndCreateMissingParamError(block.name, expectedParam)
 		}
 
 		if (block.name === "replace_in_file" && !rawDiff) {

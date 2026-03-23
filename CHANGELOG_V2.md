@@ -1,5 +1,10 @@
 # Changelog (V2)
 
+## [3.82.8] - 2026-03-23
+
+### Added
+- **Oracle Deployment Ready**: Production-grade VSIX build including full Oracle Suggestion Mode enhancements and webview stability fixes.
+
 ## [3.82.7] - 2026-03-22
 
 ### Added
