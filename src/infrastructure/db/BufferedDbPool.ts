@@ -217,14 +217,75 @@ export class BufferedDbPool {
 			const db = await this.ensureDb()
 
 			await db.transaction().execute(async (trx: any) => {
-				for (const op of opsToFlush) {
+				for (let i = 0; i < opsToFlush.length; i++) {
+					const op = opsToFlush[i]
 					const conditions = normalizeWhere(op.where)
+
+					// Group consecutive same-table inserts for bulk performance
 					if (op.type === "insert" && op.values) {
+						const batch = [op.values]
+						while (
+							i + 1 < opsToFlush.length &&
+							opsToFlush[i + 1].type === "insert" &&
+							opsToFlush[i + 1].table === op.table
+						) {
+							batch.push(opsToFlush[++i].values!)
+						}
 						await trx
 							.insertInto(op.table as any)
-							.values(op.values as any)
+							.values(batch as any)
 							.execute()
-					} else if (op.type === "upsert" && op.values) {
+						continue
+					}
+
+					// Group consecutive same-table upserts
+					if (op.type === "upsert" && op.values) {
+						const batch = [op.values]
+						const conflictTarget = conditions.length > 0 ? conditions.map((c) => c.column) : ["id"]
+
+						while (
+							i + 1 < opsToFlush.length &&
+							opsToFlush[i + 1].type === "upsert" &&
+							opsToFlush[i + 1].table === op.table
+						) {
+							// Check if conflict target matches (simple check)
+							const nextConds = normalizeWhere(opsToFlush[i + 1].where)
+							const nextTarget = nextConds.length > 0 ? nextConds.map((c) => c.column) : ["id"]
+							if (JSON.stringify(nextTarget) !== JSON.stringify(conflictTarget)) break
+
+							batch.push(opsToFlush[++i].values!)
+						}
+
+						// Note: Increments in bulk upserts are complex, fall back to individual if detected
+						const hasIncrements = batch.some((v) =>
+							Object.values(v).some((val) => val && typeof val === "object" && (val as any)._type === "increment"),
+						)
+
+						if (!hasIncrements) {
+							await trx
+								.insertInto(op.table as any)
+								.values(batch as any)
+								.onConflict((oc: any) =>
+									oc.columns(conflictTarget).doUpdateSet((eb: any) => {
+										const updateSet: any = {}
+										// In a bulk upsert, we use excluded values for the update
+										if (batch.length > 0) {
+											for (const key of Object.keys(batch[0])) {
+												if (!conflictTarget.includes(key)) {
+													updateSet[key] = eb.ref(`excluded.${key}`)
+												}
+											}
+										}
+										return updateSet
+									}),
+								)
+								.execute()
+							continue
+						}
+						// Fall back to individual processing for complex increment-based upserts
+					}
+
+					if (op.type === "upsert" && op.values) {
 						const valuesWithNoIncrements: any = {}
 						const increments: Record<string, number> = {}
 						for (const [k, v] of Object.entries(op.values)) {
@@ -253,9 +314,6 @@ export class BufferedDbPool {
 						const sets: any = {}
 						for (const [k, v] of Object.entries(op.values)) {
 							if (v && typeof v === "object" && (v as any)._type === "increment") {
-								// Use raw SQL for increment
-								const db2 = trx as any // Access internal kysely for raw if needed, or but Kysely has sql template
-								const { sql } = db2
 								sets[k] = sql`${sql.ref(k)} + ${v.value}`
 							} else {
 								sets[k] = v

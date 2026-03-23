@@ -1,5 +1,23 @@
 # Changelog (V2)
 
+## [3.84.0] - 2026-03-23
+
+### Added
+- **Round 4: Cognitive & Repository Scalability**:
+  - **Bulk Ingestion Accelerator**: Implemented `addKnowledgeBatch` in `GraphService` for parallelized embedding and atomic updates.
+  - **Recursive Merkle-Diff Engine**: Added a high-performance O(D * logN) tree comparison system in `Repository.ts`.
+  - **Persistent Change-Sets**: Automated pre-calculation and storage of changed file lists in `nodes.changes` for O(1) history analysis.
+  - **Batched Reasoning Chains**: Eliminated N+1 query patterns in `ReasoningService` (Contradiction Detection, Pedigree Tracing, Sovereignty Verification) using `getKnowledgeBatch`.
+  - **Final Pass Hardening**:
+    - **BufferedDbPool Grouping**: Implemented operational batching to group consecutive same-table inserts and upserts into single bulk SQL queries, drastically reducing transaction overhead.
+    - **Spider Memory Management**: Implemented aggressive `ts-morph` AST purging to prevent memory leaks in large workspaces.
+    - **Reachability Bypass**: Optimized `SpiderEngine` BFS to only recompute reachability when imports actually change.
+
+### Optimized
+- **Zero-Overhead Context Discovery**: Refactored `getContextGraph` and `blame` to use persistent change-set metadata, replacing O(N^2) tree scans.
+- **MCP Performance**: Drastically improved `broccolidb_visualize_pedigree` tool execution via batch node hydration and Mermaid generation optimizations.
+- **BroccoliDB Schema Evolution**: Migrated the `nodes` table to support versioned change-sets for long-term scalability and auditability.
+
 ## [3.83.0] - 2026-03-23
 
 ### Added

@@ -91,18 +91,26 @@ export class SpiderEngine {
 				}
 			}
 		})
+		const oldNode = this.nodes.get(normalizedPath)
+		const importsList = Array.from(imports)
+		const importsChanged = !oldNode || JSON.stringify(oldNode.imports) !== JSON.stringify(importsList)
 
 		this.nodes.set(normalizedPath, {
 			id: normalizedPath,
 			path: normalizedPath,
 			layer,
-			imports: Array.from(imports),
+			imports: importsList,
 			depth: normalizedPath.split("/").length - 1,
 			orphaned: false,
 		})
 
-		this.resolutionCache.clear()
-		this.computeReachability()
+		// MEMORY HARDENING: Discard AST after extraction to prevent memory leaks in large projects
+		this.project.removeSourceFile(sourceFile)
+
+		if (importsChanged) {
+			this.resolutionCache.clear()
+			this.computeReachability()
+		}
 	}
 
 	/**
@@ -175,6 +183,9 @@ export class SpiderEngine {
 				depth: normalizedPath.split("/").length - 1,
 				orphaned: false,
 			})
+
+			// MEMORY HARDENING: Discard AST after extraction
+			this.project.removeSourceFile(sourceFile)
 		}
 
 		this.resolutionCache.clear()
