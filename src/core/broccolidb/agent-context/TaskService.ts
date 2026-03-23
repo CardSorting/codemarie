@@ -50,7 +50,7 @@ export class TaskService {
 			agentId: agent.id,
 			permissions: JSON.parse(agent.permissions || "[]"),
 			memoryLayer: JSON.parse(agent.memoryLayer || "[]"),
-		} as any
+		} as AgentProfile
 	}
 
 	async appendMemoryLayer(agentId: string, memory: string): Promise<void> {
@@ -119,7 +119,7 @@ export class TaskService {
 			taskId: row.id,
 			linkedKnowledgeIds: JSON.parse(row.linkedKnowledgeIds || "[]"),
 			result: row.result ? JSON.parse(row.result) : undefined,
-		} as any
+		} as TaskItem
 	}
 
 	async getTaskContext(taskId: string): Promise<TaskContext> {

@@ -1,5 +1,6 @@
 import * as crypto from "node:crypto"
 import { BufferedDbPool, type WriteOp } from "@/infrastructure/db/BufferedDbPool.js"
+import { Logger } from "../../shared/services/Logger.js"
 import { SpiderViolation } from "../policy/SpiderEngine.js"
 import { AuditService } from "./agent-context/AuditService.js"
 import { GraphService } from "./agent-context/GraphService.js"
@@ -25,6 +26,7 @@ import type {
 import { AiService } from "./embedding.js"
 import { AgentGitError } from "./errors.js"
 import { LRUCache } from "./lru-cache.js"
+import { cosineSimilarity } from "./math-utils.js"
 import { Workspace } from "./workspace.js"
 
 export type {
@@ -42,7 +44,7 @@ export type {
 }
 
 // Math utilities moved to math-utils.ts
-// cosineSimilarity function is now a private method of AgentContext
+// cosineSimilarity function is now imported from math-utils.ts
 
 /**
  * AgentContext provides a unified entry point for agent-related operations.
@@ -113,6 +115,21 @@ export class AgentContext {
 	}
 
 	/**
+	 * Natively verifies a set of knowledge IDs.
+	 * Used for re-ranking search results by "Trust".
+	 */
+	public async verifyKnowledgeBatch(
+		itemIds: string[],
+	): Promise<Map<string, { isValid: boolean; recursiveConfidence: number; peakConfidence: number }>> {
+		const results = new Map<string, { isValid: boolean; recursiveConfidence: number; peakConfidence: number }>()
+		for (const id of itemIds) {
+			const { isValid, recursiveConfidence, peakConfidence } = await this.reasoningService.verifySovereignty(id)
+			results.set(id, { isValid, recursiveConfidence, peakConfidence })
+		}
+		return results
+	}
+
+	/**
 	 * Fetches the most recent structural metadata from the repository nodes.
 	 */
 	public async getLatestStructuralMetadata(): Promise<{
@@ -128,7 +145,11 @@ export class AgentContext {
 			})
 
 		if (results.length === 0 || !results[0].metadata) return null
-		const meta = JSON.parse(results[0].metadata)
+		const meta = JSON.parse(results[0].metadata) as {
+			spider_entropy?: number
+			spider_violations?: SpiderViolation[]
+			spider_graph_kb?: string
+		}
 		return {
 			entropy: meta.spider_entropy || 0,
 			violations: meta.spider_violations || [],
@@ -154,9 +175,12 @@ export class AgentContext {
 	 * "Typical Fix 1: Memory batching"
 	 */
 	private async _push(op: WriteOp, agentId?: string) {
-		// biome-ignore lint/suspicious/noExplicitAny: complex union in BufferedDbPool
-		const where = op.where as any
-		this.localBuffer.push({ ...op, agentId: agentId || op.values?.agentId || where?.[0]?.value })
+		const where = op.where
+		const firstWhereVal = Array.isArray(where) ? where[0]?.value : where?.value
+		this.localBuffer.push({
+			...op,
+			agentId: agentId || op.values?.agentId || (typeof firstWhereVal === "string" ? firstWhereVal : undefined),
+		})
 		if (this.localBuffer.length >= this.autoFlushLimit) {
 			await this.flush()
 		}
@@ -449,7 +473,7 @@ export class AgentContext {
 		tags?: string[],
 		limit = 20,
 		queryEmbedding?: number[],
-		options: { augmentWithGraph?: boolean } = {},
+		options: { augmentWithGraph?: boolean; skipVerification?: boolean } = {},
 	): Promise<KnowledgeBaseItem[]> {
 		// Search is complex and could live in GraphService or a specialized SearchService
 		// For now, I'll keep it here as it touches multiple concerns (graph, embeddings, etc.)
@@ -462,7 +486,7 @@ export class AgentContext {
 		tags?: string[],
 		limit = 20,
 		queryEmbedding?: number[],
-		options: { augmentWithGraph?: boolean } = {},
+		options: { augmentWithGraph?: boolean; skipVerification?: boolean } = {},
 	): Promise<KnowledgeBaseItem[]> {
 		const conditions: any[] = [
 			{ column: "userId", value: this.userId },
@@ -509,23 +533,99 @@ export class AgentContext {
 		// If vector search is available, rank by cosine similarity
 		if (queryEmbedding && queryEmbedding.length > 0) {
 			const qEmb = queryEmbedding
-			const scored = candidates
-				.filter((c) => c.embedding && c.embedding.length > 0)
+			const scoredCandidates = candidates
+				.filter((c) => !!c.embedding && c.embedding.length > 0)
 				.map((c) => ({
 					item: c,
-					similarity: this.cosineSimilarity(qEmb, c.embedding as number[]),
+					similarity: this.calculateSimilarity(qEmb, c.embedding as number[]),
 				}))
 				.sort((a, b) => b.similarity - a.similarity)
 
 			// Include items without embeddings at the end (substring fallback)
 			const withoutEmbeddings = candidates.filter((c) => !c.embedding || c.embedding.length === 0)
 
+			// [Pass 4 Hardening] Verification-Aware Ranking (Vector Path)
+			const candidateIds = scoredCandidates.map((s) => s.item.itemId).slice(0, 50)
+			const verificationMap = options.skipVerification ? new Map() : await this.verifyKnowledgeBatch(candidateIds)
+
+			const vectorResults = scoredCandidates
+				.map((s) => {
+					let score = s.similarity * 10.0 // Normalize vector similarity
+					const verification = verificationMap.get(s.item.itemId)
+					const isVerifiableType = s.item.type === "conclusion" || s.item.type === "hypothesis"
+
+					if (!options.skipVerification && isVerifiableType && verification) {
+						if (verification.isValid === true) {
+							// [Pass 5] Epistemic Hardening: Boost by recursive evidence strength
+							score += 500.0 * verification.recursiveConfidence
+						} else if (verification.isValid === false) {
+							score -= 1000.0
+						}
+					}
+
+					// Symmetric Conflict Adjudication (Vector Path)
+					const contradictions = [...(s.item.edges || []), ...(s.item.inboundEdges || [])].filter(
+						(e) => e.type === "contradicts",
+					)
+
+					for (const edge of contradictions) {
+						const otherId = edge.targetId === s.item.itemId ? (edge as any).sourceId : edge.targetId
+						const other = verificationMap.get(otherId)
+						if (other && other.isValid && other.recursiveConfidence >= (verification?.recursiveConfidence || 0)) {
+							score -= 1000.0
+						}
+					}
+
+					return { item: s.item, searchScore: score }
+				})
+				.sort((a, b) => (b.searchScore ?? 0) - (a.searchScore ?? 0))
+
+			// [Pass 5] Implicit Conflict Detection (Vector Path)
+			const vCollisionCandidates = vectorResults.slice(0, 10)
+			for (let i = 0; i < vCollisionCandidates.length; i++) {
+				const a = vCollisionCandidates[i]
+				if (a.item.type !== "conclusion" && a.item.type !== "hypothesis") continue
+				const aKeywords = new Set(
+					a.item.content
+						.toLowerCase()
+						.split(/\s+/)
+						.filter((k: string) => k.length > 4),
+				)
+				if (aKeywords.size < 2) continue
+
+				for (let j = 0; j < vCollisionCandidates.length; j++) {
+					if (i === j) continue
+					const b = vCollisionCandidates[j]
+					const bWords = b.item.content
+						.toLowerCase()
+						.split(/\s+/)
+						.filter((k: string) => k.length > 4)
+					let overlap = 0
+					for (const k of bWords) {
+						if (aKeywords.has(k)) overlap++
+					}
+					if (overlap / Math.max(aKeywords.size, bWords.length) > 0.4 && a.item.content !== b.item.content) {
+						const vA = verificationMap.get(a.item.itemId)
+						const vB = verificationMap.get(b.item.itemId)
+						const confA = vA?.recursiveConfidence || a.item.confidence || 0
+						const confB = vB?.recursiveConfidence || b.item.confidence || 0
+						if (confB > confA) a.searchScore -= 800.0
+					}
+				}
+			}
+
+			const finalVectorResults = vectorResults
+				.sort((a, b) => b.searchScore - a.searchScore)
+				.map((v) => ({ ...v.item, searchScore: v.searchScore }))
+
 			if (query?.trim()) {
 				const qLower = query.toLowerCase()
-				const filtered = withoutEmbeddings.filter((c) => c.content.toLowerCase().includes(qLower))
-				results = [...scored.map((s) => s.item), ...filtered]
+				const filtered = withoutEmbeddings
+					.filter((c) => c.content.toLowerCase().includes(qLower))
+					.map((c) => ({ ...c, searchScore: 5.0 }))
+				results = [...finalVectorResults, ...filtered]
 			} else {
-				results = [...scored.map((s) => s.item), ...withoutEmbeddings]
+				results = [...finalVectorResults, ...withoutEmbeddings]
 			}
 		} else {
 			// Fallback: keyword-based relevance ranking (BM25-lite)
@@ -533,32 +633,137 @@ export class AgentContext {
 				const qLower = query.toLowerCase()
 				const keywords = qLower.split(/\s+/).filter((k) => k.length > 2)
 
-				const scored = candidates.map((c) => {
+				// [Pass 3 Hardening] Search Scalability: SQLite FTS5 integration
+				// This replaces O(N) memory filtering with O(log N) native FTS search.
+				const ftsResults = await this.db.executeQuery(
+					`SELECT id FROM knowledge_fts WHERE knowledge_fts MATCH ? ORDER BY rank LIMIT ?`,
+					[keywords.join(" OR "), limit * 4],
+				)
+
+				const ftsIds = ftsResults.map((r: any) => r.id as string)
+				Logger.info(`DEBUG [Search] keywords=[${keywords.join(",")}] ftsIdsCount=${ftsIds.length}`)
+
+				const ftsRows = await this.db.selectWhere("knowledge", [{ column: "id", value: ftsIds }])
+				Logger.info(`DEBUG [Search] ftsRowsCount=${ftsRows.length}`)
+
+				const ftsCandidates = ftsRows.map((row: any) => ({
+					itemId: row.id as string,
+					content: row.content as string,
+					type: row.type as any,
+					tags: JSON.parse((row.tags as string) || "[]"),
+					metadata: JSON.parse((row.metadata as string) || "{}"),
+					confidence: (row.confidence as number) || 1.0,
+					hubScore: (row.hubScore as number) || 0,
+					edges: JSON.parse((row.edges as string) || "[]"),
+					inboundEdges: JSON.parse((row.inboundEdges as string) || "[]"),
+				}))
+
+				// [Pass 4 Hardening] Verification-Aware Ranking
+				// Top candidates undergo sovereignty verification to derive a "Trust Boost"
+				const searchCandidates = ftsCandidates.slice(0, 50)
+				const verificationMap = options.skipVerification
+					? new Map()
+					: await this.verifyKnowledgeBatch(searchCandidates.map((c) => c.itemId))
+
+				// Merged BM25-lite + Trust logic for final ranking
+				const k1 = 1.2
+				const b = 0.75
+				const avgdl =
+					ftsCandidates.reduce((sum: number, c: any) => sum + c.content.length, 0) / (ftsCandidates.length || 1)
+
+				const scored = ftsCandidates.map((c: any) => {
 					const contentLower = c.content.toLowerCase()
 					let score = 0
-
-					// Exact phrase match (high weight)
-					if (contentLower.includes(qLower)) score += 10
-
-					// Keyword matches
-					keywords.forEach((kw) => {
+					if (contentLower.includes(qLower)) score += 5.0
+					keywords.forEach((kw: string) => {
 						const regex = new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi")
 						const matches = contentLower.match(regex)
-						if (matches) {
-							score += matches.length * 2 // matches frequency
+						const tf = matches ? matches.length : 0
+						if (tf > 0) {
+							const idf = Math.log((ftsCandidates.length - 0.5) / 0.5)
+							const tfScore = (tf * (k1 + 1)) / (tf + k1 * (1 - b + (b * c.content.length) / avgdl))
+							score += idf * tfScore
 						}
 					})
-
-					// Hub score bias (tie-breaker for importance)
 					score += (c.hubScore || 0) * 0.1
 
-					return { item: c, score }
-				})
+					// Apply the "Intelligence Delta": Proof Verification Boost
+					const verification = verificationMap.get(c.itemId)
+					const isVerifiableType = c.type === "conclusion" || c.type === "hypothesis"
 
-				results = scored
-					.filter((s) => s.score > 0)
-					.sort((a, b) => b.score - a.score)
-					.map((s) => s.item)
+					if (!options.skipVerification && isVerifiableType && verification) {
+						if (verification.isValid === true) {
+							score += 500.0 * verification.recursiveConfidence
+						} else if (verification.isValid === false) {
+							score -= 1000.0
+						}
+					}
+
+					// Symmetric Conflict Adjudication (Keyword Path)
+					const contradictions = [...(c.edges || []), ...(c.inboundEdges || [])].filter(
+						(e: any) => e.type === "contradicts",
+					)
+
+					for (const edge of contradictions) {
+						const otherId = edge.targetId === c.itemId ? (edge as any).sourceId : edge.targetId
+						const other = verificationMap.get(otherId)
+						if (other && other.isValid && other.recursiveConfidence >= (verification?.recursiveConfidence || 0)) {
+							score -= 1000.0
+						}
+					}
+
+					return { item: c, searchScore: score }
+				})
+				const scoredResults = scored
+					.filter((s: any) => s.searchScore > -50.0)
+					.sort((a: any, b: any) => b.searchScore - a.searchScore)
+
+				// Implicit Conflict Detection (Semantic Collision)
+				const collisionCandidates = scoredResults.slice(0, 10)
+				for (let i = 0; i < collisionCandidates.length; i++) {
+					const a = collisionCandidates[i]
+					if (a.item.type !== "conclusion" && a.item.type !== "hypothesis") continue
+
+					const aWords = a.item.content
+						.toLowerCase()
+						.split(/\s+/)
+						.filter((k: string) => k.length > 4)
+					const aKeywords = new Set(aWords)
+					if (aKeywords.size < 2) continue
+
+					for (let j = 0; j < collisionCandidates.length; j++) {
+						if (i === j) continue
+						const b = collisionCandidates[j]
+						const bWords = b.item.content
+							.toLowerCase()
+							.split(/\s+/)
+							.filter((k: string) => k.length > 4)
+
+						// Check overlap
+						let overlap = 0
+						for (const k of bWords) {
+							if (aKeywords.has(k)) overlap++
+						}
+
+						const overlapRatio = overlap / Math.max(aKeywords.size, bWords.length)
+						if (overlapRatio > 0.4 && a.item.content !== b.item.content) {
+							// Semantic Collision!
+							const vA = verificationMap.get(a.item.itemId)
+							const vB = verificationMap.get(b.item.itemId)
+
+							const confA = vA?.recursiveConfidence || a.item.confidence || 0
+							const confB = vB?.recursiveConfidence || b.item.confidence || 0
+
+							if (confB > confA) {
+								a.searchScore -= 800.0
+							}
+						}
+					}
+				}
+
+				results = scoredResults
+					.sort((a: any, b: any) => b.searchScore - a.searchScore)
+					.map((s: any) => ({ ...s.item, searchScore: s.searchScore }) as KnowledgeBaseItem)
 			} else {
 				results = candidates
 			}
@@ -605,20 +810,8 @@ export class AgentContext {
 		return finalResults.slice(0, limit + 20) // Return results + neighbors
 	}
 
-	private cosineSimilarity(a: number[], b: number[]): number {
-		let dot = 0,
-			mA = 0,
-			mB = 0
-		for (let i = 0; i < a.length; i++) {
-			const valA = a[i]
-			const valB = b[i]
-			if (valA !== undefined && valB !== undefined) {
-				dot += valA * valB
-				mA += valA * valA
-				mB += valB * valB
-			}
-		}
-		return dot / (Math.sqrt(mA) * Math.sqrt(mB))
+	private calculateSimilarity(a: number[], b: number[]): number {
+		return cosineSimilarity(a, b)
 	}
 
 	/**

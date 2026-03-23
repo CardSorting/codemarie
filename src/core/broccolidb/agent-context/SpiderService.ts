@@ -99,48 +99,66 @@ export class SpiderService {
 				return
 			}
 
-			// If we have a last commit, we can do an incremental update
-			if (lastCommit && currentHead) {
+			if (lastCommit && currentHead && lastCommit !== currentHead) {
 				Logger.info(
 					`[SpiderService] Performing incremental update from ${lastCommit.substring(0, 7)} to ${currentHead.substring(0, 7)}`,
 				)
-				// In a real scenario, we'd use git diff here, but for now we'll do a full re-read if incremental fails
-				// or just do a smarter full read.
-			}
 
-			// 3. Fallback to (optimized) full read if cache is missing or invalid
-			const files = await repo.files().listFiles(branchName)
-			const tsFiles = files.filter((f) => f.path.endsWith(".ts") || f.path.endsWith(".tsx"))
+				// 3. Get Merkle Diff relative to the persistent structural state
+				const diffPaths = await repo.getMerkleDiff(lastCommit, currentHead)
+				const tsChanges = diffPaths.filter((p) => p.endsWith(".ts") || p.endsWith(".tsx"))
 
-			// Parallel read with concurrency limit (e.g. 10 files at a time)
-			const auditFiles: { filePath: string; content: string }[] = []
-			const batchSize = 10
-			for (let i = 0; i < tsFiles.length; i += batchSize) {
-				const batch = tsFiles.slice(i, i + batchSize)
-				const results = await Promise.all(
-					batch.map(async (f) => {
+				if (tsChanges.length > 0) {
+					const auditFiles: { filePath: string; content: string }[] = []
+					for (const filePath of tsChanges) {
 						try {
-							const content = await repo.files().readFile(branchName, f.path, { skipIgnore: true })
-							return { filePath: f.path, content: content.content }
+							const content = await repo.files().readFile(branchName, filePath, { skipIgnore: true })
+							auditFiles.push({ filePath, content: content.content })
 						} catch {
-							return null
+							// File deleted in currentHead
+							this.engine.removeNode(filePath)
 						}
-					}),
-				)
-				auditFiles.push(...(results.filter(Boolean) as { filePath: string; content: string }[]))
+					}
+					if (auditFiles.length > 0) {
+						this.engine.buildGraph(auditFiles)
+					}
+				}
+				this.bootstrapped = true
+			} else {
+				// 4. Fallback to (optimized) full read if cache is missing or invalid
+				const files = await repo.files().listFiles(branchName)
+				const tsFiles = files.filter((f) => f.path.endsWith(".ts") || f.path.endsWith(".tsx"))
+
+				// Parallel read with concurrency limit (e.g. 10 files at a time)
+				const auditFiles: { filePath: string; content: string }[] = []
+				const batchSize = 10
+				for (let i = 0; i < tsFiles.length; i += batchSize) {
+					const batch = tsFiles.slice(i, i + batchSize)
+					const results = await Promise.all(
+						batch.map(async (f) => {
+							try {
+								const content = await repo.files().readFile(branchName, f.path, { skipIgnore: true })
+								return { filePath: f.path, content: content.content }
+							} catch {
+								return null
+							}
+						}),
+					)
+					auditFiles.push(...(results.filter(Boolean) as { filePath: string; content: string }[]))
+				}
+
+				this.discovery.clearCache()
+				this.engine.buildGraph(auditFiles)
+				this.bootstrapped = true
 			}
 
-			this.discovery.clearCache()
-			this.engine.buildGraph(auditFiles)
-			this.bootstrapped = true
-
-			// 4. Persist the new cache
+			// 5. Persist the new cache
 			if (currentHead) {
 				await this.persistBootstrapCache(currentHead)
 			}
 
 			const duration = Date.now() - startTime
-			Logger.info(`[SpiderService] Graph bootstrapped with ${auditFiles.length} files in ${duration}ms.`)
+			Logger.info(`[SpiderService] Graph bootstrapped in ${duration}ms.`)
 		} catch (e: unknown) {
 			const msg = e instanceof Error ? e.message : String(e)
 			Logger.error(`[SpiderService] Bootstrap failed: ${msg}`)

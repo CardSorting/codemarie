@@ -111,6 +111,31 @@ export class GraphService {
 			const options = it.options || {}
 			const edges = options.edges || []
 
+			// [Pass 3/4 Hardening] Automated Proof Hashing for Evidence Traceability
+			// Satisfies verifySovereignty requirements in ReasoningService
+			let pedigreeHash: string | undefined
+			let proofHash: string | undefined
+			if (it.type === "conclusion" || it.type === "hypothesis") {
+				// Pedigree is the hash of the content + its supporting evidence edges
+				pedigreeHash = crypto
+					.createHash("sha256")
+					.update(
+						it.content +
+							edges
+								.map((e) => e.targetId)
+								.sort()
+								.join(","),
+					)
+					.digest("hex")
+
+				// Proof roots the pedigree in a specific world state (merkle tree hash)
+				const treeHash = options.metadata?.treeHash || ""
+				proofHash = crypto
+					.createHash("sha256")
+					.update(treeHash + pedigreeHash)
+					.digest("hex")
+			}
+
 			await this.ctx.push({
 				type: "insert",
 				table: "knowledge",
@@ -120,11 +145,13 @@ export class GraphService {
 					type: it.type,
 					content: it.content,
 					tags: JSON.stringify(options.tags || []),
+					edges: JSON.stringify(edges),
+					inboundEdges: JSON.stringify((options as any).inboundEdges || []),
 					embedding: options.embedding ? JSON.stringify(options.embedding) : null,
 					confidence: options.confidence ?? 1.0,
 					hubScore: edges.length,
 					expiresAt: options.expiresAt || null,
-					metadata: JSON.stringify(options.metadata || {}),
+					metadata: JSON.stringify({ ...options.metadata, pedigreeHash, proofHash }),
 					createdAt: Date.now(),
 				},
 				layer: "domain",

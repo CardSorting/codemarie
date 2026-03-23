@@ -451,6 +451,26 @@ export async function getDb(): Promise<Kysely<Schema>> {
     FOREIGN KEY(userId) REFERENCES users(id)
   )`)
 
+	// [Pass 3 Hardening] Full-Text Search (FTS5) for Knowledge Scalability
+	await execute(`CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_fts USING fts5(
+		id UNINDEXED,
+		content,
+		tokenize='porter unicode61'
+	)`)
+
+	// Triggers to keep FTS in sync
+	await execute(`CREATE TRIGGER IF NOT EXISTS knowledge_ai AFTER INSERT ON knowledge BEGIN
+		INSERT INTO knowledge_fts(id, content) VALUES (new.id, new.content);
+	END`)
+
+	await execute(`CREATE TRIGGER IF NOT EXISTS knowledge_ad AFTER DELETE ON knowledge BEGIN
+		DELETE FROM knowledge_fts WHERE id = old.id;
+	END`)
+
+	await execute(`CREATE TRIGGER IF NOT EXISTS knowledge_au AFTER UPDATE ON knowledge WHEN new.content != old.content BEGIN
+		UPDATE knowledge_fts SET content = new.content WHERE id = old.id;
+	END`)
+
 	await execute(`CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
     userId TEXT NOT NULL,

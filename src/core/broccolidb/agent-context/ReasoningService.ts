@@ -102,6 +102,11 @@ export class ReasoningService {
 		}
 	}
 
+	async getRecursiveConfidence(nodeId: string): Promise<number> {
+		const pedigree = await this.getReasoningPedigree(nodeId)
+		return pedigree.effectiveConfidence
+	}
+
 	async getNarrativePedigree(nodeId: string): Promise<string> {
 		if (!this.ctx.aiService?.isAvailable()) return "AI Service unavailable for narrative generation."
 		const pedigree = await this.getReasoningPedigree(nodeId)
@@ -116,45 +121,85 @@ export class ReasoningService {
 		)
 	}
 
-	async verifySovereignty(nodeId: string): Promise<{ isValid: boolean; chain: string[]; brokenNode?: string }> {
+	async verifySovereignty(
+		nodeId: string,
+	): Promise<{ isValid: boolean; chain: string[]; recursiveConfidence: number; peakConfidence: number; brokenNode?: string }> {
 		const visited = new Set<string>()
-		const stack = [nodeId]
+		const nodeScores = new Map<string, number>()
 		const chain: string[] = []
 
-		while (stack.length > 0) {
-			const batchIds = stack.splice(0, stack.length)
-			const nodes = await this.graph.getKnowledgeBatch(batchIds)
+		const computeConfidence = async (currentId: string): Promise<number> => {
+			if (visited.has(currentId)) return nodeScores.get(currentId) || 0
+			visited.add(currentId)
+			chain.push(currentId)
 
-			for (const node of nodes) {
-				if (visited.has(node.itemId)) continue
-				visited.add(node.itemId)
-				chain.push(node.itemId)
+			const node = await this.graph.getKnowledge(currentId)
+			if (!node) return 0
 
-				if (node.type === "conclusion") {
-					const metadata = node.metadata || {}
-					const proofHash = metadata.proofHash
-					if (!proofHash) return { isValid: false, chain, brokenNode: node.itemId }
+			// 1. Structural Integrity Check (Proof Hash)
+			if (node.type === "conclusion") {
+				const metadata = node.metadata || {}
+				const proofHash = metadata.proofHash
+				if (!proofHash) return -1 // Flag as invalid
 
-					const treeHash = metadata.treeHash || ""
-					const pedigreeHash = metadata.pedigreeHash || ""
-					const expectedHash = crypto
-						.createHash("sha256")
-						.update(treeHash + pedigreeHash)
-						.digest("hex")
+				const treeHash = metadata.treeHash || ""
+				const pedigreeHash = metadata.pedigreeHash || ""
+				const expectedHash = crypto
+					.createHash("sha256")
+					.update(treeHash + pedigreeHash)
+					.digest("hex")
 
-					if (proofHash !== expectedHash) {
-						return { isValid: false, chain, brokenNode: node.itemId }
-					}
-				}
-
-				const evidenceEdges = (node.inboundEdges || []).filter((e) => e.type === "supports" || e.type === "depends_on")
-				for (const edge of evidenceEdges) {
-					if (!visited.has(edge.targetId)) stack.push(edge.targetId)
-				}
+				if (proofHash !== expectedHash) return -1
 			}
+
+			// 2. Evidence Composition (Noisy-OR)
+			// Base confidence is the node's intrinsic probability.
+			const baseProb = node.confidence || 0.1
+
+			const evidenceEdges = [...(node.edges || []), ...(node.inboundEdges || [])].filter(
+				(e) => e.type === "supports" || e.type === "depends_on",
+			)
+
+			if (evidenceEdges.length === 0) {
+				nodeScores.set(currentId, baseProb)
+				return baseProb
+			}
+
+			// Accumulate evidence strength: P = 1 - (1-P_base) * PRODUCT(1 - P_ev_i * W_i)
+			let invProb = 1 - baseProb
+			for (const edge of evidenceEdges) {
+				const targetId = edge.targetId === currentId ? (edge as any).sourceId : edge.targetId
+				if (!targetId) continue
+
+				const evProb = await computeConfidence(targetId)
+				if (evProb === -1) return -1 // Propagate invalidity
+
+				invProb *= 1 - evProb * (edge.weight || 1.0)
+			}
+
+			const finalProb = 1 - invProb
+			nodeScores.set(currentId, finalProb)
+			return finalProb
 		}
 
-		return { isValid: true, chain }
+		const resultProb = await computeConfidence(nodeId)
+		if (resultProb === -1) {
+			return { isValid: false, chain, recursiveConfidence: 0, peakConfidence: 0, brokenNode: nodeId }
+		}
+
+		// Calculate peak confidence across the visited chain
+		let peak = 0
+		for (const id of visited) {
+			const node = await this.graph.getKnowledge(id)
+			if (node && node.confidence > peak) peak = node.confidence
+		}
+
+		return {
+			isValid: true,
+			chain,
+			recursiveConfidence: resultProb,
+			peakConfidence: peak,
+		}
 	}
 
 	async selfHealGraph(listAllFn: () => Promise<KnowledgeBaseItem[]>): Promise<{ prunedNodes: string[]; prunedEdges: number }> {
@@ -204,6 +249,30 @@ export class ReasoningService {
 				nodesToPrune.push(node.itemId)
 				edgesPruned += (node.edges || []).length + (node.inboundEdges || []).length
 				await this.graph.deleteKnowledge(node.itemId)
+			}
+		}
+
+		// [Pass 3 Hardening] Topological PageRank
+		// Update hubScores based on actual centrality, not just raw counts
+		if (allKnowledge.length > 0) {
+			const scores = new Map<string, number>()
+			allKnowledge.forEach((k) => scores.set(k.itemId, 1.0 / allKnowledge.length))
+
+			// 3 iterations of power method (simplified PageRank)
+			for (let i = 0; i < 3; i++) {
+				const nextScores = new Map<string, number>()
+				for (const node of allKnowledge) {
+					const contribution = scores.get(node.itemId)! / (node.edges.length || 1)
+					for (const edge of node.edges) {
+						nextScores.set(edge.targetId, (nextScores.get(edge.targetId) || 0) + contribution)
+					}
+				}
+				nextScores.forEach((v, k) => scores.set(k, v))
+			}
+
+			// Update hubScores in DB
+			for (const [id, score] of scores) {
+				await this.graph.updateKnowledge(id, { hubScore: Math.round(score * 1000) })
 			}
 		}
 
