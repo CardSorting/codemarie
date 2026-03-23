@@ -66,6 +66,16 @@ export class AgentContext {
 	private _spiderService?: SpiderService
 	private _serviceContext: ServiceContext
 
+	// [Pass 6] Epistemic Coefficients
+	private readonly epistemicConfig = {
+		truthBoost: 500.0,
+		contradictionPenalty: 1000.0,
+		semanticCollisionPenalty: 800.0,
+		collisionThreshold: 0.45, // Slightly higher to reduce false positives
+		uncertaintyThreshold: 0.05, // 5% delta for abstention
+		evidenceBonus: 100.0, // Bonus for having at least one valid support edge
+	}
+
 	constructor(workspace: Workspace, _depthLimit = 0, aiService?: AiService) {
 		this.workspace = workspace
 		this.db = workspace.getDb()
@@ -556,10 +566,17 @@ export class AgentContext {
 
 					if (!options.skipVerification && isVerifiableType && verification) {
 						if (verification.isValid === true) {
-							// [Pass 5] Epistemic Hardening: Boost by recursive evidence strength
-							score += 500.0 * verification.recursiveConfidence
+							score += this.epistemicConfig.truthBoost * verification.recursiveConfidence
+
+							// [Pass 6] Evidence Bonus: Favor supported nodes over assertions
+							const supports = [...(s.item.edges || []), ...(s.item.inboundEdges || [])].some(
+								(e) => e.type === "supports",
+							)
+							if (supports) {
+								score += this.epistemicConfig.evidenceBonus
+							}
 						} else if (verification.isValid === false) {
-							score -= 1000.0
+							score -= this.epistemicConfig.contradictionPenalty
 						}
 					}
 
@@ -572,7 +589,7 @@ export class AgentContext {
 						const otherId = edge.targetId === s.item.itemId ? (edge as any).sourceId : edge.targetId
 						const other = verificationMap.get(otherId)
 						if (other && other.isValid && other.recursiveConfidence >= (verification?.recursiveConfidence || 0)) {
-							score -= 1000.0
+							score -= this.epistemicConfig.contradictionPenalty
 						}
 					}
 
@@ -604,12 +621,25 @@ export class AgentContext {
 					for (const k of bWords) {
 						if (aKeywords.has(k)) overlap++
 					}
-					if (overlap / Math.max(aKeywords.size, bWords.length) > 0.4 && a.item.content !== b.item.content) {
+					if (
+						overlap / Math.max(aKeywords.size, bWords.length) > this.epistemicConfig.collisionThreshold &&
+						a.item.content !== b.item.content
+					) {
 						const vA = verificationMap.get(a.item.itemId)
 						const vB = verificationMap.get(b.item.itemId)
-						const confA = vA?.recursiveConfidence || a.item.confidence || 0
-						const confB = vB?.recursiveConfidence || b.item.confidence || 0
-						if (confB > confA) a.searchScore -= 800.0
+
+						const hasSuppA = [...(a.item.edges || []), ...(a.item.inboundEdges || [])].some(
+							(e) => e.type === "supports",
+						)
+						const hasSuppB = [...(b.item.edges || []), ...(b.item.inboundEdges || [])].some(
+							(e) => e.type === "supports",
+						)
+
+						// Evidence-weighted confidence: rooted truth resists assertions
+						const confA = (vA?.recursiveConfidence || a.item.confidence || 0) * (hasSuppA ? 1.5 : 1.0)
+						const confB = (vB?.recursiveConfidence || b.item.confidence || 0) * (hasSuppB ? 1.5 : 1.0)
+
+						if (confB > confA) a.searchScore -= this.epistemicConfig.semanticCollisionPenalty
 					}
 				}
 			}
@@ -617,6 +647,18 @@ export class AgentContext {
 			const finalVectorResults = vectorResults
 				.sort((a, b) => b.searchScore - a.searchScore)
 				.map((v) => ({ ...v.item, searchScore: v.searchScore }))
+
+			// [Pass 6] Abstention Logic (Vector Path)
+			if (finalVectorResults.length >= 2) {
+				const s1 = (finalVectorResults[0] as any).searchScore || 0
+				const s2 = (finalVectorResults[1] as any).searchScore || 0
+				const delta = Math.abs(s1 - s2)
+				const range = Math.max(1, Math.abs(s1))
+				if (delta / range < this.epistemicConfig.uncertaintyThreshold) {
+					Logger.info(`[Adjudication] Result stability low (delta=${delta.toFixed(2)}). Marking as UNCERTAIN.`)
+					finalVectorResults.forEach((r) => (r.metadata = { ...r.metadata, epistemicStatus: "uncertain" }))
+				}
+			}
 
 			if (query?.trim()) {
 				const qLower = query.toLowerCase()
@@ -693,9 +735,16 @@ export class AgentContext {
 
 					if (!options.skipVerification && isVerifiableType && verification) {
 						if (verification.isValid === true) {
-							score += 500.0 * verification.recursiveConfidence
+							score += this.epistemicConfig.truthBoost * verification.recursiveConfidence
+
+							const supports = [...(c.edges || []), ...(c.inboundEdges || [])].some(
+								(e: any) => e.type === "supports",
+							)
+							if (supports) {
+								score += this.epistemicConfig.evidenceBonus
+							}
 						} else if (verification.isValid === false) {
-							score -= 1000.0
+							score -= this.epistemicConfig.contradictionPenalty
 						}
 					}
 
@@ -708,7 +757,7 @@ export class AgentContext {
 						const otherId = edge.targetId === c.itemId ? (edge as any).sourceId : edge.targetId
 						const other = verificationMap.get(otherId)
 						if (other && other.isValid && other.recursiveConfidence >= (verification?.recursiveConfidence || 0)) {
-							score -= 1000.0
+							score -= this.epistemicConfig.contradictionPenalty
 						}
 					}
 
@@ -746,16 +795,24 @@ export class AgentContext {
 						}
 
 						const overlapRatio = overlap / Math.max(aKeywords.size, bWords.length)
-						if (overlapRatio > 0.4 && a.item.content !== b.item.content) {
+						if (overlapRatio > this.epistemicConfig.collisionThreshold && a.item.content !== b.item.content) {
 							// Semantic Collision!
 							const vA = verificationMap.get(a.item.itemId)
 							const vB = verificationMap.get(b.item.itemId)
 
-							const confA = vA?.recursiveConfidence || a.item.confidence || 0
-							const confB = vB?.recursiveConfidence || b.item.confidence || 0
+							const hasSuppA = [...(a.item.edges || []), ...(a.item.inboundEdges || [])].some(
+								(e: any) => e.type === "supports",
+							)
+							const hasSuppB = [...(b.item.edges || []), ...(b.item.inboundEdges || [])].some(
+								(e: any) => e.type === "supports",
+							)
+
+							// Evidence-weighted confidence
+							const confA = (vA?.recursiveConfidence || a.item.confidence || 0) * (hasSuppA ? 1.5 : 1.0)
+							const confB = (vB?.recursiveConfidence || b.item.confidence || 0) * (hasSuppB ? 1.5 : 1.0)
 
 							if (confB > confA) {
-								a.searchScore -= 800.0
+								a.searchScore -= this.epistemicConfig.semanticCollisionPenalty
 							}
 						}
 					}

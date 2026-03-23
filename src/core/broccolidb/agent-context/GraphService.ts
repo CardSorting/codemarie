@@ -237,6 +237,11 @@ export class GraphService {
 				})
 			}
 			await this._syncOutboundEdges(kbId, patch.edges)
+			updatePayload.edges = JSON.stringify(patch.edges)
+		}
+
+		if (patch.inboundEdges !== undefined) {
+			updatePayload.inboundEdges = JSON.stringify(patch.inboundEdges)
 		}
 
 		await this.ctx.push({

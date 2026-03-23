@@ -165,8 +165,11 @@ export class ReasoningService {
 				return baseProb
 			}
 
-			// Accumulate evidence strength: P = 1 - (1-P_base) * PRODUCT(1 - P_ev_i * W_i)
-			let invProb = 1 - baseProb
+			// 2. Evidence Composition (Correlation-Aware Noisy-OR)
+			// Group evidence by source (treeHash/pedigreeHash) to prevent "Echo Chamber" amplification.
+			const sourceSignals = new Map<string, number>()
+			const independentSignals: number[] = []
+
 			for (const edge of evidenceEdges) {
 				const targetId = edge.targetId === currentId ? (edge as any).sourceId : edge.targetId
 				if (!targetId) continue
@@ -174,7 +177,19 @@ export class ReasoningService {
 				const evProb = await computeConfidence(targetId)
 				if (evProb === -1) return -1 // Propagate invalidity
 
-				invProb *= 1 - evProb * (edge.weight || 1.0)
+				const evNode = await this.graph.getKnowledge(targetId)
+				const meta = typeof evNode?.metadata === "string" ? JSON.parse(evNode.metadata) : evNode?.metadata
+				const sourceId = meta?.treeHash || meta?.pedigreeHash || `unknown-${targetId}`
+
+				const signal = evProb * (edge.weight || 1.0)
+				const currentMax = sourceSignals.get(sourceId) || 0
+				sourceSignals.set(sourceId, Math.max(currentMax, signal))
+			}
+
+			// Accumulate independent source signals: P = 1 - (1-P_base) * PRODUCT(1 - P_source_i)
+			let invProb = 1 - baseProb
+			for (const [sourceId, sourceSignal] of sourceSignals.entries()) {
+				invProb *= 1 - sourceSignal
 			}
 
 			const finalProb = 1 - invProb
