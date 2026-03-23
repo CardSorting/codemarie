@@ -2,7 +2,7 @@
 	"name": "marie-coder",
 	"displayName": "CodeMarie",
 	"description": "CodeMarie is your autonomous coding partner, capable of creating/editing files, running commands, and more with your permission.",
-	"version": "3.82.2",
+	"version": "3.82.7",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
 		".",
@@ -429,7 +429,7 @@
 		"dev:webview": "cd webview-ui && npm run dev",
 		"build:webview": "cd webview-ui && npm run build",
 		"dev:remote-ui": "cd remote-ui && npm run dev",
-		"build:remote-ui": "cd remote-ui && npm run build",
+		"build:remote-ui": "cd remote-ui && npm install && npm run build",
 		"test:webview": "cd webview-ui && npm run test",
 		"publish:marketplace": "vsce publish --allow-package-secrets sendgrid && ovsx publish",
 		"publish:marketplace:prerelease": "vsce publish --allow-package-secrets sendgrid --pre-release && ovsx publish --pre-release",

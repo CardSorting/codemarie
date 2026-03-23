@@ -1,5 +1,17 @@
 # Changelog (V2)
 
+## [3.82.7] - 2026-03-22
+
+### Added
+- **Oracle Mode Evolution**: Transformed suggestions into metadata-rich objects with "Type" (Fix/Design/Learn) and "Structural Impact" scores.
+- **Oracle Visual System**: Introduced color-coded "Mode Dots" and structural "Impact Bars" in the UI for instant risk assessment.
+- **Architectural Grounding**: The backend calculates risk using `BlastRadius` from SDS, grounded in real project dependency data.
+
+### Fixed
+- **Linter & Path Optimization**: Fixed `@shared` import paths in webview and strictly eliminated `any` types in test suites.
+- **React Stability**: Resolved unique key warnings in the suggestion ribbon to improve render performance.
+- **Polish & Refinement**: Applied global project-wide formatting and logic refinements across all suggesion engine components.
+
 ## [3.82.2] - 2026-03-22
 
 ### Added
