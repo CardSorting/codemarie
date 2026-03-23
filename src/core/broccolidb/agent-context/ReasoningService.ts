@@ -23,24 +23,29 @@ export class ReasoningService {
 
 			for (const relatedId of allRelatedIds) {
 				const neighborhood = await this.graph.traverseGraph(relatedId, 1, { direction: "both" })
+
+				// Batch fetch all potential conflicting nodes in this neighborhood
+				const conflictTargetIds = neighborhood.flatMap((node) =>
+					node.edges.filter((e) => e.type === "contradicts").map((e) => e.targetId),
+				)
+				const conflictingNodesMap = new Map(
+					(await this.graph.getKnowledgeBatch(conflictTargetIds)).map((n) => [n.itemId, n]),
+				)
+
 				for (const node of neighborhood) {
 					if (visitedNodesInNeighborhood.has(node.itemId)) continue
 					visitedNodesInNeighborhood.add(node.itemId)
 
 					const contradictions = node.edges.filter((e) => e.type === "contradicts")
 					for (const edge of contradictions) {
-						try {
-							const conflictingNode = await this.graph.getKnowledge(edge.targetId)
-							if (node.confidence > 0.7 && conflictingNode.confidence > 0.7) {
-								reports.push({
-									nodeId: node.itemId,
-									conflictingNodeId: conflictingNode.itemId,
-									confidence: (node.confidence + conflictingNode.confidence) / 2,
-									evidencePath: [node.itemId, conflictingNode.itemId],
-								})
-							}
-						} catch (_e) {
-							/* ignore missing */
+						const conflictingNode = conflictingNodesMap.get(edge.targetId)
+						if (conflictingNode && node.confidence > 0.7 && conflictingNode.confidence > 0.7) {
+							reports.push({
+								nodeId: node.itemId,
+								conflictingNodeId: conflictingNode.itemId,
+								confidence: (node.confidence + conflictingNode.confidence) / 2,
+								evidencePath: [node.itemId, conflictingNode.itemId],
+							})
 						}
 					}
 				}
@@ -59,7 +64,7 @@ export class ReasoningService {
 		const visited = new Set<string>()
 
 		for (let i = 0; i < maxDepth; i++) {
-			const nextLevel: KnowledgeBaseItem[] = []
+			const nextLevelIds: string[] = []
 			for (const node of currentNodes) {
 				if (visited.has(node.itemId)) continue
 				visited.add(node.itemId)
@@ -74,18 +79,18 @@ export class ReasoningService {
 
 				const supportingEdges = node.edges.filter((e) => e.type === "supports" || e.type === "depends_on")
 				for (const edge of supportingEdges) {
-					const targetId = edge.targetId
-					supportingIds.push(targetId)
-					try {
-						const target = await this.graph.getKnowledge(targetId)
-						effectiveConfidence *= target.confidence
-						nextLevel.push(target)
-					} catch (_e) {
-						/* skip */
-					}
+					supportingIds.push(edge.targetId)
+					nextLevelIds.push(edge.targetId)
 				}
 			}
-			if (nextLevel.length === 0) break
+
+			if (nextLevelIds.length === 0) break
+
+			// Batch fetch next level
+			const nextLevel = await this.graph.getKnowledgeBatch(nextLevelIds)
+			for (const target of nextLevel) {
+				effectiveConfidence *= target.confidence
+			}
 			currentNodes = nextLevel
 		}
 
@@ -117,33 +122,35 @@ export class ReasoningService {
 		const chain: string[] = []
 
 		while (stack.length > 0) {
-			const currentId = stack.pop()!
-			if (visited.has(currentId)) continue
-			visited.add(currentId)
-			chain.push(currentId)
+			const batchIds = stack.splice(0, stack.length)
+			const nodes = await this.graph.getKnowledgeBatch(batchIds)
 
-			const node = await this.graph.getKnowledge(currentId)
+			for (const node of nodes) {
+				if (visited.has(node.itemId)) continue
+				visited.add(node.itemId)
+				chain.push(node.itemId)
 
-			if (node.type === "conclusion") {
-				const metadata = node.metadata || {}
-				const proofHash = metadata.proofHash
-				if (!proofHash) return { isValid: false, chain, brokenNode: currentId }
+				if (node.type === "conclusion") {
+					const metadata = node.metadata || {}
+					const proofHash = metadata.proofHash
+					if (!proofHash) return { isValid: false, chain, brokenNode: node.itemId }
 
-				const treeHash = metadata.treeHash || ""
-				const pedigreeHash = metadata.pedigreeHash || ""
-				const expectedHash = crypto
-					.createHash("sha256")
-					.update(treeHash + pedigreeHash)
-					.digest("hex")
+					const treeHash = metadata.treeHash || ""
+					const pedigreeHash = metadata.pedigreeHash || ""
+					const expectedHash = crypto
+						.createHash("sha256")
+						.update(treeHash + pedigreeHash)
+						.digest("hex")
 
-				if (proofHash !== expectedHash) {
-					return { isValid: false, chain, brokenNode: currentId }
+					if (proofHash !== expectedHash) {
+						return { isValid: false, chain, brokenNode: node.itemId }
+					}
 				}
-			}
 
-			const evidenceEdges = (node.inboundEdges || []).filter((e) => e.type === "supports" || e.type === "depends_on")
-			for (const edge of evidenceEdges) {
-				stack.push(edge.targetId)
+				const evidenceEdges = (node.inboundEdges || []).filter((e) => e.type === "supports" || e.type === "depends_on")
+				for (const edge of evidenceEdges) {
+					if (!visited.has(edge.targetId)) stack.push(edge.targetId)
+				}
 			}
 		}
 
@@ -159,6 +166,9 @@ export class ReasoningService {
 		const DECAY_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7 // 1 week
 		const now = Date.now()
 
+		// Pre-identify conclusions for potentially batched sovereignty checks later
+		const conclusions = allKnowledge.filter((n) => n.type === "conclusion")
+
 		for (const node of allKnowledge) {
 			let shouldPrune = false
 			let confidence = node.confidence
@@ -170,21 +180,30 @@ export class ReasoningService {
 
 			if (confidence < 0.2) shouldPrune = true
 
-			const contradictions = node.inboundEdges.filter((e) => e.type === "contradicts")
+			const contradictions = (node.inboundEdges || []).filter((e) => e.type === "contradicts")
 			if (contradictions.length > 3) shouldPrune = true
-
-			if (node.type === "conclusion") {
-				const { isValid } = await this.verifySovereignty(node.itemId)
-				if (!isValid) shouldPrune = true
-			}
 
 			if (shouldPrune) {
 				nodesToPrune.push(node.itemId)
-				edgesPruned += node.edges.length + node.inboundEdges.length
+				edgesPruned += (node.edges || []).length + (node.inboundEdges || []).length
 				await this.graph.deleteKnowledge(node.itemId)
 			} else if (confidence !== node.confidence) {
 				// Update decayed confidence
 				await this.graph.updateKnowledge(node.itemId, { confidence })
+			}
+		}
+
+		// Post-prune conclusions that lost their sovereignty
+		// (We do this after initial pruning as some evidence might have been pruned)
+		const remainingConclusions = await this.graph.getKnowledgeBatch(
+			conclusions.map((c) => c.itemId).filter((id) => !nodesToPrune.includes(id)),
+		)
+		for (const node of remainingConclusions) {
+			const { isValid } = await this.verifySovereignty(node.itemId)
+			if (!isValid && !nodesToPrune.includes(node.itemId)) {
+				nodesToPrune.push(node.itemId)
+				edgesPruned += (node.edges || []).length + (node.inboundEdges || []).length
+				await this.graph.deleteKnowledge(node.itemId)
 			}
 		}
 

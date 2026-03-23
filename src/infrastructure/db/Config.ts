@@ -48,6 +48,7 @@ export interface Schema {
 		author: string
 		type: "snapshot" | "summary" | "diff"
 		tree: string | null // JSON string (legacy flat tree)
+		changes: string | null // JSON string of changed paths
 		usage: string | null // JSON string
 		metadata: string | null // JSON string
 	}
@@ -336,6 +337,7 @@ export async function getDb(): Promise<Kysely<Schema>> {
     author TEXT,
     type TEXT,
     tree TEXT,
+    changes TEXT,
     usage TEXT,
     metadata TEXT
   )`)
@@ -624,6 +626,13 @@ export async function getDb(): Promise<Kysely<Schema>> {
 	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_knowledge_type ON agent_knowledge(type)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_edges_source ON agent_knowledge_edges(sourceId)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_edges_target ON agent_knowledge_edges(targetId)`)
+
+	// Migrations
+	try {
+		await execute("ALTER TABLE nodes ADD COLUMN changes TEXT")
+	} catch (_e) {
+		// Already exists or other error
+	}
 
 	return _db
 }

@@ -61,49 +61,92 @@ export class GraphService {
 			metadata?: Record<string, any>
 		} = {},
 	): Promise<string> {
-		const id = kbId === "auto" ? crypto.randomUUID() : kbId
-		const edges = options.edges || []
+		const results = await this.addKnowledgeBatch([{ kbId, type, content, options }])
+		return results[0]!
+	}
 
-		let embedding = options.embedding || null
-		if (!embedding && this.ctx.aiService?.isAvailable() && content.trim()) {
-			embedding = await this.ctx.aiService.embedText(content, "RETRIEVAL_DOCUMENT")
+	async addKnowledgeBatch(
+		items: {
+			kbId: string
+			type: KnowledgeBaseItem["type"]
+			content: string
+			options?: {
+				tags?: string[]
+				edges?: GraphEdge[]
+				embedding?: number[]
+				confidence?: number
+				expiresAt?: number
+				metadata?: Record<string, any>
+			}
+		}[],
+	): Promise<string[]> {
+		if (items.length === 0) return []
+
+		const generatedIds = items.map((it) => (it.kbId === "auto" ? crypto.randomUUID() : it.kbId))
+		const needsEmbeddingIndices: number[] = []
+		const textsToEmbed: string[] = []
+
+		for (let i = 0; i < items.length; i++) {
+			const it = items[i]!
+			if (!it.options?.embedding && this.ctx.aiService?.isAvailable() && it.content.trim()) {
+				needsEmbeddingIndices.push(i)
+				textsToEmbed.push(it.content)
+			}
 		}
 
-		await this.ctx.push({
-			type: "insert",
-			table: "knowledge",
-			values: {
-				id,
-				userId: this.ctx.userId,
-				type,
-				content,
-				tags: JSON.stringify(options.tags || []),
-				embedding: embedding ? JSON.stringify(embedding) : null,
-				confidence: options.confidence ?? 1.0,
-				hubScore: edges.length,
-				expiresAt: options.expiresAt || null,
-				metadata: JSON.stringify(options.metadata || {}),
-				createdAt: Date.now(),
-			},
-			layer: "domain",
-		})
+		if (textsToEmbed.length > 0) {
+			const embeddings = await this.ctx.aiService!.embedBatch(textsToEmbed, "RETRIEVAL_DOCUMENT")
+			for (let i = 0; i < needsEmbeddingIndices.length; i++) {
+				const originalIdx = needsEmbeddingIndices[i]!
+				if (embeddings[i]) {
+					if (!items[originalIdx]!.options) items[originalIdx]!.options = {}
+					items[originalIdx]!.options!.embedding = embeddings[i]!
+				}
+			}
+		}
 
-		for (const edge of edges) {
+		for (let i = 0; i < items.length; i++) {
+			const it = items[i]!
+			const id = generatedIds[i]!
+			const options = it.options || {}
+			const edges = options.edges || []
+
 			await this.ctx.push({
 				type: "insert",
-				table: "knowledge_edges",
+				table: "knowledge",
 				values: {
-					sourceId: id,
-					targetId: edge.targetId,
-					type: edge.type,
-					weight: edge.weight ?? 1.0,
+					id,
+					userId: this.ctx.userId,
+					type: it.type,
+					content: it.content,
+					tags: JSON.stringify(options.tags || []),
+					embedding: options.embedding ? JSON.stringify(options.embedding) : null,
+					confidence: options.confidence ?? 1.0,
+					hubScore: edges.length,
+					expiresAt: options.expiresAt || null,
+					metadata: JSON.stringify(options.metadata || {}),
+					createdAt: Date.now(),
 				},
 				layer: "domain",
 			})
+
+			for (const edge of edges) {
+				await this.ctx.push({
+					type: "insert",
+					table: "knowledge_edges",
+					values: {
+						sourceId: id,
+						targetId: edge.targetId,
+						type: edge.type,
+						weight: edge.weight ?? 1.0,
+					},
+					layer: "domain",
+				})
+			}
+			await this._syncOutboundEdges(id, edges)
 		}
 
-		await this._syncOutboundEdges(id, edges)
-		return id
+		return generatedIds
 	}
 
 	/**
@@ -224,36 +267,73 @@ export class GraphService {
 	}
 
 	async getKnowledge(itemId: string): Promise<KnowledgeBaseItem> {
-		const cached = this.ctx.kbCache.get(itemId)
-		if (cached) return cached
-
-		const row = await this.ctx.db.selectOne("knowledge", [{ column: "id", value: itemId }])
-		if (!row) {
+		const results = await this.getKnowledgeBatch([itemId])
+		if (results.length === 0) {
 			throw new AgentGitError(`Knowledge item ${itemId} not found`, "FILE_NOT_FOUND")
 		}
+		return results[0]!
+	}
 
-		const outboundRows = await this.ctx.db.selectWhere("knowledge_edges", [{ column: "sourceId", value: itemId }])
-		const inboundRows = await this.ctx.db.selectWhere("knowledge_edges", [{ column: "targetId", value: itemId }])
+	async getKnowledgeBatch(itemIds: string[]): Promise<KnowledgeBaseItem[]> {
+		if (itemIds.length === 0) return []
 
-		const outboundEdges = outboundRows.map((r) => ({ targetId: r.targetId, type: r.type as any, weight: r.weight }))
-		const inboundEdges = inboundRows.map((r) => ({ targetId: r.sourceId, type: r.type as any, weight: r.weight }))
+		const results: KnowledgeBaseItem[] = []
+		const missingIds: string[] = []
 
-		const data: KnowledgeBaseItem = {
-			itemId: row.id,
-			type: row.type as any,
-			content: row.content,
-			tags: JSON.parse(row.tags || "[]"),
-			edges: outboundEdges,
-			inboundEdges: inboundEdges,
-			embedding: row.embedding ? JSON.parse(row.embedding) : undefined,
-			confidence: row.confidence,
-			hubScore: row.hubScore,
-			expiresAt: row.expiresAt as number | null,
-			metadata: row.metadata ? JSON.parse(row.metadata) : null,
-			createdAt: Number(row.createdAt),
+		for (const id of itemIds) {
+			const cached = this.ctx.kbCache.get(id)
+			if (cached) results.push(cached)
+			else missingIds.push(id)
 		}
-		this.ctx.kbCache.set(itemId, data)
-		return data
+
+		if (missingIds.length > 0) {
+			const rows = await this.ctx.db.selectWhere("knowledge", [{ column: "id", value: missingIds }])
+			if (rows.length > 0) {
+				const foundIds = rows.map((r) => r.id as string)
+
+				// Batch fetch all edges for found nodes
+				const [outboundRows, inboundRows] = await Promise.all([
+					this.ctx.db.selectWhere("knowledge_edges", [{ column: "sourceId", value: foundIds }]),
+					this.ctx.db.selectWhere("knowledge_edges", [{ column: "targetId", value: foundIds }]),
+				])
+
+				const outboundMap = new Map<string, GraphEdge[]>()
+				const inboundMap = new Map<string, GraphEdge[]>()
+
+				for (const r of outboundRows) {
+					const edges = outboundMap.get(r.sourceId as string) || []
+					edges.push({ targetId: r.targetId as string, type: r.type as any, weight: r.weight as number })
+					outboundMap.set(r.sourceId as string, edges)
+				}
+				for (const r of inboundRows) {
+					const edges = inboundMap.get(r.targetId as string) || []
+					edges.push({ targetId: r.sourceId as string, type: r.type as any, weight: r.weight as number })
+					inboundMap.set(r.targetId as string, edges)
+				}
+
+				for (const row of rows) {
+					const itemId = row.id as string
+					const nodeData: KnowledgeBaseItem = {
+						itemId,
+						type: row.type as any,
+						content: row.content as string,
+						tags: JSON.parse((row.tags as string) || "[]"),
+						edges: outboundMap.get(itemId) || [],
+						inboundEdges: inboundMap.get(itemId) || [],
+						embedding: row.embedding ? JSON.parse(row.embedding as string) : undefined,
+						confidence: row.confidence as number,
+						hubScore: row.hubScore as number,
+						expiresAt: row.expiresAt as number | null,
+						metadata: row.metadata ? JSON.parse(row.metadata as string) : null,
+						createdAt: Number(row.createdAt),
+					}
+					this.ctx.kbCache.set(itemId, nodeData)
+					results.push(nodeData)
+				}
+			}
+		}
+
+		return results
 	}
 
 	async traverseGraph(startId: string, maxDepth = 2, filter?: TraversalFilter): Promise<KnowledgeBaseItem[]> {

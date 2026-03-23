@@ -399,9 +399,16 @@ export class BroccoliDBMCP {
 						mermaid += `  ${shortId}["${shortId} (${step.type})<br/>${content}"]\n`
 					}
 
+					// Batch fetch all nodes in the pedigree to get their edges
+					const pedigreeNodes = await (this.agentContext as any).graph.getKnowledgeBatch(
+						pedigree.lineage.map((l: any) => l.nodeId),
+					)
+					const nodeMap = new Map(pedigreeNodes.map((n: any) => [n.itemId, n]))
+
 					// Add edges
 					for (const step of pedigree.lineage) {
-						const node = await this.agentContext.getKnowledge(step.nodeId)
+						const node = nodeMap.get(step.nodeId) as any
+						if (!node) continue
 						for (const edge of node.edges) {
 							if (edge.type === "supports" || edge.type === "depends_on") {
 								mermaid += `  ${step.nodeId.substring(0, 7)} -- ${edge.type} --> ${edge.targetId.substring(0, 7)}\n`

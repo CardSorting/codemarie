@@ -37,7 +37,8 @@ export interface MemoryNode {
 	author: string
 	type: "snapshot" | "summary" | "diff" | "hypothesis" | "conclusion"
 	tree?: Record<string, string> | undefined // Full snapshot (legacy or resolved)
-	changes?: Record<string, string> | undefined // Only changes (for 'diff' type)
+	changes?: Record<string, string> | undefined // Only changes (for 'diff' type payload)
+	changeSet?: string[] | undefined // PERSISTENT: List of paths changed in this node
 	usage?: Usage | undefined
 	metadata?:
 		| {
@@ -260,13 +261,15 @@ export class Repository {
 		if (!node) {
 			throw new AgentGitError(`Node '${nodeId}' not found in repo '${this.basePath}'`, "NODE_NOT_FOUND")
 		}
-		const data = {
+		const data: MemoryNode = {
 			...node,
 			data: JSON.parse(node.data || "{}"),
-			tree: node.tree ? JSON.parse(node.tree) : null,
-			usage: node.usage ? JSON.parse(node.usage) : null,
-			metadata: node.metadata ? JSON.parse(node.metadata) : null,
-		} as MemoryNode
+			tree: node.tree ? JSON.parse(node.tree) : undefined,
+			changes: node.type === "diff" ? JSON.parse(node.data || "{}").changes : undefined,
+			changeSet: node.changes ? JSON.parse(node.changes) : undefined,
+			usage: node.usage ? JSON.parse(node.usage) : undefined,
+			metadata: node.metadata ? JSON.parse(node.metadata) : undefined,
+		} as any
 		this.nodeCache.set(nodeId, data)
 		return data
 	}
@@ -638,6 +641,32 @@ export class Repository {
 			}
 		}
 
+		// --- CALCULATE CHANGES (O(1) lookups for history/blame) ---
+		let changedPaths: string[] = []
+		if (parentId) {
+			const parentNode = await this.getNode(parentId)
+			const parentTreeHash = parentNode.metadata?.treeHash
+			const currentTreeHash = metadata.treeHash
+
+			if (parentTreeHash && currentTreeHash) {
+				if (parentTreeHash !== currentTreeHash) {
+					changedPaths = await this.getMerkleDiff(parentTreeHash, currentTreeHash)
+				}
+			} else {
+				// Fallback for legacy/mixed commits
+				const prevTree = await this.resolveTree(parentNode)
+				const currTree = await this.resolveTree({ metadata } as any)
+				changedPaths = Object.keys(currTree).filter((p) => currTree[p] !== prevTree[p])
+				for (const p of Object.keys(prevTree)) {
+					if (!(p in currTree)) changedPaths.push(p)
+				}
+			}
+		} else {
+			// Initial commit: everything is changed
+			const currTree = await this.resolveTree({ metadata } as any)
+			changedPaths = Object.keys(currTree)
+		}
+
 		const newNode = {
 			id: nodeId,
 			repoPath: this.basePath,
@@ -649,8 +678,9 @@ export class Repository {
 			type: options.type || "snapshot",
 			usage: usage ? JSON.stringify(usage) : null,
 			metadata: JSON.stringify(metadata),
+			changes: JSON.stringify(changedPaths), // Stored in the 'changes' column
 			// biome-ignore lint/suspicious/noExplicitAny: legacy flat tree access
-			tree: options.type === "snapshot" ? JSON.stringify((data as any).tree || {}) : null, // Logic for legacy flat trees
+			tree: options.type === "snapshot" ? JSON.stringify((data as any).tree || {}) : null,
 		}
 
 		await this.db.push(
@@ -2086,19 +2116,30 @@ export class Repository {
 		const normalizedTarget = filePath.replace(/^\/+/, "").replace(/\/\/+/g, "/")
 		const correlations: Record<string, number> = {}
 
-		for (let i = 0; i < commits.length - 1; i++) {
-			const curr = commits[i]!
-			const prev = commits[i + 1]!
-			const currTree = curr.data?.tree || curr.tree || {}
-			const prevTree = prev.data?.tree || prev.tree || {}
+		for (let i = 0; i < commits.length; i++) {
+			const node = commits[i]!
 
-			// Find all changed files in this commit
-			const changedFiles = new Set<string>()
-			for (const p of Object.keys(currTree)) {
-				if (currTree[p] !== prevTree[p]) changedFiles.add(p)
-			}
-			for (const p of Object.keys(prevTree)) {
-				if (!(p in currTree)) changedFiles.add(p)
+			// Use persistent change-set if available (Round 4 optimization)
+			let changedFiles: Set<string>
+			if (node.changeSet) {
+				changedFiles = new Set(node.changeSet)
+			} else {
+				// Fallback for legacy nodes: O(N) tree comparison
+				const parentId = node.parentId
+				if (!parentId) {
+					changedFiles = new Set(Object.keys(node.tree || {}))
+				} else {
+					const parent = await this.getNode(parentId)
+					const prevTree = await this.resolveTree(parent)
+					const currTree = await this.resolveTree(node)
+					changedFiles = new Set<string>()
+					for (const p of Object.keys(currTree)) {
+						if (currTree[p] !== prevTree[p]) changedFiles.add(p)
+					}
+					for (const p of Object.keys(prevTree)) {
+						if (!(p in currTree)) changedFiles.add(p)
+					}
+				}
 			}
 
 			// If the target file changed, increase weight of all other co-changed files
@@ -2264,5 +2305,50 @@ ${messages.join("\n")}`
 		})
 	}
 
-	// ─── HYPER-COGNITION ───
+	/**
+	 * Recursive Merkle-Diff to find changed files between two tree hashes.
+	 * Highly performant: O(D * logN) where D is number of changes.
+	 */
+	async getMerkleDiff(hashA: string, hashB: string, prefix = "", result: string[] = []): Promise<string[]> {
+		if (hashA === hashB) return result
+
+		const [entriesA, entriesB] = await Promise.all([
+			hashA ? this.getTree(hashA) : Promise.resolve({}),
+			hashB ? this.getTree(hashB) : Promise.resolve({}),
+		])
+
+		const allKeys = new Set([...Object.keys(entriesA), ...Object.keys(entriesB)])
+
+		for (const key of allKeys) {
+			const entryA = (entriesA as any)[key]
+			const entryB = (entriesB as any)[key]
+			const fullPath = prefix ? `${prefix}/${key}` : key
+
+			if (!entryA && entryB) {
+				// Added (could be tree or blob)
+				if (entryB.type === "tree") {
+					await this.getMerkleDiff("", entryB.hash, fullPath, result)
+				} else {
+					result.push(fullPath)
+				}
+			} else if (entryA && !entryB) {
+				// Removed
+				if (entryA.type === "tree") {
+					await this.getMerkleDiff(entryA.hash, "", fullPath, result)
+				} else {
+					result.push(fullPath)
+				}
+			} else if (entryA.hash !== entryB.hash) {
+				// Modified
+				if (entryA.type === "tree" && entryB.type === "tree") {
+					await this.getMerkleDiff(entryA.hash, entryB.hash, fullPath, result)
+				} else {
+					// Blob modified or type changed (e.g. tree to blob)
+					result.push(fullPath)
+				}
+			}
+		}
+
+		return result
+	}
 }
