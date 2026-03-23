@@ -249,30 +249,20 @@ export class Controller {
 		taskSettings?: Partial<Settings>,
 		initialTaskState?: Partial<TaskState>,
 	) {
-		// Fire-and-forget: We intentionally don't await fetchRemoteConfig here.
-		// Remote config is already fetched in startRemoteConfigTimer() which runs in the constructor,
-		// so enterprise policies (yoloModeAllowed, allowedMCPServers, etc.) are already applied.
-		// This call just ensures we have the latest state, but we shouldn't block the UI for it.
-		// getGlobalSettingsKey() reads from remoteConfigCache on each call, so any updates
-		// will apply as soon as this fetch completes. The function also calls postStateToWebview()
-		// when done and catches all errors internally.
-		fetchRemoteConfig(this)
-
-		await this.clearTask() // ensures that an existing task doesn't exist before starting a new one, although this shouldn't be possible since user must clear task before starting a new one
-
 		const autoApprovalSettings = this.stateManager.getGlobalSettingsKey("autoApprovalSettings")
 		const shellIntegrationTimeout = this.stateManager.getGlobalSettingsKey("shellIntegrationTimeout")
 		const terminalReuseEnabled = this.stateManager.getGlobalStateKey("terminalReuseEnabled")
-		const vscodeTerminalExecutionMode = this.stateManager.getGlobalStateKey("vscodeTerminalExecutionMode")
 		const terminalOutputLineLimit = this.stateManager.getGlobalSettingsKey("terminalOutputLineLimit")
 		const defaultTerminalProfile = this.stateManager.getGlobalSettingsKey("defaultTerminalProfile")
+		const vscodeTerminalExecutionMode = this.stateManager.getGlobalStateKey("vscodeTerminalExecutionMode")
 		const isNewUser = this.stateManager.getGlobalStateKey("isNewUser")
 		const taskHistory = this.stateManager.getGlobalStateKey("taskHistory")
 
-		const NEW_USER_TASK_COUNT_THRESHOLD = 10
+		// Clear suggestions for the new task
+		await this.suggestionService.clearSuggestions()
 
 		// Check if the user has completed enough tasks to no longer be considered a "new user"
-		if (isNewUser && !historyItem && taskHistory && taskHistory.length >= NEW_USER_TASK_COUNT_THRESHOLD) {
+		if (isNewUser && !historyItem && taskHistory && taskHistory.length >= 3) {
 			this.stateManager.setGlobalState("isNewUser", false)
 			await this.postStateToWebview()
 		}
@@ -1026,6 +1016,7 @@ export class Controller {
 			// Clear task settings cache when task ends
 			await this.stateManager.clearTaskSettings()
 		}
+		await this.suggestionService.clearSuggestions()
 		await this.task?.abortTask()
 		this.task = undefined // removes reference to it, so once promises end it will be garbage collected
 	}

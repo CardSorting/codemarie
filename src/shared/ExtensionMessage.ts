@@ -91,7 +91,7 @@ export interface ExtensionState {
 	focusChainSettings: FocusChainSettings
 	customPrompt?: string
 	favoritedModelIds: string[]
-	promptSuggestions?: string[]
+	promptSuggestions?: PromptSuggestion[]
 	isGeneratingPromptSuggestions?: boolean
 	// NEW: Add workspace information
 	workspaceRoots: WorkspaceRoot[]
@@ -114,6 +114,14 @@ export interface ExtensionState {
 	banners?: BannerCardData[]
 	welcomeBanners?: BannerCardData[]
 	openAiCodexIsAuthenticated?: boolean
+}
+
+export type SuggestionType = "fix" | "design" | "learn"
+
+export interface PromptSuggestion {
+	text: string
+	type: SuggestionType
+	impact?: number // 0-1 structural impact score
 }
 
 export interface CodemarieMessage {

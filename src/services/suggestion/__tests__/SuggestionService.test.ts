@@ -5,28 +5,44 @@ import * as sinon from "sinon"
 const proxyquire = require("proxyquire").noCallThru()
 
 describe("SuggestionService", () => {
+	// Define minimal interfaces for mocks to satisfy the linter without absolute type inheritance
+	interface MockObject {
+		[key: string]: sinon.SinonStub | MockObject | string | number | boolean | string[] | undefined | null | object
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: proxyquire returns a constructor that is difficult to type precisely without importing the target class
 	let SuggestionService: any
+	// biome-ignore lint/suspicious/noExplicitAny: The instance of the dynamically loaded service
 	let service: any
+
 	let getActiveEditorStub: sinon.SinonStub
 	let buildApiHandlerStub: sinon.SinonStub
 	let readFileStub: sinon.SinonStub
 	let captureSuggestionGeneratedStub: sinon.SinonStub
-	let mockStateManager: any
-	let mockHostProvider: any
-	let mockTelemetryService: any
-	let mockFs: any
-	let mockPathUtils: any
-	let mockAgentContext: any
-	let mockWorkspace: any
-	let mockDbPool: any
-	let mockLanguageParser: any
-	let mockTreeSitterIndex: any
+
+	let mockStateManager: MockObject
+	let mockHostProvider: MockObject
+	let mockTelemetryService: MockObject
+	let mockFs: MockObject
+	let mockPathUtils: MockObject
+	let mockAgentContext: sinon.SinonStub
+	let mockWorkspace: sinon.SinonStub
+	let mockDbPool: sinon.SinonStub
+	let mockLanguageParser: MockObject
+	let mockTreeSitterIndex: MockObject
 
 	beforeEach(() => {
 		const mockHandler = {
 			createMessage: sinon.stub().returns(
 				(async function* () {
-					yield { type: "text", text: "Suggestion 1\nSuggestion 2\nSuggestion 3" }
+					yield {
+						type: "text",
+						text: JSON.stringify([
+							{ text: "Suggestion 1", type: "fix" },
+							{ text: "Suggestion 2", type: "design" },
+							{ text: "Suggestion 3", type: "learn" },
+						]),
+					}
 				})(),
 			),
 		}
@@ -52,7 +68,7 @@ describe("SuggestionService", () => {
 				getWorkspacePaths: sinon.stub().resolves({ paths: ["/mock/workspace"] }),
 			},
 		}
-		getActiveEditorStub = mockHostProvider.window.getActiveEditor
+		getActiveEditorStub = (mockHostProvider.window as MockObject).getActiveEditor as sinon.SinonStub
 
 		mockStateManager = {
 			get: sinon.stub(),
@@ -61,14 +77,16 @@ describe("SuggestionService", () => {
 				getGlobalSettingsKey: sinon.stub().withArgs("mode").returns("plan"),
 			},
 		}
-		mockStateManager.get.returns(mockStateManager.instance)
+		const getStub = mockStateManager.get as sinon.SinonStub
+		getStub.returns(mockStateManager.instance)
 
 		mockTelemetryService = {
 			telemetryService: {
 				captureSuggestionGenerated: sinon.stub(),
 			},
 		}
-		captureSuggestionGeneratedStub = mockTelemetryService.telemetryService.captureSuggestionGenerated
+		captureSuggestionGeneratedStub = (mockTelemetryService.telemetryService as MockObject)
+			.captureSuggestionGenerated as sinon.SinonStub
 
 		readFileStub = sinon.stub()
 		mockFs = {
@@ -81,12 +99,11 @@ describe("SuggestionService", () => {
 		}
 
 		mockAgentContext = sinon.stub().returns({
-			getStructuralImpact: sinon
-				.stub()
-				.returns({
-					summary: "Architectural Importance: High",
-					blastRadius: { dependents: [], dependencies: [], level: 1 },
-				}),
+			getStructuralImpact: sinon.stub().returns({
+				summary: "Architectural Importance: High",
+				importance: "HIGH",
+				blastRadius: { affectedNodes: ["node1", "node2"], centralityScore: 0.2, criticalDependents: [] },
+			}),
 			searchKnowledge: sinon.stub().resolves([{ content: "semantic snippet 1" }]),
 		})
 
@@ -123,9 +140,12 @@ describe("SuggestionService", () => {
 
 		const suggestions = await service.getSuggestions([], "test-ulid")
 		assert.strictEqual(suggestions.length, 3)
-		assert.strictEqual(suggestions[0], "Suggestion 1")
-		assert.strictEqual(suggestions[1], "Suggestion 2")
-		assert.strictEqual(suggestions[2], "Suggestion 3")
+		assert.strictEqual(suggestions[0].text, "Suggestion 1")
+		assert.strictEqual(suggestions[0].type, "fix")
+		assert.strictEqual(suggestions[1].text, "Suggestion 2")
+		assert.strictEqual(suggestions[1].type, "design")
+		assert.strictEqual(suggestions[2].text, "Suggestion 3")
+		assert.strictEqual(suggestions[2].type, "learn")
 		assert.ok(captureSuggestionGeneratedStub.calledOnce)
 	})
 
@@ -134,7 +154,10 @@ describe("SuggestionService", () => {
 		buildApiHandlerStub.throws(new Error("AI error"))
 
 		const suggestions = await service.getSuggestions()
-		assert.ok(suggestions.some((s: string) => s.includes("Refactor") || s.includes("test") || s.includes("Fix")))
+		// biome-ignore lint/suspicious/noExplicitAny: Access text on fallback objects
+		assert.ok(
+			suggestions.some((s: any) => s.text.includes("Refactor") || s.text.includes("test") || s.text.includes("Explain")),
+		)
 		assert.strictEqual(suggestions.length, 3)
 	})
 
@@ -160,7 +183,9 @@ describe("SuggestionService", () => {
 		assert.strictEqual(buildApiHandlerStub.callCount, 1)
 
 		// Reset internal state to allow another call bypass
+		// biome-ignore lint/suspicious/noExplicitAny: Resetting internal private state for testing
 		;(service as any).isGenerating = false
+		// biome-ignore lint/suspicious/noExplicitAny: Resetting internal private state for testing
 		;(service as any).lastFetchTime = 0
 
 		// Second call with same content (should hit cache)
@@ -175,6 +200,7 @@ describe("SuggestionService", () => {
 		await service.getSuggestions([])
 
 		// Verify AgentContext was used
+		// biome-ignore lint/suspicious/noExplicitAny: Accessing private agentContext for verification
 		const agentContextInstance = (service as any).agentContext
 		assert.ok(agentContextInstance)
 		assert.ok(agentContextInstance.getStructuralImpact.called)

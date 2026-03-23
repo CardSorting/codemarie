@@ -70,9 +70,12 @@ The engine enforces a strict set of guardrails to prevent architectural decay:
 
 ## 📊 Performance & Resilience
 - **Request ID Guarding**: Prevents late-arriving suggestions from overwriting current user intent.
+- **Hardened Similarity Engine**: Uses the **Levenshtein Distance** algorithm (0.8 threshold) in `src/utils/string.ts` to ensure high-diversity user prompts.
 - **LRU Caching**: Caches suggestions based on content hash and cursor position to minimize redundant AI calls.
-- **Similarity Filtering**: Ensures suggestion diversity by filtering out redundant or repetitive prompt sequences.
+- **Jittered Exponential Backoff**: Advanced retry logic for provider resilience, preventing "thundering herd" issues.
 - **Latency Telemetry**: Tracks micro-latencies of each context component to identify micro-bottlenecks.
+- **Proactive Context Warming**: Background indexing of SDS and structural data on file open to minimize first-suggestion latency.
+- **Service-Level Memoization**: Caches Language Parsers and heavy structural resources to optimize parallel execution.
 
 ## 🛠️ Operator's Guide (Telemetry & Troubleshooting)
 

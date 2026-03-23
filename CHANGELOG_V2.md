@@ -1,5 +1,19 @@
 # Changelog (V2)
 
+## [3.82.2] - 2026-03-22
+
+### Added
+- **Final Perfection Pass**: Replaced all simulated heuristics with production-grade logic for the Suggestion Engine.
+- **Hardened Similarity Engine**: Implemented Levenshtein-based similarity filtering to ensure high-diversity user prompts.
+- **Jittered Exponential Backoff**: Advanced retry logic for provider resilience.
+- **Proactive Workspace Warming**: Background context indexing on file open to minimize latency.
+- **Resource Memoization**: Service-level caching of Language Parsers.
+
+## [3.82.1] - 2026-03-22
+
+### Fixed
+- **Thought Signature Collision**: Resolved `400 INVALID_ARGUMENT: Corrupted thought signature` in next-gen Gemini models by isolating conversation history from provider-side signature validation.
+
 ## [3.82.0] - 2026-03-22
 
 ### Added

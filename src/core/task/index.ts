@@ -660,8 +660,8 @@ export class Task {
 			throw new Error("Codemarie instance aborted")
 		}
 
-		// Refresh suggestions when asking the user for input
-		if (!this.taskState.abort) {
+		// Refresh suggestions when asking the user for input (only on turn completion)
+		if (!this.taskState.abort && !partial) {
 			this.controller.suggestionService
 				.getSuggestions(this.messageStateHandler.getApiConversationHistory(), this.ulid)
 				.then(() => {

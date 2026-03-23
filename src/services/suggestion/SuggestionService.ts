@@ -5,6 +5,7 @@ import { promisify } from "util"
 import { StateManager } from "@/core/storage/StateManager"
 import { HostProvider } from "@/hosts/host-provider"
 import { telemetryService } from "@/services/telemetry"
+import type { PromptSuggestion, SuggestionType } from "@/shared/ExtensionMessage"
 import { CodemarieStorageMessage } from "@/shared/messages/content"
 import type { Diagnostic, FileDiagnostics } from "@/shared/proto/codemarie/common"
 import { Logger } from "@/shared/services/Logger"
@@ -13,22 +14,82 @@ import { asRelativePath } from "@/utils/path"
 const execAsync = promisify(exec)
 
 interface CachedSuggestions {
-	suggestions: string[]
+	suggestions: PromptSuggestion[]
 	timestamp: number
 	contentHash: string
 }
 
 export class SuggestionService {
-	private lastSuggestions: string[] = []
+	private lastSuggestions: PromptSuggestion[] = []
 	private isGenerating = false
 	private lastFetchTime = 0
 	private readonly DEBOUNCE_INTERVAL = 10000 // 10 seconds
 	private readonly SUGGESTION_HISTORY_SIZE = 6
-	private suggestionHistory: string[] = []
+	private suggestionHistory: PromptSuggestion[] = []
 	private agentContext?: any // AgentContext
 	private workspace?: any // Workspace
 	private suggestionCache = new Map<string, CachedSuggestions>()
 	private activeRequestId = 0
+	private static parserCache = new Map<string, any>() // Memoized LanguageParsers
+
+	private readonly JS_TS_KEYWORDS = new Set([
+		"if",
+		"else",
+		"for",
+		"while",
+		"do",
+		"switch",
+		"case",
+		"break",
+		"continue",
+		"return",
+		"try",
+		"catch",
+		"finally",
+		"throw",
+		"async",
+		"await",
+		"function",
+		"class",
+		"extends",
+		"implements",
+		"interface",
+		"type",
+		"enum",
+		"const",
+		"let",
+		"var",
+		"import",
+		"export",
+		"from",
+		"as",
+		"default",
+		"new",
+		"this",
+		"super",
+		"private",
+		"public",
+		"protected",
+		"static",
+		"readonly",
+		"abstract",
+		"namespace",
+		"module",
+		"declare",
+		"typeof",
+		"instanceof",
+		"true",
+		"false",
+		"null",
+		"undefined",
+		"number",
+		"string",
+		"boolean",
+		"any",
+		"void",
+		"never",
+		"unknown",
+	])
 
 	private async ensureContext(): Promise<void> {
 		if (this.agentContext) return
@@ -88,25 +149,25 @@ export class SuggestionService {
 			if (importantDiagnostics.length > 0) {
 				return importantDiagnostics
 					.map((d: Diagnostic) => {
-						const sev = d.severity === 0 ? "Error" : d.severity === 1 ? "Warning" : "Info"
-						return `[${sev}] ${d.message}`
+						const severity = d.severity === 0 ? "Error" : d.severity === 1 ? "Warning" : "Info"
+						return `[${severity}] ${d.message} (Line: ${d.range?.start?.line})`
 					})
 					.join("\n")
 			}
 		} catch (err) {
-			Logger.error("Failed to fetch diagnostics for suggestions", err)
+			Logger.warn("[SuggestionService] Failed to gather diagnostics", err)
 		}
 		return ""
 	}
 
 	private async getGitStatusContext(): Promise<string> {
 		try {
-			const { stdout } = await execAsync("git status -s", { timeout: 2000 })
-			if (stdout.trim()) {
-				return stdout.trim().split("\n").slice(0, 10).join("\n")
+			const { stdout } = await execAsync("git status --short")
+			if (stdout && stdout.length > 0) {
+				return stdout.split("\n").slice(0, 10).join("\n")
 			}
-		} catch {
-			// Silently fail for git status
+		} catch (err) {
+			Logger.warn("[SuggestionService] Failed to gather git status", err)
 		}
 		return ""
 	}
@@ -114,13 +175,21 @@ export class SuggestionService {
 	private async getFileSkeleton(filePath: string | undefined): Promise<string> {
 		if (!filePath) return ""
 		try {
+			// Memoized LanguageParser to reduce overhead
 			const { loadRequiredLanguageParsers } = require("@/services/tree-sitter/languageParser.js")
 			const { parseFile } = require("@/services/tree-sitter/index.js")
-			const parsers = await loadRequiredLanguageParsers([filePath])
-			const skeleton = await parseFile(filePath, parsers)
-			return skeleton || ""
+
+			let parser = SuggestionService.parserCache.get(filePath)
+			if (!parser) {
+				const parsers = await loadRequiredLanguageParsers([filePath])
+				parser = parsers[filePath]
+				SuggestionService.parserCache.set(filePath, parser)
+			}
+
+			const definitions = await parseFile(filePath, { [filePath]: parser })
+			return definitions || ""
 		} catch (err) {
-			Logger.warn(`[SuggestionService] Failed to generate file skeleton: ${filePath}`, err)
+			Logger.warn("[SuggestionService] Failed to generate file skeleton", err)
 			return ""
 		}
 	}
@@ -198,12 +267,14 @@ export class SuggestionService {
 				engine.nodes.get(relPath) || engine.nodes.get(`${relPath}.ts`) || engine.nodes.get(`${relPath}.tsx`)
 			if (!targetNode) return ""
 
-			// Extract symbols from error lines
+			// Extract symbols from error lines (Advanced Symbol Filtering)
 			const errorSymbols: Set<string> = new Set()
 			for (const d of diagnostics) {
 				const symbols = d.message.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
 				symbols.forEach((s) => {
-					if (s.length > 4) errorSymbols.add(s)
+					if (s.length > 3 && !this.JS_TS_KEYWORDS.has(s.toLowerCase())) {
+						errorSymbols.add(s)
+					}
 				})
 			}
 
@@ -233,7 +304,7 @@ export class SuggestionService {
 			}
 			return context
 		} catch (err) {
-			Logger.warn("[SuggestionService] Failed to perform smart symbol expansion", err)
+			Logger.warn("[SuggestionService] Failed to gather smart symbol context", err)
 			return ""
 		}
 	}
@@ -241,19 +312,11 @@ export class SuggestionService {
 	private async getDiagnosticGrounding(filePath: string | undefined, diagnostics: Diagnostic[]): Promise<string> {
 		if (!this.agentContext || !filePath || diagnostics.length === 0) return ""
 		try {
-			const errorSymbols: Set<string> = new Set()
-			// Extract symbols from error lines (rough heuristic)
-			for (const d of diagnostics.slice(0, 3)) {
-				const symbols = d.message.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
-				symbols.forEach((s) => {
-					if (s.length > 3) errorSymbols.add(s)
-				})
-			}
+			let grounding = "Diagnostic Grounding:\n"
+			for (const d of diagnostics.slice(0, 2)) {
+				const symbol = d.message.match(/'([^']+)'/)?.[1] || d.message.match(/`([^`]+)`/)?.[1]
+				if (!symbol) continue
 
-			if (errorSymbols.size === 0) return ""
-
-			let grounding = "Diagnostic Deep Grounding:\n"
-			for (const symbol of Array.from(errorSymbols).slice(0, 3)) {
 				const searchResults = await this.agentContext.searchKnowledge(`definition of ${symbol}`, ["code"], 1)
 				if (searchResults?.[0]) {
 					grounding += `Symbol '${symbol}':\n${searchResults[0].content}\n`
@@ -270,7 +333,7 @@ export class SuggestionService {
 		return crypto.createHash("md5").update(`${filePath}:${content}`).digest("hex")
 	}
 
-	async getSuggestions(messages: CodemarieStorageMessage[] = [], ulid?: string): Promise<string[]> {
+	async getSuggestions(messages: CodemarieStorageMessage[] = [], ulid?: string): Promise<PromptSuggestion[]> {
 		const requestId = ++this.activeRequestId
 		if (this.isGenerating) {
 			return this.lastSuggestions
@@ -295,37 +358,26 @@ export class SuggestionService {
 			const activeProvider = mode === "plan" ? apiConfig.planModeApiProvider : apiConfig.actModeApiProvider
 
 			// User-Selected Model Integration
-			const isModelSet =
-				mode === "plan"
-					? !!(
-							suggestionApiConfig.planModeApiModelId ||
-							suggestionApiConfig.planModeOpenRouterModelId ||
-							suggestionApiConfig.planModeOpenAiModelId ||
-							suggestionApiConfig.planModeCodemarieModelId
-						)
-					: !!(
-							suggestionApiConfig.actModeApiModelId ||
-							suggestionApiConfig.actModeOpenRouterModelId ||
-							suggestionApiConfig.actModeOpenAiModelId ||
-							suggestionApiConfig.actModeCodemarieModelId
-						)
-
-			if (!isModelSet) {
-				// Modern Fallback Strategy (only if user hasn't selected a specific model)
+			const isModelSet = mode === "plan" ? !!apiConfig.planModeApiModelId : !!apiConfig.actModeApiModelId
+			if (!isModelSet || activeProvider === "openrouter" || activeProvider === "openai") {
 				switch (activeProvider) {
+					case "openrouter":
+						suggestionApiConfig.actModeApiModelId = "google/gemini-2.0-flash-001"
+						suggestionApiConfig.planModeApiModelId = "google/gemini-2.0-flash-001"
+						break
+					case "openai":
+						suggestionApiConfig.actModeApiModelId = "gpt-4o-mini"
+						suggestionApiConfig.planModeApiModelId = "gpt-4o-mini"
+						break
 					case "anthropic":
 						suggestionApiConfig.actModeApiModelId = "claude-3-5-haiku-20241022"
 						suggestionApiConfig.planModeApiModelId = "claude-3-5-haiku-20241022"
 						break
-					case "openai":
-						suggestionApiConfig.actModeOpenAiModelId = "gpt-4o-mini"
-						suggestionApiConfig.planModeOpenAiModelId = "gpt-4o-mini"
-						break
-					case "openrouter":
-						suggestionApiConfig.actModeOpenRouterModelId = "google/gemini-2.0-flash-001"
-						suggestionApiConfig.planModeOpenRouterModelId = "google/gemini-2.0-flash-001"
-						break
 					case "gemini":
+						suggestionApiConfig.actModeApiModelId = "gemini-1.5-flash"
+						suggestionApiConfig.planModeApiModelId = "gemini-1.5-flash"
+						break
+					case "vertex":
 						suggestionApiConfig.actModeApiModelId = "gemini-1.5-flash"
 						suggestionApiConfig.planModeApiModelId = "gemini-1.5-flash"
 						break
@@ -335,6 +387,10 @@ export class SuggestionService {
 						break
 				}
 			}
+
+			// Ensure thinking is disabled for background suggestions to prevent budget collisions and latency
+			suggestionApiConfig.actModeThinkingBudgetTokens = 0
+			suggestionApiConfig.planModeThinkingBudgetTokens = 0
 
 			const { buildApiHandler } = require("@/core/api")
 			const handler = buildApiHandler(suggestionApiConfig, mode)
@@ -477,13 +533,16 @@ ${diagnosticsSummary || "No problems detected."}
 <git_status>
 ${gitStatusSummary || "No pending changes."}
 </git_status>
+<conversation_history>
+${this.stringifyMessages(messages.slice(-5))}
+</conversation_history>
 
 Your task is to generate 3 diverse and actionable prompt suggestions (under 80 chars each) categorized by "Oracle Modes".
 
 Oracle Modes (Output exactly one of each):
-1. ORACLE FIX: High-precision resolution of the most critical issue in <diagnostics> or <diagnostic_deep_context>.
-2. ORACLE DESIGN: Architectural improvement or refactor grounded in <project_patterns> and <structural_impact>.
-3. ORACLE LEARN: Discovery suggestion focused on explaining complex logic in <file_snippet> or <smart_symbol_context>.
+1. fix: High-precision resolution of the most critical issue in <diagnostics> or <diagnostic_deep_context>.
+2. design: Architectural improvement or refactor grounded in <project_patterns> and <structural_impact>.
+3. learn: Discovery suggestion focused on explaining complex logic in <file_snippet> or <smart_symbol_context>.
 
 Architectural Guardrails:
 - Strictly adhere to <project_patterns>. Use the project's preferred idioms.
@@ -491,20 +550,27 @@ Architectural Guardrails:
 - Ground suggestions in the <file_skeleton>, <import_context>, and <smart_symbol_context>. Use existing types and symbols correctly.
 - Prioritize solving errors in <diagnostics>.
 
-Example output format:
-Fix the type mismatch in the login handler
-Refactor SuggestionService to use the Oracle Design mode
-Explain how the SpiderEngine resolves symbols in this module
+Output format: JSON array of objects.
+Each object must have:
+- "text": The suggestion prompt.
+- "type": One of "fix", "design", "learn".
 
-Output ONLY the suggestions, one per line, no numbering, no tags, and no extra text.`
+Example:
+[
+  {"text": "Fix the type mismatch in login handler", "type": "fix"},
+  {"text": "Refactor SuggestionService to use Oracle Design", "type": "design"},
+  {"text": "Explain SpiderEngine symbol resolution", "type": "learn"}
+]
 
-			const storageMessages: CodemarieStorageMessage[] = messages.slice(-5).map((m) => ({
-				role: m.role,
-				content: typeof m.content === "string" ? m.content : m.content.filter((c) => c.type === "text"),
-			}))
+Output ONLY the JSON, no tags, and no extra text.`
+
+			// Isolation: We pass an empty history array to createMessage to bypass provider-side signature validation
+			// for thinking blocks (e.g. Gemini Corrupted Thought Signature 400 error).
+			// Full conversational context is instead provided via the <conversation_history> tag in the system prompt.
+			const storageMessages: CodemarieStorageMessage[] = []
 
 			// Resilience: Retry Logic and Timeout
-			const generateWithRetry = async (retryCount = 1): Promise<string[]> => {
+			const generateWithRetry = async (retryCount = 1): Promise<PromptSuggestion[]> => {
 				let timeoutId: NodeJS.Timeout | undefined
 				try {
 					const timeoutPromise = new Promise<never>((_, reject) => {
@@ -525,26 +591,64 @@ Output ONLY the suggestions, one per line, no numbering, no tags, and no extra t
 					const fullText = await Promise.race([streamPromise, timeoutPromise])
 					if (timeoutId) clearTimeout(timeoutId)
 
-					const suggestions = fullText
-						.split("\n")
-						.map((s) => s.trim())
-						.filter((s) => {
-							const isClean = s.length > 0 && !s.startsWith("-") && !/^\d+\./.test(s)
-							const isDuplicate = this.suggestionHistory.some(
-								(prev) =>
-									prev.toLowerCase() === s.toLowerCase() ||
-									(s.length > 10 && prev.includes(s.substring(0, 10))),
-							)
-							return isClean && !isDuplicate
-						})
-						.slice(0, 3)
+					// Parse JSON and validate
+					let rawSuggestions: any[]
+					try {
+						// Strip potential markdown blocks if AI ignored instructions
+						const jsonText = fullText.replace(/```json\n?|\n?```/g, "").trim()
+						rawSuggestions = JSON.parse(jsonText)
+					} catch (err) {
+						Logger.warn("[SuggestionService] Failed to parse AI JSON response", fullText, err)
+						throw new Error("Invalid JSON from AI")
+					}
 
-					if (suggestions.length === 0) throw new Error("Empty suggestions from AI")
-					return suggestions
+					if (!Array.isArray(rawSuggestions)) throw new Error("AI response is not an array")
+
+					const { calculateSimilarity } = require("@/utils/string.ts")
+					const finalSuggestions: PromptSuggestion[] = []
+
+					for (const s of rawSuggestions.slice(0, 3)) {
+						if (!s.text || !s.type) continue
+
+						// Hardened Similarity Engine (Levenshtein Threshold: 0.8)
+						const hasSimilarPending = this.suggestionHistory.some(
+							(prev) => calculateSimilarity(prev.text, s.text) > 0.8,
+						)
+
+						if (!hasSimilarPending) {
+							// Calculate structural impact score (0.0 - 1.0)
+							// If importance is high, bias the impact score up
+							let impact = 0.1
+							if (structuralImpact) {
+								if (structuralImpact.importance === "HIGH") impact = 0.8
+								else if (structuralImpact.importance === "MEDIUM") impact = 0.5
+
+								// Scale by blast radius if available
+								if (structuralImpact.blastRadius?.affectedNodes) {
+									impact = Math.min(1.0, impact + structuralImpact.blastRadius.affectedNodes.length / 100)
+								}
+							}
+
+							finalSuggestions.push({
+								text: s.text,
+								type: s.type as SuggestionType,
+								impact: Number.parseFloat(impact.toFixed(2)),
+							})
+						}
+					}
+
+					if (finalSuggestions.length === 0) throw new Error("Empty suggestions after filtering")
+					return finalSuggestions
 				} catch (err) {
 					if (timeoutId) clearTimeout(timeoutId)
 					if (retryCount > 0) {
-						Logger.warn(`Suggestion generation failed, retrying... (${retryCount} left)`, err)
+						// Jittered Exponential Backoff
+						const backoffMs = 2 ** (2 - retryCount) * 1000 + Math.random() * 500
+						Logger.warn(
+							`Suggestion generation failed, retrying in ${Math.round(backoffMs)}ms... (${retryCount} left)`,
+							err,
+						)
+						await new Promise((resolve) => setTimeout(resolve, backoffMs))
 						return generateWithRetry(retryCount - 1)
 					}
 					throw err
@@ -586,30 +690,82 @@ Output ONLY the suggestions, one per line, no numbering, no tags, and no extra t
 		}
 	}
 
-	private async getFallbackSuggestions(): Promise<string[]> {
+	private async getFallbackSuggestions(): Promise<PromptSuggestion[]> {
 		const activeEditor = await HostProvider.window.getActiveEditor({})
 		const filePath = activeEditor?.filePath
 
-		const suggestions: string[] = []
+		const suggestions: PromptSuggestion[] = []
 		if (filePath) {
 			const relPath = await asRelativePath(filePath)
-			suggestions.push(`Refactor ${relPath}`)
-			suggestions.push(`Add unit tests for ${relPath}`)
-			suggestions.push(`Explain ${relPath} to me`)
+			suggestions.push({ text: `Refactor ${relPath}`, type: "design", impact: 0.3 })
+			suggestions.push({ text: `Add unit tests for ${relPath}`, type: "design", impact: 0.2 })
+			suggestions.push({ text: `Explain ${relPath} to me`, type: "learn", impact: 0.1 })
 		} else {
-			suggestions.push("Help me find where the core logic is")
-			suggestions.push("Explain the project structure")
-			suggestions.push("What's the best way to get started?")
+			suggestions.push({ text: "Help me find where the core logic is", type: "learn", impact: 0.1 })
+			suggestions.push({ text: "Explain the project structure", type: "learn", impact: 0.1 })
+			suggestions.push({ text: "What's the best way to get started?", type: "learn", impact: 0.1 })
 		}
 		this.lastSuggestions = suggestions.slice(0, 3)
 		return this.lastSuggestions
 	}
 
-	getCachedSuggestions(): string[] {
+	getCachedSuggestions(): PromptSuggestion[] {
 		return this.lastSuggestions
 	}
 
 	getIsGenerating(): boolean {
 		return this.isGenerating
+	}
+
+	/**
+	 * Clears the current suggestions and resets the generation state.
+	 * Used when user intent changes (e.g. sending a new message).
+	 */
+	clearSuggestions(): void {
+		this.lastSuggestions = []
+		this.isGenerating = false
+		this.activeRequestId++
+		Logger.info("[SuggestionService] Suggestions cleared")
+	}
+
+	private stringifyMessages(messages: any[]): string {
+		if (messages.length === 0) return "No prior history."
+		return messages
+			.map((m) => {
+				const role = m.role === "user" ? "User" : "Assistant"
+				const content = Array.isArray(m.content)
+					? m.content
+							.map((c: any) => {
+								if (c.type === "text") return c.text
+								if (c.type === "thought" || c.type === "thinking") return `[Thought: ${c.thought || c.text}]`
+								return `[${c.type}]`
+							})
+							.join("\n")
+					: m.content
+				return `${role}: ${content}`
+			})
+			.join("\n---\n")
+	}
+
+	/**
+	 * Proactive Workspace Warming: Pre-indexes structural data and knowledge for the active workspace.
+	 * Triggered when a file is opened to minimize first-suggestion latency.
+	 */
+	async warmup(filePath: string): Promise<void> {
+		try {
+			await this.ensureContext()
+			if (this.agentContext && filePath) {
+				const relPath = await asRelativePath(filePath)
+				// Concurrent Warming via AgentContext/SDS
+				await Promise.all([
+					this.agentContext.searchKnowledge(`core logic in ${relPath}`, ["code"], 1).catch(() => {}),
+					this.getFileSkeleton(filePath).catch(() => {}),
+					this.getProjectPatterns().catch(() => {}),
+				])
+				Logger.info(`[SuggestionService] Context warmed for ${relPath}`)
+			}
+		} catch (err) {
+			Logger.warn("[SuggestionService] Failed to perform proactive warmup", err)
+		}
 	}
 }
