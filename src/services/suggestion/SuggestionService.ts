@@ -28,9 +28,11 @@ export class SuggestionService {
 	private suggestionHistory: PromptSuggestion[] = []
 	private agentContext?: any // AgentContext
 	private workspace?: any // Workspace
-	private suggestionCache = new Map<string, CachedSuggestions>()
 	private activeRequestId = 0
-	private static parserCache = new Map<string, any>() // Memoized LanguageParsers
+	private static readonly MAX_PARSER_CACHE_SIZE = 20
+	private static parserCache = new Map<string, { parser: any; lastUsed: number }>() // LRU-managed parsers
+	private suggestionCache = new Map<string, CachedSuggestions>()
+	private static readonly MAX_SUGGESTION_CACHE_SIZE = 50
 
 	private readonly JS_TS_KEYWORDS = new Set([
 		"if",
@@ -179,14 +181,24 @@ export class SuggestionService {
 			const { loadRequiredLanguageParsers } = require("@/services/tree-sitter/languageParser.js")
 			const { parseFile } = require("@/services/tree-sitter/index.js")
 
-			let parser = SuggestionService.parserCache.get(filePath)
-			if (!parser) {
+			let cached = SuggestionService.parserCache.get(filePath)
+			if (!cached) {
+				// LRU Eviction for parser cache
+				if (SuggestionService.parserCache.size >= SuggestionService.MAX_PARSER_CACHE_SIZE) {
+					const oldest = Array.from(SuggestionService.parserCache.entries()).sort(
+						(a, b) => a[1].lastUsed - b[1].lastUsed,
+					)[0]
+					if (oldest) SuggestionService.parserCache.delete(oldest[0])
+				}
 				const parsers = await loadRequiredLanguageParsers([filePath])
-				parser = parsers[filePath]
-				SuggestionService.parserCache.set(filePath, parser)
+				const parser = parsers[filePath]
+				cached = { parser, lastUsed: Date.now() }
+				SuggestionService.parserCache.set(filePath, cached)
+			} else {
+				cached.lastUsed = Date.now()
 			}
 
-			const definitions = await parseFile(filePath, { [filePath]: parser })
+			const definitions = await parseFile(filePath, { [filePath]: cached.parser })
 			return definitions || ""
 		} catch (err) {
 			Logger.warn("[SuggestionService] Failed to generate file skeleton", err)
@@ -284,8 +296,17 @@ export class SuggestionService {
 			const { loadRequiredLanguageParsers } = require("@/services/tree-sitter/languageParser.js")
 			const { parseFile } = require("@/services/tree-sitter/index.js")
 
+			// Attempt high-fidelity resolution via Tree-sitter if available
+			let definitions = ""
+			try {
+				definitions = await this.getFileSkeleton(filePath)
+			} catch {}
+
 			const resolvedPaths: string[] = []
 			for (const symbol of Array.from(errorSymbols).slice(0, 3)) {
+				// If symbol is found in active file definitions, we already have it
+				if (definitions.includes(symbol)) continue
+
 				// Search for symbol definition project-wide
 				const searchResults = await this.agentContext.searchKnowledge(`definition of ${symbol}`, ["code"], 1)
 				if (searchResults?.[0] && searchResults[0].filePath) {
@@ -296,9 +317,9 @@ export class SuggestionService {
 			if (resolvedPaths.length > 0) {
 				const parsers = await loadRequiredLanguageParsers(resolvedPaths)
 				for (const absPath of resolvedPaths.slice(0, 2)) {
-					const definitions = await parseFile(absPath, parsers)
-					if (definitions) {
-						context += `Resolved Symbol from ${require("path").basename(absPath)}:\n${definitions}\n`
+					const defs = await parseFile(absPath, parsers)
+					if (defs) {
+						context += `Resolved Symbol from ${require("path").basename(absPath)}:\n${defs}\n`
 					}
 				}
 			}
@@ -413,7 +434,7 @@ export class SuggestionService {
 					const content = await fs.readFile(filePath, "utf8")
 					contentHash = this.calculateContentHash(content, filePath)
 
-					// Cache lookup
+					// LRU-managed Cache lookup
 					const cached = this.suggestionCache.get(filePath)
 					if (cached && cached.contentHash === contentHash && now - cached.timestamp < 300000) {
 						// 5 min cache
@@ -550,11 +571,14 @@ ${this.stringifyMessages(messages.slice(-5))}
 
 Crucial Instructions:
 1. Suggestions MUST be STRICTLY grounded in the provided project context.
-2. BANNED: Do not invent files, do not provide generic advice (e.g., "check the logs").
-3. You MUST use the exact file names, variable names, and architectural concepts found in the context (especially from <file_snippet>, <smart_symbol_context>, and <diagnostics>).
-4. Ensure suggestions follow the <project_patterns> and respect <structural_impact>.
+2. BANNED: Do NOT provide generic advice (e.g., "check the logs", "refactor for readability").
+3. BANNED: Do NOT invent files or symbols that do not exist in the context tags.
+4. BANNED: Do NOT include preamble, conversational filler, or markdown tags other than the JSON block.
+5. You MUST use the exact file names, variable names, and architectural concepts found in the context (especially from <file_snippet>, <smart_symbol_context>, and <diagnostics>).
+6. Ensure suggestions follow the <project_patterns> and respect <structural_impact>.
+7. Every suggestion MUST be a prompt the user can literally send to you to make progress.
 
-Oracle Modes (Select 3 diverse modes from below):
+Oracle Modes (Select EXACTLY 3 diverse modes from below):
 1. fix: High-precision resolution of the most critical issue in <diagnostics> or <diagnostic_deep_context>.
 2. design: Architectural improvement or refactor grounded in <project_patterns> and <structural_impact>.
 3. learn: Discovery suggestion focused on explaining complex logic in <file_snippet> or <smart_symbol_context>.
@@ -597,6 +621,12 @@ Output ONLY the JSON, no tags, and no extra text.`
 						const stream = handler.createMessage(systemPrompt, storageMessages)
 						let fullText = ""
 						for await (const chunk of stream) {
+							// Concurrency Hardening: Discard if newer request started during streaming
+							if (requestId !== this.activeRequestId) {
+								handler.abort?.()
+								throw new Error("Stale request cancelled")
+							}
+
 							if (chunk.type === "text") {
 								fullText += chunk.text
 							}
@@ -607,15 +637,20 @@ Output ONLY the JSON, no tags, and no extra text.`
 					const fullText = await Promise.race([streamPromise, timeoutPromise])
 					if (timeoutId) clearTimeout(timeoutId)
 
-					// Parse JSON and validate
+					// Parse JSON and validate (Robust extraction)
 					let rawSuggestions: any[]
 					try {
-						// Strip potential markdown blocks if AI ignored instructions
-						const jsonText = fullText.replace(/```json\n?|\n?```/g, "").trim()
-						rawSuggestions = JSON.parse(jsonText)
+						// Strip potential markdown blocks and whitespace aggressively
+						const jsonText = fullText.replace(/```(?:json)?\s*([\s\S]*?)```/g, "$1").trim()
+						// Handle edge case where model might have included preamble despite instructions
+						const jsonStartIndex = jsonText.indexOf("[")
+						const jsonEndIndex = jsonText.lastIndexOf("]")
+						if (jsonStartIndex === -1 || jsonEndIndex === -1) throw new Error("No JSON array found")
+
+						rawSuggestions = JSON.parse(jsonText.substring(jsonStartIndex, jsonEndIndex + 1))
 					} catch (err) {
 						Logger.warn("[SuggestionService] Failed to parse AI JSON response", fullText, err)
-						throw new Error("Invalid JSON from AI")
+						throw new Error("Invalid format from AI")
 					}
 
 					if (!Array.isArray(rawSuggestions)) throw new Error("AI response is not an array")
@@ -687,8 +722,12 @@ Output ONLY the JSON, no tags, and no extra text.`
 				// Update History (maintain distinct suggestions)
 				this.suggestionHistory = [...suggestions, ...this.suggestionHistory].slice(0, this.SUGGESTION_HISTORY_SIZE)
 
-				// Update cache
+				// Update cache (with LRU eviction)
 				if (filePath && contentHash) {
+					if (this.suggestionCache.size >= SuggestionService.MAX_SUGGESTION_CACHE_SIZE) {
+						const oldestKey = Array.from(this.suggestionCache.keys())[0]
+						if (oldestKey) this.suggestionCache.delete(oldestKey)
+					}
 					this.suggestionCache.set(filePath, {
 						suggestions,
 						timestamp: Date.now(),
