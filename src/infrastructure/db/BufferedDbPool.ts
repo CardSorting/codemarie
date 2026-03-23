@@ -24,7 +24,7 @@ export type DbLayer = "domain" | "infrastructure" | "ui" | "plumbing"
 type WhereCondition = {
 	column: string
 	value: string | number | string[] | number[] | null
-	operator?: "=" | "<" | ">" | "<=" | ">=" | "!=" | "IN"
+	operator?: "=" | "<" | ">" | "<=" | ">=" | "!=" | "IN" | "LIKE" | "JSON_CONTAINS"
 }
 
 export type Increment = { _type: "increment"; value: number }
@@ -322,6 +322,10 @@ export class BufferedDbPool {
 				const opStr = cond.operator || "="
 				if (Array.isArray(cond.value)) {
 					query = query.where(cond.column as any, "in", cond.value as any)
+				} else if (opStr === "JSON_CONTAINS") {
+					query = query.where(
+						sql`EXISTS (SELECT 1 FROM json_each(${sql.ref(cond.column)}) WHERE value = ${cond.value})` as any,
+					)
 				} else {
 					query = query.where(cond.column as any, opStr as any, cond.value as any)
 				}
@@ -377,6 +381,18 @@ export class BufferedDbPool {
 								if (opStr === ">=") return (val as any) >= (c.value as any)
 								if (opStr === "<=") return (val as any) <= (c.value as any)
 								if (opStr === "IN" && Array.isArray(c.value)) return (c.value as any[]).includes(val as any)
+								if (opStr === "LIKE" && typeof val === "string" && typeof c.value === "string") {
+									const regex = new RegExp(c.value.replace(/%/g, ".*"), "i")
+									return regex.test(val)
+								}
+								if (opStr === "JSON_CONTAINS" && typeof val === "string") {
+									try {
+										const arr = JSON.parse(val)
+										return Array.isArray(arr) && arr.includes(c.value)
+									} catch {
+										return false
+									}
+								}
 								return false
 							})
 							if (match) {

@@ -330,15 +330,18 @@ export class FileTree {
 			}
 		}
 
-		// BATCH OPTIMIZATION: Resolve from SQLite
+		// BATCH OPTIMIZATION: Resolve from SQLite in a single trip
 		if (missingDocs.length > 0) {
+			const docIds = Array.from(new Set(missingDocs.map((m) => m.docId)))
+			const files = await this.db.selectWhere("files", [{ column: "id", value: docIds, operator: "IN" }])
+			const fileMap = new Map((files as any[]).map((f) => [f.id, f as FileEntry]))
+
 			for (const item of missingDocs) {
-				const file = await this.db.selectOne("files", [{ column: "id", value: item.docId }])
+				const file = fileMap.get(item.docId)
 				let size = 0
 				if (file) {
-					const data = file as FileEntry
-					size = data.size || 0
-					this.repo.getFileCache().set(item.docId, data)
+					size = file.size || 0
+					this.repo.getFileCache().set(item.docId, file)
 				}
 				result.push({ path: item.path, size })
 			}

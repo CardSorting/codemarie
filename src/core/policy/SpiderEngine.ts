@@ -1,6 +1,7 @@
 import * as fs from "fs"
 import * as path from "path"
 import { CallExpression, ImportDeclaration, Project, SyntaxKind } from "ts-morph"
+import { Logger } from "@/shared/services/Logger"
 import { getLayer, Layer } from "@/utils/joy-zoning"
 
 export interface SpiderNode {
@@ -47,8 +48,10 @@ export interface SpiderViolation {
  */
 export class SpiderEngine {
 	public nodes: Map<string, SpiderNode> = new Map()
+	public version = 0
 	private project: Project
 	private snapshotDir: string
+	private resolutionCache: Map<string, string | null> = new Map()
 
 	constructor(public cwd: string) {
 		this.snapshotDir = path.join(cwd, ".spider", "snapshots")
@@ -98,6 +101,7 @@ export class SpiderEngine {
 			orphaned: false,
 		})
 
+		this.resolutionCache.clear()
 		this.computeReachability()
 	}
 
@@ -112,7 +116,9 @@ export class SpiderEngine {
 		this.nodes.delete(normalizedPath)
 		const sf = this.project.getSourceFile(absolutePath)
 		if (sf) this.project.removeSourceFile(sf)
+		this.resolutionCache.clear()
 		this.computeReachability()
+		this.version++
 	}
 
 	/**
@@ -123,6 +129,8 @@ export class SpiderEngine {
 		for (const sourceFile of this.project.getSourceFiles()) {
 			this.project.removeSourceFile(sourceFile)
 		}
+		this.resolutionCache.clear()
+		this.version++
 	}
 
 	/**
@@ -169,6 +177,7 @@ export class SpiderEngine {
 			})
 		}
 
+		this.resolutionCache.clear()
 		this.computeReachability()
 	}
 
@@ -203,6 +212,7 @@ export class SpiderEngine {
 		for (const node of this.nodes.values()) {
 			node.orphaned = !reachable.has(node.id)
 		}
+		this.version++
 	}
 
 	/**
@@ -321,32 +331,56 @@ export class SpiderEngine {
 	}
 
 	public resolveImportToNodeId(sourcePath: string, specifier: string): string | null {
+		const cacheKey = `${sourcePath}:${specifier}`
+		if (this.resolutionCache.has(cacheKey)) return this.resolutionCache.get(cacheKey) ?? null
+
+		let result: string | null = null
 		if (specifier.startsWith(".")) {
 			const abs = path.resolve(this.cwd, path.dirname(sourcePath), specifier)
 			const rel = path.relative(this.cwd, abs).replace(/\\/g, "/")
-			if (this.nodes.has(rel)) return rel
-			if (this.nodes.has(`${rel}.ts`)) return `${rel}.ts`
-			if (this.nodes.has(`${rel}.tsx`)) return `${rel}.tsx`
-
-			// Handle directory index files
-			const indexTs = path.join(rel, "index.ts").replace(/\\/g, "/")
-			if (this.nodes.has(indexTs)) return indexTs
-			const indexTsx = path.join(rel, "index.tsx").replace(/\\/g, "/")
-			if (this.nodes.has(indexTsx)) return indexTsx
-		}
-		if (specifier.startsWith("@/")) {
+			if (this.nodes.has(rel)) result = rel
+			else if (this.nodes.has(`${rel}.ts`)) result = `${rel}.ts`
+			else if (this.nodes.has(`${rel}.tsx`)) result = `${rel}.tsx`
+			else {
+				// Handle directory index files
+				const indexTs = path.join(rel, "index.ts").replace(/\\/g, "/")
+				if (this.nodes.has(indexTs)) result = indexTs
+				else {
+					const indexTsx = path.join(rel, "index.tsx").replace(/\\/g, "/")
+					if (this.nodes.has(indexTsx)) result = indexTsx
+				}
+			}
+		} else if (specifier.startsWith("@/")) {
 			const rel = specifier.replace("@/", "src/").replace(/\\/g, "/")
-			if (this.nodes.has(rel)) return rel
-			if (this.nodes.has(`${rel}.ts`)) return `${rel}.ts`
-			if (this.nodes.has(`${rel}.tsx`)) return `${rel}.tsx`
-
-			// Handle directory index files for aliases
-			const indexTs = path.join(rel, "index.ts").replace(/\\/g, "/")
-			if (this.nodes.has(indexTs)) return indexTs
-			const indexTsx = path.join(rel, "index.tsx").replace(/\\/g, "/")
-			if (this.nodes.has(indexTsx)) return indexTsx
+			if (this.nodes.has(rel)) result = rel
+			else if (this.nodes.has(`${rel}.ts`)) result = `${rel}.ts`
+			else if (this.nodes.has(`${rel}.tsx`)) result = `${rel}.tsx`
+			else {
+				// Handle directory index files for aliases
+				const indexTs = path.join(rel, "index.ts").replace(/\\/g, "/")
+				if (this.nodes.has(indexTs)) result = indexTs
+				else {
+					const indexTsx = path.join(rel, "index.tsx").replace(/\\/g, "/")
+					if (this.nodes.has(indexTsx)) result = indexTsx
+				}
+			}
 		}
-		return null
+		this.resolutionCache.set(cacheKey, result)
+		return result
+	}
+
+	public serialize(): string {
+		return JSON.stringify(Array.from(this.nodes.entries()))
+	}
+
+	public deserialize(data: string) {
+		try {
+			const entries = JSON.parse(data)
+			this.nodes = new Map(entries)
+			this.version++
+		} catch (e) {
+			Logger.error("[SpiderEngine] Deserialization failed:", e)
+		}
 	}
 
 	public resolveLayer(sourcePath: string, specifier: string): Layer | null {

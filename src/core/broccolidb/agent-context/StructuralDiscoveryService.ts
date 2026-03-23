@@ -13,6 +13,8 @@ export interface BlastRadius {
  */
 export class StructuralDiscoveryService {
 	private cache: Map<string, BlastRadius> = new Map()
+	private inverseGraph: Map<string, string[]> = new Map()
+	private lastVersion = -1
 
 	constructor(private getEngine: () => SpiderEngine) {}
 
@@ -44,17 +46,29 @@ export class StructuralDiscoveryService {
 
 		const dependents: Set<string> = new Set()
 
-		// Map of target -> sources (inverse of imports)
-		const inverseGraph: Map<string, string[]> = new Map()
-		for (const node of engine.nodes.values()) {
-			for (const imp of node.imports) {
-				const resolved = engine.resolveImportToNodeId(node.id, imp)
-				if (resolved) {
-					const existing = inverseGraph.get(resolved) || []
-					existing.push(node.id)
-					inverseGraph.set(resolved, existing)
+		// Recompute inverse graph only if engine version has changed
+		if (engine.version !== this.lastVersion) {
+			this.inverseGraph = new Map()
+			const resolutionCache = new Map<string, string | null>()
+
+			for (const node of engine.nodes.values()) {
+				for (const imp of node.imports) {
+					const cacheKey = `${node.id}:${imp}`
+					let resolved = resolutionCache.get(cacheKey)
+					if (resolved === undefined) {
+						resolved = engine.resolveImportToNodeId(node.id, imp)
+						resolutionCache.set(cacheKey, resolved)
+					}
+
+					if (resolved) {
+						const existing = this.inverseGraph.get(resolved) || []
+						existing.push(node.id)
+						this.inverseGraph.set(resolved, existing)
+					}
 				}
 			}
+			this.lastVersion = engine.version
+			this.cache.clear() // Cache depends on the graph structure
 		}
 
 		const visited = new Set<string>()
@@ -64,7 +78,7 @@ export class StructuralDiscoveryService {
 			if (!current || visited.has(current)) continue
 			visited.add(current)
 
-			const sources = inverseGraph.get(current) || []
+			const sources = this.inverseGraph.get(current) || []
 			for (const s of sources) {
 				dependents.add(s)
 				toVisit.push(s)

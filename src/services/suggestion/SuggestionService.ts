@@ -37,6 +37,14 @@ export class SuggestionService {
 	private static parserCache = new Map<string, { parser: any; lastUsed: number }>() // LRU-managed parsers
 	private suggestionCache = new Map<string, CachedSuggestions>()
 	private static readonly MAX_SUGGESTION_CACHE_SIZE = 50
+	private lastGitStatus = ""
+	private lastGitTimestamp = 0
+	private readonly GIT_CACHE_TTL = 30000 // 30 seconds
+	private lastProjectPatterns = ""
+	private lastProjectPatternsTimestamp = 0
+	private readonly PROJECT_PATTERNS_TTL = 600000 // 10 minutes
+	private symbolCache = new Map<string, { definition: string; timestamp: number }>()
+	private readonly SYMBOL_CACHE_TTL = 300000 // 5 minutes
 
 	private readonly JS_TS_KEYWORDS = new Set([
 		"if",
@@ -107,11 +115,11 @@ export class SuggestionService {
 			const cwd = paths.paths?.[0] || process.cwd()
 			const workspaceId = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 12)
 
-			const { BufferedDbPool } = require("@/infrastructure/db/BufferedDbPool.js")
+			const { dbPool } = require("@/infrastructure/db/BufferedDbPool.js")
 			const { Workspace } = require("@/core/broccolidb/workspace.js")
 			const { AgentContext } = require("@/core/broccolidb/agent-context.js")
 
-			const db = new BufferedDbPool()
+			const db = dbPool
 			this.workspace = new Workspace(db, machineId, workspaceId)
 			await this.workspace!.init()
 			this.agentContext = new AgentContext(this.workspace!)
@@ -168,14 +176,20 @@ export class SuggestionService {
 
 	private async getGitStatusContext(): Promise<string> {
 		try {
-			const { stdout } = await execAsync("git status --short")
-			if (stdout && stdout.length > 0) {
-				return stdout.split("\n").slice(0, 10).join("\n")
+			// Basic TTL Cache for Git Status
+			if (Date.now() - this.lastGitTimestamp < this.GIT_CACHE_TTL && this.lastGitStatus) {
+				return this.lastGitStatus
 			}
-		} catch (err) {
-			Logger.warn("[SuggestionService] Failed to gather git status", err)
+
+			// -uno ignores untracked files, significantly faster in large repositories
+			const { stdout } = await execAsync("git status --porcelain -uno", { timeout: 2000 })
+			this.lastGitStatus = stdout.trim()
+			this.lastGitTimestamp = Date.now()
+			return this.lastGitStatus
+		} catch (error) {
+			Logger.warn("[SuggestionService] Failed to get git status context", error)
+			return ""
 		}
-		return ""
 	}
 
 	private async getFileSkeleton(filePath: string | undefined): Promise<string> {
@@ -257,13 +271,20 @@ export class SuggestionService {
 	private async getProjectPatterns(): Promise<string> {
 		if (!this.agentContext) return ""
 		try {
+			// 10-minute TTL Cache for project patterns
+			if (Date.now() - this.lastProjectPatternsTimestamp < this.PROJECT_PATTERNS_TTL && this.lastProjectPatterns) {
+				return this.lastProjectPatterns
+			}
+
 			const patterns = await this.agentContext.searchKnowledge(
 				"dominant design patterns, error handling conventions, and naming styles in this project",
 				["code", "documentation"],
 				2,
 			)
 			if (patterns && patterns.length > 0) {
-				return patterns.map((p: KnowledgeBaseItem) => p.content).join("\n---\n")
+				this.lastProjectPatterns = patterns.map((p: KnowledgeBaseItem) => p.content).join("\n---\n")
+				this.lastProjectPatternsTimestamp = Date.now()
+				return this.lastProjectPatterns
 			}
 		} catch (err) {
 			Logger.warn("[SuggestionService] Failed to gather project patterns", err)
@@ -301,20 +322,28 @@ export class SuggestionService {
 			const { parseFile } = require("@/services/tree-sitter/index.js")
 
 			// Attempt high-fidelity resolution via Tree-sitter if available
-			let definitions = ""
+			let localDefinitions = ""
 			try {
-				definitions = await this.getFileSkeleton(filePath)
+				localDefinitions = await this.getFileSkeleton(filePath)
 			} catch {}
 
 			const resolvedPaths: string[] = []
 			for (const symbol of Array.from(errorSymbols).slice(0, 3)) {
-				// If symbol is found in active file definitions, we already have it
-				if (definitions.includes(symbol)) continue
+				// 1. If symbol is found in active file definitions, we already have it
+				if (localDefinitions.includes(symbol)) continue
 
-				// Search for symbol definition project-wide
+				// 2. Check Symbol LRU Cache
+				const cached = this.symbolCache.get(symbol)
+				if (cached && Date.now() - cached.timestamp < this.SYMBOL_CACHE_TTL) {
+					context += cached.definition
+					continue
+				}
+
+				// 3. Search for symbol definition project-wide
 				const searchResults = await this.agentContext.searchKnowledge(`definition of ${symbol}`, ["code"], 1)
 				if (searchResults?.[0] && searchResults[0].metadata?.filePath) {
-					resolvedPaths.push(require("path").resolve(engine.cwd, searchResults[0].metadata.filePath as string))
+					const absPath = require("path").resolve(engine.cwd, searchResults[0].metadata.filePath as string)
+					resolvedPaths.push(absPath)
 				}
 			}
 
@@ -323,7 +352,15 @@ export class SuggestionService {
 				for (const absPath of resolvedPaths.slice(0, 2)) {
 					const defs = await parseFile(absPath, parsers)
 					if (defs) {
-						context += `Resolved Symbol from ${require("path").basename(absPath)}:\n${defs}\n`
+						const symbolInfo = `Resolved Symbol from ${require("path").basename(absPath)}:\n${defs}\n`
+						context += symbolInfo
+
+						// Cache the resolution for all symbols that were likely resolved to this file
+						for (const symbol of Array.from(errorSymbols)) {
+							if (defs.includes(symbol)) {
+								this.symbolCache.set(symbol, { definition: symbolInfo, timestamp: Date.now() })
+							}
+						}
 					}
 				}
 			}
@@ -446,8 +483,8 @@ export class SuggestionService {
 				}
 			}
 
-			// BroccoliDB Deep Context
-			await this.ensureContext()
+			// BroccoliDB Deep Context (initialized in background)
+			const contextPromise = this.ensureContext()
 
 			// Parallel Context Gathering (Components Latency Tracking)
 			const componentStarts = {
@@ -477,14 +514,42 @@ export class SuggestionService {
 				projectPatterns,
 				smartSymbolContext,
 			] = await Promise.all([
-				this.wrapContextCall("DeepContext", this.getDeepContext(filePath, fileSnippet), null),
+				this.wrapContextCall(
+					"DeepContext",
+					(async () => {
+						await contextPromise
+						return this.getDeepContext(filePath, fileSnippet)
+					})(),
+					null,
+				),
 				this.wrapContextCall("Diagnostics", this.getDiagnosticsContext(), null),
 				this.wrapContextCall("GitStatus", this.getGitStatusContext(), ""),
 				this.wrapContextCall("FileSkeleton", this.getFileSkeleton(filePath), ""),
-				this.wrapContextCall("ImportContext", this.getImportContext(filePath), ""),
-				this.wrapContextCall("DiagnosticGrounding", this.getDiagnosticGrounding(filePath, activeFileDiagnostics), ""),
+				this.wrapContextCall(
+					"ImportContext",
+					(async () => {
+						await contextPromise
+						return this.getImportContext(filePath)
+					})(),
+					"",
+				),
+				this.wrapContextCall(
+					"DiagnosticGrounding",
+					(async () => {
+						await contextPromise
+						return this.getDiagnosticGrounding(filePath, activeFileDiagnostics)
+					})(),
+					"",
+				),
 				this.wrapContextCall("ProjectPatterns", this.getProjectPatterns(), ""),
-				this.wrapContextCall("SmartSymbolContext", this.getSmartSymbolContext(filePath, activeFileDiagnostics), ""),
+				this.wrapContextCall(
+					"SmartSymbolContext",
+					(async () => {
+						await contextPromise
+						return this.getSmartSymbolContext(filePath, activeFileDiagnostics)
+					})(),
+					"",
+				),
 			])
 
 			const componentLatencies = {

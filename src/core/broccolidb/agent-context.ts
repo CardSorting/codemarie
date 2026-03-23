@@ -464,43 +464,27 @@ export class AgentContext {
 		queryEmbedding?: number[],
 		options: { augmentWithGraph?: boolean } = {},
 	): Promise<KnowledgeBaseItem[]> {
-		let rows: Record<string, unknown>[] = []
+		const conditions: any[] = [
+			{ column: "userId", value: this.userId },
+			{ column: "expiresAt", value: null },
+		]
 
 		if (tags && tags.length > 0) {
-			// In SQLite we can't do array-contains-any easily without complex queries,
-			// but we can fetch and filter or use LIKE. For now, let's fetch by userId and confidence.
-			rows = await this.db.selectWhere(
-				"knowledge",
-				[
-					{ column: "userId", value: this.userId },
-					{ column: "expiresAt", value: null },
-				],
-				undefined,
-				{
-					orderBy: { column: "confidence", direction: "desc" },
-					limit: 200,
-				},
-			)
-
-			// Post-filter by tags
-			rows = rows.filter((r) => {
-				const rowTags = JSON.parse((r.tags as string) || "[]") as string[]
-				return tags.some((t) => rowTags.includes(t))
-			})
-		} else {
-			rows = await this.db.selectWhere(
-				"knowledge",
-				[
-					{ column: "userId", value: this.userId },
-					{ column: "expiresAt", value: null },
-				],
-				undefined,
-				{
-					orderBy: { column: "confidence", direction: "desc" },
-					limit: 200,
-				},
-			)
+			for (const tag of tags) {
+				conditions.push({ column: "tags", value: tag, operator: "JSON_CONTAINS" })
+			}
 		}
+
+		// Only use SQL-level LIKE filter if we don't have embeddings for vector search,
+		// otherwise we might filter out semantically relevant but keyword-dissimilar results.
+		if (!queryEmbedding && !this.aiService?.isAvailable() && query?.trim()) {
+			conditions.push({ column: "content", value: `%${query}%`, operator: "LIKE" })
+		}
+
+		const rows = await this.db.selectWhere("knowledge", conditions, undefined, {
+			orderBy: { column: "confidence", direction: "desc" },
+			limit: queryEmbedding ? 500 : 200, // Larger candidate pool for vector search
+		})
 
 		const candidates = rows.map(
 			(r) =>

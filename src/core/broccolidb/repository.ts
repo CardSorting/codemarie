@@ -842,8 +842,8 @@ export class Repository {
 		const cached = this.treeCache.get(node.id)
 		if (cached) return cached
 
-		// If it's a legacy flat tree, return it
-		if (node.tree && !node.metadata?.isHierarchical) {
+		// If it has a cached tree (legacy flat tree or previously persisted hierarchical tree), return it
+		if (node.tree) {
 			this.treeCache.set(node.id, node.tree)
 			return node.tree
 		}
@@ -852,6 +852,16 @@ export class Repository {
 		if (node.metadata?.treeHash) {
 			const flatTree: Record<string, string> = {}
 			await this.flattenTree(node.metadata.treeHash, "", flatTree)
+
+			// PERSISTENCE: Cache the flattened result back into the nodes table to avoid O(N) on next checkout
+			await this.db.push({
+				type: "update",
+				table: "nodes",
+				where: [{ column: "id", value: node.id }],
+				values: { tree: JSON.stringify(flatTree) },
+				layer: "infrastructure",
+			})
+
 			this.treeCache.set(node.id, flatTree)
 			return flatTree
 		}
@@ -861,6 +871,15 @@ export class Repository {
 		const parent = await this.checkout(node.parentId)
 		const parentTree = parent?.tree || {}
 		const resolved = { ...parentTree, ...node.changes }
+
+		// Also persist resolved diff trees for performance
+		await this.db.push({
+			type: "update",
+			table: "nodes",
+			where: [{ column: "id", value: node.id }],
+			values: { tree: JSON.stringify(resolved) },
+			layer: "infrastructure",
+		})
 
 		this.treeCache.set(node.id, resolved)
 		return resolved
@@ -872,20 +891,25 @@ export class Repository {
 			return
 		}
 		const entries = await this.getTree(hash)
+		const entriesList = Object.entries(entries)
 
-		// Parallelize subtree traversals
-		await Promise.all(
-			Object.entries(entries).map(async ([name, entry]) => {
-				const key = prefix ? `${prefix}/${name}` : name
-				if (entry.type === "blob") {
-					result[key] = entry.hash
-				} else if (entry.type === "tree") {
-					await this.flattenTree(entry.hash, key, result, depth + 1)
-				} else if (entry.type === "subrepo") {
-					result[key] = `REPO:${entry.hash}`
-				}
-			}),
-		)
+		// Parallelize subtree traversals with batching to avoid DB connection saturation
+		const BATCH_SIZE = 5
+		for (let i = 0; i < entriesList.length; i += BATCH_SIZE) {
+			const batch = entriesList.slice(i, i + BATCH_SIZE)
+			await Promise.all(
+				batch.map(async ([name, entry]) => {
+					const key = prefix ? `${prefix}/${name}` : name
+					if (entry.type === "blob") {
+						result[key] = entry.hash
+					} else if (entry.type === "tree") {
+						await this.flattenTree(entry.hash, key, result, depth + 1)
+					} else if (entry.type === "subrepo") {
+						result[key] = `REPO:${entry.hash}`
+					}
+				}),
+			)
+		}
 	}
 
 	async tag(name: string, ref: string, author: string, message?: string): Promise<void> {
