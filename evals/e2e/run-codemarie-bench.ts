@@ -15,8 +15,8 @@
  *
  * Options:
  *   --env <docker|daytona>  Execution environment (default: docker)
- *   --provider <name>       Provider to use (default: anthropic)
- *   --model <id>            Model ID (default: claude-sonnet-4-20250514)
+ *   --provider <name>       Provider to use (default: gemini)
+ *   --model <id>            Model ID (default: gemini-3.1-pro-preview)
  *   --tasks <pattern>       Task filter pattern (default: all)
  *   --trials <n>            Number of trials per task (default: 1)
  *   --output <file>         Write results to JSON file
@@ -228,8 +228,8 @@ async function main() {
 	// Parse arguments
 	const options: RunOptions = {
 		env: "docker",
-		provider: "anthropic",
-		model: "claude-sonnet-4-20250514",
+		provider: "gemini",
+		model: "gemini-3.1-pro-preview",
 		dataset: undefined,
 		tasks: "all",
 		trials: 1,

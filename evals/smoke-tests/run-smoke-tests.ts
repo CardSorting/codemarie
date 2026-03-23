@@ -25,8 +25,8 @@ import { MetricsCalculator } from "../analysis/src/metrics"
 
 // Default provider and model for smoke tests
 // These ensure deterministic behavior regardless of local config
-const DEFAULT_PROVIDER = "codemarie"
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4.5"
+const DEFAULT_PROVIDER = "gemini"
+const DEFAULT_MODEL = "gemini-3.1-pro-preview"
 
 // Models to test - can be overridden with --model flag
 const MODELS: string[] = [DEFAULT_MODEL]

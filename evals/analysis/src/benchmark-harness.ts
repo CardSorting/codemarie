@@ -26,11 +26,21 @@ async function benchmarkSmokeTestHarness() {
 	console.log("📊 Benchmarking Smoke Test Harness...")
 	
 	const startTime = Date.now()
+	// Skip if no API key
+	if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY && !process.env.CODEMARIE_API_KEY) {
+		console.warn("⚠️ Skipping Smoke Test Harness benchmark: No API key found (GEMINI_API_KEY, GOOGLE_API_KEY, or CODEMARIE_API_KEY)")
+		return null
+	}
+	
 	// Run a single trial of a simple scenario
 	try {
-		const output = execSync("npm run eval:smoke -- --scenario 01-create-file --trials 1", {
+		const output = execSync("npm run eval:smoke:run -- --scenario 01-create-file --trials 1 --provider gemini --model gemini-3.1-pro-preview -y", {
 			encoding: "utf-8",
-			env: { ...process.env, CODEMARIE_API_KEY: process.env.CODEMARIE_API_KEY || "dummy" }
+			env: { 
+				...process.env, 
+				CODEMARIE_API_KEY: process.env.CODEMARIE_API_KEY || "dummy",
+				GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
+			}
 		})
 		const duration = Date.now() - startTime
 		console.log(`✅ Smoke Test (01-create-file) completed in ${duration}ms`)
@@ -48,14 +58,16 @@ async function benchmarkTestingPlatformHarness() {
 	
 	// 1. Measure server boot time
 	const grpcPort = 26040
-	console.log(`🚀 Starting standalone server on port ${grpcPort}...`)
+	console.log("🚀 Starting standalone server on port 26040...")
 	const server = spawn("npx", ["tsx", "scripts/test-standalone-core-api-server.ts"], {
-		env: { ...process.env, PROTOBUS_PORT: grpcPort.toString() }
+		cwd: process.cwd(),
+		env: { ...process.env, PROTOBUS_PORT: "26040", HOSTBRIDGE_PORT: "26041" }
 	})
-	
+
 	try {
-		const bootTime = await waitForPort(grpcPort)
-		console.log(`✅ Server booted in ${bootTime}ms`)
+		// Wait for server to be ready (increased timeout for build time)
+		await waitForPort(26040, "127.0.0.1", 120000)
+		console.log("✅ Standalone server is up on port 26040")
 		
 		// 2. Run a spec (if any exists)
 		const specsDir = path.join(process.cwd(), "tests", "specs")

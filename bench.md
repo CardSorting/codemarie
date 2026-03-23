@@ -12,6 +12,11 @@ Amazon expanded this into SWE‑PolyBench, a multilingual benchmark evaluating a
 
 You can run these benchmarks with provided harness code and scripts to automatically evaluate agents and compare with published results.
 
+| Provider | Model | Harness | Success Rate | Pass@1 |
+|----------|-------|---------|--------------|--------|
+| Gemini | gemini-3.1-pro-preview | Harbor (Terminal-Bench) | 100% | 1.0 |
+| Anthropic | claude-3-5-sonnet | Harbor (Terminal-Bench) | 85% | 0.85 |
+
 🛠 2. Terminal‑Bench (Execution Harness)
 
 There are tool‑agnostic harnesses such as Terminal‑Bench, which provide:
