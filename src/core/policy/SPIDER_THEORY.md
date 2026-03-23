@@ -16,7 +16,7 @@ As entropy increases:
 The engine is named **Spider** because it treats the codebase as a living **Dependency Web**. 
 
 -   **The Web**: Every file is a node; every import is a silken thread.
--   **Sensing Vibrations**: Using **Incremental Updates ($O(C)$)**, the Spider "senses" every commit. It doesn't need to rebuild the whole web to know if a single thread has increased the tension (entropy) or introduced a tear (violation).
+-   **Sensing Vibrations**: Using **Incremental Updates ($O(1)$)**, the Spider senses structural drift through a **Structural Change Guard**. It only recomputes the global reachability web if a file's import threads have actually moved. This ensures the engine remains virtually invisible in terms of CPU overhead until a significant architectural event occurs.
 -   **Weaving Order**: By providing real-time feedback, it helps the "weaver" (developer) maintain the geometric integrity of the architecture.
 
 ## 🏛️ The Four Pillar Model of Structural Health

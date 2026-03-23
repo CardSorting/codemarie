@@ -15,6 +15,7 @@ Deep dives into the internal mechanics of CodeMarie's intelligence.
 - [**Multi-Agent System (MAS)**](multi-agent-system): The core orchestration layer for multi-turn tasks.
 - [**Intent Grounding**](features/intent-grounding): How we turn ambiguous requests into project-specific specs.
 - [**Memory Bank (BroccoliDB)**](features/memory-bank): The persistent knowledge graph that powers long-term reasoning.
+- [**Production Optimization Summary**](PRODUCTION_OPTIMIZATION_SUMMARY): Benchmark results and engineering details for the v3.84.0 hardening initiative.
 - [**Hyper-Cognition Vision**](hyper-cognition/VISION): The long-term roadmap for architectural intelligence.
 
 ### 3. 🛠️ Development & Engineering (Developer Domain)
@@ -29,4 +30,4 @@ Technical references for extending or debugging the system.
 - **Shared Reasoning**: Look for the `ANNOTATES` edges in BroccoliDB to trace the reasoning history of any task.
 
 ## 📋 Release Notes
-Stay updated with the latest architectural hardening passes in the [Changelog](../CHANGELOG.md).
+Stay updated with the latest architectural hardening passes in the [Changelog](../CHANGELOG.md) and [Production Hardening Log](../CHANGELOG_V2.md).

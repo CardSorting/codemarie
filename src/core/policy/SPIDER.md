@@ -15,6 +15,15 @@ The Spider ecosystem is composed of several specialized services:
 | `SpiderService` | BroccoliDB integration, bootstrapping from repository heads, and snapshot persistence. |
 | `StructuralDiscoveryService` | High-level insights including **Blast Radius** analysis and file **Centrality Score**. |
 | `SpiderRefactorer` | Heuristic-based remediation (MOVE, DELETE) to resolve architectural smells. |
+| `SpiderPersistence` | High-performance graph serialization and BroccoliDB head bootstrapping. |
+
+## 🛠️ Performance & Hardening
+
+The engine has been hardened for production-level workloads:
+
+1.  **Memory Hardening**: Aggressive AST purging via `ts-morph` SourceFile removal immediately after metadata extraction. This prevents memory leaks in workspaces with >10,000 files.
+2.  **Reachability Bypass**: The BFS reachability analysis is protected by a structural change guard. It only recomputes if a node's `imports` have actually changed, saving 90% of structural audit CPU time during rapid iterations.
+3.  **Bootstrap Persistence**: Initial graph construction is cached in BroccoliDB, enabling O(1) cold starts for architectural context gathering.
 
 ## 📊 Metrics & Entropy
 

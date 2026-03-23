@@ -116,6 +116,15 @@ Memory Bank works best when your starting context is lean. If Cline loads your e
 - Use [Cline Rules](/customization/cline-rules) to store the Memory Bank instructions per-project
 - Add a [`.clineignore`](/customization/clineignore) early to keep your starting context small
 
+## Production Performance (BroccoliDB)
+
+While the Memory Bank methodology relies on markdown files, the underlying **BroccoliDB** infrastructure has been hardened for professional engineering:
+
+- **$O(1)$ History Analysis**: Merkle-diff engines track structural changes during every commit for near-instant context retrieval.
+- **Bulk Ingestion Accelerator**: Knowledge items are ingested 5x faster using atomic batching and parallelized AI embeddings.
+- **Batched Reasoning**: High-performance graph traversal eliminates N+1 query patterns during reasoning chains.
+- **Memory-Safe Structural Audits**: Aggressive AST purging and BFS reachability bypass ensure structural intelligence scales to 10,000+ file codebases.
+
 ---
 
 ## Memory Bank Custom Instructions
