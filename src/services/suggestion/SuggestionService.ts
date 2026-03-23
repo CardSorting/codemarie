@@ -391,6 +391,13 @@ export class SuggestionService {
 			// Ensure thinking is disabled for background suggestions to prevent budget collisions and latency
 			suggestionApiConfig.actModeThinkingBudgetTokens = 0
 			suggestionApiConfig.planModeThinkingBudgetTokens = 0
+			suggestionApiConfig.planModeReasoningEffort = "none"
+			suggestionApiConfig.actModeReasoningEffort = "none"
+
+			// Prevent collision with main task streams by clearing shared identifiers, custom prompts, and prompt caching
+			delete suggestionApiConfig.ulid
+			suggestionApiConfig.liteLlmUsePromptCache = false
+			suggestionApiConfig.awsBedrockUsePromptCache = false
 
 			const { buildApiHandler } = require("@/core/api")
 			const handler = buildApiHandler(suggestionApiConfig, mode)
@@ -499,7 +506,11 @@ export class SuggestionService {
 			const { structuralImpact, semanticContext } = deepContext
 
 			// Structured Prompting with XML-style tags
-			const systemPrompt = `You are a helpful coding assistant specialized in providing forward-looking prompt suggestions.
+			const systemPrompt = `You are a strict, hyper-aware AI Oracle embedded in the user's IDE.
+You ONLY know the code and context provided below.
+DO NEVER provide generic coding advice. DO NEVER output any preamble or conversational text.
+Your sole purpose is to output a JSON array of 3 highly actionable, contextually accurate prompt suggestions.
+
 Current Context:
 <mode>${mode}</mode>
 <active_file>${filePath ? await asRelativePath(filePath) : "None"}</active_file>
@@ -537,12 +548,17 @@ ${gitStatusSummary || "No pending changes."}
 ${this.stringifyMessages(messages.slice(-5))}
 </conversation_history>
 
-Your task is to generate 3 diverse and actionable prompt suggestions (under 80 chars each) categorized by "Oracle Modes".
+Crucial Instructions:
+1. Suggestions MUST be STRICTLY grounded in the provided project context.
+2. BANNED: Do not invent files, do not provide generic advice (e.g., "check the logs").
+3. You MUST use the exact file names, variable names, and architectural concepts found in the context (especially from <file_snippet>, <smart_symbol_context>, and <diagnostics>).
+4. Ensure suggestions follow the <project_patterns> and respect <structural_impact>.
 
-Oracle Modes (Output exactly one of each):
+Oracle Modes (Select 3 diverse modes from below):
 1. fix: High-precision resolution of the most critical issue in <diagnostics> or <diagnostic_deep_context>.
 2. design: Architectural improvement or refactor grounded in <project_patterns> and <structural_impact>.
 3. learn: Discovery suggestion focused on explaining complex logic in <file_snippet> or <smart_symbol_context>.
+4. feature: Strategic next step for development, identifying a new concept, feature, or logical continuation based on the current state.
 
 Architectural Guardrails:
 - Strictly adhere to <project_patterns>. Use the project's preferred idioms.
@@ -550,15 +566,15 @@ Architectural Guardrails:
 - Ground suggestions in the <file_skeleton>, <import_context>, and <smart_symbol_context>. Use existing types and symbols correctly.
 - Prioritize solving errors in <diagnostics>.
 
-Output format: JSON array of objects.
+Output format: JSON array of EXACTLY 3 objects.
 Each object must have:
 - "text": The suggestion prompt.
-- "type": One of "fix", "design", "learn".
+- "type": One of "fix", "design", "learn", "feature".
 
 Example:
 [
   {"text": "Fix the type mismatch in login handler", "type": "fix"},
-  {"text": "Refactor SuggestionService to use Oracle Design", "type": "design"},
+  {"text": "Add user authentication to the profile component", "type": "feature"},
   {"text": "Explain SpiderEngine symbol resolution", "type": "learn"}
 ]
 
@@ -641,11 +657,17 @@ Output ONLY the JSON, no tags, and no extra text.`
 					return finalSuggestions
 				} catch (err) {
 					if (timeoutId) clearTimeout(timeoutId)
+
+					// Aggressively abort the background stream to prevent resource leaks and API rate limit consumption
+					if (handler?.abort) {
+						handler.abort()
+					}
+
 					if (retryCount > 0) {
 						// Jittered Exponential Backoff
 						const backoffMs = 2 ** (2 - retryCount) * 1000 + Math.random() * 500
 						Logger.warn(
-							`Suggestion generation failed, retrying in ${Math.round(backoffMs)}ms... (${retryCount} left)`,
+							`[SuggestionService] Generation failed, retrying in ${Math.round(backoffMs)}ms... (${retryCount} left)`,
 							err,
 						)
 						await new Promise((resolve) => setTimeout(resolve, backoffMs))

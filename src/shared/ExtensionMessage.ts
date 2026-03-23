@@ -116,7 +116,7 @@ export interface ExtensionState {
 	openAiCodexIsAuthenticated?: boolean
 }
 
-export type SuggestionType = "fix" | "design" | "learn"
+export type SuggestionType = "fix" | "design" | "learn" | "feature"
 
 export interface PromptSuggestion {
 	text: string

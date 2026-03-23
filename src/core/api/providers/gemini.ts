@@ -152,8 +152,9 @@ export class GeminiHandler implements ApiHandler {
 		// Only set thinkingLevel for models that support it
 		let thinkingLevel: ThinkingLevel | undefined
 		const rawReasoningEffort = (this.options.reasoningEffort || "").toLowerCase()
-		const normalizedReasoningEffort = !rawReasoningEffort || rawReasoningEffort === "none" ? "low" : rawReasoningEffort
-		if (info.thinkingConfig?.supportsThinkingLevel) {
+		const normalizedReasoningEffort =
+			!rawReasoningEffort || rawReasoningEffort === "none" || rawReasoningEffort === "off" ? "none" : rawReasoningEffort
+		if (info.thinkingConfig?.supportsThinkingLevel && normalizedReasoningEffort !== "none") {
 			thinkingLevel = mapReasoningEffortToGeminiThinkingLevel(normalizedReasoningEffort)
 		}
 
@@ -196,7 +197,7 @@ export class GeminiHandler implements ApiHandler {
 				// Turn on fixed thinking budget:
 				thinkingBudget: thinkingLevel ? undefined : thinkingBudget, // Use budget only if thinkingLevel is not set
 				thinkingLevel,
-				includeThoughts: thinkingBudget > 0 || !!thinkingLevel,
+				includeThoughts: thinkingBudget !== 0 && (thinkingBudget > 0 || !!thinkingLevel),
 			}
 		}
 
