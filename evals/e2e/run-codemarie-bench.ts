@@ -30,6 +30,7 @@ interface RunOptions {
 	env: "docker" | "daytona"
 	provider: string
 	model: string
+	dataset?: string
 	tasks: string
 	trials: number
 	outputFile?: string
@@ -129,7 +130,16 @@ function runHarborTask(clineBenchDir: string, taskId: string, options: RunOption
 	}
 
 	// Build Harbor command
-	const harborArgs = ["run", "-p", `tasks/${taskId}`, "-a", "cline-cli", "-m", harborModel, "--env", options.env]
+	const harborArgs = ["run"]
+	if (options.dataset) {
+		harborArgs.push("-d", options.dataset)
+		if (options.tasks !== "all") {
+			harborArgs.push("-p", options.tasks)
+		}
+	} else {
+		harborArgs.push("-p", `tasks/${taskId}`)
+	}
+	harborArgs.push("-a", "cline-cli", "-m", harborModel, "--env", options.env)
 
 	console.log(`  Running: harbor ${harborArgs.join(" ")}`)
 
@@ -220,6 +230,7 @@ async function main() {
 		env: "docker",
 		provider: "anthropic",
 		model: "claude-sonnet-4-20250514",
+		dataset: undefined,
 		tasks: "all",
 		trials: 1,
 	}
@@ -233,6 +244,8 @@ async function main() {
 			options.model = args[++i]
 		} else if (args[i] === "--tasks" && args[i + 1]) {
 			options.tasks = args[++i]
+		} else if (args[i] === "--dataset" && args[i + 1]) {
+			options.dataset = args[++i]
 		} else if (args[i] === "--trials" && args[i + 1]) {
 			options.trials = parseInt(args[++i], 10)
 		} else if (args[i] === "--output" && args[i + 1]) {
@@ -247,16 +260,23 @@ async function main() {
 		process.exit(1)
 	}
 
-	// Find cline-bench directory
-	const clineBenchDir = path.join(__dirname, "..", "cline-bench")
-	if (!fs.existsSync(clineBenchDir)) {
-		console.error(`cline-bench not found at: ${clineBenchDir}`)
-		console.error("Ensure the submodule is initialized: git submodule update --init")
+	// Find codemarie-bench directory
+	const clineBenchDir = path.join(__dirname, "..", "codemarie-bench")
+	if (!options.dataset && !fs.existsSync(clineBenchDir)) {
+		console.error(`Benchmark directory not found at: ${clineBenchDir}`)
+		console.error("Ensure the benchmark files are available or use --dataset for official benchmarks")
 		process.exit(1)
 	}
 
 	// Get task list
-	const tasks = getTaskList(clineBenchDir, options.tasks)
+	let tasks: string[] = []
+	if (options.dataset) {
+		// For datasets, we might not know the tasks beforehand, or we may filter by pattern
+		tasks = options.tasks === "all" ? ["benchmark"] : options.tasks.split(",")
+	} else {
+		tasks = getTaskList(clineBenchDir, options.tasks)
+	}
+
 	if (tasks.length === 0) {
 		console.error("No tasks found matching filter:", options.tasks)
 		process.exit(1)
