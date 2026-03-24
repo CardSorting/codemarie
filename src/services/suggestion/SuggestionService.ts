@@ -418,12 +418,14 @@ export class SuggestionService {
 			const suggestionApiConfig = { ...apiConfig }
 
 			// Use user-provided models for suggestion generation (no hardcoded/retired fallbacks)
-
-			// Ensure thinking is disabled for background suggestions to prevent budget collisions and latency
-			suggestionApiConfig.actModeThinkingBudgetTokens = 0
-			suggestionApiConfig.planModeThinkingBudgetTokens = 0
 			suggestionApiConfig.planModeReasoningEffort = "none"
 			suggestionApiConfig.actModeReasoningEffort = "none"
+
+			// Ensure thinking is enabled with a medium budget for background suggestions.
+			// This prevents crashes for models that only work in thinking mode (e.g. Gemini 3)
+			// while keeping latency low. Handlers for models that don't support thinking will ignore this.
+			suggestionApiConfig.actModeThinkingBudgetTokens = 5024
+			suggestionApiConfig.planModeThinkingBudgetTokens = 5024
 
 			// Prevent collision with main task streams by clearing shared identifiers, custom prompts, and prompt caching
 			delete suggestionApiConfig.ulid
