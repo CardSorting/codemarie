@@ -1,5 +1,21 @@
 # Changelog (V2)
 
+## [3.85.0] - 2026-03-24
+
+### Added
+- **Architecture Stabilization Post-Mortem**: Formalized technical findings on Grounding and MAS failure modes in `GROUNDING_MAS_DEPRECATION.md`.
+- **Observe-Act-Adjust Model**: Transitioned to a high-reliability, forward-progress execution loop.
+
+### Changed
+- **Total Documentation Overhaul**: Rewrote `README.md` with new high-fidelity architecture diagrams and simplified core pillars.
+- **Type Safety Hardening**: Replaced over 50 instances of `any` with `unknown` or specific interfaces across core task logic and policies.
+- **Biome Linting Compliance**: Achieved 100% compliance with strict project-wide Biome rules for all staged files.
+
+### Removed
+- **Legacy Grounding Infrastructure**: Deleted all recursive grounding logic, spec tracking, and associated subagent runners.
+- **Multi-Agent System (MAS)**: Removed the orchestration layer, cog-bus, and swarm consensus protocols to resolve execution deadlocks.
+- **Onboarding View**: Cleaned up leftover state and types from the deprecated onboarding experience.
+
 ## [3.84.1] - 2026-03-24
 
 ### Changed
