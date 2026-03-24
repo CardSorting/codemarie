@@ -12,13 +12,12 @@ import type { AutoApprovalSettings } from "@shared/AutoApprovalSettings"
 import type { BrowserSettings } from "@shared/BrowserSettings"
 import type { CodemarieAsk, CodemarieSay } from "@shared/ExtensionMessage"
 import type { FocusChainSettings } from "@shared/FocusChainSettings"
-import type { CodemarieContent } from "@shared/messages/content"
+import type { CodemarieContent, CodemarieToolResponseContent } from "@shared/messages/content"
 import type { Mode } from "@shared/storage/types"
 import type { CodemarieDefaultTool } from "@shared/tools"
 import type { CodemarieAskResponse } from "@shared/WebviewMessage"
 import { WorkspaceRootManager } from "@/core/workspace"
 import type { ContextManager } from "../../../context/context-management/ContextManager"
-import { GroundedSpec } from "../../../grounding/types"
 import type { StateManager } from "../../../storage/StateManager"
 import type { MessageStateHandler } from "../../message-state"
 import type { TaskState } from "../../TaskState"
@@ -42,7 +41,6 @@ export interface TaskConfig {
 	vscodeTerminalExecutionMode: "vscodeTerminal" | "backgroundExec"
 	enableParallelToolCalling: boolean
 	isSubagentExecution: boolean
-	parentGroundedSpec?: GroundedSpec
 	recursionDepth?: number
 
 	// Multi-workspace support (optional for backward compatibility)
@@ -111,7 +109,11 @@ export interface TaskCallbacks {
 
 	saveCheckpoint: (isAttemptCompletionMessage?: boolean, completionMessageTs?: number) => Promise<void>
 
-	sayAndCreateMissingParamError: (toolName: CodemarieDefaultTool, paramName: string, relPath?: string) => Promise<any>
+	sayAndCreateMissingParamError: (
+		toolName: CodemarieDefaultTool,
+		paramName: string,
+		relPath?: string,
+	) => Promise<CodemarieToolResponseContent>
 
 	removeLastPartialMessageIfExistsWithType: (type: "ask" | "say", askOrSay: CodemarieAsk | CodemarieSay) => Promise<void>
 
@@ -119,7 +121,7 @@ export interface TaskCallbacks {
 		command: string,
 		timeoutSeconds: number | undefined,
 		options?: CommandExecutionOptions,
-	) => Promise<[boolean, any]>
+	) => Promise<[boolean, CodemarieToolResponseContent]>
 	cancelRunningCommandTool?: () => Promise<boolean>
 
 	doesLatestTaskCompletionHaveNewChanges: () => Promise<boolean>
@@ -133,7 +135,7 @@ export interface TaskCallbacks {
 	postStateToWebview: () => Promise<void>
 	reinitExistingTaskFromId: (taskId: string) => Promise<void>
 	cancelTask: () => Promise<void>
-	updateTaskHistory: (update: any) => Promise<any[]>
+	updateTaskHistory: (update: unknown) => Promise<unknown[]>
 
 	applyLatestBrowserSettings: () => Promise<BrowserSession>
 
@@ -155,36 +157,39 @@ export interface TaskCallbacks {
  * Runtime validation function to ensure config has all required properties
  * Automatically derives expected keys from the interface definitions
  */
-export function validateTaskConfig(config: any): asserts config is TaskConfig {
-	if (!config) {
-		throw new Error("TaskConfig is null or undefined")
+export function validateTaskConfig(config: unknown): asserts config is TaskConfig {
+	if (!config || typeof config !== "object") {
+		throw new Error("TaskConfig is null, undefined, or not an object")
 	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: Necessary for runtime validation of unknown config object
+	const c = config as Record<string, any>
 
 	// Validate all expected keys exist
 	for (const key of TASK_CONFIG_KEYS) {
-		if (!(key in config)) {
+		if (!(key in c)) {
 			throw new Error(`Missing ${key} in TaskConfig`)
 		}
 	}
 
 	// Special validation for boolean type
-	if (typeof config.strictPlanModeEnabled !== "boolean") {
+	if (typeof c.strictPlanModeEnabled !== "boolean") {
 		throw new Error("strictPlanModeEnabled must be a boolean in TaskConfig")
 	}
 
 	// Validate services object
-	if (config.services) {
+	if (c.services) {
 		for (const key of TASK_SERVICES_KEYS) {
-			if (!(key in config.services)) {
+			if (!(key in c.services)) {
 				throw new Error(`Missing services.${key} in TaskConfig`)
 			}
 		}
 	}
 
 	// Validate callbacks object
-	if (config.callbacks) {
+	if (c.callbacks) {
 		for (const key of TASK_CALLBACKS_KEYS) {
-			if (typeof config.callbacks[key] !== "function") {
+			if (typeof c.callbacks[key] !== "function") {
 				throw new Error(`Missing or invalid callbacks.${key} in TaskConfig (must be a function)`)
 			}
 		}

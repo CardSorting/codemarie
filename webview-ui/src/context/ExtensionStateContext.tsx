@@ -7,7 +7,7 @@ import { DEFAULT_MCP_DISPLAY_MODE } from "@shared/McpDisplayMode"
 import type { UserInfo } from "@shared/proto/codemarie/account"
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import type { OpenRouterCompatibleModelInfo } from "@shared/proto/codemarie/models"
-import { OnboardingModelGroup, type TerminalProfile } from "@shared/proto/codemarie/state"
+import { type TerminalProfile } from "@shared/proto/codemarie/state"
 import { convertProtoToCodemarieMessage } from "@shared/proto-conversions/codemarie-message"
 import { convertProtoMcpServersToMcpServers } from "@shared/proto-conversions/mcp/mcp-server-conversion"
 import { fromProtobufModels } from "@shared/proto-conversions/models/typeConversion"
@@ -31,7 +31,6 @@ import { McpServiceClient, ModelsServiceClient, StateServiceClient, UiServiceCli
 export interface ExtensionStateContextType extends ExtensionState {
 	didHydrateState: boolean
 	showWelcome: boolean
-	onboardingModels: OnboardingModelGroup | undefined
 	codemarieModels: Record<string, ModelInfo> | null
 	openRouterModels: Record<string, ModelInfo>
 	vercelAiGatewayModels: Record<string, ModelInfo>
@@ -85,7 +84,6 @@ export interface ExtensionStateContextType extends ExtensionState {
 	setTotalTasksSize: (value: number | null) => void
 	setExpandTaskHeader: (value: boolean) => void
 	setShowWelcome: (value: boolean) => void
-	setOnboardingModels: (value: OnboardingModelGroup | undefined) => void
 
 	// Refresh functions
 	refreshCodemarieModels: () => void
@@ -255,7 +253,6 @@ export const ExtensionStateContextProvider: React.FC<{
 		defaultTerminalProfile: "default",
 		isNewUser: false,
 		welcomeViewCompleted: false,
-		onboardingModels: undefined,
 		mcpResponsesCollapsed: false, // Default value (expanded), will be overwritten by extension state
 		strictPlanModeEnabled: false,
 		yoloModeToggled: false,
@@ -290,7 +287,6 @@ export const ExtensionStateContextProvider: React.FC<{
 	const [didHydrateState, setDidHydrateState] = useState(false)
 
 	const [showWelcome, setShowWelcome] = useState(false)
-	const [onboardingModels, setOnboardingModels] = useState<OnboardingModelGroup | undefined>(undefined)
 
 	const [codemarieModels, setCodemarieModels] = useState<Record<string, ModelInfo> | null>(null)
 	const [openRouterModels, setOpenRouterModels] = useState<Record<string, ModelInfo>>({
@@ -379,10 +375,8 @@ export const ExtensionStateContextProvider: React.FC<{
 							// Update welcome screen state based on API configuration if welcome view not in progress
 							if (!newState.welcomeViewCompleted && !showWelcome) {
 								setShowWelcome(true)
-								setOnboardingModels(newState.onboardingModels)
 							} else if (newState.welcomeViewCompleted) {
 								setShowWelcome(false)
-								setOnboardingModels(undefined)
 							}
 
 							setDidHydrateState(true)
@@ -802,7 +796,6 @@ export const ExtensionStateContextProvider: React.FC<{
 		...state,
 		didHydrateState,
 		showWelcome,
-		onboardingModels,
 		codemarieModels,
 		openRouterModels,
 		vercelAiGatewayModels,
@@ -855,7 +848,6 @@ export const ExtensionStateContextProvider: React.FC<{
 		hideAnnouncement,
 		setShowAnnouncement,
 		setShowWelcome,
-		setOnboardingModels,
 		setShouldShowAnnouncement: (value) =>
 			setState((prevState) => ({
 				...prevState,

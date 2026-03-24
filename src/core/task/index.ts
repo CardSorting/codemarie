@@ -1,4 +1,3 @@
-import crypto from "node:crypto"
 import { setTimeout as setTimeoutPromise } from "node:timers/promises"
 import { ApiHandler, ApiProviderInfo, buildApiHandler } from "@core/api"
 import { GeminiHandler } from "@core/api/providers/gemini"
@@ -63,7 +62,6 @@ import {
 	CodemarieApiReqCancelReason,
 	CodemarieApiReqInfo,
 	CodemarieAsk,
-	CodemarieAskQuestion,
 	CodemarieMessage,
 	CodemarieSay,
 } from "@shared/ExtensionMessage"
@@ -91,7 +89,6 @@ import { ulid } from "ulid"
 import type { SystemPromptContext } from "@/core/prompts/system-prompt"
 import { getSystemPrompt } from "@/core/prompts/system-prompt"
 import { HostProvider } from "@/hosts/host-provider"
-import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { FileEditProvider } from "@/integrations/editor/FileEditProvider"
 import {
 	type CommandExecutionOptions,
@@ -108,6 +105,7 @@ import {
 	CodemarieContent,
 	CodemarieImageContentBlock,
 	CodemarieMessageModelInfo,
+	CodemarieReasoningDetailParam,
 	CodemarieStorageMessage,
 	CodemarieTextContentBlock,
 	CodemarieToolResponseContent,
@@ -121,13 +119,9 @@ import { RuleContextBuilder } from "../context/instructions/user-instructions/Ru
 import { ensureLocalCodemarieDirExists } from "../context/instructions/user-instructions/rule-helpers"
 import { discoverSkills, getAvailableSkills } from "../context/instructions/user-instructions/skills"
 import { refreshWorkflowToggles } from "../context/instructions/user-instructions/workflows"
-import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
+import { EmbeddingHandler, KnowledgeGraphService } from "../context/KnowledgeGraphService"
 import { Controller } from "../controller"
-import { IntentGrounder } from "../grounding/IntentGrounder"
 import { executeHook } from "../hooks/hook-executor"
-import { MultiAgentStreamSystem } from "../orchestration/MultiAgentStreamSystem"
-import { OrchestrationController } from "../orchestration/OrchestrationController"
-import { FluidPolicyEngine } from "../policy/FluidPolicyEngine"
 import { StateManager } from "../storage/StateManager"
 import { FocusChainManager } from "./focus-chain"
 import { MessageStateHandler } from "./message-state"
@@ -276,11 +270,6 @@ export class Task {
 	// Command executor for running shell commands (extracted from executeCommandTool)
 	private commandExecutor!: CommandExecutor
 
-	private orchestrationController?: OrchestrationController
-	private multiAgentSystem?: MultiAgentStreamSystem
-	private policyEngine!: FluidPolicyEngine
-	private streamReadyPromise?: Promise<void>
-
 	constructor(params: TaskParams) {
 		const {
 			controller,
@@ -310,7 +299,6 @@ export class Task {
 		if (params.initialTaskState) {
 			Object.assign(this.taskState, params.initialTaskState)
 		}
-		this.policyEngine = new FluidPolicyEngine(cwd, undefined, stateManager)
 		this.controller = controller
 		this.mcpHub = mcpHub
 		this.updateTaskHistory = updateTaskHistory
@@ -359,38 +347,6 @@ export class Task {
 		})
 
 		this.taskId = taskId
-
-		// Initialize Orchestration Stream — store promise for deferred resolution
-		this.streamReadyPromise = (async () => {
-			try {
-				// Resolve identity for BroccoliDB scoping
-				const machineId =
-					((StateManager.get() as any).getGlobalStateKey("codemarie.generatedMachineId") as string) || "anonymous"
-				const userId = machineId
-				const workspaceId = crypto.createHash("sha256").update(params.cwd).digest("hex").slice(0, 12)
-
-				// Check if a stream already exists for this taskId (fluid resumption)
-				const existing = await orchestrator.getStreamByExternalId(taskId)
-				if (existing) {
-					this.orchestrationController = new OrchestrationController(existing.id, userId, workspaceId, taskId)
-					this.policyEngine.setController(this.orchestrationController) // Integrate for native persistence
-					await this.orchestrationController.beginDbShadow()
-					this.policyEngine.setStreamId(existing.id)
-					Logger.info(`[Task ${taskId}] Resumed existing orchestration stream: ${existing.id} (WS: ${workspaceId})`)
-					return
-				}
-
-				// Otherwise create new stream mapped to this taskId
-				const stream = await orchestrator.createStream(task || "Resumed Task", null, taskId)
-				this.orchestrationController = new OrchestrationController(stream.id, userId, workspaceId, taskId)
-				this.policyEngine.setController(this.orchestrationController) // Integrate for native persistence
-				await this.orchestrationController.beginDbShadow()
-				this.policyEngine.setStreamId(stream.id)
-				Logger.info(`[Task ${taskId}] Registered new orchestration stream: ${stream.id} (WS: ${workspaceId})`)
-			} catch (err) {
-				Logger.error(`[Task ${taskId}] Failed to initialize orchestration stream:`, err)
-			}
-		})()
 
 		// Initialize taskId first
 		if (historyItem) {
@@ -493,7 +449,7 @@ export class Task {
 		const effectiveApiConfiguration: ApiConfiguration = {
 			...apiConfiguration,
 			ulid: this.ulid,
-			onRetryAttempt: async (attempt: number, maxRetries: number, delay: number, error: any) => {
+			onRetryAttempt: async (attempt: number, maxRetries: number, delay: number, error: Error | unknown) => {
 				const codemarieMessages = this.messageStateHandler.getCodemarieMessages()
 				const lastApiReqStartedIndex = findLastIndex(codemarieMessages, (m) => m.say === "api_req_started")
 				if (lastApiReqStartedIndex !== -1) {
@@ -505,7 +461,7 @@ export class Task {
 							attempt: attempt, // attempt is already 1-indexed from retry.ts
 							maxAttempts: maxRetries, // total attempts
 							delaySec: Math.round(delay / 1000),
-							errorSnippet: error?.message ? `${String(error.message).substring(0, 50)}...` : undefined,
+							errorSnippet: error instanceof Error ? `${String(error.message).substring(0, 50)}...` : undefined,
 						}
 						// Clear previous cancelReason and streamingFailedMessage if we are retrying
 						delete currentApiReqInfo.cancelReason
@@ -552,13 +508,6 @@ export class Task {
 			openAiCompatibleDomain = extractProviderDomainFromUrl(apiConfiguration.openAiBaseUrl)
 		}
 
-		// Initialize MAS after both API and orchestration stream are ready
-		this.streamReadyPromise?.then(() => {
-			if (this.orchestrationController && this.api) {
-				this.multiAgentSystem = new MultiAgentStreamSystem(this.orchestrationController, this.api)
-			}
-		})
-
 		if (historyItem) {
 			// Open task from history
 			telemetryService.captureTaskRestarted(this.ulid, currentProvider, openAiCompatibleDomain)
@@ -592,7 +541,8 @@ export class Task {
 			updateCodemarieMessage: async (index: number, updates: { commandCompleted?: boolean; text?: string }) => {
 				await this.messageStateHandler.updateCodemarieMessage(index, updates)
 			},
-			getCodemarieMessages: () => this.messageStateHandler.getCodemarieMessages() as Array<{ ask?: string; say?: string }>,
+			getCodemarieMessages: () =>
+				this.messageStateHandler.getCodemarieMessages() as Array<{ ask?: string; say?: string; text?: string }>,
 			addToUserMessageContent: (content: { type: string; text: string }) => {
 				// Cast to CodemarieTextContentBlock which is compatible with CodemarieContent
 				this.taskState.userMessageContent.push({ type: "text", text: content.text } as CodemarieTextContentBlock)
@@ -636,7 +586,6 @@ export class Task {
 			this.clearActiveHookExecution.bind(this),
 			this.getActiveHookExecution.bind(this),
 			this.runUserPromptSubmitHook.bind(this),
-			() => this.orchestrationController,
 			this.getKnowledgeGraphService.bind(this),
 		)
 	}
@@ -660,17 +609,6 @@ export class Task {
 			throw new Error("Codemarie instance aborted")
 		}
 
-		// Refresh suggestions when asking the user for input (only on turn completion)
-		if (!this.taskState.abort && !partial) {
-			this.controller.suggestionService
-				.getSuggestions(this.messageStateHandler.getApiConversationHistory(), this.ulid)
-				.then(() => {
-					this.postStateToWebview()
-				})
-				.catch((error) => {
-					Logger.error("Failed to refresh suggestions in ask():", error)
-				})
-		}
 		let askTs: number
 		if (partial !== undefined) {
 			const codemarieMessages = this.messageStateHandler.getCodemarieMessages()
@@ -772,8 +710,12 @@ export class Task {
 		if (this.taskState.lastMessageTs !== askTs) {
 			throw new Error("Current ask promise was ignored") // could happen if we send multiple asks in a row i.e. with command_output. It's important that when we know an ask could fail, it is handled gracefully
 		}
+		const { askResponse } = this.taskState
+		if (!askResponse) {
+			throw new Error("askResponse is missing")
+		}
 		const result = {
-			response: this.taskState.askResponse!,
+			response: askResponse,
 			text: this.taskState.askResponseText,
 			images: this.taskState.askResponseImages,
 			files: this.taskState.askResponseFiles,
@@ -914,17 +856,6 @@ export class Task {
 	}
 
 	private async saveCheckpointCallback(isAttemptCompletionMessage?: boolean, completionMessageTs?: number): Promise<void> {
-		const streamId = this.orchestrationController?.getStreamId()
-		if (streamId) {
-			const checkpointHash = `checkpoint_${Date.now()}`
-			await orchestrator
-				.storeMemory(
-					streamId,
-					checkpointHash,
-					JSON.stringify({ isAttempt: !!isAttemptCompletionMessage, ts: completionMessageTs }),
-				)
-				.catch(() => {})
-		}
 		return this.checkpointManager?.saveCheckpoint(isAttemptCompletionMessage, completionMessageTs) ?? Promise.resolve()
 	}
 
@@ -1200,28 +1131,6 @@ export class Task {
 
 		this.messageStateHandler.setApiConversationHistory(savedApiConversationHistory)
 
-		// Hardened Resumption: Restore grounding state from history if present
-		try {
-			for (const message of savedApiConversationHistory) {
-				if (message.role === "user" && typeof message.content === "object" && Array.isArray(message.content)) {
-					const groundingBlock = message.content.find(
-						(c) => c.type === "text" && c.text?.includes("<grounded_specification>"),
-					)
-					if (groundingBlock && groundingBlock.type === "text" && groundingBlock.text) {
-						const match = groundingBlock.text.match(/<grounded_specification>\n([\s\S]*)\n<\/grounded_specification>/)
-						if (match) {
-							this.taskState.groundedSpec = JSON.parse(match[1])
-							this.taskState.didAttemptGrounding = true
-							Logger.info(`[Task ${this.taskId}] Restored grounded specification from history.`)
-							break
-						}
-					}
-				}
-			}
-		} catch (error) {
-			Logger.warn(`[Task ${this.taskId}] Failed to restore grounded spec from history:`, error)
-		}
-
 		// load the context history state
 		await ensureTaskDirectoryExists(this.taskId)
 		await this.contextManager.initializeContextHistory(await ensureTaskDirectoryExists(this.taskId))
@@ -1242,8 +1151,7 @@ export class Task {
 		this.taskState.isInitialized = true
 		this.taskState.abort = false // Reset abort flag when resuming task
 
-		// Refresh suggestions before asking for followup
-		await this.controller.suggestionService.getSuggestions(this.messageStateHandler.getApiConversationHistory(), this.ulid)
+		// Task is initialized
 
 		const { response, text, images, files } = await this.ask(askType) // calls poststatetowebview
 
@@ -1461,194 +1369,6 @@ export class Task {
 		let nextUserContent = userContent
 		let includeFileDetails = true
 
-		// Phase 2: Intent Grounding
-		const masEnabled = StateManager.get().getGlobalSettingsKey("masEnabled") ?? true
-		if (!this.taskState.groundedSpec && !this.taskState.didAttemptGrounding && userContent.length > 0) {
-			// Multi-Agent Refinement (Kaizen) if this is not the first turn
-			const isFirstTurn = this.messageStateHandler.getCodemarieMessages().length <= 5 // Basic heuristic
-			if (this.multiAgentSystem && !isFirstTurn && masEnabled) {
-				const lastUserMessage = userContent.find((c) => c.type === "text")?.text
-				if (lastUserMessage) {
-					try {
-						await this.say("info", "Performing Multi-Agent Refinement (Kaizen)...")
-						await this.multiAgentSystem.executeRefinementPass(lastUserMessage)
-					} catch (error) {
-						Logger.error("[Task] MAS Refinement Stream failed:", error)
-						await this.say(
-							"info",
-							"Multi-Agent Refinement was interrupted. Falling back to robust single-agent execution.",
-						)
-					}
-				}
-			}
-			const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
-			if (initialTaskBlock && initialTaskBlock.type === "text" && initialTaskBlock.text) {
-				const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)
-				const taskIntent = taskMatch ? taskMatch[1] : initialTaskBlock.text
-
-				try {
-					this.taskState.didAttemptGrounding = true
-
-					// Skip grounding if the project is "blank" (empty or scaffolding-only)
-					const [topLevelFiles] = await listFiles(this.cwd, false, 50)
-					if (this.isProjectBlank(topLevelFiles)) {
-						Logger.info("[Task] Skipping grounding: Project is blank or scaffolding-only.")
-					} else {
-						await this.say("info", "Grounding user intent into a structured specification...")
-						const grounder = new IntentGrounder(this.api)
-
-						// Ensure orchestration stream is ready for memory persistence
-						await this.streamReadyPromise
-						const streamId = this.orchestrationController?.getStreamId()
-
-						// Provide high-level context for grounding (using files we already found if possible, but listFiles is fast)
-						const context = `Workspace Root: ${this.cwd}\nTop-level files:\n${topLevelFiles.join("\n")}`
-
-						const kgService = await this.getKnowledgeGraphService()
-						this.taskState.groundedSpec = await grounder.ground(taskIntent, context, this.cwd, streamId, kgService)
-						this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
-
-						// Phase 3: Extreme Hardening - Clarification Loop
-						if (this.taskState.groundedSpec.confidenceScore < 0.7) {
-							const missingInfo = this.taskState.groundedSpec.missingInformation?.join("\n") || ""
-							const reasoning = this.taskState.groundedSpec.ambiguityReasoning || "Intent is somewhat ambiguous."
-
-							const clarificationPrompt =
-								`I've analyzed your intent but have some questions to ensure I get it right (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
-								`**Reasoning**: ${reasoning}\n\n` +
-								`**Questions**:\n${missingInfo || "- Could you provide more details about the task?"}\n\n` +
-								`Should I proceed with what I have, or would you like to provide more details?`
-
-							const choice = await this.ask("followup", clarificationPrompt)
-							if (choice.response === "messageResponse" && choice.text) {
-								// Phase 4: Ultimate Hardening - Adaptive Evolution
-								const richerIntent = `${taskIntent}\n\nUser Clarification: ${choice.text}`
-								await this.say("info", "Evolving grounded specification with your clarification...")
-								this.taskState.groundedSpec = await grounder.ground(
-									richerIntent,
-									context,
-									this.cwd,
-									streamId,
-									kgService,
-								)
-								this.taskState.groundedSpecHistory.push(this.taskState.groundedSpec)
-							}
-						}
-
-						// Inject grounded spec into conversation (User-facing summary)
-						const verifiedCount = this.taskState.groundedSpec.verifiedEntities?.length || 0
-						const groundedSpecText =
-							`Task grounded into a structured specification (Confidence: ${Math.round(this.taskState.groundedSpec.confidenceScore * 100)}%):\n\n` +
-							`**Variables**: ${this.taskState.groundedSpec.decisionVariables.map((v) => v.name).join(", ") || "None"}\n` +
-							`**Constraints**: ${this.taskState.groundedSpec.constraints.length} identified\n` +
-							`**Rules**: ${this.taskState.groundedSpec.rules.length} defined\n` +
-							`**Verified Entities**: ${verifiedCount} project files/symbols verified\n` +
-							`**Latent Performance**: ${this.taskState.groundedSpec.telemetry?.durationMs || 0}ms`
-
-						if (this.taskState.groundedSpec.actions && this.taskState.groundedSpec.actions.length > 0) {
-							const askPayload: CodemarieAskQuestion = {
-								question:
-									"I've grounded your task into a structured specification. Please review the proposed actions below:",
-								actions: this.taskState.groundedSpec.actions,
-								confidenceScore: this.taskState.groundedSpec.confidenceScore,
-								ambiguityReasoning: this.taskState.groundedSpec.ambiguityReasoning,
-								verifiedEntities: this.taskState.groundedSpec.verifiedEntities,
-								risks: this.taskState.groundedSpec.risks,
-								intentDecomposition: this.taskState.groundedSpec.intentDecomposition,
-								constraints: this.taskState.groundedSpec.constraints,
-								constraintExplanations: this.taskState.groundedSpec.constraintExplanations,
-								architecturalLayers: this.taskState.groundedSpec.architecturalLayers,
-								policyCompliance: this.taskState.groundedSpec.policyCompliance,
-								outcomeMapping: this.taskState.groundedSpec.outcomeMapping,
-								adversarialCritique: this.taskState.groundedSpec.adversarialCritique,
-								interactiveClarifications: this.taskState.groundedSpec.interactiveClarifications,
-								swarmConsensus: this.taskState.groundedSpec.swarmConsensus,
-								options: ["Proceed", "Abort"],
-							}
-
-							const choice = await this.ask("followup", JSON.stringify(askPayload))
-							if (choice.response === "messageResponse") {
-								if (choice.text?.startsWith("Abort")) {
-									await this.say("info", "Task aborted by user during grounding.")
-									await this.cancelTask()
-									return
-								}
-								// Process selected actions if any
-								if (choice.text?.includes("[SELECTED_ACTIONS]:")) {
-									try {
-										const selectedActionIds = JSON.parse(
-											choice.text.split("[SELECTED_ACTIONS]:")[1].trim(),
-										) as string[]
-										this.taskState.groundedSpec.actions = this.taskState.groundedSpec.actions.map((a) => ({
-											...a,
-											isChecked: selectedActionIds.includes(a.id),
-										}))
-										Logger.info(
-											`[Task] User selected ${selectedActionIds.length} actions for grounding spec.`,
-										)
-									} catch (e) {
-										Logger.warn("[Task] Failed to parse selected actions from user response:", e)
-									}
-								}
-							}
-						} else {
-							await this.say("text", groundedSpecText)
-						}
-
-						// Add specific tag to the history for the model
-						this.taskState.userMessageContent.push({
-							type: "text",
-							text: `<grounded_specification>\n${JSON.stringify(this.taskState.groundedSpec, null, 2)}\n</grounded_specification>`,
-						} as CodemarieTextContentBlock)
-
-						if (this.taskState.groundedSpec.confidenceScore < 0.3) {
-							await this.say(
-								"info",
-								"Note: Intent grounding was partial. I'll proceed with the original task but may need clarification later.",
-							)
-						}
-					}
-				} catch (error) {
-					Logger.error("[Task] Intent grounding failed critically:", error)
-					await this.say("info", "Minor issue structuring the task. Proceeding with your original intent.")
-				}
-			}
-
-			// Phase 2.5: Multi-Agent Stream Initiation (Grounded Handoff)
-			if (this.multiAgentSystem && masEnabled && !this.taskState.didInitiateMasFirstPass) {
-				const initialTaskBlock = userContent.find((c) => c.type === "text" && c.text?.includes("<task>"))
-				if (initialTaskBlock && initialTaskBlock.type === "text" && initialTaskBlock.text) {
-					const taskMatch = initialTaskBlock.text.match(/<task>\n([\s\S]*)\n<\/task>/)
-					const taskIntent = taskMatch ? taskMatch[1] : initialTaskBlock.text
-
-					try {
-						await this.say("info", "Initiating Multi-Agent Stream (Ikigai & Kanban) with Grounded Context...")
-						const masResult = await this.multiAgentSystem.executeFirstPass(taskIntent, this.taskState.groundedSpec)
-						this.taskState.didInitiateMasFirstPass = true
-
-						if (masResult && !masResult.success && masResult.clarificationNeeded) {
-							const response = await this.ask(
-								"followup",
-								`The Multi-Agent System requires clarification to proceed:\n\n> ${masResult.clarificationNeeded}\n\nPlease provide more details to refine the product scope.`,
-							)
-							// Re-run first pass with the new context
-							await this.multiAgentSystem.executeFirstPass(
-								`${taskIntent}\n\nUser Clarification: ${response.text || ""}`,
-								this.taskState.groundedSpec,
-							)
-						}
-					} catch (error) {
-						this.taskState.didInitiateMasFirstPass = true // Prevent infinite loops
-						Logger.error("[Task] MAS Execution Stream failed:", error)
-						await this.say(
-							"info",
-							"Multi-Agent Stream was structurally interrupted. Nudging system and falling back to robust single-agent execution...",
-						)
-					}
-				}
-			}
-		}
-
 		while (!this.taskState.abort) {
 			this.taskState.currentTurnReadHistory.clear() // Reset read history for the new turn
 			this.taskState.currentTurnTotalReadCount = 0 // Reset total read counter for the new turn
@@ -1742,13 +1462,6 @@ export class Task {
 			// This must happen before canceling hooks so that hook catch blocks
 			// can properly detect the abort state
 			this.taskState.abort = true
-
-			// Signal orchestrator that this stream has been aborted via controller
-			if (this.orchestrationController) {
-				this.orchestrationController.failStream("Task aborted by user or system").catch((err) => {
-					Logger.error(`[Task ${this.taskId}] Failed to signal stream abort:`, err)
-				})
-			}
 
 			// PHASE 3: Cancel any running hook execution
 			const activeHook = await this.getActiveHookExecution()
@@ -2055,20 +1768,6 @@ export class Task {
 		)
 
 		this.taskState.conversationHistoryDeletedRange = newDeletedRange
-		const streamId = this.orchestrationController?.getStreamId()
-		if (streamId) {
-			orchestrator
-				.storeMemory(
-					streamId,
-					`context_truncated_${Date.now()}`,
-					JSON.stringify({
-						newStart: newDeletedRange[0],
-						newEnd: newDeletedRange[1],
-						remainingHistoryLength: apiConversationHistory.length - (newDeletedRange[1] - newDeletedRange[0] + 1),
-					}),
-				)
-				.catch(() => {})
-		}
 
 		await this.messageStateHandler.saveCodemarieMessagesAndUpdateHistory()
 		await this.contextManager.triggerApplyStandardContextTruncationNoticeChange(
@@ -2547,7 +2246,7 @@ export class Task {
 				// If we have a pending initial commit, we must block unsafe tools until it finishes.
 				// Safe tools (read-only) can run in parallel.
 				if (this.initialCheckpointCommitPromise) {
-					if (!READ_ONLY_TOOLS.includes(block.name as any)) {
+					if (!(READ_ONLY_TOOLS as readonly string[]).includes(block.name as string)) {
 						await this.initialCheckpointCommitPromise
 						this.initialCheckpointCommitPromise = undefined
 					}
@@ -3186,8 +2885,6 @@ export class Task {
 						// Pass grounding state to the new task instance immediately
 						const initialTaskState: Partial<TaskState> = {
 							autoRetryAttempts: this.taskState.autoRetryAttempts,
-							didAttemptGrounding: this.taskState.didAttemptGrounding,
-							groundedSpec: this.taskState.groundedSpec,
 						}
 
 						// Wait with exponential backoff before auto-resuming
@@ -3299,7 +2996,7 @@ export class Task {
 						type: "text",
 						text: assistantTextOnly,
 						// reasoning_details only exists for codemarie/openrouter providers
-						reasoning_details: thinkingBlock?.summary as any[],
+						reasoning_details: thinkingBlock?.summary as CodemarieReasoningDetailParam[],
 						signature: assistantTextSignature,
 						call_id: assistantMessageId,
 					})
@@ -3926,77 +3623,16 @@ export class Task {
 		return `<environment_details>\n${details.trim()}\n</environment_details>`
 	}
 
-	private isProjectBlank(files: string[]): boolean {
-		if (files.length === 0) return true
-
-		// List of extensions that signify "real" content (not just scaffolding)
-		const sourceExtensions = [
-			".ts",
-			".js",
-			".tsx",
-			".jsx",
-			".py",
-			".go",
-			".rs",
-			".cpp",
-			".c",
-			".h",
-			".java",
-			".rb",
-			".php",
-			".swift",
-			".kt",
-			".md",
-			".mdx",
-		]
-		// List of files that are typically strictly scaffolding/boilerplate
-		const scaffoldingFiles = [
-			"package.json",
-			"package-lock.json",
-			"yarn.lock",
-			"pnpm-lock.yaml",
-			"tsconfig.json",
-			".gitignore",
-			".npmrc",
-			".prettierrc",
-			".eslintrc",
-			"README.md",
-			"LICENSE",
-			".DS_Store",
-		]
-
-		return files.every((f) => {
-			const basename = path.basename(f)
-			const ext = path.extname(f).toLowerCase()
-
-			// If it has a source extension, it's not a blank project
-			if (sourceExtensions.includes(ext)) {
-				// Special case: README.md is often the only file in a "blank" project
-				if (basename.toLowerCase() === "readme.md") return true
-				return false
-			}
-
-			// If it's in the scaffolding list, it counts as "blank" for grounding purposes
-			if (scaffoldingFiles.includes(basename)) return true
-
-			// If it's a hidden file/directory, it counts as "blank"
-			if (basename.startsWith(".")) return true
-
-			// Default: If we see something we don't recognize as scaffolding, it's probably not blank
-			return false
-		})
-	}
-
 	private async getKnowledgeGraphService(): Promise<KnowledgeGraphService | undefined> {
 		if (this.knowledgeGraphService) {
 			return this.knowledgeGraphService
 		}
 
 		const apiConfiguration = this.stateManager.getApiConfiguration()
-		let embeddingHandler: any | undefined
+		let embeddingHandler: EmbeddingHandler | undefined
 
 		// Use specifically configured embedding provider if available, otherwise fallback to primary provider if it supports embeddings
-		const provider = apiConfiguration.embeddingProvider as any
+		const provider = apiConfiguration.embeddingProvider as string
 		const geminiKey = apiConfiguration.embeddingApiKey || apiConfiguration.geminiApiKey
 		const openAiKey = apiConfiguration.embeddingApiKey || apiConfiguration.openAiApiKey
 
@@ -4014,8 +3650,8 @@ export class Task {
 				openAiBaseUrl: apiConfiguration.embeddingOpenAiBaseUrl || apiConfiguration.openAiBaseUrl,
 				openAiModelId: apiConfiguration.embeddingModelId || "text-embedding-3-small",
 			})
-		} else if (this.api && typeof (this.api as any).embedText === "function") {
-			embeddingHandler = this.api
+		} else if (this.api && typeof (this.api as EmbeddingHandler).embedText === "function") {
+			embeddingHandler = this.api as EmbeddingHandler
 		} else if (geminiKey) {
 			// Fallback to gemini if we have a key even if it wasn't the explicitly selected provider
 			embeddingHandler = new GeminiHandler({
@@ -4039,7 +3675,7 @@ export class Task {
 		if (!embeddingHandler) {
 			embeddingHandler = {
 				embedText: async () => null,
-			}
+			} as EmbeddingHandler
 		}
 
 		this.knowledgeGraphService = await KnowledgeGraphService.getInstance(embeddingHandler)

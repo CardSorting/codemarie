@@ -37,15 +37,6 @@ function initializeHostProvider() {
 
 function createTaskConfig(nativeToolCallEnabled: boolean): TaskConfig {
 	const taskState = new TaskState()
-	// Mock groundedSpec
-	taskState.groundedSpec = {
-		decisionVariables: [{ name: "verifying-file.ts", description: "test", range: ["src/verifying-file.ts"] }],
-		constraints: ["test constraint"],
-		rules: ["test rule"],
-		outputStructure: {},
-		confidenceScore: 1.0,
-		ambiguityReasoning: "none",
-	}
 
 	return {
 		taskId: "task-1",
@@ -146,7 +137,7 @@ describe("Subagent Swarm Inheritance", () => {
 		HostProvider.reset()
 	})
 
-	it("propagates parent groundedSpec to subagent system prompt context and inherits if similar", async () => {
+	it("propagates parent context to subagent system prompt context", async () => {
 		const createMessage = sinon.stub()
 		createMessage.onFirstCall().callsFake(async function* () {
 			yield {
@@ -164,7 +155,8 @@ describe("Subagent Swarm Inheritance", () => {
 		const promptRegistry = PromptRegistry.getInstance()
 		const registrySpy = sinon.spy(promptRegistry, "get")
 
-		sinon.stub(SubagentBuilder.prototype, "buildNativeTools").returns([{ name: "attempt_completion" }] as unknown as any)
+		// biome-ignore lint/suspicious/noExplicitAny: Mocking native tools return type for tests
+		sinon.stub(SubagentBuilder.prototype, "buildNativeTools").returns([{ name: "attempt_completion" }] as any)
 		sinon.stub(skills, "discoverSkills").resolves([])
 		sinon.stub(skills, "getAvailableSkills").returns([])
 		stubApiHandler(createMessage)
@@ -173,23 +165,11 @@ describe("Subagent Swarm Inheritance", () => {
 		const baseConfig = createTaskConfig(true)
 		const builder = new SubagentBuilder(baseConfig, "subagent")
 		const runner = new SubagentRunner(baseConfig, builder)
-		// Intent overlapping with "test constraint" and "test rule" in parent spec
-		await runner.run("Verification of test constraint and rule", () => {})
+		await runner.run("Verification test", () => {})
 
 		assert.ok(registrySpy.calledOnce)
 		const context = registrySpy.firstCall.args[0]
-		assert.ok(context.groundedSpec)
-		assert.equal(context.groundedSpec?.decisionVariables[0].name, "verifying-file.ts")
-		assert.equal(context.groundedSpec?.constraints[0], "test constraint")
-	})
-
-	it("synthesizes parent spec with local discovery in IntentGrounder logic", async () => {
-		const baseConfig = createTaskConfig(true)
-		const builder = new SubagentBuilder(baseConfig, "subagent")
-		const runner = new SubagentRunner(baseConfig, builder)
-
-		// Accessing private baseConfig for verification via casting
-		assert.deepEqual((runner as any).baseConfig.taskState.groundedSpec, baseConfig.taskState.groundedSpec)
+		assert.equal(context.mode, "act")
 	})
 
 	it("signals critical findings to parent swarm memory", async () => {
@@ -208,6 +188,7 @@ describe("Subagent Swarm Inheritance", () => {
 		})
 
 		const baseConfig = createTaskConfig(true)
+		// biome-ignore lint/suspicious/noExplicitAny: Accessing internal services for test setup
 		;(baseConfig as any).services.stateManager.getGlobalSettingsKey = (key: string) => {
 			if (key === "subagentsEnabled") return true
 			if (key === "mode") return "act"
@@ -224,6 +205,7 @@ describe("Subagent Swarm Inheritance", () => {
 		const runner = new SubagentRunner(baseConfig, builder)
 		// Set recursion depth to 0 explicitly to avoid any confusion
 		runner.setRecursionDepth(0)
+		// biome-ignore lint/suspicious/noExplicitAny: Accessing internal baseConfig for test setup
 		;(runner as any).baseConfig.getSessionStreamId = () => "parent-stream-123"
 
 		await runner.run("Audit security", () => {})
@@ -234,11 +216,13 @@ describe("Subagent Swarm Inheritance", () => {
 
 	it("enforces recursion guard at depth 3", async () => {
 		const baseConfig = createTaskConfig(true)
+		// biome-ignore lint/suspicious/noExplicitAny: Accessing internal services for test setup
 		;(baseConfig as any).services.stateManager.getGlobalSettingsKey = (key: string) => {
 			if (key === "subagentsEnabled") return true
 			if (key === "mode") return "act"
 			return undefined
 		}
+		// biome-ignore lint/suspicious/noExplicitAny: Mocking recursion depth for tests
 		;(baseConfig as any).recursionDepth = 3
 
 		const { UseSubagentsToolHandler } = await import("../../handlers/SubagentToolHandler")
@@ -247,47 +231,11 @@ describe("Subagent Swarm Inheritance", () => {
 		const result = await handler.execute(baseConfig, {
 			name: CodemarieDefaultTool.USE_SUBAGENTS,
 			params: { prompt_1: "test" },
+			// biome-ignore lint/suspicious/noExplicitAny: Mocking tool call parameters for tests
 		} as any)
 
+		// biome-ignore lint/suspicious/noExplicitAny: Accessing content from tool result for verification
 		const content = typeof result === "string" ? result : (result as any).content
 		assert.ok(content.includes("Swarm Recursion Limit Reached"), `Expected recursion limit message, but got: ${content}`)
-	})
-
-	it("resolves conflicts by prioritizing high-confidence local constraints", async () => {
-		const { IntentGrounder } = await import("../../../../../core/grounding/IntentGrounder")
-		const mockApiHandler = {
-			createMessage: sinon.stub().callsFake(async function* () {}),
-			getModel: () => ({ id: "m", info: {} }),
-		}
-
-		// We mock the internal executeGroundingRequest by overriding IntentGrounder prototype or just mocking the API
-		const grounder = new IntentGrounder(mockApiHandler as any)
-		;(grounder as any).executeGroundingRequest = async () => ({
-			spec: {
-				decisionVariables: [],
-				constraints: ["Local strictly better constraint"],
-				rules: [],
-				outputStructure: {},
-				confidenceScore: 0.9,
-				ambiguityReasoning: "none",
-			},
-			tokens: { input: 0, output: 0 },
-		})
-
-		const parentSpec = {
-			constraints: ["Parent general constraint"],
-			decisionVariables: [],
-			rules: [],
-			outputStructure: {},
-			confidenceScore: 1.0,
-			ambiguityReasoning: "none",
-		}
-
-		// Intent that should trigger synthesis (overlapping)
-		// Signature: ground(intent, context, cwd, streamId, knowledgeGraph, parentSpec)
-		const spec = await grounder.ground("Test local override", "", "/tmp", undefined, undefined, parentSpec)
-
-		// If local is "strictly better", it should merge cleanly or override depending on logic
-		assert.ok(spec.constraints.includes("Local strictly better constraint"))
 	})
 })

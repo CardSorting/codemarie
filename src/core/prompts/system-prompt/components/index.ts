@@ -4,7 +4,6 @@ import { getAgentRoleSection } from "./agent_role"
 import { getCapabilitiesSection } from "./capabilities"
 import { getEditingFilesSection } from "./editing_files"
 import { getFeedbackSection } from "./feedback"
-import { getGroundedSpecSection } from "./grounded_spec"
 import { getJoyZoningSection } from "./joy_zoning"
 import { getMcp } from "./mcp"
 import { getObjectiveSection } from "./objective"
@@ -51,6 +50,5 @@ export function getSystemPromptComponents() {
 		},
 		{ id: SystemPromptSection.TASK_PROGRESS, fn: getUpdatingTaskProgress },
 		{ id: SystemPromptSection.JOY_ZONING, fn: getJoyZoningSection },
-		{ id: SystemPromptSection.GROUNDED_SPEC, fn: getGroundedSpecSection },
 	]
 }

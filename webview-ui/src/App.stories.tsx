@@ -1,7 +1,6 @@
 import { HeroUIProvider } from "@heroui/react"
 import { DEFAULT_AUTO_APPROVAL_SETTINGS } from "@shared/AutoApprovalSettings"
 import { type ApiConfiguration, bedrockModels } from "@shared/api"
-import { CLINE_ONBOARDING_MODELS } from "@shared/codemarie/onboarding"
 import type { CodemarieMessage, CodemarieSayTool } from "@shared/ExtensionMessage"
 import type { HistoryItem } from "@shared/HistoryItem"
 import type { Meta, StoryObj } from "@storybook/react-vite"
@@ -9,21 +8,16 @@ import { useEffect, useMemo, useState } from "react"
 import { expect, userEvent, within } from "storybook/test"
 import { ExtensionStateContext, useExtensionState } from "@/context/ExtensionStateContext"
 import ChatView from "./components/chat/ChatView"
-import OnboardingView from "./components/onboarding/OnboardingView"
 import WelcomeView from "./components/welcome/WelcomeView"
 
 // Mock component that mimics App behavior but works in Storybook
 const MockApp = () => {
-	const { showWelcome, onboardingModels, showAnnouncement } = useExtensionState()
+	const { showWelcome, showAnnouncement } = useExtensionState()
 
 	return (
 		<HeroUIProvider>
 			{showWelcome ? (
-				onboardingModels ? (
-					<OnboardingView onboardingModels={onboardingModels} />
-				) : (
-					<WelcomeView />
-				)
+				<WelcomeView />
 			) : (
 				<ChatView
 					hideAnnouncement={() => {}}
@@ -246,7 +240,6 @@ const createMockState = (overrides: any = {}) => ({
 	codemarieMessages: mockActiveMessages,
 	taskHistory: mockTaskHistory,
 	apiConfiguration: mockApiConfiguration,
-	onboardingModels: undefined,
 	openRouterModels: bedrockModels,
 	showAnnouncement: false,
 	backgroundEditEnabled: false,
@@ -289,96 +282,6 @@ export const Welcome: Story = {
 		await userEvent.click(byokButton)
 		await expect(getStartedButton).toBeInTheDocument()
 		await expect(byokButton).not.toBeInTheDocument()
-	},
-}
-
-export const Onboarding: Story = {
-	decorators: [
-		createStoryDecorator({
-			welcomeViewCompleted: false,
-			showWelcome: true,
-			codemarieMessages: [],
-			onboardingModels: { models: CLINE_ONBOARDING_MODELS },
-		}),
-	],
-	parameters: {
-		docs: {
-			description: {
-				story: "The onboarding flow shown to new users, allowing them to select their preferred AI models and configure initial settings.",
-			},
-		},
-	},
-	args: {
-		onboardingModels: { models: CLINE_ONBOARDING_MODELS },
-	},
-	argTypes: {
-		onboardingModels: {
-			control: { type: "object" },
-		},
-	},
-	// More on component testing: https://storybook.js.org/docs/writing-tests/interaction-testing
-	play: async ({ canvasElement }) => {
-		const canvas = within(canvasElement)
-
-		// Step 0: User type selection should be visible
-		const title = canvas.getByText("How will you use Codemarie?")
-		await expect(title).toBeInTheDocument()
-		const freeUserOption = canvas.getByText("Absolutely Free")
-		const powerUserOption = canvas.getByText("Frontier Model")
-		await expect(freeUserOption).toBeInTheDocument()
-		await expect(powerUserOption).toBeInTheDocument()
-
-		// Select "Free User" option
-		await userEvent.click(freeUserOption)
-
-		// Verify the next button appears
-		const nextButton = canvas.getByText("Continue")
-		await expect(nextButton).toBeInTheDocument()
-
-		// Click next to go to model selection
-		await userEvent.click(nextButton)
-
-		// Step 1: Model selection should be visible
-		// Check for model group headers
-		const otherOptionsHeader = canvas.getByText("Select a free model")
-
-		// At least one should be visible
-		await expect(otherOptionsHeader).toBeInTheDocument()
-
-		// Test search functionality
-		const searchInput = canvas.getByPlaceholderText("Search model...")
-		await expect(searchInput).toBeInTheDocument()
-
-		// Type in search box
-		await userEvent.type(searchInput, "claude")
-
-		// Verify search term is in the input
-		await expect(searchInput).toHaveValue("claude")
-
-		// Clear search
-		await userEvent.clear(searchInput)
-
-		// Verify sign in button appears after model selection
-		const signInButton = canvas.getByText("Create my Account")
-		await expect(signInButton).toBeInTheDocument()
-
-		// Test back navigation
-		const backButton = canvas.getByText("Back")
-		await expect(backButton).toBeInTheDocument()
-		await userEvent.click(backButton)
-
-		// Should be back to user type selection
-		await expect(canvas.getByText("How will you use Codemarie?")).toBeInTheDocument()
-
-		// Test power user flow
-		await userEvent.click(powerUserOption)
-
-		const continueButton = canvas.getByText("Continue")
-		await userEvent.click(continueButton)
-
-		// Should see model selection again
-		await expect(canvas.getByPlaceholderText("Search model...")).toBeInTheDocument()
-		await userEvent.click(canvas.getByText("Back"))
 	},
 }
 

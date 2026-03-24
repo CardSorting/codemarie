@@ -1,5 +1,4 @@
 import { ToolUse } from "../assistant-message"
-import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { StateManager } from "../storage/StateManager"
 import { FluidPolicyEngine, PolicyResult } from "./FluidPolicyEngine"
 
@@ -12,13 +11,8 @@ export class UniversalGuard {
 	private readonly engine: FluidPolicyEngine
 	private currentMode: "plan" | "act" = "act"
 
-	constructor(cwd: string, taskId: string, stateManager: StateManager, controller?: OrchestrationController) {
-		this.engine = new FluidPolicyEngine(
-			cwd,
-			taskId,
-			stateManager,
-			controller ? (p: string) => controller.resolveVirtualContent(p) : undefined,
-		)
+	constructor(cwd: string, taskId: string, stateManager: StateManager) {
+		this.engine = new FluidPolicyEngine(cwd, taskId, stateManager)
 	}
 
 	/**
@@ -45,7 +39,7 @@ export class UniversalGuard {
 	/**
 	 * Performs all post-execution audits including AST-audit, health-check, and entropy.
 	 */
-	public async guardPostExecution(block: ToolUse, toolOutput: any, prevHash?: string): Promise<PolicyResult> {
+	public async guardPostExecution(block: ToolUse, toolOutput: unknown, prevHash?: string): Promise<PolicyResult> {
 		return this.engine.validatePostExecution(block, toolOutput, prevHash)
 	}
 
@@ -72,7 +66,10 @@ export class UniversalGuard {
 	/**
 	 * Performs the final architectural audit before a database commit.
 	 */
-	public async validateCommit(files: Set<string>, ops: any[]): Promise<{ success: boolean; errors: string[] }> {
+	public async validateCommit(
+		files: Set<string>,
+		ops: import("../../infrastructure/db/BufferedDbPool").WriteOp[],
+	): Promise<{ success: boolean; errors: string[] }> {
 		return this.engine.validateCommit(files, ops)
 	}
 

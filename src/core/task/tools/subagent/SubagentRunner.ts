@@ -416,7 +416,6 @@ export class SubagentRunner {
 				isSubagentRun: true,
 				mode: mode as "plan" | "act", // Subagents inherit the parent's mode context
 				parentMode: mode as "plan" | "act",
-				groundedSpec: this.baseConfig.taskState.groundedSpec,
 			}
 
 			const promptRegistry = PromptRegistry.getInstance()
@@ -812,7 +811,6 @@ export class SubagentRunner {
 		}
 
 		const subagentTaskState = new TaskState()
-		subagentTaskState.groundedSpec = this.baseConfig.taskState.groundedSpec
 		subagentTaskState.recursionDepth = this.recursionDepth
 
 		return {
@@ -823,7 +821,6 @@ export class SubagentRunner {
 			messageState: this.baseConfig.messageState, // Use parent's message state handler but they will have their own stream
 			recursionDepth: this.recursionDepth,
 			isSubagentExecution: true,
-			parentGroundedSpec: this.baseConfig.taskState.groundedSpec,
 			vscodeTerminalExecutionMode: "backgroundExec",
 			callbacks: {
 				...baseCallbacks,

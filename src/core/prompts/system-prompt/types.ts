@@ -9,7 +9,6 @@ import type { FocusChainSettings } from "@/shared/FocusChainSettings"
 import { ModelFamily } from "@/shared/prompts"
 import type { SkillMetadata } from "@/shared/skills"
 import { CodemarieDefaultTool } from "@/shared/tools"
-import { GroundedSpec } from "../../grounding/IntentGrounder"
 import type { CodemarieToolSpec } from "./spec"
 import { SystemPromptSection } from "./templates/placeholders"
 
@@ -129,7 +128,6 @@ export interface SystemPromptContext {
 	readonly terminalExecutionMode?: "vscodeTerminal" | "backgroundExec"
 	readonly mode?: "plan" | "act"
 	readonly parentMode?: "plan" | "act"
-	readonly groundedSpec?: GroundedSpec
 }
 
 /**
@@ -162,7 +160,7 @@ export type ToolKey = keyof typeof CodemarieDefaultTool
 export type ToolValue = (typeof CodemarieDefaultTool)[ToolKey]
 
 // Type for variant builder methods
-export type VariantBuilderMethod<T> = (this: T, ...args: any[]) => T
+export type VariantBuilderMethod<T> = (this: T, ...args: unknown[]) => T
 
 // Type guards
 export function isValidModelFamily(family: string): family is ModelFamily {
@@ -209,7 +207,7 @@ export interface VariantBuilder {
 	tools(...tools: CodemarieDefaultTool[]): this
 	overrideTool(tool: CodemarieDefaultTool, override: ConfigOverride): this
 	placeholders(placeholders: Record<string, string>): this
-	config(config: Record<string, any>): this
+	config(config: Record<string, unknown>): this
 	build(): VariantConfig
 }
 

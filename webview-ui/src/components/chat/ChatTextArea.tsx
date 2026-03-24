@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { usePlatform } from "@/context/PlatformContext"
 import { cn } from "@/lib/utils"
-import { FileServiceClient, StateServiceClient, UiServiceClient } from "@/services/grpc-client"
+import { FileServiceClient, StateServiceClient } from "@/services/grpc-client"
 import {
 	ContextMenuOptionType,
 	getContextMenuOptionIndex,
@@ -42,7 +42,6 @@ import {
 	validateSlashCommand,
 } from "@/utils/slash-commands"
 import CodemarieRulesToggleModal from "../codemarie-rules/CodemarieRulesToggleModal"
-import PromptSuggestions from "./PromptSuggestions"
 import ServersToggleModal from "./ServersToggleModal"
 
 const { MAX_IMAGES_AND_FILES_PER_MESSAGE } = CHAT_CONSTANTS
@@ -223,8 +222,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			remoteConfigSettings,
 			navigateToSettingsModelPicker,
 			mcpServers,
-			promptSuggestions,
-			isGeneratingPromptSuggestions,
 		} = useExtensionState()
 		const [isTextAreaFocused, setIsTextAreaFocused] = useState(false)
 		const [isDraggingOver, setIsDraggingOver] = useState(false)
@@ -1120,20 +1117,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			)
 		}
 
-		const handleSuggestionSelect = useCallback(
-			(suggestion: string) => {
-				setInputValue(suggestion)
-				textAreaRef.current?.focus()
-				// Trigger any necessary updates (like highlight)
-				setTimeout(() => {
-					updateHighlights()
-				}, 0)
-				// Capture telemetry via gRPC
-				UiServiceClient.onSuggestionClicked(StringRequest.create({ value: suggestion }))
-			},
-			[setInputValue, updateHighlights],
-		)
-
 		const handleKeyDown = useCallback(
 			(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 				const isSelectAllShortcut =
@@ -1331,18 +1314,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 						setJustDeletedSpaceAfterSlashCommand(false)
 					}
 				}
-
-				// Suggestion shortcuts: Cmd+1, Cmd+2, Cmd+3 (or Ctrl on Windows)
-				const isModKey = platform === "darwin" ? event.metaKey : event.ctrlKey
-				if (isModKey && !event.shiftKey && !event.altKey) {
-					if (event.key === "1" || event.key === "2" || event.key === "3") {
-						const index = Number.parseInt(event.key) - 1
-						if (promptSuggestions && promptSuggestions[index]) {
-							event.preventDefault()
-							handleSuggestionSelect(promptSuggestions[index].text)
-						}
-					}
-				}
 			},
 			[
 				onSend,
@@ -1369,8 +1340,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				remoteConfigSettings?.remoteGlobalWorkflows,
 				remoteWorkflowToggles,
 				platform,
-				promptSuggestions,
-				handleSuggestionSelect,
 			],
 		)
 		// Replace Meta with the platform specific key and uppercase the command letter.
@@ -1380,11 +1349,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
 		return (
 			<div>
-				<PromptSuggestions
-					isLoading={isGeneratingPromptSuggestions}
-					onSelect={handleSuggestionSelect}
-					suggestions={promptSuggestions || []}
-				/>
 				<div
 					className="relative flex transition-colors ease-in-out duration-100 px-3.5 py-2.5"
 					onDragEnter={handleDragEnter}

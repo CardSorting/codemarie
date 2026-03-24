@@ -13,7 +13,6 @@ import { FocusChainSettings } from "./FocusChainSettings"
 import { HistoryItem } from "./HistoryItem"
 import { McpDisplayMode } from "./McpDisplayMode"
 import { CodemarieMessageModelInfo } from "./messages"
-import { OnboardingModelGroup } from "./proto/codemarie/state"
 import { Mode } from "./storage/types"
 import { TelemetrySetting } from "./TelemetrySetting"
 import { UserInfo } from "./UserInfo"
@@ -40,7 +39,6 @@ export const COMMAND_CANCEL_TOKEN = "__codemarie_command_cancel__"
 export interface ExtensionState {
 	isNewUser: boolean
 	welcomeViewCompleted: boolean
-	onboardingModels: OnboardingModelGroup | undefined
 	apiConfiguration?: ApiConfiguration
 	autoApprovalSettings: AutoApprovalSettings
 	browserSettings: BrowserSettings
@@ -91,8 +89,6 @@ export interface ExtensionState {
 	focusChainSettings: FocusChainSettings
 	customPrompt?: string
 	favoritedModelIds: string[]
-	promptSuggestions?: PromptSuggestion[]
-	isGeneratingPromptSuggestions?: boolean
 	// NEW: Add workspace information
 	workspaceRoots: WorkspaceRoot[]
 	primaryRootIndex: number
@@ -114,14 +110,6 @@ export interface ExtensionState {
 	banners?: BannerCardData[]
 	welcomeBanners?: BannerCardData[]
 	openAiCodexIsAuthenticated?: boolean
-}
-
-export type SuggestionType = "fix" | "design" | "learn" | "feature"
-
-export interface PromptSuggestion {
-	text: string
-	type: SuggestionType
-	impact?: number // 0-1 structural impact score
 }
 
 export interface CodemarieMessage {
@@ -383,7 +371,7 @@ export interface CodemariePlanModeResponse {
 	interactiveClarifications?: Array<{
 		label: string
 		type: "provide_path" | "clarify_intent" | "select_variant" | "confirm_risk"
-		data?: Record<string, any>
+		data?: Record<string, unknown>
 	}>
 	swarmConsensus?: {
 		agreementScore: number
@@ -443,7 +431,7 @@ export interface CodemarieAskQuestion {
 	interactiveClarifications?: Array<{
 		label: string
 		type: "provide_path" | "clarify_intent" | "select_variant" | "confirm_risk"
-		data?: Record<string, any>
+		data?: Record<string, unknown>
 	}>
 	swarmConsensus?: {
 		agreementScore: number

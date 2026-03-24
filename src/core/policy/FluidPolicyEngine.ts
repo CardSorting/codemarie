@@ -4,7 +4,6 @@ import { createHash } from "crypto"
 import fs from "fs/promises"
 import * as path from "path"
 import { orchestrator } from "@/infrastructure/ai/Orchestrator"
-import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { StateManager } from "../storage/StateManager"
 import { SpiderEngine } from "./SpiderEngine.js"
 import { SpiderRefactorer } from "./SpiderRefactorer.js"
@@ -36,18 +35,14 @@ export class FluidPolicyEngine {
 	private mode: "plan" | "act" = "act"
 	private commitSeal: string | null = null
 	private sealReason: string | null = null
-	// biome-ignore lint/suspicious/noExplicitAny: complex rule structure
-	private cachedRules: Record<string, any>[] | null = null
 	private layerCache: Map<string, string> = new Map()
 	private sessionFiles: Map<string, string> = new Map()
-	private globalGraphBootstrapped = false
 
 	constructor(
 		private cwd: string,
 		private streamId?: string,
 		private stateManager?: StateManager,
 		private virtualResolver?: (path: string) => string | undefined,
-		private controller?: OrchestrationController,
 	) {
 		this.spiderEngine = new SpiderEngine(this.cwd)
 	}
@@ -61,16 +56,6 @@ export class FluidPolicyEngine {
 		const currentRaw = await orchestrator.recallMemory(this.streamId, key)
 		const newCount = (currentRaw ? Number.parseInt(currentRaw, 10) : 0) + 1
 		await orchestrator.storeMemory(this.streamId, key, newCount.toString())
-
-		// --- BroccoliDB Native Persistence ---
-		if (this.controller) {
-			const ctx = await this.controller.getAgentContext()
-			await ctx.appendMemoryLayer(
-				"mas-orchestrator",
-				`⚠️ Strike ${newCount} recorded for architectural violation in: ${path.basename(filePath)}`,
-			)
-		}
-		// --------------------------------------
 
 		// Global project memory (legacy tracking)
 		if (this.stateManager) {
@@ -109,10 +94,6 @@ export class FluidPolicyEngine {
 	public setCommitSeal(seal: string, reason: string) {
 		this.commitSeal = seal
 		this.sealReason = reason
-	}
-
-	public setController(controller: OrchestrationController) {
-		this.controller = controller
 	}
 
 	/**
@@ -194,14 +175,8 @@ export class FluidPolicyEngine {
 			this.sessionFiles.set(filePath, content)
 			this.spiderEngine.buildGraph(Array.from(this.sessionFiles.entries()).map(([p, c]) => ({ filePath: p, content: c })))
 
-			const [astValidation, supremeCourtResult] = await Promise.all([
-				// 1. AST Validation (TSP)
-				Promise.resolve(this.tspPlugin.validateSource(filePath, content, this.virtualResolver)),
-				// 2. Supreme Court Pass (LLM + BroccoliDB)
-				this.executeSupremeCourtPass(filePath, content),
-				// 3. Global Structural Bootstrap
-				this.ensureGlobalGraph(),
-			])
+			// 1. AST Validation (TSP)
+			const astValidation = this.tspPlugin.validateSource(filePath, content, this.virtualResolver)
 
 			// Block on AST Failure (Strike 1 Domain)
 			if (!astValidation.success) {
@@ -245,9 +220,6 @@ export class FluidPolicyEngine {
 					correctionHint: this.getCorrectionHint(astValidation.errors),
 				}
 			}
-
-			// Block on Supreme Court Failure
-			if (supremeCourtResult) return supremeCourtResult
 
 			// Clean file — reset strikes for this path
 			await this.resetStrikes(filePath)
@@ -314,74 +286,6 @@ export class FluidPolicyEngine {
 	}
 
 	/**
-	 * Ensures the SpiderEngine has a global view of the codebase by bootstrapping from BroccoliDB.
-	 */
-	private async ensureGlobalGraph(): Promise<void> {
-		if (this.globalGraphBootstrapped || !this.controller) return
-
-		try {
-			const ctx = await this.controller.getAgentContext()
-			await ctx.spiderService.bootstrapGraph()
-
-			// Transfer the bootstrapped nodes to our local engine
-			const globalEngine = ctx.spiderService.getEngine()
-			for (const node of globalEngine.nodes.values()) {
-				this.spiderEngine.nodes.set(node.id, { ...node })
-			}
-
-			this.globalGraphBootstrapped = true
-			const { Logger: Log } = require("@/shared/services/Logger")
-			Log.info("[FluidPolicyEngine] Global architectural graph bootstrapped.")
-		} catch (e) {
-			const { Logger: Log } = require("@/shared/services/Logger")
-			Log.error("[FluidPolicyEngine] Bootstrap failed:", e)
-		}
-	}
-
-	private async executeSupremeCourtPass(filePath: string, content: string): Promise<PolicyResult | null> {
-		if (this.controller) {
-			const layer = this.getCachedLayer(filePath)
-
-			if (layer === "domain") {
-				const ctx = await this.controller.getAgentContext()
-
-				// Tier 2: Cached Rule Retrieval (Zero DB overhead on repeat audits in same session)
-				if (!this.cachedRules) {
-					this.cachedRules = await ctx.getLogicalConstraints()
-				}
-
-				const relevantRules = this.cachedRules.filter((r) =>
-					new RegExp(r.pathPattern.replace(/\*\*/g, ".*")).test(filePath),
-				)
-
-				if (relevantRules.length > 0) {
-					// Parallelize Supreme Court auditing for high throughput
-					const auditResults = await Promise.all(
-						relevantRules.map(async (rule) => {
-							const knowledge = await ctx.getKnowledge(rule.knowledgeId)
-							const audit = await ctx.checkConstitutionalViolation(filePath, content, knowledge.content)
-							return { rule, audit, knowledge }
-						}),
-					)
-
-					for (const { audit, knowledge } of auditResults) {
-						if (audit.violated) {
-							const strikes = await this.incrementStrikes(filePath)
-							const rejectionMessage = `🏛️ SUPREME COURT ARCHITECTURAL REJECTION (Strike ${strikes})\n\nViolation: ${audit.reason}\n\nRule: ${knowledge.content}\n\n💡 Please restructure your change to comply with this architectural constraint.`
-
-							if (strikes === 1) {
-								return { success: false, error: rejectionMessage }
-							}
-							return { success: true, warning: `⚠️ SUPREME COURT WARNING (Strike ${strikes}): ${audit.reason}` }
-						}
-					}
-				}
-			}
-		}
-		return null
-	}
-
-	/**
 	 * Inspects and enriches tool results with proactive layer context.
 	 * Always injects the file's layer context so the agent knows the rules before editing.
 	 * Additionally warns about existing violations if any are found.
@@ -398,9 +302,6 @@ export class FluidPolicyEngine {
 		// Update Spider session cache
 		this.sessionFiles.set(absolutePath, content)
 		this.spiderEngine.updateNode(absolutePath, content)
-
-		// Ensure global graph is available for broader context
-		await this.ensureGlobalGraph()
 
 		const entropy = this.spiderEngine.computeEntropy()
 		const latestSnapshot = await this.spiderEngine.getLatestSnapshot()
@@ -419,21 +320,7 @@ export class FluidPolicyEngine {
 		const layer = getLayer(absolutePath)
 		const refactorSuggestions = SpiderRefactorer.getRefactoringSuggestions(this.spiderEngine)
 
-		let structuralImpact = ""
-		if (this.controller) {
-			try {
-				const ctx = await this.controller.getAgentContext()
-				const impact = ctx.getStructuralImpact(absolutePath)
-				structuralImpact = `🔍 STRUCTURAL INTELLIGENCE:\n  ${impact.summary}\n`
-				if (impact.blastRadius.criticalDependents.length > 0) {
-					structuralImpact += `  ⚠️ CRITICAL DEPENDENTS: ${impact.blastRadius.criticalDependents.map((d: string) => path.basename(d)).join(", ")}\n`
-				}
-			} catch {
-				/* skip */
-			}
-		}
-
-		let header = `${layerContext}\n${structuralImpact}`
+		let header = `${layerContext}\n`
 
 		if (refactorSuggestions.length > 0) {
 			header += `🕷️ ARCHITECTURAL REFACTORING OPPORTUNITIES:\n${refactorSuggestions.map((s) => `  - [${s.type}] ${s.target}: ${s.reason} (${s.benefit})`).join("\n")}\n`

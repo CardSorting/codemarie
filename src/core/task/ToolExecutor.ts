@@ -12,14 +12,11 @@ import { CodemarieAsk, CodemarieSay } from "@shared/ExtensionMessage"
 import { CodemarieContent } from "@shared/messages/content"
 import { CodemarieDefaultTool, toolUseNames } from "@shared/tools"
 import { CodemarieAskResponse } from "@shared/WebviewMessage"
-import { createHash } from "crypto"
 import * as path from "path"
-import { TaskAuditMetadata } from "@/infrastructure/ai/Orchestrator"
 import { isParallelToolCallingEnabled, modelDoesntSupportWebp } from "@/utils/model-utils"
 import { ToolUse } from "../assistant-message"
 import { ContextManager } from "../context/context-management/ContextManager"
 import { KnowledgeGraphService } from "../context/KnowledgeGraphService"
-import { OrchestrationController } from "../orchestration/OrchestrationController"
 import { formatResponse } from "../prompts/responses"
 import { StateManager } from "../storage/StateManager"
 import { WorkspaceRootManager } from "../workspace"
@@ -123,12 +120,10 @@ export class ToolExecutor {
 			userContent: CodemarieContent[],
 			context: "initial_task" | "resume" | "feedback",
 		) => Promise<{ cancel?: boolean; wasCancelled?: boolean; contextModification?: string; errorMessage?: string }>,
-		private getOrchestrationController: () => OrchestrationController | undefined,
 		private getKnowledgeGraphService: () => Promise<KnowledgeGraphService | undefined>,
 	) {
 		this.autoApprover = new AutoApprove(this.stateManager)
-		const controller = getOrchestrationController()
-		this.guard = new UniversalGuard(cwd, taskId, this.stateManager, controller)
+		this.guard = new UniversalGuard(cwd, taskId, this.stateManager)
 		this.policyObserver = new ReactivePolicyObserver(this.guard as any) // Guard wraps engine
 		this.coordinator = new ToolExecutorCoordinator()
 		this.registerToolHandlers()
@@ -609,14 +604,6 @@ export class ToolExecutor {
 		let toolResult: any = null
 		let toolWasExecuted = false
 		const executionStartTime = Date.now()
-		const orchestrationController = this.getOrchestrationController()
-		let orchestratorTaskId: string | undefined
-
-		if (orchestrationController) {
-			orchestratorTaskId = await orchestrationController.beginTask(
-				ToolDisplayUtils.getToolDescription(block, this.coordinator),
-			)
-		}
 
 		// Mode Awareness: Synchronize the guard with the current task mode
 		this.guard.setMode(this.stateManager.getGlobalSettingsKey("mode") || "act")
@@ -682,8 +669,7 @@ export class ToolExecutor {
 			this.pushToolResult(toolResult, block)
 
 			// Policy Enforcement: Post-Execution
-			const checksumKey = `checksum:${block.name}:${block.params.path || "global"}`
-			const prevHash = orchestrationController ? await orchestrationController.recallMemory(checksumKey) : undefined
+			const prevHash = undefined
 
 			const postExecResult = await this.guard.guardPostExecution(block, toolResult, prevHash)
 
@@ -705,38 +691,10 @@ export class ToolExecutor {
 			} else if (postExecResult.warning) {
 				this.say("text", postExecResult.warning).catch(() => {})
 			}
-
-			// Stream Completion: Pass the UniversalGuard's validateCommit
-			if (block.name === CodemarieDefaultTool.ATTEMPT && orchestrationController) {
-				const res = block.params.result || block.params.response || "Task completed"
-				orchestrationController
-					.completeStream(String(res), (files, ops) => this.guard.validateCommit(files, ops))
-					.catch(() => {})
-			}
-
-			if (orchestrationController && orchestratorTaskId) {
-				const resultStr = typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult)
-				const resultHash = createHash("sha256").update(resultStr).digest("hex")
-
-				// Store the current hash for future comparisons
-				await orchestrationController.storeMemory(checksumKey, resultHash)
-
-				const auditMetadata: TaskAuditMetadata = {
-					joy_zoning_violations: postExecResult.violations,
-					entropy_score: postExecResult.entropyScore,
-					result_checksum: resultHash,
-				}
-
-				await orchestrationController.updateTaskProgress("completed", resultStr, auditMetadata)
-			}
 		} catch (error) {
 			executionSuccess = false
 			const errorMsg = `Tool execution failed: ${error}`
 			toolResult = formatResponse.toolError(errorMsg)
-
-			if (orchestrationController) {
-				orchestrationController.updateTaskProgress("failed", errorMsg).catch(() => {})
-			}
 
 			// Check abort before running PostToolUse hook (error path)
 			if (this.taskState.abort) {

@@ -35,7 +35,6 @@ import { LogoutReason } from "@/services/auth/types"
 import { BannerService } from "@/services/banner/BannerService"
 import { featureFlagsService } from "@/services/feature-flags"
 import { getDistinctId } from "@/services/logging/distinctId"
-import { SuggestionService } from "@/services/suggestion/SuggestionService"
 import { telemetryService } from "@/services/telemetry"
 import { CodemarieExtensionContext } from "@/shared/codemarie"
 import { getAxiosSettings } from "@/shared/net"
@@ -58,7 +57,6 @@ import { type PersistenceErrorEvent, StateManager } from "../storage/StateManage
 import { Task } from "../task"
 import { TaskState } from "../task/TaskState"
 import { sendMcpMarketplaceCatalogEvent } from "./mcp/subscribeToMcpMarketplaceCatalog"
-import { getCodemarieOnboardingModels } from "./models/getCodemarieOnboardingModels"
 import { appendCodemarieStealthModels } from "./models/refreshOpenRouterModels"
 import { checkCliInstallation } from "./state/checkCliInstallation"
 import { sendStateUpdate } from "./state/subscribeToState"
@@ -78,7 +76,6 @@ export class Controller {
 	authService: AuthService
 	ocaAuthService: OcaAuthService
 	readonly stateManager: StateManager
-	readonly suggestionService: SuggestionService
 
 	// NEW: Add workspace manager (optional initially)
 	private workspaceManager?: WorkspaceRootManager
@@ -126,7 +123,6 @@ export class Controller {
 		Session.reset() // Reset session on controller initialization
 		PromptRegistry.getInstance() // Ensure prompts and tools are registered
 		this.stateManager = StateManager.get()
-		this.suggestionService = new SuggestionService()
 		StateManager.get().registerCallbacks({
 			onPersistenceError: async ({ error }: PersistenceErrorEvent) => {
 				// Just log - don't call reInitialize() (that sets isInitialized=false which
@@ -257,9 +253,6 @@ export class Controller {
 		const vscodeTerminalExecutionMode = this.stateManager.getGlobalStateKey("vscodeTerminalExecutionMode")
 		const isNewUser = this.stateManager.getGlobalStateKey("isNewUser")
 		const taskHistory = this.stateManager.getGlobalStateKey("taskHistory")
-
-		// Clear suggestions for the new task
-		await this.suggestionService.clearSuggestions()
 
 		// Check if the user has completed enough tasks to no longer be considered a "new user"
 		if (isNewUser && !historyItem && taskHistory && taskHistory.length >= 3) {
@@ -850,7 +843,6 @@ export class Controller {
 
 	async getStateToPostToWebview(): Promise<ExtensionState> {
 		// Get API configuration from cache for immediate access
-		const onboardingModels = getCodemarieOnboardingModels()
 		const apiConfiguration = this.stateManager.getApiConfiguration()
 		const lastShownAnnouncementId = this.stateManager.getGlobalStateKey("lastShownAnnouncementId")
 		const taskHistory = this.stateManager.getGlobalStateKey("taskHistory")
@@ -941,8 +933,6 @@ export class Controller {
 			useAutoCondense,
 			subagentsEnabled,
 			userInfo,
-			promptSuggestions: this.suggestionService.getCachedSuggestions(),
-			isGeneratingPromptSuggestions: this.suggestionService.getIsGenerating(),
 			mcpMarketplaceEnabled,
 			mcpDisplayMode,
 			telemetrySetting,
@@ -968,7 +958,6 @@ export class Controller {
 			defaultTerminalProfile,
 			isNewUser,
 			welcomeViewCompleted,
-			onboardingModels,
 			mcpResponsesCollapsed,
 			terminalOutputLineLimit,
 			maxConsecutiveMistakes,
@@ -1016,7 +1005,6 @@ export class Controller {
 			// Clear task settings cache when task ends
 			await this.stateManager.clearTaskSettings()
 		}
-		await this.suggestionService.clearSuggestions()
 		await this.task?.abortTask()
 		this.task = undefined // removes reference to it, so once promises end it will be garbage collected
 	}
