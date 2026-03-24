@@ -1184,8 +1184,12 @@ export const vertexModels = {
 		supportsImages: true,
 		supportsPromptCache: false,
 		supportsGlobalEndpoint: true,
+		supportsReasoning: true,
 		inputPrice: 0,
 		outputPrice: 0,
+		thinkingConfig: {
+			maxBudget: 32767,
+		},
 	},
 	"gemini-2.0-flash-exp": {
 		maxTokens: 8192,
@@ -1210,11 +1214,10 @@ export const vertexModels = {
 		supportsImages: true,
 		supportsPromptCache: true,
 		supportsGlobalEndpoint: true,
-		inputPrice: 2.5,
-		outputPrice: 15,
-		cacheReadsPrice: 0.625,
+		supportsReasoning: true,
 		thinkingConfig: {
 			maxBudget: 32767,
+			supportsThinkingLevel: true,
 		},
 		tiers: [
 			{
@@ -1237,11 +1240,13 @@ export const vertexModels = {
 		supportsImages: true,
 		supportsPromptCache: true,
 		supportsGlobalEndpoint: true,
+		supportsReasoning: true,
 		inputPrice: 0.3,
 		outputPrice: 2.5,
 		thinkingConfig: {
 			maxBudget: 24576,
 			outputPrice: 3.5,
+			supportsThinkingLevel: true,
 		},
 	},
 
@@ -1265,8 +1270,12 @@ export const vertexModels = {
 		supportsImages: true,
 		supportsPromptCache: false,
 		supportsGlobalEndpoint: true,
+		supportsReasoning: true,
 		inputPrice: 0,
 		outputPrice: 0,
+		thinkingConfig: {
+			maxBudget: 65536,
+		},
 	},
 	"gemini-exp-1206": {
 		maxTokens: 8192,
@@ -1362,11 +1371,13 @@ export const geminiModels = {
 		inputPrice: 4.0,
 		outputPrice: 18.0,
 		cacheReadsPrice: 0.4,
+		supportsReasoning: true,
 		thinkingConfig: {
 			// If you don't specify a thinking level, Gemini will use the model's default
 			// dynamic thinking level, "high", for Gemini 3 Pro Preview.
 			geminiThinkingLevel: "high",
 			supportsThinkingLevel: true,
+			maxBudget: 65536,
 		},
 		tiers: [
 			{
@@ -1391,9 +1402,11 @@ export const geminiModels = {
 		inputPrice: 4.0,
 		outputPrice: 18.0,
 		cacheReadsPrice: 0.4,
+		supportsReasoning: true,
 		thinkingConfig: {
 			geminiThinkingLevel: "high",
 			supportsThinkingLevel: true,
+			maxBudget: 65536,
 		},
 		tiers: [
 			{
@@ -1423,6 +1436,7 @@ export const geminiModels = {
 		thinkingConfig: {
 			geminiThinkingLevel: "low",
 			supportsThinkingLevel: true,
+			maxBudget: 65536,
 		},
 		tiers: [
 			{
@@ -1447,8 +1461,10 @@ export const geminiModels = {
 		inputPrice: 2.5,
 		outputPrice: 15,
 		cacheReadsPrice: 0.625,
+		supportsReasoning: true,
 		thinkingConfig: {
 			maxBudget: 32767,
+			supportsThinkingLevel: true,
 		},
 		tiers: [
 			{
@@ -1531,16 +1547,24 @@ export const geminiModels = {
 		contextWindow: 1_048_576,
 		supportsImages: true,
 		supportsPromptCache: false,
+		supportsReasoning: true,
 		inputPrice: 0,
 		outputPrice: 0,
+		thinkingConfig: {
+			maxBudget: 65536,
+		},
 	},
 	"gemini-2.0-flash-thinking-exp-1219": {
 		maxTokens: 8192,
 		contextWindow: 32_767,
 		supportsImages: true,
 		supportsPromptCache: false,
+		supportsReasoning: true,
 		inputPrice: 0,
 		outputPrice: 0,
+		thinkingConfig: {
+			maxBudget: 32767,
+		},
 	},
 	"gemini-2.0-flash-exp": {
 		maxTokens: 8192,

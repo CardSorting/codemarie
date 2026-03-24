@@ -1232,12 +1232,15 @@ export class TelemetryService {
 			totalDurationSec?: number
 			promptTokens: number
 			outputTokens: number
+			thoughtsTokenCount?: number
 			cacheReadTokens: number
 			cacheHit: boolean
 			cacheHitPercentage?: number
 			apiSuccess: boolean
 			apiError?: string
 			throughputTokensPerSec?: number
+			thinkingBudget?: number
+			thinkingLevel?: string
 		},
 	) {
 		this.capture({

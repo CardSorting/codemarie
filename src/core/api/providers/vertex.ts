@@ -102,7 +102,7 @@ export class VertexHandler implements ApiHandler {
 			{
 				model: modelId,
 				max_tokens: model.info.maxTokens || 8192,
-				thinking: reasoningOn ? { type: "enabled", budget_tokens: budget_tokens } : undefined,
+				thinking: reasoningOn ? { type: "enabled", budget_tokens: Math.max(budget_tokens, 1024) } : undefined,
 				temperature,
 				system: [
 					{

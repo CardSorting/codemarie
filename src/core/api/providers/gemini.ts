@@ -36,12 +36,14 @@ interface GeminiHandlerOptions extends CommonApiHandlerOptions {
 function mapReasoningEffortToGeminiThinkingLevel(effort: string): ThinkingLevel {
 	switch (effort) {
 		case "low":
-		case "medium":
 			return ThinkingLevel.LOW
+		case "medium":
 		case "high":
 		case "xhigh":
 			return ThinkingLevel.HIGH
 		default:
+			// Default to LOW for unknown efforts to be safe,
+			// but use HIGH if it's explicitly one of the higher levels.
 			return ThinkingLevel.LOW
 	}
 }
@@ -154,8 +156,13 @@ export class GeminiHandler implements ApiHandler {
 		const rawReasoningEffort = (this.options.reasoningEffort || "").toLowerCase()
 		const normalizedReasoningEffort =
 			!rawReasoningEffort || rawReasoningEffort === "none" || rawReasoningEffort === "off" ? "none" : rawReasoningEffort
-		if (info.thinkingConfig?.supportsThinkingLevel && normalizedReasoningEffort !== "none") {
-			thinkingLevel = mapReasoningEffortToGeminiThinkingLevel(normalizedReasoningEffort)
+		if (info.thinkingConfig?.supportsThinkingLevel) {
+			if (normalizedReasoningEffort !== "none") {
+				thinkingLevel = mapReasoningEffortToGeminiThinkingLevel(normalizedReasoningEffort)
+			} else if (info.thinkingConfig.geminiThinkingLevel) {
+				// Use model's default thinking level if none specified
+				thinkingLevel = mapReasoningEffortToGeminiThinkingLevel(info.thinkingConfig.geminiThinkingLevel)
+			}
 		}
 
 		// Set up base generation config
@@ -195,9 +202,9 @@ export class GeminiHandler implements ApiHandler {
 				// Turn on dynamic thinking:
 				// thinkingBudget: -1
 				// Turn on fixed thinking budget:
-				thinkingBudget: thinkingLevel ? undefined : thinkingBudget, // Use budget only if thinkingLevel is not set
+				thinkingBudget: thinkingBudget > 0 ? thinkingBudget : thinkingLevel ? 1024 : undefined,
 				thinkingLevel,
-				includeThoughts: thinkingBudget !== 0 && (thinkingBudget > 0 || !!thinkingLevel),
+				includeThoughts: thinkingBudget !== 0 || !!thinkingLevel,
 			}
 		}
 
@@ -324,10 +331,16 @@ export class GeminiHandler implements ApiHandler {
 						const response = this.attemptParse(error.message)
 
 						if (response?.error) {
-							const responseBody = this.attemptParse(response.error.message)
+							// If the message is a stringified JSON, attempt to parse it
+							const responseBody =
+								typeof response.error.message === "string" &&
+								(response.error.message.startsWith("{") || response.error.message.startsWith("["))
+									? this.attemptParse(response.error.message)
+									: response.error
 
-							if (responseBody.error) {
-								const detail = responseBody.error.details?.find(
+							if (responseBody?.error?.details || responseBody?.details) {
+								const details = responseBody.error?.details || responseBody.details
+								const detail = details.find(
 									(d: { "@type": string; retryDelay?: string }) =>
 										d["@type"] === "type.googleapis.com/google.rpc.RetryInfo",
 								)
@@ -372,12 +385,15 @@ export class GeminiHandler implements ApiHandler {
 					totalDurationSec: totalDurationSdkMs / 1000,
 					promptTokens,
 					outputTokens,
+					thoughtsTokenCount,
 					cacheReadTokens,
 					cacheHit,
 					cacheHitPercentage,
 					apiSuccess,
 					apiError,
 					throughputTokensPerSec: throughputTokensPerSecSdk,
+					thinkingBudget,
+					thinkingLevel: thinkingLevel?.toString(),
 				})
 			} else {
 				Logger.warn("GeminiHandler: ulid not available for telemetry in createMessage.")
@@ -415,6 +431,7 @@ export class GeminiHandler implements ApiHandler {
 
 		let inputPrice = info.inputPrice
 		let outputPrice = info.outputPrice
+		const thinkingPrice = info.thinkingConfig?.outputPrice ?? outputPrice
 		// Right now, we only show the immediate costs of caching and not the ongoing costs of storing the cache
 		let cacheReadsPrice = info.cacheReadsPrice ?? 0
 
@@ -436,19 +453,25 @@ export class GeminiHandler implements ApiHandler {
 		// 1. Input token costs (for uncached tokens)
 		const inputTokensCost = inputPrice * (uncachedInputTokens / 1_000_000)
 
-		// 2. Output token costs
-		const responseTokensCost = outputPrice * ((outputTokens + thoughtsTokenCount) / 1_000_000)
+		// 2. Output token costs (separate regular output from reasoning tokens)
+		const candidatesTokensCost = outputPrice * (outputTokens / 1_000_000)
+		const thinkingTokensCost = thinkingPrice * (thoughtsTokenCount / 1_000_000)
+		const totalResponseTokensCost = candidatesTokensCost + thinkingTokensCost
 
 		// 3. Cache read costs (immediate)
 		const cacheReadCost = (cacheReadTokens ?? 0) > 0 ? cacheReadsPrice * ((cacheReadTokens ?? 0) / 1_000_000) : 0
 
 		// Calculate total immediate cost (excluding cache write/storage costs)
-		const totalCost = inputTokensCost + responseTokensCost + cacheReadCost
+		const totalCost = inputTokensCost + totalResponseTokensCost + cacheReadCost
 
 		// Create the trace object for debugging
 		const trace: Record<string, { price: number; tokens: number; cost: number }> = {
 			input: { price: inputPrice, tokens: uncachedInputTokens, cost: inputTokensCost },
-			output: { price: outputPrice, tokens: outputTokens, cost: responseTokensCost },
+			output: { price: outputPrice, tokens: outputTokens, cost: candidatesTokensCost },
+		}
+
+		if (thoughtsTokenCount > 0) {
+			trace.thinking = { price: thinkingPrice, tokens: thoughtsTokenCount, cost: thinkingTokensCost }
 		}
 
 		// Only include cache read costs in the trace (cache write costs are tracked separately)
