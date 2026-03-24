@@ -183,6 +183,60 @@ export class Repository {
 		this.taskId = taskId
 	}
 
+	/**
+	 * [Pillar 1] Calculates the distance from HEAD to a specific commit.
+	 * Returns 1000 if not found in recent history.
+	 */
+	async getCommitDistance(commitId: string): Promise<number> {
+		const head = await this.resolveRef("HEAD")
+		if (!head) return 1000
+		if (head === commitId) return 0
+
+		const rows = await this.db.selectWhere("reflog", [{ column: "repoPath", value: this.basePath }], undefined, {
+			orderBy: { column: "timestamp", direction: "desc" },
+			limit: 1000,
+		})
+
+		const index = rows.findIndex((r) => r.newHead === commitId)
+		return index === -1 ? 1000 : index
+	}
+
+	/**
+	 * [Pillar 1] Heuristic for file churn: count of recent commits touching the path.
+	 */
+	/**
+	 * [Pillar 2] Derives node priors from git signals:
+	 * - Total commits touching the file.
+	 * - Number of unique authors.
+	 * Returns a baseline confidence score between 0.5 and 0.95.
+	 */
+	async getNodePriors(path: string): Promise<number> {
+		const rows = await this.db.selectWhere("reflog", [{ column: "repoPath", value: this.basePath }], undefined, {
+			limit: 5000,
+		})
+
+		const relevantCommits = rows.filter((r) => (r.message || "").includes(path))
+		const commitCount = relevantCommits.length
+		const uniqueAuthors = new Set(relevantCommits.map((r) => r.author)).size
+
+		if (commitCount === 0) return 0.5 // Default baseline
+
+		// Logarithmic scaling for stability
+		// Base 0.5 + 0.1 per author (cap 3) + 0.05 per doubling of commits
+		const authorFactor = Math.min(0.3, uniqueAuthors * 0.1)
+		const commitFactor = Math.min(0.15, Math.log2(commitCount + 1) * 0.02)
+
+		const prior = 0.5 + authorFactor + commitFactor
+		return Math.min(0.95, prior)
+	}
+
+	async getFileChurn(path: string): Promise<number> {
+		const rows = await this.db.selectWhere("reflog", [{ column: "repoPath", value: this.basePath }], undefined, {
+			limit: 5000,
+		})
+		return rows.filter((r) => (r.message || "").includes(path)).length
+	}
+
 	private async recordRefLog(
 		ref: string,
 		oldHead: string | null,

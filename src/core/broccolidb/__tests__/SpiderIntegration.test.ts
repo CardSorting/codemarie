@@ -19,7 +19,9 @@ describe("BroccoliDB-Spider Integration", () => {
 		db = new BufferedDbPool()
 		workspace = new Workspace(db, "test-user", "test-ws")
 		await workspace.init()
-		context = new AgentContext(workspace)
+
+		context = new AgentContext(db, workspace, "test-user", { agentId: "test-agent", name: "Test Agent" } as any)
+
 		repo = await workspace.createRepo("test-repo")
 		repo.agentContext = context
 	})
@@ -57,7 +59,7 @@ describe("BroccoliDB-Spider Integration", () => {
 		should.exist(metadata?.spider_graph_kb)
 
 		// Wait for knowledge to appear (handles buffering/async)
-		let kb: unknown = null
+		let kb: any = null
 		for (let attempt = 0; attempt < 10; attempt++) {
 			try {
 				kb = await context.getKnowledge(metadata.spider_graph_kb as string)
@@ -69,9 +71,7 @@ describe("BroccoliDB-Spider Integration", () => {
 		}
 
 		should.exist(kb)
-		// biome-ignore lint/suspicious/noExplicitAny: convenient for test assertions
-		const kbItem = kb as any
-		kbItem.type.should.equal("structural_snapshot")
-		kbItem.content.should.containEql("graph TD")
+		kb.type.should.equal("structural_snapshot")
+		kb.content.should.containEql("graph TD")
 	})
 })

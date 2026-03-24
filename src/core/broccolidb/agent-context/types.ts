@@ -1,4 +1,4 @@
-import { BufferedDbPool } from "@/infrastructure/db/BufferedDbPool.js"
+import { type BufferedDbPool, type WriteOp } from "../../../infrastructure/db/BufferedDbPool.js"
 import { AiService } from "../embedding.js"
 import { LRUCache } from "../lru-cache.js"
 import { Workspace } from "../workspace.js"
@@ -23,15 +23,15 @@ export interface KnowledgeBaseItem {
 	itemId: string
 	type: "fact" | "vector" | "rule" | "hypothesis" | "conclusion"
 	content: string
-	tags: string[]
-	edges: GraphEdge[] // Outbound edges
-	inboundEdges: GraphEdge[] // Reverse index: edges pointing AT this node
-	embedding?: number[] // Vector embeddings
-	confidence: number // 0.0–1.0 confidence score
-	hubScore: number // Pre-calculated centrality
+	tags?: string[]
+	edges?: GraphEdge[]
+	inboundEdges?: GraphEdge[]
+	embedding?: number[]
+	confidence?: number
+	hubScore?: number
 	expiresAt?: number | null
-	metadata?: Record<string, any> | null
-	createdAt: number
+	metadata?: Record<string, unknown> | null
+	createdAt?: number
 }
 
 export interface TaskItem {
@@ -94,8 +94,13 @@ export interface ServiceContext {
 	kbCache: LRUCache<string, KnowledgeBaseItem>
 	workspace: Workspace
 	userId: string
-	push: (op: any, agentId?: string) => Promise<void>
-	searchKnowledge: (query: string, limit?: number) => Promise<KnowledgeBaseItem[]>
+	push: (op: WriteOp, agentId?: string) => Promise<void>
+	searchKnowledge: (
+		query: string,
+		tags?: string[],
+		limit?: number,
+		options?: { augmentWithGraph?: boolean; skipVerification?: boolean },
+	) => Promise<KnowledgeBaseItem[]>
 }
 export interface AgentBundle {
 	profile: AgentProfile
