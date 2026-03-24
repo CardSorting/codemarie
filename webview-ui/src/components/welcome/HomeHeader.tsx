@@ -1,5 +1,6 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import CodemarieLogoVariable from "@/assets/CodemarieLogoVariable"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { UiServiceClient } from "@/services/grpc-client"
 
@@ -35,7 +36,7 @@ const HomeHeader = ({ shouldShowQuickWins = false }: HomeHeaderProps) => {
 						onClick={handleTakeATour}
 						type="button">
 						Take a Tour
-						<span className="codicon codicon-play scale-90" />
+						<VscIcon className="scale-90" name="play" />
 					</button>
 				</div>
 			)}

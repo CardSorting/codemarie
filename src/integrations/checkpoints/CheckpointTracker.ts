@@ -228,7 +228,7 @@ class CheckpointTracker {
 
 			// Locking skipped as we are in VS Code
 			if (!lockResult.acquired && lockResult.skipped) {
-				Logger.log("Skipping Checkpoints lock - VS Code")
+				Logger.debug("Skipping Checkpoints lock - VS Code")
 			}
 
 			if (lockResult.acquired) {
@@ -253,7 +253,7 @@ class CheckpointTracker {
 				"--no-verify": null,
 			})
 			const commitHash = (result.commit || "").replace(/^HEAD\s+/, "")
-			Logger.warn(`Checkpoint commit created: `, commitHash)
+			Logger.debug(`Checkpoint commit created: `, commitHash)
 
 			const durationMs = Math.round(performance.now() - startTime)
 			await this.sendCheckpointSubscriptionEvent("CHECKPOINT_COMMIT", false, commitHash)
@@ -351,7 +351,7 @@ class CheckpointTracker {
 
 			// Locking skipped as we are in VS Code
 			if (!lockResult.acquired && lockResult.skipped) {
-				Logger.log("Skipping Checkpoints lock - VS Code")
+				Logger.debug("Skipping Checkpoints lock - VS Code")
 			}
 
 			if (lockResult.acquired) {

@@ -1,4 +1,5 @@
 import { McpPrompt } from "@shared/mcp"
+import { VscIcon } from "@/components/ui/vsc-icon"
 
 type McpPromptRowProps = {
 	prompt: McpPrompt
@@ -17,7 +18,7 @@ const McpPromptRow = ({ prompt, serverName }: McpPromptRowProps) => {
 				onClick={(e) => e.stopPropagation()}
 				style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "4px" }}>
 				<div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: "1 1 auto" }}>
-					<span className="codicon codicon-comment-discussion" style={{ marginRight: "6px", flexShrink: 0 }} />
+					<VscIcon className="" name="comment-discussion" style={{ marginRight: "6px", flexShrink: 0 }} />
 					<span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>
 						{prompt.title || prompt.name}
 					</span>

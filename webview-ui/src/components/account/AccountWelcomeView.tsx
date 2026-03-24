@@ -1,4 +1,5 @@
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useCodemarieSignIn } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import CodemarieLogoVariable from "../../assets/CodemarieLogoVariable"
@@ -23,7 +24,7 @@ export const AccountWelcomeView = () => {
 				Sign up with Codemarie
 				{isLoginLoading && (
 					<span className="ml-1 animate-spin">
-						<span className="codicon codicon-refresh" />
+						<VscIcon className="" name="refresh" />
 					</span>
 				)}
 			</VSCodeButton>

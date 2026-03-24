@@ -17,6 +17,7 @@ import { useClickAway, useWindowSize } from "react-use"
 import styled from "styled-components"
 import PopupModalContainer from "@/components/common/PopupModalContainer"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { FileServiceClient } from "@/services/grpc-client"
 import { isMacOSOrLinux } from "@/utils/platformUtils"
@@ -443,7 +444,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 							aria-label={isVisible ? "Hide Codemarie Rules & Workflows" : "Show Codemarie Rules & Workflows"}
 							className="p-0 m-0 flex items-center"
 							onClick={() => setIsVisible(!isVisible)}>
-							<i className="codicon codicon-law" style={{ fontSize: "12.5px" }} />
+							<VscIcon className="" name="law" style={{ fontSize: "12.5px" }} />
 						</VSCodeButton>
 					</TooltipTrigger>
 				</Tooltip>
@@ -486,7 +487,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 						{/* Remote config banner */}
 						{(currentView === "rules" && hasRemoteRules) || (currentView === "workflows" && hasRemoteWorkflows) ? (
 							<div className="flex items-center gap-2 px-5 py-3 mb-4 bg-vscode-textBlockQuote-background border-l-[3px] border-vscode-textLink-foreground">
-								<i className="codicon codicon-lock text-sm" />
+								<VscIcon className="text-sm" name="lock" />
 								<span className="text-base">
 									{currentView === "rules"
 										? "Your organization manages some rules"
@@ -696,7 +697,7 @@ const CodemarieRulesToggleModal: React.FC = () => {
 								{/* Windows warning banner */}
 								{isWindows && (
 									<div className="flex items-center gap-2 px-5 py-3 mb-4 bg-vscode-inputValidation-warningBackground border-l-[3px] border-vscode-inputValidation-warningBorder">
-										<i className="codicon codicon-warning text-sm" />
+										<VscIcon className="text-sm" name="warning" />
 										<span className="text-base">
 											Hook toggling is not yet supported on Windows in this foundation PR. Hooks can be
 											created, edited, and deleted, and execute whenever the hook file exists. Coming next:

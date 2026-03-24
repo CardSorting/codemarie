@@ -8,6 +8,7 @@ import { useInterval } from "react-use"
 import styled from "styled-components"
 import { normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { PLATFORM_CONFIG, PlatformType } from "@/config/platform.config"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { ModelsServiceClient } from "@/services/grpc-client"
@@ -284,7 +285,7 @@ const ApiOptions = ({
 								<label htmlFor="api-provider">
 									<span style={{ fontWeight: 500 }}>API Provider</span>
 								</label>
-								<i className="codicon codicon-lock text-description text-sm" />
+								<VscIcon className="text-description text-sm" name="lock" />
 							</div>
 						</TooltipTrigger>
 						<TooltipContent>Provider options are managed by your organization's remote configuration</TooltipContent>
@@ -317,9 +318,10 @@ const ApiOptions = ({
 						}}
 						value={searchTerm}>
 						{searchTerm && searchTerm !== currentProviderLabel && (
-							<div
+							<VscIcon
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close"
+								className="input-icon-button"
+								name="close"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)

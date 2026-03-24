@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cleanPathPrefix } from "@/components/common/CodeAccordian"
 import ScreenReaderAnnounce from "@/components/common/ScreenReaderAnnounce"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useMenuAnnouncement } from "@/hooks/useMenuAnnouncement"
 import { ContextMenuOptionType, ContextMenuQueryItem, getContextMenuOptions, SearchResult } from "@/utils/context-mentions"
 
@@ -268,7 +269,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 							gap: "8px",
 							opacity: 0.7,
 						}}>
-						<i className="codicon codicon-loading codicon-modifier-spin" style={{ fontSize: "14px" }} />
+						<VscIcon className="animate-spin" name="loading" style={{ fontSize: "14px" }} />
 						<span>Searching...</span>
 					</div>
 				)}
@@ -310,8 +311,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 									minWidth: 0,
 									overflow: "hidden",
 								}}>
-								<i
-									className={`codicon codicon-${getIconForOption(option)}`}
+								<VscIcon
+									name={getIconForOption(option)}
 									style={{
 										marginRight: "8px",
 										flexShrink: 0,
@@ -324,8 +325,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 								option.type === ContextMenuOptionType.Folder ||
 								option.type === ContextMenuOptionType.Git) &&
 								!option.value && (
-									<i
-										className="codicon codicon-chevron-right"
+									<VscIcon
+										className=""
+										name="chevron-right"
 										style={{
 											fontSize: "14px",
 											flexShrink: 0,
@@ -339,8 +341,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 									option.type === ContextMenuOptionType.Folder ||
 									option.type === ContextMenuOptionType.Git) &&
 									option.value)) && (
-								<i
-									className="codicon codicon-add"
+								<VscIcon
+									className=""
+									name="add"
 									style={{
 										fontSize: "14px",
 										flexShrink: 0,

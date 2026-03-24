@@ -4,6 +4,7 @@ import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import type React from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { VirtuosoHandle } from "react-virtuoso"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { ButtonActionType, getButtonConfig } from "../../shared/buttonConfig"
 import type { ChatState, MessageHandlers } from "../../types/chatTypes"
 
@@ -146,9 +147,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 						}
 					}}>
 					{showScrollToBottom ? (
-						<span className="codicon codicon-chevron-down" />
+						<VscIcon className="" name="chevron-down" />
 					) : (
-						<span className="codicon codicon-chevron-up" />
+						<VscIcon className="" name="chevron-up" />
 					)}
 				</VSCodeButton>
 			</div>

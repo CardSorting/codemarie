@@ -1,4 +1,5 @@
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import VSCodeButtonLink from "../common/VSCodeButtonLink"
 import { StyledCreditDisplay } from "./StyledCreditDisplay"
 
@@ -24,7 +25,7 @@ export const CreditBalance = ({ balance, fetchCreditBalance, creditUrl, lastFetc
 					className={`mt-1 ${isLoading ? "animate-spin" : ""}`}
 					disabled={isLoading}
 					onClick={fetchCreditBalance}>
-					<span className="codicon codicon-refresh" />
+					<VscIcon className="" name="refresh" />
 				</VSCodeButton>
 			</div>
 

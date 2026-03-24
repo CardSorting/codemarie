@@ -1,5 +1,6 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { McpServiceClient } from "@/services/grpc-client"
 import ServersToggleList from "./ServersToggleList"
@@ -37,7 +38,7 @@ const ConfigureServersView = () => {
 			{/* Remote config banner */}
 			{hasRemoteMCPServers && (
 				<div className="flex items-center gap-2 px-5 py-3 mb-4 bg-vscode-textBlockQuote-background border-l-[3px] border-vscode-textLink-foreground">
-					<i className="codicon codicon-lock text-sm" />
+					<VscIcon className="text-sm" name="lock" />
 					<span className="text-base">Your organization manages some MCP servers</span>
 				</div>
 			)}
@@ -54,7 +55,7 @@ const ConfigureServersView = () => {
 						})
 					}}
 					style={{ width: "100%", marginBottom: "5px" }}>
-					<span className="codicon codicon-server" style={{ marginRight: "6px" }} />
+					<VscIcon className="" name="server" style={{ marginRight: "6px" }} />
 					Configure MCP Servers
 				</VSCodeButton>
 

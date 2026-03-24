@@ -2,10 +2,10 @@ import { BooleanRequest, EmptyRequest, StringArrayRequest } from "@shared/proto/
 import { GetTaskHistoryRequest, TaskFavoriteRequest } from "@shared/proto/codemarie/task"
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import Fuse, { FuseResult } from "fuse.js"
-import { FunnelIcon } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { GroupedVirtuoso } from "react-virtuoso"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { TaskServiceClient } from "@/services/grpc-client"
@@ -309,11 +309,12 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						}}
 						placeholder="Fuzzy search history..."
 						value={searchQuery}>
-						<div className="codicon codicon-search opacity-80 mt-0.5 !text-sm" slot="start" />
+						<Icon className="opacity-80 mt-0.5 !text-sm" name="search" slot="start" />
 						{searchQuery && (
-							<div
+							<Icon
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close flex justify-center items-center h-full"
+								className="input-icon-button flex justify-center items-center h-full"
+								name="close"
 								onClick={() => setSearchQuery("")}
 								slot="end"
 							/>
@@ -347,7 +348,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						}}
 						value={sortOption}>
 						<SelectTrigger className="border-0 cursor-pointer" showIcon={false}>
-							<FunnelIcon className="!size-2 text-foreground" />
+							<Icon className="!size-2 text-foreground" name="FunnelIcon" />
 						</SelectTrigger>
 						<SelectContent position="popper">
 							{Object.entries(HISTORY_FILTERS).map(([key, value]) => {
@@ -372,10 +373,9 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 										value={key}>
 										<span className="flex items-center gap-2">
 											{isFilterOption && (
-												<span
-													className={`codicon ${
-														key === "workspaceOnly" ? "codicon-folder" : "codicon-star-full"
-													} ${isSelected ? "text-button-background" : ""}`}
+												<Icon
+													className={isSelected ? "text-button-background" : ""}
+													name={key === "workspaceOnly" ? "folder" : "star-full"}
 												/>
 											)}
 											{value}

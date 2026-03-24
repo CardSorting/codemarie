@@ -20,6 +20,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { McpServiceClient } from "@/services/grpc-client"
@@ -211,12 +212,7 @@ const ServerRow = ({
 				})}
 				onClick={handleRowClick}>
 				{!server.error && isExpandable && (
-					<span
-						className={cn("mr-2 codicon", {
-							"codicon-chevron-right": !isExpanded,
-							"codicon-chevron-down": isExpanded,
-						})}
-					/>
+					<VscIcon className="mr-2" name={isExpanded ? "chevron-down" : "chevron-right"} />
 				)}
 				<span className="flex-1 overflow-hidden break-all whitespace-normal flex items-center">
 					{getMcpServerDisplayName(server.name, mcpMarketplaceCatalog)}
@@ -261,7 +257,7 @@ const ServerRow = ({
 									handleToggleMcpServer()
 								}}
 							/>
-							{isAlwaysEnabled && <i className="codicon codicon-lock text-description text-sm" />}
+							{isAlwaysEnabled && <VscIcon className="text-description text-sm" name="lock" />}
 						</div>
 					</TooltipTrigger>
 					<TooltipContent className="max-w-xs" hidden={!isAlwaysEnabled} side="top">

@@ -1,4 +1,5 @@
 import { McpResource, McpResourceTemplate } from "@shared/mcp"
+import { VscIcon } from "@/components/ui/vsc-icon"
 
 type McpResourceRowProps = {
 	item: McpResource | McpResourceTemplate
@@ -20,7 +21,7 @@ const McpResourceRow = ({ item }: McpResourceRowProps) => {
 					alignItems: "center",
 					marginBottom: "4px",
 				}}>
-				<span className={`codicon codicon-symbol-file`} style={{ marginRight: "6px" }} />
+				<VscIcon name="symbol-file" style={{ marginRight: "6px" }} />
 				<span style={{ fontWeight: 500, wordBreak: "break-all" }}>{uri}</span>
 			</div>
 			<div

@@ -1,5 +1,3 @@
-import "../../../node_modules/@vscode/codicons/dist/codicon.css"
-import "../../../node_modules/@vscode/codicons/dist/codicon.ttf"
 import "../../src/index.css"
 
 import { cn } from "@heroui/react"

@@ -2,6 +2,7 @@ import { McpMarketplaceItem, McpServer } from "@shared/mcp"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { McpServiceClient } from "@/services/grpc-client"
 
@@ -166,7 +167,7 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 									border: "none !important",
 								}}>
 								<div ref={githubLinkRef} style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-									<span className="codicon codicon-github" style={{ fontSize: "14px" }} />
+									<VscIcon className="" name="github" style={{ fontSize: "14px" }} />
 									<span
 										style={{
 											overflow: "hidden",
@@ -186,7 +187,7 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 									minWidth: 0,
 									flexShrink: 0,
 								}}>
-								<span className="codicon codicon-star-full" />
+								<VscIcon className="" name="star-full" />
 								<span style={{ wordBreak: "break-all" }}>{item.githubStars?.toLocaleString() ?? 0}</span>
 							</div>
 							<div
@@ -197,11 +198,11 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 									minWidth: 0,
 									flexShrink: 0,
 								}}>
-								<span className="codicon codicon-cloud-download" />
+								<VscIcon className="" name="cloud-download" />
 								<span style={{ wordBreak: "break-all" }}>{item.downloadCount?.toLocaleString() ?? 0}</span>
 							</div>
 							{item.requiresApiKey && (
-								<span className="codicon codicon-key" style={{ flexShrink: 0 }} title="Requires API key" />
+								<VscIcon className="" name="key" style={{ flexShrink: 0 }} title="Requires API key" />
 							)}
 						</div>
 					</div>
@@ -220,7 +221,7 @@ const McpMarketplaceCard = ({ item, installedServers, setError }: McpMarketplace
 								marginTop: -3,
 								marginBottom: -3,
 							}}>
-							<span className="codicon codicon-warning" style={{ fontSize: "14px" }} />
+							<VscIcon name="warning" className="" style={{ fontSize: "14px" }} />
 							<span>Community Made (use at your own risk)</span>
 						</div>
 					)} */}

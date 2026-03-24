@@ -1,4 +1,6 @@
 import React from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
+import { cn } from "@/lib/utils"
 import { CodemarieError, CodemarieErrorType } from "../../../../src/services/error/CodemarieError"
 import { ProgressIndicator } from "./ChatRow"
 
@@ -22,7 +24,7 @@ export const ErrorBlockTitle = ({
 }: ErrorBlockTitleProps): [React.ReactElement, React.ReactElement] => {
 	const getIconSpan = (iconName: string, colorClass: string) => (
 		<div className="w-4 h-4 flex items-center justify-center">
-			<span className={`codicon codicon-${iconName} text-base -mb-0.5 ${colorClass}`} />
+			<VscIcon className={cn("text-base -mb-0.5", colorClass)} name={iconName} />
 		</div>
 	)
 

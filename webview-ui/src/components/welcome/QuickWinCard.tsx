@@ -1,4 +1,5 @@
 import React from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { QuickWinTask } from "./quickWinTasks"
 
 interface QuickWinCardProps {
@@ -7,25 +8,19 @@ interface QuickWinCardProps {
 }
 
 const renderIcon = (iconName?: string) => {
-	if (!iconName) {
-		return <span className="codicon codicon-rocket text-[28px]! leading-none!" />
-	}
-
-	let iconClass = "codicon-rocket"
+	let name = "rocket"
 	switch (iconName) {
 		case "WebAppIcon":
-			iconClass = "codicon-dashboard"
+			name = "dashboard"
 			break
 		case "TerminalIcon":
-			iconClass = "codicon-terminal"
+			name = "terminal"
 			break
 		case "GameIcon":
-			iconClass = "codicon-game"
-			break
-		default:
+			name = "game"
 			break
 	}
-	return <span className={`codicon ${iconClass} text-[28px]! leading-none!`} />
+	return <VscIcon className="text-[28px]! leading-none!" name={name} />
 }
 
 const QuickWinCard: React.FC<QuickWinCardProps> = ({ task, onExecute }) => {

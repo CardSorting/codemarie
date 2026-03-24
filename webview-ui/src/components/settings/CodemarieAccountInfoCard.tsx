@@ -1,6 +1,7 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useState } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { AccountServiceClient } from "@/services/grpc-client"
@@ -37,7 +38,7 @@ export const CodemarieAccountInfoCard = () => {
 						Sign Up with Codemarie
 						{isLoading && (
 							<span className="ml-1 animate-spin">
-								<span className="codicon codicon-refresh" />
+								<VscIcon className="" name="refresh" />
 							</span>
 						)}
 					</VSCodeButton>

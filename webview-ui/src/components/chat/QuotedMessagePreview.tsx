@@ -1,6 +1,7 @@
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React from "react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 
 const PreviewContainer = styled.div`
 	background-color: var(--vscode-input-background); /* Outer box matches text area */
@@ -55,7 +56,7 @@ const DismissButton = styled(VSCodeButton)`
 	justify-content: center;
 `
 
-const ReplyIcon = styled.span`
+const ReplyIcon = styled(VscIcon)`
 	color: var(--vscode-descriptionForeground);
 	margin-right: 2px; /* Further reduced space between icon and text */
 	shrink: 0;
@@ -76,10 +77,10 @@ const QuotedMessagePreview: React.FC<QuotedMessagePreviewProps> = ({ text, onDis
 		<PreviewContainer>
 			{/* Removed Label */}
 			<ContentRow>
-				<ReplyIcon className="codicon codicon-reply" />
+				<ReplyIcon name="reply" />
 				<TextContainer title={text}>{text}</TextContainer>
 				<DismissButton appearance="icon" aria-label="Dismiss quote" onClick={onDismiss}>
-					<span className="codicon codicon-close" />
+					<VscIcon className="" name="close" />
 				</DismissButton>
 			</ContentRow>
 		</PreviewContainer>

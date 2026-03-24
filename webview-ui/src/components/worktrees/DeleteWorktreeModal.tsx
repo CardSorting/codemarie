@@ -1,7 +1,7 @@
 import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { AlertTriangle, Loader2, X } from "lucide-react"
 import { memo, useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 
 interface DeleteWorktreeModalProps {
 	open: boolean
@@ -45,12 +45,12 @@ const DeleteWorktreeModal = ({ open, onClose, onConfirm, worktreePath, branchNam
 					disabled={isDeleting}
 					onClick={onClose}
 					type="button">
-					<X className="w-4 h-4" />
+					<Icon className="w-4 h-4" name="X" />
 				</button>
 
 				{/* Title row with icon */}
 				<div className="flex items-center gap-2 mb-3 pr-6">
-					<AlertTriangle className="w-5 h-5 text-[var(--vscode-errorForeground)]" />
+					<Icon className="w-5 h-5 text-[var(--vscode-errorForeground)]" name="AlertTriangle" />
 					<h4 className="m-0">Delete Worktree</h4>
 				</div>
 
@@ -84,7 +84,7 @@ const DeleteWorktreeModal = ({ open, onClose, onConfirm, worktreePath, branchNam
 					<Button disabled={isDeleting} onClick={handleDelete} variant="danger">
 						{isDeleting ? (
 							<>
-								<Loader2 className="w-4 h-4 mr-1 animate-spin" />
+								<Icon className="w-4 h-4 mr-1 animate-spin" name="LoaderCircleIcon" />
 								Deleting...
 							</>
 						) : (

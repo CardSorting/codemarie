@@ -1,5 +1,6 @@
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { ActionMetadata } from "./types"
 
 interface AutoApproveMenuItemProps {
@@ -44,7 +45,7 @@ const AutoApproveMenuItem = ({ action, isChecked, onToggle, showIcon = true, dis
 			<CheckboxWrapper $disabled={disabled} className="w-full" onClick={onChange}>
 				<VSCodeCheckbox checked={checked} disabled={disabled}>
 					<div className="w-full flex text-sm items-center justify-start text-foreground gap-2">
-						{showIcon && <span className={`codicon ${action.icon} icon`} />}
+						{showIcon && <VscIcon className="icon" name={action.icon} />}
 						<span className="label">{action.label}</span>
 					</div>
 				</VSCodeCheckbox>

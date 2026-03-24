@@ -2,6 +2,7 @@ import { EmptyRequest } from "@shared/proto/index.codemarie"
 import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
 import { RemoteConfigToggle } from "@/components/account/RemoteConfigToggle"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { StateServiceClient } from "@/services/grpc-client"
@@ -172,7 +173,7 @@ function OtelSettingsSection() {
 	return (
 		<div className="mb-4">
 			<h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-				<i className="codicon codicon-pulse" />
+				<VscIcon className="" name="pulse" />
 				OpenTelemetry Configuration
 			</h4>
 			<div className="bg-vscode-textBlockQuote-background rounded p-3 mb-2">
@@ -245,7 +246,7 @@ function PromptUploadingSection() {
 	return (
 		<div className="mb-4">
 			<h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-				<i className="codicon codicon-cloud-upload" />
+				<VscIcon className="" name="cloud-upload" />
 				Prompt Uploading Configuration
 			</h4>
 			<div className="bg-vscode-textBlockQuote-background rounded p-3 mb-2">

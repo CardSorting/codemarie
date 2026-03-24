@@ -1,5 +1,6 @@
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import React, { useMemo } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import CodeAccordian from "../common/CodeAccordian"
 
 interface SearchResultsDisplayProps {
@@ -156,8 +157,9 @@ const SearchResultsDisplay: React.FC<SearchResultsDisplayProps> = ({
 									borderRadius: "3px",
 									border: "1px solid var(--vscode-editorWidget-border)",
 								}}>
-								<span
-									className="codicon codicon-folder"
+								<VscIcon
+									className=""
+									name="folder"
 									style={{
 										fontSize: "14px",
 										color: "var(--vscode-symbolIcon-folderForeground)",

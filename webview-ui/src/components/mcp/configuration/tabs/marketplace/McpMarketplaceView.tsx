@@ -9,6 +9,7 @@ import {
 	VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useMemo, useState } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { McpServiceClient } from "@/services/grpc-client"
 import McpMarketplaceCard from "./McpMarketplaceCard"
@@ -118,7 +119,7 @@ const McpMarketplaceView = () => {
 				}}>
 				<div style={{ color: "var(--vscode-errorForeground)" }}>{error}</div>
 				<VSCodeButton appearance="secondary" onClick={() => fetchMarketplace(true)}>
-					<span className="codicon codicon-refresh" style={{ marginRight: "6px" }} />
+					<VscIcon className="" name="refresh" style={{ marginRight: "6px" }} />
 					Retry
 				</VSCodeButton>
 			</div>
@@ -139,8 +140,8 @@ const McpMarketplaceView = () => {
 					placeholder="Search MCPs..."
 					style={{ width: "100%" }}
 					value={searchQuery}>
-					<div
-						className="codicon codicon-search"
+					<VscIcon
+						name="search"
 						slot="start"
 						style={{
 							fontSize: 13,
@@ -148,9 +149,9 @@ const McpMarketplaceView = () => {
 						}}
 					/>
 					{searchQuery && (
-						<div
+						<VscIcon
 							aria-label="Clear search"
-							className="codicon codicon-close"
+							name="close"
 							onClick={() => setSearchQuery("")}
 							slot="end"
 							style={{
@@ -258,7 +259,7 @@ const McpMarketplaceView = () => {
 			{/* Remote config banner */}
 			{remoteConfigSettings?.allowedMCPServers && (
 				<div className="flex items-center gap-2 px-5 py-3 mx-5 mb-4 bg-vscode-textBlockQuote-background border-l-[3px] border-vscode-textLink-foreground">
-					<i className="codicon codicon-lock text-sm" />
+					<VscIcon className="text-sm" name="lock" />
 					<span className="text-[13px]">Your organization has pre-configured the available MCP servers</span>
 				</div>
 			)}

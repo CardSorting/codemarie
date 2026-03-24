@@ -1,5 +1,6 @@
 import styled from "styled-components"
 import { Badge } from "@/components/ui/badge"
+import { VscIcon } from "@/components/ui/vsc-icon"
 
 const GuardContainer = styled.div<{ isAligned: boolean }>`
   display: flex;
@@ -130,7 +131,7 @@ export const AlignmentGuard = ({ policyCompliance, architecturalLayers }: Alignm
 				<ViolationList>
 					{policyCompliance.violations.map((v) => (
 						<ViolationItem key={v}>
-							<span className="codicon codicon-warning pt-0.5" />
+							<VscIcon className="pt-0.5" name="warning" />
 							<span>{v}</span>
 						</ViolationItem>
 					))}

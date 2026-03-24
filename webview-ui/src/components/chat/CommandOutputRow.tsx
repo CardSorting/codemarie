@@ -3,6 +3,7 @@ import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { memo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/services/grpc-client"
 import CodeBlock from "../common/CodeBlock"
@@ -236,7 +237,7 @@ export const CommandOutputRow = memo(
 				</div>
 				{requestsApproval && (
 					<div className="flex items-center gap-2.5 p-2 text-[12px] text-editor-warning-foreground">
-						<i className="codicon codicon-warning" />
+						<VscIcon className="" name="warning" />
 						<span>The model has determined this command requires explicit approval.</span>
 					</div>
 				)}

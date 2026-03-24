@@ -2,6 +2,7 @@ import { cn } from "@heroui/react"
 import { StringRequest } from "@shared/proto/codemarie/common"
 import React, { memo, useLayoutEffect, useRef, useState } from "react"
 import { useWindowSize } from "react-use"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { FileServiceClient } from "@/services/grpc-client"
 
 interface ThumbnailsProps {
@@ -97,8 +98,9 @@ const Thumbnails = ({ images, files, style, setImages, setFiles, onHeightChange,
 								alignItems: "center",
 								cursor: "pointer",
 							}}>
-							<span
-								className="codicon codicon-close"
+							<VscIcon
+								className=""
+								name="close"
 								style={{
 									color: "var(--vscode-foreground)",
 									fontSize: 10,
@@ -133,8 +135,9 @@ const Thumbnails = ({ images, files, style, setImages, setFiles, onHeightChange,
 								alignItems: "center",
 								justifyContent: "center",
 							}}>
-							<span
-								className="codicon codicon-file"
+							<VscIcon
+								className=""
+								name="file"
 								style={{
 									fontSize: 16,
 									color: "var(--vscode-foreground)",
@@ -170,8 +173,9 @@ const Thumbnails = ({ images, files, style, setImages, setFiles, onHeightChange,
 									alignItems: "center",
 									cursor: "pointer",
 								}}>
-								<span
-									className="codicon codicon-close"
+								<VscIcon
+									className=""
+									name="close"
 									style={{
 										color: "var(--vscode-foreground)",
 										fontSize: 10,

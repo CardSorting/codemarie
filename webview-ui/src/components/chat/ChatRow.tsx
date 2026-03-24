@@ -12,30 +12,6 @@ import {
 import { BooleanRequest, StringRequest } from "@shared/proto/codemarie/common"
 import { Mode } from "@shared/storage/types"
 import deepEqual from "fast-deep-equal"
-import {
-	ArrowRightIcon,
-	BellIcon,
-	CheckIcon,
-	ChevronDownIcon,
-	ChevronRightIcon,
-	CircleSlashIcon,
-	CircleXIcon,
-	FileCode2Icon,
-	FilePlus2Icon,
-	FoldVerticalIcon,
-	ImageUpIcon,
-	LightbulbIcon,
-	Link2Icon,
-	LoaderCircleIcon,
-	PencilIcon,
-	RefreshCwIcon,
-	SearchIcon,
-	SettingsIcon,
-	SquareArrowOutUpRightIcon,
-	SquareMinusIcon,
-	TerminalIcon,
-	TriangleAlertIcon,
-} from "lucide-react"
 import { MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSize } from "react-use"
 import { ActionCheckboxes } from "@/components/chat/ActionCheckboxes"
@@ -45,6 +21,7 @@ import { WithCopyButton } from "@/components/common/CopyButton"
 import McpResponseDisplay from "@/components/mcp/chat-display/McpResponseDisplay"
 import McpResourceRow from "@/components/mcp/configuration/tabs/installed/server-row/McpResourceRow"
 import McpToolRow from "@/components/mcp/configuration/tabs/installed/server-row/McpToolRow"
+import { Icon } from "@/components/ui/icons"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { FileServiceClient, UiServiceClient } from "@/services/grpc-client"
@@ -100,7 +77,7 @@ export interface QuoteButtonState {
 
 interface ChatRowContentProps extends Omit<ChatRowProps, "onHeightChange"> {}
 
-export const ProgressIndicator = () => <LoaderCircleIcon className="size-2 mr-2 animate-spin" />
+export const ProgressIndicator = () => <Icon className="size-2 mr-2 animate-spin" name="LoaderCircleIcon" />
 const InvisibleSpacer = () => <div aria-hidden className="h-px" />
 
 const ChatRow = memo(
@@ -333,21 +310,21 @@ export const ChatRowContent = memo(
 			switch (type) {
 				case "error":
 					return [
-						<span className="codicon codicon-error text-error mb-[-1.5px]" key="error-icon" />,
+						<Icon className="text-error mb-[-1.5px]" key="error-icon" name="error" />,
 						<span className="text-error font-bold text-sm" key="error-title">
 							Error
 						</span>,
 					]
 				case "mistake_limit_reached":
 					return [
-						<CircleXIcon className="text-error size-2" key="mistake-icon" />,
+						<Icon className="text-error size-2" key="mistake-icon" name="CircleXIcon" />,
 						<span className="text-error font-bold text-sm" key="mistake-title">
 							Codemarie is having trouble...
 						</span>,
 					]
 				case "command":
 					return [
-						<TerminalIcon className="text-foreground size-2" key="command-icon" />,
+						<Icon className="text-foreground size-2" key="command-icon" name="TerminalIcon" />,
 						<span className="font-bold text-foreground text-sm" key="command-title">
 							Codemarie wants to execute this command:
 						</span>,
@@ -358,7 +335,7 @@ export const ChatRowContent = memo(
 						isMcpServerResponding ? (
 							<ProgressIndicator key="mcp-progress" />
 						) : (
-							<span className="codicon codicon-server text-foreground mb-[-1.5px]" key="mcp-icon" />
+							<Icon className="text-foreground mb-[-1.5px]" key="mcp-icon" name="server" />
 						),
 						<span className="ph-no-capture font-bold text-foreground break-words text-sm" key="mcp-title">
 							Codemarie wants to {mcpServerUse.type === "use_mcp_tool" ? "use a tool" : "access a resource"} on the{" "}
@@ -370,7 +347,7 @@ export const ChatRowContent = memo(
 					]
 				case "completion_result":
 					return [
-						<span className="codicon codicon-check text-success mb-[-1.5px]" key="completion-icon" />,
+						<Icon className="text-success mb-[-1.5px]" key="completion-icon" name="check" />,
 						<span className="text-success font-bold text-sm" key="completion-title">
 							Task Completed
 						</span>,
@@ -381,7 +358,7 @@ export const ChatRowContent = memo(
 					return [null, null]
 				case "followup":
 					return [
-						<span className="codicon codicon-question text-foreground mb-[-1.5px]" key="followup-icon" />,
+						<Icon className="text-foreground mb-[-1.5px]" key="followup-icon" name="question" />,
 						<span className="font-bold text-foreground text-sm" key="followup-title">
 							Codemarie has a question:
 						</span>,
@@ -437,8 +414,9 @@ export const ChatRowContent = memo(
 				green: "var(--vscode-charts-green)",
 			}
 			const toolIcon = (name: string, color?: string, rotation?: number, title?: string) => (
-				<span
-					className={`codicon codicon-${name} ph-no-capture`}
+				<Icon
+					className="ph-no-capture"
+					name={name}
 					style={{
 						color: color ? colorMap[color as keyof typeof colorMap] || color : "var(--vscode-foreground)",
 						marginBottom: "-1.5px",
@@ -458,7 +436,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<PencilIcon className="size-2" />
+								<Icon className="size-2" name="PencilIcon" />
 								{tool.operationIsLocatedInWorkspace === false &&
 									toolIcon("sign-out", "yellow", -90, "This file is outside of your workspace")}
 								<span style={{ fontWeight: "bold" }}>{editToolTitle}</span>
@@ -485,7 +463,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<SquareMinusIcon className="size-2" />
+								<Icon className="size-2" name="SquareMinusIcon" />
 								{tool.operationIsLocatedInWorkspace === false &&
 									toolIcon("sign-out", "yellow", -90, "This file is outside of your workspace")}
 								<span style={{ fontWeight: "bold" }}>Codemarie wants to delete this file:</span>
@@ -503,7 +481,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<FilePlus2Icon className="size-2" />
+								<Icon className="size-2" name="FilePlus2Icon" />
 								{tool.operationIsLocatedInWorkspace === false &&
 									toolIcon("sign-out", "yellow", -90, "This file is outside of your workspace")}
 								<span className="font-bold">Codemarie wants to create a new file:</span>
@@ -526,7 +504,11 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								{isImage ? <ImageUpIcon className="size-2" /> : <FileCode2Icon className="size-2" />}
+								{isImage ? (
+									<Icon className="size-2" name="ImageUpIcon" />
+								) : (
+									<Icon className="size-2" name="FileCode2Icon" />
+								)}
 								{tool.operationIsLocatedInWorkspace === false &&
 									toolIcon("sign-out", "yellow", -90, "This file is outside of your workspace")}
 								<span className="font-bold">Codemarie wants to read this file:</span>
@@ -549,7 +531,7 @@ export const ChatRowContent = memo(
 										{`${cleanPathPrefix(tool.path ?? "")}\u200E`}
 									</span>
 									<div className="grow" />
-									{!isImage && <SquareArrowOutUpRightIcon className="size-2" />}
+									{!isImage && <Icon className="size-2" name="SquareArrowOutUpRightIcon" />}
 								</div>
 							</div>
 						</div>
@@ -643,7 +625,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<FoldVerticalIcon className="size-2" />
+								<Icon className="size-2" name="FoldVerticalIcon" />
 								<span className="font-bold">Codemarie is condensing the conversation:</span>
 							</div>
 							<div className="bg-code overflow-hidden border border-editor-group-border rounded-[3px]">
@@ -663,7 +645,7 @@ export const ChatRowContent = memo(
 											<div className="flex items-center mb-2">
 												<span className="font-bold mr-1">Summary:</span>
 												<div className="grow" />
-												<ChevronDownIcon className="my-0.5 shrink-0 size-4" />
+												<Icon className="my-0.5 shrink-0 size-4" name="ChevronDownIcon" />
 											</div>
 											<span className="ph-no-capture break-words whitespace-pre-wrap">{tool.content}</span>
 										</div>
@@ -672,7 +654,7 @@ export const ChatRowContent = memo(
 											<span className="ph-no-capture whitespace-nowrap overflow-hidden text-ellipsis text-left flex-1 mr-2 [direction:rtl]">
 												{`${tool.content}\u200E`}
 											</span>
-											<ChevronRightIcon className="my-0.5 shrink-0 size-4" />
+											<Icon className="my-0.5 shrink-0 size-4" name="ChevronRightIcon" />
 										</div>
 									)}
 								</div>
@@ -683,7 +665,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<Link2Icon className="size-2" />
+								<Icon className="size-2" name="Link2Icon" />
 								{tool.operationIsLocatedInWorkspace === false &&
 									toolIcon("sign-out", "yellow", -90, "This URL is external")}
 								<span className="font-bold">
@@ -712,7 +694,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<SearchIcon className="size-2 rotate-90" />
+								<Icon className="size-2 rotate-90" name="SearchIcon" />
 								{tool.operationIsLocatedInWorkspace === false &&
 									toolIcon("sign-out", "yellow", -90, "This search is external")}
 								<span className="font-bold">
@@ -732,7 +714,7 @@ export const ChatRowContent = memo(
 					return (
 						<div>
 							<div className={HEADER_CLASSNAMES}>
-								<LightbulbIcon className="size-2" />
+								<Icon className="size-2" name="LightbulbIcon" />
 								<span className="font-bold">Codemarie loaded the skill:</span>
 							</div>
 							<div className="bg-code border border-editor-group-border overflow-hidden rounded-xs py-[9px] px-2.5">
@@ -877,7 +859,7 @@ export const ChatRowContent = memo(
 					case "mcp_notification":
 						return (
 							<div className="flex items-start gap-2 py-2.5 px-3 bg-quote rounded-sm text-base text-foreground opacity-90 mb-2">
-								<BellIcon className="mt-0.5 size-2 text-notification-foreground shrink-0" />
+								<Icon className="mt-0.5 size-2 text-notification-foreground shrink-0" name="BellIcon" />
 								<div className="break-words flex-1">
 									<span className="font-medium">MCP Notification: </span>
 									<span className="ph-no-capture">{message.text}</span>
@@ -955,7 +937,7 @@ export const ChatRowContent = memo(
 					case "load_mcp_documentation":
 						return (
 							<div className="text-foreground flex items-center opacity-70 text-[12px] py-1 px-0">
-								<i className="codicon codicon-book mr-1.5" />
+								<Icon className="mr-1.5" name="book" />
 								Loading MCP documentation
 							</div>
 						)
@@ -989,11 +971,11 @@ export const ChatRowContent = memo(
 									{isGenerating ? (
 										<ProgressIndicator />
 									) : isError ? (
-										<CircleXIcon className="size-2 mr-2 text-error" />
+										<Icon className="size-2 mr-2 text-error" name="CircleXIcon" />
 									) : wasCancelled ? (
-										<CircleSlashIcon className="size-2 mr-2" />
+										<Icon className="size-2 mr-2" name="CircleSlashIcon" />
 									) : (
-										<CheckIcon className="size-2 mr-2 text-success" />
+										<Icon className="size-2 mr-2 text-success" name="CheckIcon" />
 									)}
 									<span className="font-semibold">
 										{isGenerating
@@ -1016,7 +998,7 @@ export const ChatRowContent = memo(
 												<code className="bg-quote rounded-sm py-0.5 pr-1.5">
 													{explanationInfo.fromRef}
 												</code>
-												<ArrowRightIcon className="inline size-2 mx-1" />
+												<Icon className="inline size-2 mx-1" name="ArrowRightIcon" />
 												<code className="bg-quote rounded-sm py-0.5 px-1.5">
 													{explanationInfo.toRef || "working directory"}
 												</code>
@@ -1049,7 +1031,7 @@ export const ChatRowContent = memo(
 						return (
 							<div className="flex flex-col bg-warning/20 p-2 rounded-xs border border-error">
 								<div className="flex items-center mb-1">
-									<TriangleAlertIcon className="mr-2 size-2 stroke-3 text-error" />
+									<Icon className="mr-2 size-2 stroke-3 text-error" name="TriangleAlertIcon" />
 									<span className="font-medium text-foreground">Shell Integration Unavailable</span>
 								</div>
 								<div className="text-foreground opacity-80">
@@ -1079,9 +1061,9 @@ export const ChatRowContent = memo(
 									<div className="flex flex-col bg-quote p-0 rounded-[3px] text-[12px]">
 										<div className="flex items-center mb-1">
 											{isFailed && !isRequestInProgress ? (
-												<TriangleAlertIcon className="mr-2 size-2" />
+												<Icon className="mr-2 size-2" name="TriangleAlertIcon" />
 											) : (
-												<RefreshCwIcon className="mr-2 size-2 animate-spin" />
+												<Icon className="mr-2 size-2 animate-spin" name="RefreshCwIcon" />
 											)}
 											<span className="font-medium text-foreground">
 												{isFailed ? "Auto-Retry Failed" : "Auto-Retry in Progress"}
@@ -1123,7 +1105,7 @@ export const ChatRowContent = memo(
 						return (
 							<div className="p-2 bg-link/10 border border-link/30 rounded-xs">
 								<div className="flex items-center mb-1">
-									<LightbulbIcon className="mr-1.5 size-2 text-link" />
+									<Icon className="mr-1.5 size-2 text-link" name="LightbulbIcon" />
 									<span className="font-medium text-foreground">Shell integration issues</span>
 								</div>
 								<div className="text-foreground opacity-90 mb-2">
@@ -1147,7 +1129,7 @@ export const ChatRowContent = memo(
 										}
 									}}
 									type="button">
-									<SettingsIcon className="size-2" />
+									<Icon className="size-2" name="SettingsIcon" />
 									{isBackgroundModeEnabled
 										? "Background Terminal Enabled"
 										: "Enable Background Terminal (Recommended)"}
@@ -1318,7 +1300,7 @@ export const ChatRowContent = memo(
 						return (
 							<div>
 								<div className={HEADER_CLASSNAMES}>
-									<FilePlus2Icon className="size-2" />
+									<Icon className="size-2" name="FilePlus2Icon" />
 									<span className="text-foreground font-bold">Codemarie wants to start a new task:</span>
 								</div>
 								<NewTaskPreview context={message.text || ""} />
@@ -1328,7 +1310,7 @@ export const ChatRowContent = memo(
 						return (
 							<div>
 								<div className={HEADER_CLASSNAMES}>
-									<FilePlus2Icon className="size-2" />
+									<Icon className="size-2" name="FilePlus2Icon" />
 									<span className="text-foreground font-bold">
 										Codemarie wants to condense your conversation:
 									</span>
@@ -1340,7 +1322,7 @@ export const ChatRowContent = memo(
 						return (
 							<div>
 								<div className={HEADER_CLASSNAMES}>
-									<FilePlus2Icon className="size-2" />
+									<Icon className="size-2" name="FilePlus2Icon" />
 									<span className="text-foreground font-bold">Codemarie wants to create a Github issue:</span>
 								</div>
 								<ReportBugPreview data={message.text || ""} />

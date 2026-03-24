@@ -1,6 +1,7 @@
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import { useEffect, useRef, useState } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { BrowserServiceClient } from "../../services/grpc-client"
 
@@ -88,12 +89,12 @@ export const BrowserSettingsMenu = () => {
 		}
 	}
 
-	// Determine icon based on connection state
-	const getIconClass = () => {
+	// Determine icon name based on connection state
+	const getIconName = () => {
 		if (connectionInfo.isRemote) {
-			return "codicon-remote"
+			return "remote"
 		}
-		return connectionInfo.isConnected ? "codicon-vm-running" : "codicon-info"
+		return connectionInfo.isConnected ? "vm-running" : "info"
 	}
 
 	// Determine icon color based on connection state
@@ -140,8 +141,9 @@ export const BrowserSettingsMenu = () => {
 				onClick={toggleInfoPopover}
 				style={{ marginRight: "4px" }}
 				title="Browser connection info">
-				<i
-					className={`codicon ${getIconClass()}`}
+				<VscIcon
+					className=""
+					name={getIconName()}
 					style={{
 						fontSize: "14.5px",
 						color: getIconColor(),
@@ -197,7 +199,7 @@ export const BrowserSettingsMenu = () => {
 			)}
 
 			<VSCodeButton appearance="icon" onClick={openBrowserSettings}>
-				<i className="codicon codicon-settings-gear" style={{ fontSize: "14.5px" }} />
+				<VscIcon className="" name="settings-gear" style={{ fontSize: "14.5px" }} />
 			</VSCodeButton>
 		</div>
 	)

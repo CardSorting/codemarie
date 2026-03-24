@@ -5,6 +5,7 @@ import { Mode } from "@shared/storage/types"
 import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Tooltip } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { ModelsServiceClient } from "@/services/grpc-client"
 import { getAsVar, VSC_DESCRIPTION_FOREGROUND } from "@/utils/vscStyles"
@@ -80,7 +81,7 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 						<div className="flex items-center gap-2 mb-1">
 							<span style={{ fontWeight: 500 }}>Base URL</span>
 							{remoteConfigSettings?.openAiBaseUrl !== undefined && (
-								<i className="codicon codicon-lock text-description text-sm" />
+								<VscIcon className="text-description text-sm" name="lock" />
 							)}
 						</div>
 						<DebouncedTextField
@@ -132,7 +133,7 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 									<div className="flex items-center gap-2">
 										<span style={{ fontWeight: 500 }}>Custom Headers</span>
 										{remoteConfigSettings?.openAiHeaders !== undefined && (
-											<i className="codicon codicon-lock text-description text-sm" />
+											<VscIcon className="text-description text-sm" name="lock" />
 										)}
 									</div>
 								</TooltipTrigger>
@@ -241,8 +242,8 @@ export const OpenAICompatibleProvider = ({ showModelOptions, isPopup, currentMod
 					cursor: "pointer",
 					alignItems: "center",
 				}}>
-				<span
-					className={`codicon ${modelConfigurationSelected ? "codicon-chevron-down" : "codicon-chevron-right"}`}
+				<VscIcon
+					name={modelConfigurationSelected ? "chevron-down" : "chevron-right"}
 					style={{
 						marginRight: "4px",
 					}}

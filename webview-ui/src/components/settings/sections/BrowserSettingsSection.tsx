@@ -2,6 +2,7 @@ import { EmptyRequest, StringRequest } from "@shared/proto/codemarie/common"
 import { VSCodeButton, VSCodeCheckbox, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 import React, { useCallback, useEffect, useState } from "react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { BROWSER_VIEWPORT_PRESETS } from "../../../../../src/shared/BrowserSettings"
 import { useExtensionState } from "../../../context/ExtensionStateContext"
 import { BrowserServiceClient } from "../../../services/grpc-client"
@@ -36,7 +37,7 @@ const ConnectionStatusIndicator = ({
 				</>
 			) : isConnected === true ? (
 				<>
-					<CheckIcon className="codicon codicon-check" />
+					<CheckIcon />
 					<StatusText style={{ color: "var(--vscode-terminal-ansiGreen)" }}>Connected</StatusText>
 				</>
 			) : isConnected === false ? (
@@ -382,10 +383,7 @@ const StatusText = styled.span`
 	margin-left: 4px;
 `
 
-const CheckIcon = styled.i`
-	color: var(--vscode-terminal-ansiGreen);
-	font-size: 14px;
-`
+const CheckIcon = () => <VscIcon className="text-(--vscode-terminal-ansiGreen) text-sm" name="check" />
 
 const Spinner = styled.div`
 	width: 14px;

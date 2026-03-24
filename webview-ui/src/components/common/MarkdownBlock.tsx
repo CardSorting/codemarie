@@ -1,6 +1,5 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { PlanActMode, TogglePlanActModeRequest } from "@shared/proto/codemarie/state"
-import { SquareArrowOutUpRightIcon } from "lucide-react"
 import { marked } from "marked"
 import type { ComponentProps } from "react"
 import React, { memo, useEffect, useMemo, useRef, useState } from "react"
@@ -11,6 +10,7 @@ import type { Node } from "unist"
 import { visit } from "unist-util-visit"
 import MermaidBlock from "@/components/common/MermaidBlock"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { FileServiceClient, StateServiceClient } from "@/services/grpc-client"
@@ -400,7 +400,7 @@ const InlineCodeWithFileCheck: React.FC<ComponentProps<"code"> & { [key: string]
 				type="button"
 				variant="icon">
 				<code {...props} />
-				<SquareArrowOutUpRightIcon className="inline align-middle ml-0.5" />
+				<Icon className="inline align-middle ml-0.5" name="SquareArrowOutUpRightIcon" />
 			</Button>
 		)
 	}

@@ -1,6 +1,6 @@
-import { CheckCheckIcon, CopyIcon } from "lucide-react"
 import { forwardRef, useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { cn } from "@/lib/utils"
 
 interface CopyButtonProps {
@@ -57,7 +57,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, onCopy, clas
 			onClick={handleCopy}
 			size="icon"
 			variant="icon">
-			{copied ? <CheckCheckIcon className="size-2" /> : <CopyIcon className="size-2" />}
+			{copied ? <Icon className="size-2" name="CheckCheckIcon" /> : <Icon className="size-2" name="CopyIcon" />}
 		</Button>
 	)
 }

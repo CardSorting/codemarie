@@ -19,6 +19,7 @@ import {
 	VSCodeTextArea,
 	VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react"
+import { Icon } from "@/components/ui/icons"
 
 function Demo() {
 	const rowData = [
@@ -76,17 +77,17 @@ function Demo() {
 				<VSCodeTextField>
 					<section slot="end" style={{ display: "flex", alignItems: "center" }}>
 						<VSCodeButton appearance="icon" aria-label="Match Case">
-							<span className="codicon codicon-case-sensitive" />
+							<Icon name="case-sensitive" />
 						</VSCodeButton>
 						<VSCodeButton appearance="icon" aria-label="Match Whole Word">
-							<span className="codicon codicon-whole-word" />
+							<Icon name="whole-word" />
 						</VSCodeButton>
 						<VSCodeButton appearance="icon" aria-label="Use Regular Expression">
-							<span className="codicon codicon-regex" />
+							<Icon name="regex" />
 						</VSCodeButton>
 					</section>
 				</VSCodeTextField>
-				<span className="codicon codicon-chevron-right" slot="end" />
+				<Icon name="chevron-right" slot="end" />
 
 				<span className="flex gap-3">
 					<VSCodeProgressRing />

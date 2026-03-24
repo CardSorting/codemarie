@@ -7,6 +7,7 @@ import { useClickAway, useWindowSize } from "react-use"
 import PopupModalContainer from "@/components/common/PopupModalContainer"
 import ServersToggleList from "@/components/mcp/configuration/tabs/installed/ServersToggleList"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { McpServiceClient } from "@/services/grpc-client"
 
@@ -62,7 +63,7 @@ const ServersToggleModal: React.FC = () => {
 							aria-label={isVisible ? "Hide MCP Servers" : "Show MCP Servers"}
 							className="p-0 m-0 flex items-center"
 							onClick={() => setIsVisible(!isVisible)}>
-							<i className="codicon codicon-server" style={{ fontSize: "12.5px" }} />
+							<VscIcon className="" name="server" style={{ fontSize: "12.5px" }} />
 						</VSCodeButton>
 					</TooltipTrigger>
 				</Tooltip>
@@ -80,7 +81,7 @@ const ServersToggleModal: React.FC = () => {
 									setIsVisible(false)
 									navigateToMcp("configure")
 								}}>
-								<span className="codicon codicon-gear text-[10px]" />
+								<VscIcon className="text-[10px]" name="gear" />
 							</VSCodeButton>
 						</div>
 					</div>

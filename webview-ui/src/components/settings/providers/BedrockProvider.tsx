@@ -13,6 +13,7 @@ import Fuse from "fuse.js"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { DebouncedTextField } from "../common/DebouncedTextField"
 import { ModelInfoView } from "../common/ModelInfoView"
@@ -230,7 +231,7 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 								<span className="font-medium">AWS Region</span>
 							</label>
 							{remoteConfigSettings?.awsRegion !== undefined && (
-								<i className="codicon codicon-lock text-description text-sm flex items-center" />
+								<VscIcon className="text-description text-sm flex items-center" name="lock" />
 							)}
 						</div>
 						<RegionDropdownWrapper ref={dropdownRef}>
@@ -264,9 +265,10 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 								}}
 								value={searchTerm}>
 								{searchTerm && searchTerm !== currentRegion && (
-									<div
+									<VscIcon
 										aria-label="Clear search"
-										className="input-icon-button codicon codicon-close"
+										className="input-icon-button"
+										name="close"
 										onClick={() => {
 											setSearchTerm("")
 											setIsDropdownVisible(true)
@@ -331,7 +333,7 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 								Use custom VPC endpoint
 							</VSCodeCheckbox>
 							{remoteConfigSettings?.awsBedrockEndpoint !== undefined && (
-								<i className="codicon codicon-lock text-description text-sm flex items-center" />
+								<VscIcon className="text-description text-sm flex items-center" name="lock" />
 							)}
 						</div>
 
@@ -365,7 +367,7 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 								Use cross-region inference
 							</VSCodeCheckbox>
 							{remoteConfigSettings?.awsUseCrossRegionInference !== undefined && (
-								<i className="codicon codicon-lock text-description text-sm" />
+								<VscIcon className="text-description text-sm" name="lock" />
 							)}
 						</div>
 					</TooltipTrigger>
@@ -388,7 +390,7 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 									Use global inference profile
 								</VSCodeCheckbox>
 								{remoteConfigSettings?.awsUseGlobalInference !== undefined && (
-									<i className="codicon codicon-lock text-description text-sm" />
+									<VscIcon className="text-description text-sm" name="lock" />
 								)}
 							</div>
 						</TooltipTrigger>
@@ -412,7 +414,7 @@ export const BedrockProvider = ({ showModelOptions, isPopup, currentMode }: Bedr
 									Use prompt caching
 								</VSCodeCheckbox>
 								{remoteConfigSettings?.awsBedrockUsePromptCache !== undefined && (
-									<i className="codicon codicon-lock text-description text-sm" />
+									<VscIcon className="text-description text-sm" name="lock" />
 								)}
 							</div>
 						</TooltipTrigger>

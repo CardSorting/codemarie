@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import Section from "../Section"
 import SettingsSlider from "../SettingsSlider"
@@ -155,7 +156,7 @@ const FeatureRow = memo(
 						onCheckedChange={onChange}
 						size="lg"
 					/>
-					{isRemoteLocked && <i className="codicon codicon-lock text-description text-sm" />}
+					{isRemoteLocked && <VscIcon className="text-description text-sm" name="lock" />}
 				</div>
 			</div>
 		)

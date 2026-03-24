@@ -2,6 +2,7 @@ import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { memo } from "react"
 import CreditLimitError from "@/components/chat/CreditLimitError"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { useCodemarieAuth, useCodemarieSignIn } from "@/context/CodemarieAuthContext"
 import { CodemarieError, CodemarieErrorType } from "../../../../src/services/error/CodemarieError"
 
@@ -26,7 +27,6 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 			case "mistake_limit_reached":
 				// Handle API request errors with special error parsing
 				if (rawApiError) {
-					// FIXME: CodemarieError parsing should not be applied to non-Codemarie providers, but it seems we're using codemarieErrorMessage below in the default error display
 					const codemarieError = CodemarieError.parse(rawApiError)
 					const errorMessage = codemarieError?._error?.message || codemarieError?.message || rawApiError
 					const requestId = codemarieError?._error?.request_id
@@ -91,7 +91,7 @@ const ErrorRow = memo(({ message, errorType, apiRequestFailedMessage, apiReqStre
 										Sign in to Codemarie
 										{isLoginLoading && (
 											<span className="ml-1 animate-spin">
-												<span className="codicon codicon-refresh" />
+												<Icon className="" name="refresh" />
 											</span>
 										)}
 									</Button>

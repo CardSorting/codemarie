@@ -1,8 +1,8 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { DeleteSkillRequest, RuleFileRequest } from "@shared/proto/index.codemarie"
 import { REMOTE_URI_SCHEME } from "@shared/remote-config/constants"
-import { EyeIcon, InfoIcon, PenIcon, Trash2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { FileServiceClient } from "@/services/grpc-client"
@@ -138,7 +138,7 @@ const RuleRow: React.FC<{
 					{ruleType === "agents" && (
 						<Tooltip>
 							<TooltipTrigger asChild className="cursor-help">
-								<InfoIcon className="ml-1.5 opacity-70 size-[0.85rem]" />
+								<Icon className="ml-1.5 opacity-70 size-[0.85rem]" name="InfoIcon" />
 							</TooltipTrigger>
 							<TooltipContent>
 								Searches recursively for all AGENTS.md files in the workspace when a top-level AGENTS.md exists
@@ -163,7 +163,7 @@ const RuleRow: React.FC<{
 						size="xs"
 						title={isRemote ? "View rule file (read-only)" : "Edit rule file"}
 						variant="icon">
-						{isRemote ? <EyeIcon /> : <PenIcon />}
+						{isRemote ? <Icon name="EyeIcon" /> : <Icon name="PenIcon" />}
 					</Button>
 					<Button
 						aria-label="Delete rule file"
@@ -172,7 +172,7 @@ const RuleRow: React.FC<{
 						size="xs"
 						title="Delete rule file"
 						variant="icon">
-						<Trash2Icon />
+						<Icon name="Trash2Icon" />
 					</Button>
 				</div>
 			</div>

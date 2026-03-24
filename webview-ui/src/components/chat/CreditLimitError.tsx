@@ -2,6 +2,7 @@ import { AskResponseRequest } from "@shared/proto/codemarie/task"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useMemo, useState } from "react"
 import VSCodeButtonLink from "@/components/common/VSCodeButtonLink"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useCodemarieAuth } from "@/context/CodemarieAuthContext"
 import { AccountServiceClient, TaskServiceClient } from "@/services/grpc-client"
 
@@ -67,7 +68,7 @@ const CreditLimitError: React.FC<CreditLimitErrorProps> = ({
 			</div>
 
 			<VSCodeButtonLink className="w-full mb-2" href={fullBuyCreditsUrl}>
-				<span className="codicon codicon-credit-card mr-[6px] text-[14px]" />
+				<VscIcon className="mr-[6px] text-[14px]" name="credit-card" />
 				Buy Credits
 			</VSCodeButtonLink>
 
@@ -85,7 +86,7 @@ const CreditLimitError: React.FC<CreditLimitErrorProps> = ({
 						console.error("Error invoking action:", error)
 					}
 				}}>
-				<span className="codicon codicon-refresh mr-1.5" />
+				<VscIcon className="mr-1.5" name="refresh" />
 				Retry Request
 			</VSCodeButton>
 		</div>

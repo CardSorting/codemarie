@@ -3,6 +3,7 @@ import styled from "styled-components"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { cn } from "@/lib/utils"
 
 const ActionList = styled.div`
@@ -210,7 +211,7 @@ export const ActionCheckboxes = ({ actions, onActionsChange }: ActionCheckboxesP
 							{action.description && <ActionDescription>{action.description}</ActionDescription>}
 							{!depMet && missingDeps.length > 0 && (
 								<DependencyInfo>
-									<span className="codicon codicon-lock mr-1" />
+									<VscIcon className="mr-1" name="lock" />
 									Requires:{" "}
 									{missingDeps.map((id) => localActions.find((a) => a.id === id)?.label || id).join(", ")}
 								</DependencyInfo>

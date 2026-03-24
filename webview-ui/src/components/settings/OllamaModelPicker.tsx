@@ -2,6 +2,7 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import Fuse from "fuse.js"
 import React, { KeyboardEvent, memo, useEffect, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { highlight } from "../history/HistoryView"
 
 export const OLLAMA_MODEL_PICKER_Z_INDEX = 1_000
@@ -147,9 +148,10 @@ const OllamaModelPicker: React.FC<OllamaModelPickerProps> = ({
 					}}
 					value={searchTerm}>
 					{searchTerm && (
-						<div
+						<VscIcon
 							aria-label="Clear search"
-							className="input-icon-button codicon codicon-close"
+							className="input-icon-button"
+							name="close"
 							onClick={() => {
 								handleModelChange("")
 								setIsDropdownVisible(true)

@@ -10,6 +10,7 @@ import styled from "styled-components"
 import { BrowserSettingsMenu } from "@/components/browser/BrowserSettingsMenu"
 import { ChatRowContent, ProgressIndicator } from "@/components/chat/ChatRow"
 import CodeBlock, { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { FileServiceClient } from "@/services/grpc-client"
@@ -357,7 +358,7 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 				{isBrowsing && !isLastMessageResume ? (
 					<ProgressIndicator />
 				) : (
-					<span className="codicon codicon-inspect" style={browserIconStyle} />
+					<VscIcon className="" name="inspect" style={browserIconStyle} />
 				)}
 				<span style={approveTextStyle}>
 					{isAutoApproved ? "Codemarie is using the browser:" : "Codemarie wants to use the browser:"}
@@ -410,7 +411,7 @@ const BrowserSessionRow = memo((props: BrowserSessionRowProps) => {
 						/>
 					) : (
 						<div style={noScreenshotContainerStyle}>
-							<span className="codicon codicon-globe" style={noScreenshotIconStyle} />
+							<VscIcon className="" name="globe" style={noScreenshotIconStyle} />
 						</div>
 					)}
 					{displayState.mousePosition && (

@@ -3,6 +3,7 @@ import { VSCodeButton, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { memo, useEffect, useState } from "react"
 import CodemarieLogoWhite from "@/assets/CodemarieLogoWhite"
 import ApiOptions from "@/components/settings/ApiOptions"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { AccountServiceClient, StateServiceClient } from "@/services/grpc-client"
 import { validateApiConfiguration } from "@/utils/validate"
@@ -62,7 +63,7 @@ const WelcomeView = memo(() => {
 					Get Started for Free
 					{isLoading && (
 						<span className="ml-1 animate-spin">
-							<span className="codicon codicon-refresh" />
+							<VscIcon className="" name="refresh" />
 						</span>
 					)}
 				</VSCodeButton>

@@ -6,6 +6,7 @@ import type React from "react"
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "react-use"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { highlight } from "../history/HistoryView"
 import { ModelInfoView } from "./common/ModelInfoView"
@@ -222,9 +223,10 @@ const VercelModelPicker: React.FC<VercelModelPickerProps> = ({ isPopup, currentM
 						}}
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VscIcon
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close"
+								className="input-icon-button"
+								name="close"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)

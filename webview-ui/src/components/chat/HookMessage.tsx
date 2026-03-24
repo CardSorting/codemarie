@@ -1,6 +1,7 @@
 import { CodemarieMessage } from "@shared/ExtensionMessage"
 import { EmptyRequest } from "@shared/proto/codemarie/common"
 import { memo, useMemo, useState } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { TaskServiceClient } from "@/services/grpc-client"
 import { CHAT_ROW_EXPANDED_BG_COLOR } from "../common/CodeBlock"
 import { HOOK_OUTPUT_STRING } from "./constants"
@@ -142,8 +143,9 @@ const HookMessage = memo(({ message, CommandOutput }: HookMessageProps) => {
 	return (
 		<>
 			<div style={headerStyle}>
-				<span
-					className="codicon codicon-symbol-event"
+				<VscIcon
+					className=""
+					name="symbol-event"
 					style={{
 						color: normalColor,
 						marginBottom: "-1.5px",

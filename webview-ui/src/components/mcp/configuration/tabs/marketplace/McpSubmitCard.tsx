@@ -1,3 +1,5 @@
+import { VscIcon } from "@/components/ui/vsc-icon"
+
 const McpSubmitCard = () => {
 	return (
 		<div
@@ -12,7 +14,7 @@ const McpSubmitCard = () => {
 				borderRadius: "6px",
 			}}>
 			{/* Icon */}
-			<i className="codicon codicon-add" style={{ fontSize: "18px" }} />
+			<VscIcon className="" name="add" style={{ fontSize: "18px" }} />
 
 			{/* Content */}
 			<div

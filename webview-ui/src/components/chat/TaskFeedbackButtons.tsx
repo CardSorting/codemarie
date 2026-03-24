@@ -3,6 +3,7 @@ import { TaskFeedbackType } from "@shared/WebviewMessage"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useState } from "react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { cn } from "@/lib/utils"
 import { TaskServiceClient } from "@/services/grpc-client"
 
@@ -82,9 +83,7 @@ const TaskFeedbackButtons: React.FC<TaskFeedbackButtonsProps> = ({ messageTs, is
 						onClick={() => handleFeedback("thumbs_up")}
 						title="This was helpful">
 						<IconWrapper>
-							<span
-								className={`codicon ${feedback === "thumbs_up" ? "codicon-thumbsup-filled" : "codicon-thumbsup"}`}
-							/>
+							<VscIcon name={feedback === "thumbs_up" ? "thumbsup-filled" : "thumbsup"} />
 						</IconWrapper>
 					</VSCodeButton>
 				</ButtonWrapper>
@@ -96,9 +95,7 @@ const TaskFeedbackButtons: React.FC<TaskFeedbackButtonsProps> = ({ messageTs, is
 						onClick={() => handleFeedback("thumbs_down")}
 						title="This wasn't helpful">
 						<IconWrapper>
-							<span
-								className={`codicon ${feedback === "thumbs_down" ? "codicon-thumbsdown-filled" : "codicon-thumbsdown"}`}
-							/>
+							<VscIcon name={feedback === "thumbs_down" ? "thumbsdown-filled" : "thumbsdown"} />
 						</IconWrapper>
 					</VSCodeButton>
 				</ButtonWrapper>
@@ -107,7 +104,7 @@ const TaskFeedbackButtons: React.FC<TaskFeedbackButtonsProps> = ({ messageTs, is
 					appearance="icon"
 					title="Report a bug"
 					aria-label="Report a bug">
-					<span className="codicon codicon-bug" />
+					<VscIcon name="bug" className=""  />
 				</VSCodeButtonLink> */}
 			</ButtonsContainer>
 		</div>

@@ -1,17 +1,9 @@
-import { HistoryIcon, PlusIcon, SettingsIcon, UserCircleIcon } from "lucide-react"
 import { useMemo } from "react"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TaskServiceClient } from "@/services/grpc-client"
 import { useExtensionState } from "../../context/ExtensionStateContext"
-
-// Custom MCP Server Icon component using VSCode codicon
-const McpServerIcon = ({ className, size }: { className?: string; size?: number }) => (
-	<span
-		className={`codicon codicon-server flex items-center ${className || ""}`}
-		style={{ fontSize: size ? `${size}px` : "12.5px", marginBottom: "1px" }}
-	/>
-)
 
 export const Navbar = () => {
 	const { navigateToHistory, navigateToSettings, navigateToAccount, navigateToMcp, navigateToChat } = useExtensionState()
@@ -22,7 +14,7 @@ export const Navbar = () => {
 				id: "chat",
 				name: "Chat",
 				tooltip: "New Task",
-				icon: PlusIcon,
+				icon: "PlusIcon",
 				navigate: () => {
 					// Close the current task, then navigate to the chat view
 					TaskServiceClient.clearTask({})
@@ -36,28 +28,28 @@ export const Navbar = () => {
 				id: "mcp",
 				name: "MCP",
 				tooltip: "MCP Servers",
-				icon: McpServerIcon,
+				icon: "server",
 				navigate: navigateToMcp,
 			},
 			{
 				id: "history",
 				name: "History",
 				tooltip: "History",
-				icon: HistoryIcon,
+				icon: "HistoryIcon",
 				navigate: navigateToHistory,
 			},
 			{
 				id: "account",
 				name: "Account",
 				tooltip: "Account",
-				icon: UserCircleIcon,
+				icon: "UserCircleIcon",
 				navigate: navigateToAccount,
 			},
 			{
 				id: "settings",
 				name: "Settings",
 				tooltip: "Settings",
-				icon: SettingsIcon,
+				icon: "SettingsIcon",
 				navigate: navigateToSettings,
 			},
 		],
@@ -80,7 +72,7 @@ export const Navbar = () => {
 							onClick={() => tab.navigate()}
 							size="icon"
 							variant="icon">
-							<tab.icon className="stroke-1 [svg]:size-4" size={18} />
+							<Icon className="stroke-1 [svg]:size-4" name={tab.icon} size={18} />
 						</Button>
 					</TooltipTrigger>
 				</Tooltip>

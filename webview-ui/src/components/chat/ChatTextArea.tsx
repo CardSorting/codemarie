@@ -5,7 +5,6 @@ import { PlanActMode, TogglePlanActModeRequest } from "@shared/proto/codemarie/s
 import { type SlashCommand } from "@shared/slashCommands"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
-import { AtSignIcon, PlusIcon } from "lucide-react"
 import type React from "react"
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import DynamicTextArea from "react-textarea-autosize"
@@ -15,6 +14,7 @@ import { CHAT_CONSTANTS } from "@/components/chat/chat-view/constants"
 import SlashCommandMenu from "@/components/chat/SlashCommandMenu"
 import Thumbnails from "@/components/common/Thumbnails"
 import { getModeSpecificFields, normalizeApiConfiguration } from "@/components/settings/utils/providerUtils"
+import { Icon } from "@/components/ui/icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { usePlatform } from "@/context/PlatformContext"
@@ -1557,9 +1557,14 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 						className="absolute flex items-end bottom-4.5 right-5 z-10 h-8 text-xs"
 						style={{ height: textAreaBaseHeight }}>
 						<div className="flex flex-row items-center">
-							<div
-								className={cn("input-icon-button", { disabled: sendingDisabled }, "codicon codicon-send text-sm")}
+							<Icon
+								className={cn(
+									"input-icon-button cursor-pointer",
+									{ "opacity-50 pointer-events-none": sendingDisabled },
+									"text-sm",
+								)}
 								data-testid="send-button"
+								name="send"
 								onClick={() => {
 									if (!sendingDisabled) {
 										setIsTextAreaFocused(false)
@@ -1585,7 +1590,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 										data-testid="context-button"
 										onClick={handleContextButtonClick}>
 										<ButtonContainer>
-											<AtSignIcon size={12} />
+											<Icon name="AtSignIcon" size={12} />
 										</ButtonContainer>
 									</VSCodeButton>
 								</TooltipTrigger>
@@ -1606,7 +1611,7 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 											}
 										}}>
 										<ButtonContainer>
-											<PlusIcon size={13} />
+											<Icon name="PlusIcon" size={13} />
 										</ButtonContainer>
 									</VSCodeButton>
 								</TooltipTrigger>

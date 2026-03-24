@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 
 export function RemotelyConfiguredInputWrapper({ hidden, children }: React.PropsWithChildren<{ hidden: boolean }>) {
 	return (
@@ -9,4 +10,4 @@ export function RemotelyConfiguredInputWrapper({ hidden, children }: React.Props
 	)
 }
 
-export const LockIcon = () => <i className="codicon codicon-lock text-description text-sm" />
+export const LockIcon = () => <VscIcon className="text-description text-sm" name="lock" />

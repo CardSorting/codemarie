@@ -1,6 +1,6 @@
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import { memo, useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { cn } from "@/lib/utils"
 
 interface ThinkingRowProps {
@@ -79,9 +79,9 @@ export const ThinkingRow = memo(
 						</span>
 						{showChevron &&
 							(isExpanded ? (
-								<ChevronDownIcon className="!size-1 text-description" />
+								<Icon className="!size-1 text-description" name="ChevronDownIcon" />
 							) : (
-								<ChevronRightIcon className="!size-1 text-description" />
+								<Icon className="!size-1 text-description" name="ChevronRightIcon" />
 							))}
 					</Button>
 				) : null}

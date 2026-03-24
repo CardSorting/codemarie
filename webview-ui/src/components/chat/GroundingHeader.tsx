@@ -1,5 +1,6 @@
 import styled from "styled-components"
 import { Badge } from "@/components/ui/badge"
+import { VscIcon } from "@/components/ui/vsc-icon"
 
 const HeaderContainer = styled.div`
   display: flex;
@@ -178,7 +179,7 @@ export const GroundingHeader = ({
 
 			{highRisk && (
 				<AlertBox type="danger">
-					<span className="codicon codicon-error pt-0.5" />
+					<VscIcon className="pt-0.5" name="error" />
 					<div>
 						<span className="font-bold">High Risk Detected:</span> {highRisk.description}
 					</div>
@@ -187,14 +188,14 @@ export const GroundingHeader = ({
 
 			{!highRisk && confidenceScore < 0.7 && (
 				<AlertBox type="warning">
-					<span className="codicon codicon-warning pt-0.5" />
+					<VscIcon className="pt-0.5" name="warning" />
 					<span>Confidence is low. Please review the proposed actions and provide clarification if needed.</span>
 				</AlertBox>
 			)}
 
 			{hasActions && confidenceScore >= 0.7 && !highRisk && (
 				<AlertBox type="info">
-					<span className="codicon codicon-info pt-0.5" />
+					<VscIcon className="pt-0.5" name="info" />
 					<span>I've structured a plan based on your request. Please confirm the steps below to proceed.</span>
 				</AlertBox>
 			)}

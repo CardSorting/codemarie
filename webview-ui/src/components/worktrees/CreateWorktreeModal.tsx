@@ -3,6 +3,7 @@ import { CreateWorktreeRequest, SwitchWorktreeRequest } from "@shared/proto/code
 import { VSCodeButton, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import { AlertCircle, AlertTriangle, Loader2, X } from "lucide-react"
 import { memo, useCallback, useEffect, useState } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { WorktreeServiceClient } from "@/services/grpc-client"
 
 interface CreateWorktreeModalProps {
@@ -150,9 +151,10 @@ const CreateWorktreeModal = ({ open, onClose, openAfterCreate = false, onSuccess
 							placeholder="feature/my-feature"
 							value={newBranchName}>
 							{newBranchName && (
-								<div
+								<VscIcon
 									aria-label="Clear"
-									className="input-icon-button codicon codicon-close"
+									className="input-icon-button"
+									name="close"
 									onClick={() => setNewBranchName("")}
 									slot="end"
 									style={{
@@ -176,9 +178,10 @@ const CreateWorktreeModal = ({ open, onClose, openAfterCreate = false, onSuccess
 							placeholder="../my-feature-worktree"
 							value={newWorktreePath}>
 							{newWorktreePath && (
-								<div
+								<VscIcon
 									aria-label="Clear"
-									className="input-icon-button codicon codicon-close"
+									className="input-icon-button"
+									name="close"
 									onClick={() => setNewWorktreePath("")}
 									slot="end"
 									style={{

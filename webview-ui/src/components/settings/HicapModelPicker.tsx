@@ -4,6 +4,7 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import Fuse from "fuse.js"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "react-use"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { StateServiceClient } from "@/services/grpc-client"
 import { highlight } from "../history/HistoryView"
@@ -184,9 +185,10 @@ const HicapModelPicker: React.FC<HicapModelPickerProps> = ({ isPopup, currentMod
 						style={{ zIndex: HICAP_MODEL_PICKER_Z_INDEX }}
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VscIcon
 								aria-label="Clear search"
-								className="flex justify-center items-center h-full input-icon-button codicon codicon-close"
+								className="flex justify-center items-center h-full input-icon-button"
+								name="close"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)

@@ -1,5 +1,6 @@
 import { VSCodeCheckbox, VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import PreferredLanguageSetting from "../PreferredLanguageSetting"
 import Section from "../Section"
@@ -35,7 +36,7 @@ const GeneralSettingsSection = ({ renderSectionHeader }: GeneralSettingsSectionP
 									Allow error and usage reporting
 								</VSCodeCheckbox>
 								{!!remoteConfigSettings?.telemetrySetting && (
-									<i className="codicon codicon-lock text-description text-sm" />
+									<VscIcon className="text-description text-sm" name="lock" />
 								)}
 							</div>
 						</TooltipTrigger>

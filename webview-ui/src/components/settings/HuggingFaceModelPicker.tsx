@@ -5,6 +5,7 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import Fuse from "fuse.js"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "react-use"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { ModelsServiceClient } from "../../services/grpc-client"
 import { highlight } from "../history/HistoryView"
@@ -184,9 +185,10 @@ const HuggingFaceModelPicker: React.FC<HuggingFaceModelPickerProps> = ({ isPopup
 						role="combobox"
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VscIcon
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close"
+								className="input-icon-button"
+								name="close"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)

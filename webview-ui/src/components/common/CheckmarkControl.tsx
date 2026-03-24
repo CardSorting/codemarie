@@ -2,12 +2,12 @@ import { flip, offset, shift, useFloating } from "@floating-ui/react"
 import { CheckpointRestoreRequest } from "@shared/proto/codemarie/checkpoints"
 import { Int64Request } from "@shared/proto/codemarie/common"
 import { CodemarieCheckpointRestore } from "@shared/WebviewMessage"
-import { BookmarkIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import styled from "styled-components"
 import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { cn } from "@/lib/utils"
 import { CheckpointsServiceClient } from "@/services/grpc-client"
@@ -172,10 +172,11 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 			isMenuOpen={showRestoreConfirm}
 			onMouseEnter={handleControlsMouseEnter}
 			onMouseLeave={handleControlsMouseLeave}>
-			<BookmarkIcon
+			<Icon
 				className={cn("text-xs text-description shrink-0 size-2", {
 					"text-link": isCheckpointCheckedOut,
 				})}
+				name="BookmarkIcon"
 			/>
 			<DottedLine $isCheckedOut={isCheckpointCheckedOut} className="hover-show-inverse" />
 			<div className="hover-content">
@@ -230,7 +231,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 											style={{
 												cursor: restoreBothDisabled ? "wait" : "pointer",
 											}}>
-											<i className="codicon codicon-debug-restart" style={{ marginRight: "6px" }} />
+											<Icon className="" name="debug-restart" style={{ marginRight: "6px" }} />
 											Restore Files & Task
 										</Button>
 										<p>Revert files and clear messages after this point</p>
@@ -238,8 +239,8 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 
 									<MoreOptionsToggle onClick={() => setShowMoreOptions(!showMoreOptions)}>
 										More options
-										<i
-											className={`codicon codicon-chevron-${showMoreOptions ? "up" : "down"}`}
+										<Icon
+											name={showMoreOptions ? "chevron-up" : "chevron-down"}
 											style={{ marginLeft: "4px", fontSize: "10px" }}
 										/>
 									</MoreOptionsToggle>
@@ -258,8 +259,9 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 																: "pointer",
 													}}
 													variant="secondary">
-													<i
-														className="codicon codicon-file-symlink-directory"
+													<Icon
+														className=""
+														name="file-symlink-directory"
 														style={{ marginRight: "6px" }}
 													/>
 													Restore Files Only
@@ -274,10 +276,7 @@ export const CheckmarkControl = ({ messageTs, isCheckpointCheckedOut }: Checkmar
 														cursor: restoreTaskDisabled ? "wait" : "pointer",
 													}}
 													variant="secondary">
-													<i
-														className="codicon codicon-comment-discussion"
-														style={{ marginRight: "6px" }}
-													/>
+													<Icon className="" name="comment-discussion" style={{ marginRight: "6px" }} />
 													Restore Task Only
 												</Button>
 												<p>Clear messages after this point</p>

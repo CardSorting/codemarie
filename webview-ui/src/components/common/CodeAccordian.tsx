@@ -1,6 +1,6 @@
-import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 import { memo, useMemo } from "react"
 import CodeBlock from "@/components/common/CodeBlock"
+import { Icon } from "@/components/ui/icons"
 import { cn } from "@/lib/utils"
 import { getLanguageFromPath } from "@/utils/getLanguageFromPath"
 import { Button } from "../ui/button"
@@ -70,7 +70,7 @@ const CodeAccordian = ({
 					variant="text">
 					{isFeedback || isConsoleLogs ? (
 						<div className="flex items-center">
-							<span className={`mr-1.5 codicon codicon-${isFeedback ? "feedback" : "output"}`} />
+							<Icon className="mr-1.5" name={isFeedback ? "feedback" : "output"} />
 							<span className="whitespace-nowrap overflow-hidden text-ellipsis mr-2">
 								{isFeedback ? "User Edits" : "Console Logs"}
 							</span>
@@ -85,11 +85,15 @@ const CodeAccordian = ({
 					<div className="grow" />
 					{numberOfEdits !== undefined && (
 						<div className="flex items-center mr-2 text-description">
-							<span className="codicon codicon-diff-single mr-1" />
+							<Icon className="mr-1" name="diff-single" />
 							<span>{numberOfEdits}</span>
 						</div>
 					)}
-					{isExpanded ? <ChevronDownIcon className="size-4" /> : <ChevronRightIcon className="size-4" />}
+					{isExpanded ? (
+						<Icon className="size-4" name="ChevronDownIcon" />
+					) : (
+						<Icon className="size-4" name="ChevronRightIcon" />
+					)}
 				</Button>
 			)}
 			{(!(path || isFeedback || isConsoleLogs) || isExpanded) && (

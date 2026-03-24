@@ -7,6 +7,7 @@ import Fuse from "fuse.js"
 import React, { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useMount } from "react-use"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "../../context/ExtensionStateContext"
 import { ModelsServiceClient } from "../../services/grpc-client"
 import { highlight } from "../history/HistoryView"
@@ -207,9 +208,10 @@ const RequestyModelPicker: React.FC<RequestyModelPickerProps> = ({ isPopup, base
 						}}
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VscIcon
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close"
+								className="input-icon-button"
+								name="close"
 								onClick={() => {
 									handleModelChange("")
 									setIsDropdownVisible(true)

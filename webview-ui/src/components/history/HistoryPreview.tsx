@@ -1,5 +1,6 @@
 import { StringRequest } from "@shared/proto/codemarie/common"
 import { memo } from "react"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { TaskServiceClient } from "@/services/grpc-client"
 
@@ -94,7 +95,7 @@ const HistoryPreview = ({ showHistoryView }: HistoryPreviewProps) => {
 						align-items: center;
 						gap: 2px;
 					}
-					.history-view-all-btn .codicon {
+					.history-view-all-btn svg {
 						font-size: 1.2em;
 					}
 					.history-view-all-btn:hover {
@@ -113,8 +114,9 @@ const HistoryPreview = ({ showHistoryView }: HistoryPreviewProps) => {
 					justifyContent: "space-between",
 				}}>
 				<div style={{ display: "flex", alignItems: "center" }}>
-					<span
-						className="codicon codicon-comment-discussion"
+					<VscIcon
+						className=""
+						name="comment-discussion"
 						style={{
 							marginRight: "4px",
 							transform: "scale(0.9)",
@@ -136,7 +138,7 @@ const HistoryPreview = ({ showHistoryView }: HistoryPreviewProps) => {
 						onClick={() => showHistoryView()}
 						type="button">
 						View All
-						<span className="codicon codicon-chevron-right" />
+						<VscIcon className="" name="chevron-right" />
 					</button>
 				)}
 			</div>
@@ -151,9 +153,9 @@ const HistoryPreview = ({ showHistoryView }: HistoryPreviewProps) => {
 								<div className="history-preview-item" key={item.id} onClick={() => handleHistorySelect(item.id)}>
 									<div className="history-task-content">
 										{item.isFavorited && (
-											<span
+											<VscIcon
 												aria-label="Favorited"
-												className="codicon codicon-star-full"
+												name="star-full"
 												style={{
 													color: "var(--vscode-button-background)",
 													flexShrink: 0,

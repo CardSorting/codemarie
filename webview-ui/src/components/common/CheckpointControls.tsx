@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { useClickAway } from "react-use"
 import styled from "styled-components"
 import { CODE_BLOCK_BG_COLOR } from "@/components/common/CodeBlock"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { CheckpointsServiceClient } from "@/services/grpc-client"
 
@@ -139,7 +140,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 				}}
 				style={{ cursor: compareDisabled ? "wait" : "pointer" }}
 				title="Compare">
-				<i className="codicon codicon-diff-multiple" style={{ position: "absolute" }} />
+				<VscIcon className="" name="diff-multiple" style={{ position: "absolute" }} />
 			</VSCodeButton>
 			<div ref={containerRef} style={{ position: "relative" }}>
 				<VSCodeButton
@@ -147,7 +148,7 @@ export const CheckpointOverlay = ({ messageTs }: CheckpointOverlayProps) => {
 					onClick={() => setShowRestoreConfirm(true)}
 					style={{ cursor: "pointer" }}
 					title="Restore">
-					<i className="codicon codicon-discard" style={{ position: "absolute" }} />
+					<VscIcon className="" name="discard" style={{ position: "absolute" }} />
 				</VSCodeButton>
 				{showRestoreConfirm && (
 					<RestoreConfirmTooltip onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} ref={tooltipRef}>

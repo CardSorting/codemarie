@@ -3,6 +3,7 @@ import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 import Fuse from "fuse.js"
 import { KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from "react"
 import styled from "styled-components"
+import { VscIcon } from "@/components/ui/vsc-icon"
 import { highlight } from "../../history/HistoryView"
 
 interface ModelAutocompleteProps {
@@ -188,9 +189,10 @@ export const ModelAutocomplete = ({
 						}}
 						value={searchTerm}>
 						{searchTerm && (
-							<div
+							<VscIcon
 								aria-label="Clear search"
-								className="input-icon-button codicon codicon-close"
+								className="input-icon-button"
+								name="close"
 								onClick={() => {
 									setSearchTerm("")
 									setIsDropdownVisible(true)

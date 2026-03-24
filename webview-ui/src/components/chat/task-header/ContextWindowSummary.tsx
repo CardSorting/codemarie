@@ -59,11 +59,11 @@ const AccordionItem = memo<{
 AccordionItem.displayName = "AccordionItem"
 
 // Constants
-const TOKEN_DETAILS_CONFIG: Omit<TokenDetail, "value">[] = [
-	{ title: "Prompt Tokens", icon: "codicon-arrow-up" },
-	{ title: "Completion Tokens", icon: "codicon-arrow-down" },
-	{ title: "Cache Writes", icon: "codicon-arrow-left" },
-	{ title: "Cache Reads", icon: "codicon-arrow-right" },
+const TOKEN_DETAILS_CONFIG: Omit<TokenDetail, "icon" | "value">[] = [
+	{ title: "Prompt Tokens" },
+	{ title: "Completion Tokens" },
+	{ title: "Cache Writes" },
+	{ title: "Cache Reads" },
 ]
 
 const TokenUsageDetails = memo<TokenUsageInfoProps>(({ tokensIn, tokensOut, cacheWrites, cacheReads }) => {

@@ -1,10 +1,10 @@
 import type { ModelInfo } from "@shared/api"
 import type { OnboardingModel, OnboardingModelGroup, OpenRouterModelInfo } from "@shared/proto/index.codemarie"
-import { AlertCircleIcon, CircleCheckIcon, CircleIcon, ListIcon, LoaderCircleIcon, StarIcon, ZapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import CodemarieLogoWhite from "@/assets/CodemarieLogoWhite"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Icon } from "@/components/ui/icons"
 import { Input } from "@/components/ui/input"
 import { Item, ItemContent, ItemDescription, ItemHeader, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { useExtensionState } from "@/context/ExtensionStateContext"
@@ -86,21 +86,21 @@ const ModelSelection = ({
 						<div className="flex flex-col gap-3">
 							{model.score && (
 								<div className="inline-flex gap-1 [&_svg]:stroke-warning [&_svg]:size-3 items-center text-sm">
-									<StarIcon />
+									<Icon name="StarIcon" />
 									<span>Model Overview: </span>
 									<span className="text-foreground/70">{model.score}%</span>
 									<span className="text-foreground/70 hidden xs:block">{getOverviewLabel(model.score)}</span>
 								</div>
 							)}
 							<div className="inline-flex gap-1 [&_svg]:stroke-success [&_svg]:size-3 items-center text-sm">
-								<ZapIcon />
+								<Icon name="ZapIcon" />
 								<span>Speed: </span>
 								<span className="text-foreground/70">{getSpeedLabel(model.latency)}</span>
 							</div>
 							{model.info && (
 								<div className="flex w-full justify-between">
 									<div className="inline-flex gap-1 [&_svg]:stroke-foreground [&_svg]:size-3 items-center text-sm">
-										<ListIcon />
+										<Icon name="ListIcon" />
 										<span>Context: </span>
 										<span className="text-foreground/70">{(model?.info.contextWindow || 0) / 1000}k</span>
 									</div>
@@ -211,7 +211,11 @@ const UserTypeSelectionStep = ({ userType, onSelectUserType }: UserTypeSelection
 						key={option.type}
 						onClick={() => onSelectUserType(option.type)}>
 						<ItemMedia className="[&_svg]:stroke-button-background" variant="icon">
-							{isSelected ? <CircleCheckIcon className="stroke-1.5" /> : <CircleIcon className="stroke-1" />}
+							{isSelected ? (
+								<Icon className="stroke-1.5" name="CircleCheckIcon" />
+							) : (
+								<Icon className="stroke-1" name="CircleIcon" />
+							)}
 						</ItemMedia>
 						<ItemContent className="w-full">
 							<ItemTitle>{option.title}</ItemTitle>
@@ -381,7 +385,7 @@ const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingMode
 				<h2 className="text-lg font-semibold p-0 flex-shrink-0">{stepDisplayInfo.title}</h2>
 				{stepNumber === 2 && (
 					<div className="flex w-full max-w-lg flex-col gap-6 my-4 items-center ">
-						<LoaderCircleIcon className="animate-spin" />
+						<Icon className="animate-spin" name="LoaderCircleIcon" />
 					</div>
 				)}
 				{stepDisplayInfo.description && (
@@ -416,7 +420,7 @@ const OnboardingView = ({ onboardingModels }: { onboardingModels: OnboardingMode
 
 					{stepNumber !== 2 && (
 						<div className="items-center justify-center flex text-sm text-foreground gap-2 mb-3 text-pretty">
-							<AlertCircleIcon className="shrink-0 size-2" /> You can change this later in settings
+							<Icon className="shrink-0 size-2" name="AlertCircleIcon" /> You can change this later in settings
 						</div>
 					)}
 				</footer>

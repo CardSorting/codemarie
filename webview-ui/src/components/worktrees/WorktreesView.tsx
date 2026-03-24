@@ -8,8 +8,8 @@ import {
 	SwitchWorktreeRequest,
 } from "@shared/proto/codemarie/worktree"
 import { VSCodeButton, VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
-import { AlertCircle, Check, ExternalLink, FolderOpen, GitBranch, GitMerge, Loader2, Plus, Trash2, X } from "lucide-react"
 import { memo, useCallback, useEffect, useState } from "react"
+import { Icon } from "@/components/ui/icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { FileServiceClient, TaskServiceClient, WorktreeServiceClient } from "@/services/grpc-client"
@@ -272,7 +272,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 						}}>
 						{hasWorktreeInclude ? (
 							<p className="text-sm text-[var(--vscode-testing-iconPassed)] m-0">
-								<Check className="w-4 h-4 inline-block align-text-bottom mr-1" />
+								<Icon className="w-4 h-4 inline-block align-text-bottom mr-1" name="Check" />
 								.worktreeinclude detected.{" "}
 								<a
 									className="text-[var(--vscode-textLink-foreground)] hover:text-[var(--vscode-textLink-activeForeground)]"
@@ -311,7 +311,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 										onClick={handleCreateWorktreeInclude}>
 										{isCreatingWorktreeInclude ? (
 											<>
-												<Loader2 className="w-3 h-3 mr-1 animate-spin" />
+												<Icon className="w-3 h-3 mr-1 animate-spin" name="LoaderCircleIcon" />
 												Creating...
 											</>
 										) : (
@@ -327,12 +327,18 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 				{/* Loading/Error States */}
 				{isLoading ? (
 					<div className="flex items-center justify-center min-h-32 py-8">
-						<Loader2 className="w-6 h-6 animate-spin text-[var(--vscode-descriptionForeground)]" />
+						<Icon
+							className="w-6 h-6 animate-spin text-[var(--vscode-descriptionForeground)]"
+							name="LoaderCircleIcon"
+						/>
 						<span className="ml-2 text-[var(--vscode-descriptionForeground)]">Loading...</span>
 					</div>
 				) : isMultiRoot ? (
 					<div className="flex flex-col items-center justify-center min-h-32 py-8 text-center">
-						<AlertCircle className="w-8 h-8 text-[var(--vscode-inputValidation-warningForeground)] mb-2 shrink-0" />
+						<Icon
+							className="w-8 h-8 text-[var(--vscode-inputValidation-warningForeground)] mb-2 shrink-0"
+							name="AlertCircleIcon"
+						/>
 						<p className="text-[var(--vscode-foreground)] font-medium mb-1">Multi-folder workspace detected</p>
 						<p className="text-[var(--vscode-descriptionForeground)] text-sm">
 							Worktrees are not supported when multiple folders are open in the same workspace. Please open a single
@@ -341,7 +347,10 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 					</div>
 				) : isSubfolder ? (
 					<div className="flex flex-col items-center justify-center min-h-32 py-8 text-center">
-						<AlertCircle className="w-8 h-8 text-[var(--vscode-inputValidation-warningForeground)] mb-2 shrink-0" />
+						<Icon
+							className="w-8 h-8 text-[var(--vscode-inputValidation-warningForeground)] mb-2 shrink-0"
+							name="AlertCircleIcon"
+						/>
 						<p className="text-[var(--vscode-foreground)] font-medium mb-1">Subfolder of a git repository</p>
 						<p className="text-[var(--vscode-descriptionForeground)] text-sm">
 							You have a subfolder open instead of the repository root. Please open the root folder to use
@@ -353,14 +362,17 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 					</div>
 				) : !isGitRepo ? (
 					<div className="flex flex-col items-center justify-center min-h-32 py-8 text-center">
-						<AlertCircle className="w-8 h-8 text-[var(--vscode-descriptionForeground)] mb-2 shrink-0" />
+						<Icon
+							className="w-8 h-8 text-[var(--vscode-descriptionForeground)] mb-2 shrink-0"
+							name="AlertCircleIcon"
+						/>
 						<p className="text-[var(--vscode-descriptionForeground)]">
 							Worktrees require a git repository. Please initialize git to use worktrees.
 						</p>
 					</div>
 				) : error ? (
 					<div className="flex flex-col items-center justify-center min-h-32 py-8 text-center">
-						<AlertCircle className="w-8 h-8 text-[var(--vscode-errorForeground)] mb-2 shrink-0" />
+						<Icon className="w-8 h-8 text-[var(--vscode-errorForeground)] mb-2 shrink-0" name="AlertCircleIcon" />
 						<p className="text-[var(--vscode-errorForeground)]">{error}</p>
 						<VSCodeButton appearance="secondary" className="mt-3" onClick={loadWorktrees}>
 							Retry
@@ -368,7 +380,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 					</div>
 				) : worktrees.length === 0 ? (
 					<div className="flex flex-col items-center justify-center min-h-32 py-8 text-center">
-						<GitBranch className="w-8 h-8 text-[var(--vscode-descriptionForeground)] mb-2 shrink-0" />
+						<Icon className="w-8 h-8 text-[var(--vscode-descriptionForeground)] mb-2 shrink-0" name="GitBranch" />
 						<p className="text-[var(--vscode-descriptionForeground)]">No worktrees found.</p>
 					</div>
 				) : (
@@ -388,7 +400,10 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 										{/* Left side: branch name and badges */}
 										<div className="flex flex-wrap items-center gap-2">
 											<div className="flex items-center gap-2">
-												<GitBranch className="w-4 h-4 flex-shrink-0 text-[var(--vscode-button-background)]" />
+												<Icon
+													className="w-4 h-4 flex-shrink-0 text-[var(--vscode-button-background)]"
+													name="GitBranch"
+												/>
 												<span className="font-medium break-all">
 													{worktree.branch || (worktree.isDetached ? "HEAD (detached)" : "unknown")}
 												</span>
@@ -432,7 +447,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 															<VSCodeButton
 																appearance="icon"
 																onClick={() => handleSwitchWorktree(worktree.path, false)}>
-																<FolderOpen className="w-4 h-4" />
+																<Icon className="w-4 h-4" name="FolderOpen" />
 															</VSCodeButton>
 														</TooltipTrigger>
 														<TooltipContent side="bottom">Open in current window</TooltipContent>
@@ -442,7 +457,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 															<VSCodeButton
 																appearance="icon"
 																onClick={() => handleSwitchWorktree(worktree.path, true)}>
-																<ExternalLink className="w-4 h-4" />
+																<Icon className="w-4 h-4" name="ExternalLink" />
 															</VSCodeButton>
 														</TooltipTrigger>
 														<TooltipContent side="bottom">Open in new window</TooltipContent>
@@ -456,7 +471,10 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 															<VSCodeButton
 																appearance="icon"
 																onClick={() => openMergeModal(worktree)}>
-																<GitMerge className="w-4 h-4 text-[var(--vscode-testing-iconPassed)]" />
+																<Icon
+																	className="w-4 h-4 text-[var(--vscode-testing-iconPassed)]"
+																	name="GitMerge"
+																/>
 															</VSCodeButton>
 														</TooltipTrigger>
 														<TooltipContent side="bottom">
@@ -468,7 +486,10 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 															<VSCodeButton
 																appearance="icon"
 																onClick={() => setDeleteWorktree(worktree)}>
-																<Trash2 className="w-4 h-4 text-[var(--vscode-errorForeground)]" />
+																<Icon
+																	className="w-4 h-4 text-[var(--vscode-errorForeground)]"
+																	name="Trash2Icon"
+																/>
 															</VSCodeButton>
 														</TooltipTrigger>
 														<TooltipContent side="bottom">Delete this worktree</TooltipContent>
@@ -496,7 +517,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 						borderTop: "1px solid var(--vscode-panel-border)",
 					}}>
 					<VSCodeButton disabled={isLoading} onClick={() => setShowCreateForm(true)} style={{ width: "100%" }}>
-						<Plus className="w-4 h-4 mr-1" />
+						<Icon className="w-4 h-4 mr-1" name="PlusIcon" />
 						New Worktree
 					</VSCodeButton>
 				</div>
@@ -534,11 +555,11 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 							disabled={isMerging}
 							onClick={closeMergeModal}
 							type="button">
-							<X className="w-4 h-4" />
+							<Icon className="w-4 h-4" name="X" />
 						</button>
 
 						<div className="flex items-center gap-2 mb-2">
-							<GitMerge className="w-5 h-5 text-[var(--vscode-testing-iconPassed)]" />
+							<Icon className="w-5 h-5 text-[var(--vscode-testing-iconPassed)]" name="GitMerge" />
 							<h4 className="m-0 pr-6">Merge Worktree</h4>
 						</div>
 
@@ -546,7 +567,7 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 						{mergeResult?.success ? (
 							<div className="flex flex-col gap-4">
 								<div className="flex items-center gap-2 p-3 rounded bg-[var(--vscode-testing-iconPassed)]/10 border border-[var(--vscode-testing-iconPassed)]">
-									<Check className="w-5 h-5 text-[var(--vscode-testing-iconPassed)]" />
+									<Icon className="w-5 h-5 text-[var(--vscode-testing-iconPassed)]" name="Check" />
 									<p className="text-sm m-0">{mergeResult.message}</p>
 								</div>
 								<div className="flex justify-end">
@@ -557,7 +578,10 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 							/* Conflict state */
 							<div className="flex flex-col gap-4">
 								<div className="flex items-start gap-2 p-3 rounded bg-[var(--vscode-inputValidation-warningBackground)] border border-[var(--vscode-inputValidation-warningBorder)]">
-									<AlertCircle className="w-5 h-5 flex-shrink-0 text-[var(--vscode-inputValidation-warningForeground)] mt-0.5" />
+									<Icon
+										className="w-5 h-5 flex-shrink-0 text-[var(--vscode-inputValidation-warningForeground)] mt-0.5"
+										name="AlertCircleIcon"
+									/>
 									<div>
 										<p className="text-sm font-medium m-0 mb-1">Merge conflicts detected</p>
 										<p className="text-sm text-[var(--vscode-descriptionForeground)] m-0 mb-2">
@@ -610,7 +634,10 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 
 								{mergeError && (
 									<div className="flex items-start gap-2 p-3 rounded bg-[var(--vscode-inputValidation-errorBackground)] border border-[var(--vscode-inputValidation-errorBorder)]">
-										<AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--vscode-errorForeground)] mt-0.5" />
+										<Icon
+											className="w-4 h-4 flex-shrink-0 text-[var(--vscode-errorForeground)] mt-0.5"
+											name="AlertCircleIcon"
+										/>
 										<p className="text-sm text-[var(--vscode-errorForeground)] m-0">{mergeError}</p>
 									</div>
 								)}
@@ -622,12 +649,12 @@ Please help me resolve these merge conflicts, then complete the merge, and delet
 									<VSCodeButton disabled={isMerging} onClick={handleMergeWorktree}>
 										{isMerging ? (
 											<>
-												<Loader2 className="w-4 h-4 mr-1 animate-spin" />
+												<Icon className="w-4 h-4 mr-1 animate-spin" name="LoaderCircleIcon" />
 												Merging...
 											</>
 										) : (
 											<>
-												<GitMerge className="w-4 h-4 mr-1" />
+												<Icon className="w-4 h-4 mr-1" name="GitMerge" />
 												Merge
 											</>
 										)}
