@@ -196,15 +196,13 @@ export class GeminiHandler implements ApiHandler {
 
 		// Add thinking config only if the model supports it
 		if (info.thinkingConfig) {
+			const finalThinkingBudget = thinkingBudget > 0 ? thinkingBudget : thinkingLevel ? 1024 : undefined
 			requestConfig.thinkingConfig = {
-				// Turn off thinking:
-				// thinkingBudget: 0
-				// Turn on dynamic thinking:
-				// thinkingBudget: -1
-				// Turn on fixed thinking budget:
-				thinkingBudget: thinkingBudget > 0 ? thinkingBudget : thinkingLevel ? 1024 : undefined,
-				thinkingLevel,
-				includeThoughts: thinkingBudget !== 0 || !!thinkingLevel,
+				thinkingBudget: finalThinkingBudget,
+				// Gemini allows only ONE of thinkingBudget or thinkingLevel.
+				// We prioritize budget to avoid "Budget 0 is invalid".
+				thinkingLevel: finalThinkingBudget ? undefined : thinkingLevel,
+				includeThoughts: !!finalThinkingBudget || !!thinkingLevel,
 			}
 		}
 

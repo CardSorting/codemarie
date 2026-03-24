@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.84.3] - 2026-03-24
+
+### Fixed
+- **Gemini & Vertex AI**: Conducted a deep audit and production hardening of Gemini-based providers.
+  - Resolved "Budget 0 is invalid" error for thinking-capable models by ensuring a minimum budget (1024 tokens) when reasoning is active.
+  - Fixed cost calculation to correctly apply reasoning-specific pricing for thought tokens.
+  - Enhanced telemetry to capture reasoning budgets, levels, and token counts for improved production observability.
+  - Standardized model metadata across `api.ts` to ensure consistent thinking mode behavior.
+  - Improved Google API error parsing for more descriptive diagnostics.
+
 ## [3.84.2] - 2026-03-24
 
 ### Fixed

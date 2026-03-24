@@ -2,7 +2,7 @@
 	"name": "marie-coder",
 	"displayName": "CodeMarie",
 	"description": "CodeMarie is your autonomous coding partner, capable of creating/editing files, running commands, and more with your permission.",
-	"version": "3.84.2",
+	"version": "3.84.3",
 	"icon": "assets/icons/icon.png",
 	"workspaces": [
 		".",
