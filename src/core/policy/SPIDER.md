@@ -44,7 +44,7 @@ Structural snapshots are persisted as BroccoliDB Knowledge Items (`structural_sn
 
 ### Oracle Suggestion Engine (Consumer)
 The **Oracle Grade Suggestion Engine** is a primary consumer of Spider intelligence. It utilizes the `SpiderEngine` and `StructuralDiscoveryService` to:
-- Perform **Smart Symbol Expansion**: Resolving symbols for diagnostic grounding project-wide.
+- Perform **Smart Symbol Expansion**: Resolving symbols for diagnostic resolution project-wide.
 - Enforce **Joy-Zoning Policy**: Ensuring suggestions do not increase structural entropy.
 - See [SUGGESTION_ENGINE.md](../suggestion/SUGGESTION_ENGINE.md) for implementation details.
 

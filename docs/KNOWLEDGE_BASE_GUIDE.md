@@ -12,21 +12,19 @@ If you are new to CodeMarie, start here to understand the core workflow.
 
 ### 2. 🧬 Cognitive Architecture (Architect Domain)
 Deep dives into the internal mechanics of CodeMarie's intelligence.
-- [**Multi-Agent System (MAS)**](multi-agent-system): The core orchestration layer for multi-turn tasks.
-- [**Intent Grounding**](features/intent-grounding): How we turn ambiguous requests into project-specific specs.
 - [**Memory Bank (BroccoliDB)**](features/memory-bank): The persistent knowledge graph that powers long-term reasoning.
+- [**Grounding & MAS Deprecation**](hyper-cognition/GROUNDING_MAS_DEPRECATION): Post-mortem analysis and removal rationale for legacy orchestration layers.
 - [**Production Optimization Summary**](PRODUCTION_OPTIMIZATION_SUMMARY): Benchmark results and engineering details for the v3.84.0 hardening initiative.
 - [**Hyper-Cognition Vision**](hyper-cognition/VISION): The long-term roadmap for architectural intelligence.
 
 ### 3. 🛠️ Development & Engineering (Developer Domain)
 Technical references for extending or debugging the system.
-- [**MAS Technical Architecture**](hyper-cognition/MAS_ARCHITECTURE): Detailed UML and sequence diagrams for sub-agent systems.
 - [**Tools Reference**](tools-reference/all-cline-tools): API documentation for all built-in agentic tools.
 - [**MCP Protocol**](mcp/mcp-overview): How to build and connect custom tool servers.
 
 ## 🔍 Navigation Tips
 - **Searching**: Use `Cmd+K` (or the search bar) to find specific implementation details across the entire `docs/` folder.
-- **Hierarchical Reading**: For a deep understanding, read **Intent Grounding** first, followed by **Multi-Agent System**, and finally **MAS Technical Architecture**.
+- **Hierarchical Reading**: For a deep understanding, read **Memory Bank (BroccoliDB)** followed by **Tools Reference**.
 - **Shared Reasoning**: Look for the `ANNOTATES` edges in BroccoliDB to trace the reasoning history of any task.
 
 ## 📋 Release Notes
