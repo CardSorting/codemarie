@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.84.2] - 2026-03-24
+
+### Fixed
+- **SuggestionService**: Resolved "Budget 0 is invalid" error for Gemini 3 models by ensuring a minimum thinking budget (5024 tokens) is always provided for background suggestions. This prevents crashes while maintaining low-latency responses.
+
 ## [3.78.0] - 2026-03-18
 
 ### Added
