@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.84.4] - 2026-03-24
+
+### Changed
+- **Unified Icon System**: Completed the migration to a high-performance, inline SVG-based icon system across the entire webview UI. 
+  - Replaced legacy dependencies (`lucide-react`, `VscIcon`) with a centralized `Icon` component.
+  - Centralized all icon definitions for reduced bundle size and improved rendering consistency.
+- **Production Hardening**:
+  - Enhanced `ripgrep` service reliability with hardened error handling and process management for large result sets.
+  - Optimized production logging by downgrading diagnostic `CheckpointTracker` events to debug level.
+  - Cleaned up debug telemetry across standalone utilities and system prompts.
+
 ## [3.84.3] - 2026-03-24
 
 ### Fixed
