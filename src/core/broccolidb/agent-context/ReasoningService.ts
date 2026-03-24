@@ -11,7 +11,7 @@ export class ReasoningService {
 		private graph: GraphService,
 	) {}
 
-	async detectContradictions(startIds: string | string[]): Promise<ContradictionReport[]> {
+	async detectContradictions(startIds: string | string[], _depth?: number): Promise<ContradictionReport[]> {
 		const ids = Array.isArray(startIds) ? startIds : [startIds]
 		const reports: ContradictionReport[] = []
 

@@ -122,7 +122,7 @@ describe("BroccoliDB-StressTestCorpus", () => {
 		workspace = new Workspace(db, "test-user", "test-ws")
 		await workspace.init()
 
-		context = new AgentContext(db, workspace, "test-user", { agentId: "test-agent", name: "Test Agent" } as any)
+		context = new AgentContext(workspace, db, "test-user", { agentId: "test-agent", name: "Test Agent" } as any)
 
 		repo = await workspace.createRepo("test-repo")
 		repo.agentContext = context

@@ -99,6 +99,7 @@ export interface ServiceContext {
 		query: string,
 		tags?: string[],
 		limit?: number,
+		embedding?: number[],
 		options?: { augmentWithGraph?: boolean; skipVerification?: boolean },
 	) => Promise<KnowledgeBaseItem[]>
 }
