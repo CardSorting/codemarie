@@ -111,6 +111,10 @@ const copyWasmFiles = {
 			const sourceDir = path.join(__dirname, "node_modules", "web-tree-sitter")
 			const targetDir = path.join(__dirname, destDir)
 
+			if (!fs.existsSync(targetDir)) {
+				fs.mkdirSync(targetDir, { recursive: true })
+			}
+
 			// Copy tree-sitter.wasm
 			fs.copyFileSync(path.join(sourceDir, "tree-sitter.wasm"), path.join(targetDir, "tree-sitter.wasm"))
 
@@ -137,6 +141,47 @@ const copyWasmFiles = {
 				const filename = `tree-sitter-${lang}.wasm`
 				fs.copyFileSync(path.join(languageWasmDir, filename), path.join(targetDir, filename))
 			})
+		})
+	},
+}
+
+const copyNativeModules = {
+	name: "copy-native-modules",
+	setup(build) {
+		build.onEnd(() => {
+			const targetDir = path.join(__dirname, destDir)
+			if (!fs.existsSync(targetDir)) {
+				fs.mkdirSync(targetDir, { recursive: true })
+			}
+
+			// better-sqlite3
+			// We try multiple paths as some environments use different build directories
+			const sqlitePaths = [
+				path.join(__dirname, "node_modules", "better-sqlite3", "build", "Release", "better_sqlite3.node"),
+				path.join(__dirname, "node_modules", "better-sqlite3", "build", "Debug", "better_sqlite3.node"),
+				path.join(
+					__dirname,
+					"node_modules",
+					"better-sqlite3",
+					"prebuilds",
+					`${process.platform}-${process.arch}`,
+					"node.napi.node",
+				),
+			]
+
+			let found = false
+			for (const sqliteSource of sqlitePaths) {
+				if (fs.existsSync(sqliteSource)) {
+					fs.copyFileSync(sqliteSource, path.join(targetDir, "better_sqlite3.node"))
+					console.log(`[copy-native-modules] Copied better-sqlite3 binding from ${sqliteSource}`)
+					found = true
+					break
+				}
+			}
+
+			if (!found) {
+				console.error("[copy-native-modules] WARNING: Could not find better-sqlite3 native binding!")
+			}
 		})
 	},
 }
@@ -200,6 +245,7 @@ const baseConfig = {
 	tsconfig: path.resolve(__dirname, "tsconfig.json"),
 	plugins: [
 		copyWasmFiles,
+		copyNativeModules,
 		aliasResolverPlugin,
 		/* add to the end of plugins array */
 		esbuildProblemMatcherPlugin,
@@ -217,7 +263,7 @@ const extensionConfig = {
 	...baseConfig,
 	entryPoints: ["src/extension.ts"],
 	outfile: `${destDir}/extension.js`,
-	external: ["vscode"],
+	external: ["vscode", "better-sqlite3"],
 }
 
 // Standalone-specific configuration

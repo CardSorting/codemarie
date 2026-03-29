@@ -1,7 +1,32 @@
-import Database from "better-sqlite3"
+import type DatabaseType from "better-sqlite3"
 import * as fs from "fs"
 import { CompiledQuery, Kysely, SqliteDialect } from "kysely"
 import * as path from "path"
+import { Logger } from "../../shared/services/Logger"
+
+/**
+ * PRODUCTION HARDENING: Robust Native Module Loading
+ * VS Code extensions need careful handling of native .node binaries.
+ */
+let Database: typeof DatabaseType
+try {
+	// Standard load (works in dev and if correctly linked in dist)
+	Database = require("better-sqlite3")
+} catch (e) {
+	try {
+		// Fallback for bundled environment: check sibling directory for .node file
+		const bindingPath = path.join(__dirname, "better_sqlite3.node")
+		if (fs.existsSync(bindingPath)) {
+			Database = require(bindingPath)
+		} else {
+			throw e
+		}
+	} catch (innerError) {
+		Logger.error("[DatabaseConfig] CRITICAL: Failed to load better-sqlite3 native bindings.", innerError)
+		// We re-throw to ensure the application doesn't start in a broken state
+		throw innerError
+	}
+}
 
 export interface Schema {
 	users: {
