@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.85.1] - 2026-03-29
+
+### Fixed
+- **Gemini API**: Resolved "Corrupted thought signature" 400 errors when switching between Gemini models by implementing a dummy signature validator as recommended by Google.
+
 ## [3.84.4] - 2026-03-24
 
 ### Changed
