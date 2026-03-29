@@ -143,7 +143,7 @@ export class GeminiHandler implements ApiHandler {
 	async *createMessage(systemPrompt: string, messages: CodemarieStorageMessage[], tools?: GoogleTool[]): ApiStream {
 		const client = this.ensureClient()
 		const { id: modelId, info } = this.getModel()
-		const contents = messages.map(convertAnthropicMessageToGemini)
+		const contents = messages.map((msg) => convertAnthropicMessageToGemini(msg, modelId))
 
 		// Configure thinking budget/level if supported
 		const _thinkingBudget = this.options.thinkingBudgetTokens ?? 0

@@ -10,15 +10,28 @@ import { CodemarieStorageMessage } from "@/shared/messages/content"
 // "context_engineering_is_the_way_to_go" or "skip_thought_signature_validator" in the thought signature field to skip validation.
 const GEMINI_DUMMY_THOUGHT_SIGNATURE = "skip_thought_signature_validator"
 
-export function convertAnthropicContentToGemini(content: string | CodemarieStorageMessage["content"]): Part[] {
+export function convertAnthropicContentToGemini(
+	content: string | CodemarieStorageMessage["content"],
+	modelContext?: { originalModelId?: string; currentModelId?: string },
+): Part[] {
 	if (typeof content === "string") {
 		return [{ text: content }]
 	}
+
+	const isModelSwitch = !!(
+		modelContext?.originalModelId &&
+		modelContext?.currentModelId &&
+		modelContext.originalModelId !== modelContext.currentModelId
+	)
+
 	return content
 		.flatMap((block): Part | undefined => {
 			switch (block.type) {
 				case "text":
-					return { text: block.text, thoughtSignature: block.signature }
+					return {
+						text: block.text,
+						thoughtSignature: isModelSwitch ? GEMINI_DUMMY_THOUGHT_SIGNATURE : block.signature,
+					}
 				case "image":
 					if (block.source.type !== "base64") {
 						throw new Error("Unsupported image source type")
@@ -36,7 +49,9 @@ export function convertAnthropicContentToGemini(content: string | CodemarieStora
 							args: block.input as Record<string, unknown>,
 						},
 						// Thought signature is required, so provide a dummy one if not present
-						thoughtSignature: block.signature || GEMINI_DUMMY_THOUGHT_SIGNATURE,
+						thoughtSignature: isModelSwitch
+							? GEMINI_DUMMY_THOUGHT_SIGNATURE
+							: block.signature || GEMINI_DUMMY_THOUGHT_SIGNATURE,
 					}
 				case "tool_result":
 					return {
@@ -51,7 +66,9 @@ export function convertAnthropicContentToGemini(content: string | CodemarieStora
 					return {
 						text: block.thinking,
 						thought: true,
-						thoughtSignature: block.signature || GEMINI_DUMMY_THOUGHT_SIGNATURE,
+						thoughtSignature: isModelSwitch
+							? GEMINI_DUMMY_THOUGHT_SIGNATURE
+							: block.signature || GEMINI_DUMMY_THOUGHT_SIGNATURE,
 					}
 				default:
 					return undefined
@@ -60,10 +77,11 @@ export function convertAnthropicContentToGemini(content: string | CodemarieStora
 		.filter((part): part is Part => part !== undefined) // Filter out unsupported blocks
 }
 
-export function convertAnthropicMessageToGemini(message: Anthropic.Messages.MessageParam): Content {
+export function convertAnthropicMessageToGemini(message: CodemarieStorageMessage, currentModelId?: string): Content {
+	const originalModelId = message.modelInfo?.modelId
 	return {
 		role: message.role === "assistant" ? "model" : "user",
-		parts: convertAnthropicContentToGemini(message.content),
+		parts: convertAnthropicContentToGemini(message.content, { originalModelId, currentModelId }),
 	}
 }
 
