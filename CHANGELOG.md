@@ -1,4 +1,23 @@
 # Changelog
+## [3.86.0] - 2026-03-29
+
+### Added
+- **Oracle Code Assist**: Adds Messages API support, adding functionality for Claude models.
+- **CLI**: Add /q command to quit CLI.
+- **CLI**: Add Additional Markdown Formatting in CLI.
+- **UI**: Add focus ring on action buttons.
+
+### Fixed
+- **UI**: Resolve "Could not find the file context" error in Explain Changes comment replies.
+- **Auth**: Clear all OCA secrets on auth refresh failure to prevent re-auth loop.
+- **Providers**: Fix OpenAI-compatible `gpt-oss` native tool mode so file editing works reliably.
+- **Streaming**: Fix a streaming crash when a chunk has usage data but no `delta` by guarding reasoning field checks in provider handlers.
+- **Security**: Use JSON_SCHEMA for yaml.load to prevent unsafe deserialization from untrusted sources.
+- **CI**: Add automatic retries (up to 3 attempts) for smoke test CI jobs to reduce flaky failures.
+- **CLI**: Add missing smoke evaluation npm scripts so documented commands like `npm run eval:smoke:run` work from the repository root.
+- **Auth**: Fix acp auth check so acp mode can be used with more providers.
+- **Providers**: Update SambaNova Provider models list and add temperature for models.
+
 
 ## [3.85.1] - 2026-03-29
 
