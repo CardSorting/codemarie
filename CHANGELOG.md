@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.87.0] - 2026-03-30
+
+### Changed
+- Production version bump to 3.87.0.
+
 ## [3.84.4] - 2026-03-24
 
 ### Changed

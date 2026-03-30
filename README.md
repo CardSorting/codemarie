@@ -5,7 +5,7 @@
 **CodeMarie** is an industrial-grade, model-agnostic agentic coding assistant designed to maintain architectural integrity in complex software ecosystems. Beyond simple code generation, CodeMarie acts as an **Architectural Guardian**, enforcing strict layering, managing structural entropy, and ensuring transactional stability across your workspace.
 
 > [!IMPORTANT]
-> **Oracle Grade Release (v3.85.0)**: This release marks the transition to the **Observe-Act-Adjust** execution model, prioritizing forward progress and reliability by removing high-latency grounding loops while maintaining strict architectural enforcement via the **Spider Engine**.
+> **Oracle Grade Release (v3.87.0)**: This release marks the transition to the **Observe-Act-Adjust** execution model, prioritizing forward progress and reliability by removing high-latency grounding loops while maintaining strict architectural enforcement via the **Spider Engine**.
 
 ---
 
