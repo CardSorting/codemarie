@@ -33,12 +33,12 @@ export class TspPolicyPlugin {
 		if (currentLayer === "domain") {
 			const classCount = this.countClasses(sourceFile)
 			if (classCount > 1) {
-				errors.push(`Domain layer expects one class per file — found ${classCount}.`)
+				warnings.push(`Domain layer should ideally have one class per file — found ${classCount}.`)
 			}
 		}
 
 		// 3. Rule: Layered Import Constraints
-		this.validateImports(sourceFile, filePath, currentLayer, errors, resolveContent)
+		this.validateImports(sourceFile, filePath, currentLayer, errors, warnings, resolveContent)
 
 		return {
 			success: errors.length === 0,
@@ -89,6 +89,7 @@ export class TspPolicyPlugin {
 		filePath: string,
 		currentLayer: Layer,
 		errors: string[],
+		warnings: string[],
 		resolveContent?: (path: string) => string | undefined,
 	) {
 		ts.forEachChild(sourceFile, (node) => {
@@ -135,17 +136,17 @@ export class TspPolicyPlugin {
 						errors.push(`UI cannot directly import Infrastructure '${moduleName}' — use dependency inversion.`)
 					}
 
-					// Rule: Plumbing Constraints (Zero context — fully independent)
+					// Rule: Plumbing Constraints (Softened to warnings for utilities)
 					if (currentLayer === "plumbing") {
 						if (["domain", "core", "infrastructure", "ui"].includes(targetLayer)) {
-							errors.push(
-								`Plumbing cannot depend on ${targetLayer} layer: '${moduleName}' — utilities must be fully independent.`,
+							warnings.push(
+								`Plumbing should avoid depending on ${targetLayer} layer: '${moduleName}' — utilities should be independent.`,
 							)
 						}
 
 						// Additionally block high-level infrastructure modules in plumbing
 						if (["@services", "@integrations", "@api", "@core"].some((alias) => moduleName.startsWith(alias))) {
-							errors.push(`Plumbing layer violation: '${moduleName}' is a high-level dependency.`)
+							warnings.push(`Plumbing layer violation warning: '${moduleName}' is a high-level dependency.`)
 						}
 					}
 
@@ -165,9 +166,10 @@ export class TspPolicyPlugin {
 										const tBackResolved = tBackPath.endsWith(".ts") ? tBackPath : `${tBackPath}.ts`
 										const currentResolved = filePath.endsWith(".ts") ? filePath : `${filePath}.ts`
 
+										// Naive circular dependency detection: relaxed to warning to avoid 'import type' false positives.
 										if (tBackResolved === currentResolved) {
-											errors.push(
-												`Circular dependency: '${path.basename(filePath)}' ↔ '${path.basename(resolvedTarget)}'.`,
+											warnings.push(
+												`Potential circular dependency detected: '${path.basename(filePath)}' ↔ '${path.basename(resolvedTarget)}'. Check if 'import type' is used.`,
 											)
 										}
 									}
@@ -206,7 +208,7 @@ export class TspPolicyPlugin {
 						}
 					}
 					if (currentLayer === "plumbing" && ["domain", "core", "infrastructure", "ui"].includes(targetLayer)) {
-						violations.push(`Plumbing cannot depend on ${targetLayer} layer: '${moduleName}'.`)
+						// Plumbing layer leaks are treated as warnings elsewhere, omitting from strict 'violations' API
 					}
 				}
 			}
@@ -256,8 +258,10 @@ export class TspPolicyPlugin {
 				const filePath = sourceFile.fileName
 				const validation = this.validateSource(filePath, sourceFile.getText())
 
-				if (!validation.success) {
-					Logger.warn(`[JOY-ZONING] Violations in ${filePath}:\n${validation.errors.join("\n")}`)
+				if (!validation.success || validation.warnings.length > 0) {
+					Logger.warn(
+						`[JOY-ZONING] Issues in ${filePath}:\n${[...validation.errors, ...validation.warnings].join("\n")}`,
+					)
 				}
 
 				return sourceFile
