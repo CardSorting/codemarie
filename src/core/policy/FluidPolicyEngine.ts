@@ -162,7 +162,7 @@ export class FluidPolicyEngine {
 			}
 		}
 
-		// Architectural Policy: AST + BroccoliDB Concurrent Pass
+		// Architectural Policy: AST + Database Concurrent Pass
 		if (
 			(block.name === CodemarieDefaultTool.FILE_NEW || block.name === CodemarieDefaultTool.FILE_EDIT) &&
 			block.params?.path &&

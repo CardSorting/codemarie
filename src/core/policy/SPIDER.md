@@ -1,6 +1,6 @@
 # 🕷️ Spider Structural Intelligence Engine
 
-The **Spider Engine** is a high-performance structural analysis system integrated into BroccoliDB and the Fluid Policy Engine. It uses Abstract Syntax Tree (AST) parsing to build a comprehensive dependency graph of the codebase, enabling proactive architectural enforcement, entropy detection, and automated refactoring.
+The **Spider Engine** is a high-performance structural analysis system integrated into the core database and the Fluid Policy Engine. It uses Abstract Syntax Tree (AST) parsing to build a comprehensive dependency graph of the codebase, enabling proactive architectural enforcement, entropy detection, and automated refactoring.
 
 > [!TIP]
 > For a deep dive into the philosophy and principles behind the engine, see [Spider Theory: Structural Entropy & Architectural Sovereignty](file:///Users/bozoegg/Downloads/cline-main/src/core/policy/SPIDER_THEORY.md).
@@ -12,10 +12,10 @@ The Spider ecosystem is composed of several specialized services:
 | Component | Responsibility |
 | :--- | :--- |
 | `SpiderEngine` | Core graph analysis, AST parsing (`ts-morph`), entropy scoring, and Mermaid visualization. |
-| `SpiderService` | BroccoliDB integration, bootstrapping from repository heads, and snapshot persistence. |
+| `SpiderService` | Database integration, bootstrapping from repository heads, and snapshot persistence. |
 | `StructuralDiscoveryService` | High-level insights including **Blast Radius** analysis and file **Centrality Score**. |
 | `SpiderRefactorer` | Heuristic-based remediation (MOVE, DELETE) to resolve architectural smells. |
-| `SpiderPersistence` | High-performance graph serialization and BroccoliDB head bootstrapping. |
+| `SpiderPersistence` | High-performance graph serialization and Database head bootstrapping. |
 
 ## 🛠️ Performance & Hardening
 
@@ -23,7 +23,7 @@ The engine has been hardened for production-level workloads:
 
 1.  **Memory Hardening**: Aggressive AST purging via `ts-morph` SourceFile removal immediately after metadata extraction. This prevents memory leaks in workspaces with >10,000 files.
 2.  **Reachability Bypass**: The BFS reachability analysis is protected by a structural change guard. It only recomputes if a node's `imports` have actually changed, saving 90% of structural audit CPU time during rapid iterations.
-3.  **Bootstrap Persistence**: Initial graph construction is cached in BroccoliDB, enabling O(1) cold starts for architectural context gathering.
+3.  **Bootstrap Persistence**: Initial graph construction is cached in the database, enabling O(1) cold starts for architectural context gathering.
 
 ## 📊 Metrics & Entropy
 
@@ -39,8 +39,9 @@ Spider quantifies the "architectural health" of the codebase using a weighted en
 ### Fluid Policy Engine
 The Spider Engine provides real-time "Architectural Decay" detection. If an agent write increases the global entropy score significantly (delta > 0.01), a warning is injected into the development cycle.
 
-### BroccoliDB Native Knowledge
-Structural snapshots are persisted as BroccoliDB Knowledge Items (`structural_snapshot` type). These snapshots allow the system to track the structural evolution of the codebase over thousands of commits.
+### Native Database Knowledge
+
+Structural snapshots are persisted as Database Knowledge Items (`structural_snapshot` type). These snapshots allow the system to track the structural evolution of the codebase over thousands of commits.
 
 ### Oracle Suggestion Engine (Consumer)
 The **Oracle Grade Suggestion Engine** is a primary consumer of Spider intelligence. It utilizes the `SpiderEngine` and `StructuralDiscoveryService` to:
@@ -53,7 +54,7 @@ The **Oracle Grade Suggestion Engine** is a primary consumer of Spider intellige
 ### Analyzing Blast Radius
 The `StructuralDiscoveryService` can calculate the impact of a change before it's even planned:
 ```typescript
-const impact = spiderService.getDiscovery().getBlastRadius("src/core/broccolidb/repository.ts");
+const impact = spiderService.getDiscovery().getBlastRadius("src/core/policy/SpiderEngine.ts");
 console.log(impact.centralityScore); // High centrality = High risk
 ```
 
