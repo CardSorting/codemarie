@@ -1,9 +1,17 @@
 # Changelog (V2)
 
-## [3.87.0] - 2026-03-30
+## [3.88.0] - 2026-03-30
 
-### Changed
-- Production version bump to 3.87.0.
+### Added
+- **Suggestion Flow Hardening (Rounds 1-3)**: Completed deep audit and production hardening of the suggestion system. Implemented world-class performance optimizations, robust workspace indexing, and high-precision contextual grounding.
+- **Cognitive Reliability**: Transitioned to the "Observe-Act-Adjust" model for high-reliability, forward-progress execution loops.
+
+### Fixed
+- **Gemini Suggestion Stability**: Resolved "Corrupted thought signature" (400 INVALID_ARGUMENT) error in Gemini 3 models and improved AI-powered suggestion relevance.
+- **Biome Linting Compliance**: Achieved 100% compliance with project-wide Biome rules, enhancing type safety and overall code quality.
+
+### Removed
+- **Recursive Grounding & MAS**: Fully removed the legacy Grounding infrastructure and Multi-Agent Stream (MAS) orchestration layer to eliminate execution deadlocks and recursive validation loops.
 
 ## [3.85.0] - 2026-03-24
 

@@ -25,6 +25,9 @@ eslint-rules/**
 # cli
 cli/**
 
+# broccolidb
+broccolidb/**
+
 # Custom
 **/demo.gif
 .nvmrc
