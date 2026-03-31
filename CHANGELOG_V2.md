@@ -1,5 +1,10 @@
 # Changelog (V2)
 
+## [3.88.3] - 2026-03-31
+
+### Fixed
+- **Cloudflare API Configuration**: Resolved an issue where the Cloudflare API token was immediately erased after entry by eliminating storage key conflicts and ensuring secret values correctly override regular settings.
+
 ## [3.88.2] - 2026-03-31
 
 ### Fixed

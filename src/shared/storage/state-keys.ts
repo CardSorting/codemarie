@@ -61,6 +61,8 @@ const REMOTE_CONFIG_EXTRA_FIELDS = {
 	otlpLogsHeaders: { default: undefined as Record<string, string> | undefined },
 	blobStoreConfig: { default: undefined as BlobStoreSettings | undefined },
 	configuredApiKeys: { default: {} as ConfiguredAPIKeys | undefined },
+	vertexApiKey: { default: undefined as string | undefined },
+	cloudflareApiToken: { default: undefined as string | undefined },
 } satisfies FieldDefinitions
 
 const GLOBAL_STATE_FIELDS = {
