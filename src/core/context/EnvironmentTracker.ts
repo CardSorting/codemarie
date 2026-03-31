@@ -1,6 +1,6 @@
 import * as crypto from "node:crypto"
 import * as os from "os"
-import { dbPool } from "../../infrastructure/db/BufferedDbPool"
+import { BufferedDbPool, dbPool } from "../../infrastructure/db/BufferedDbPool"
 
 export interface EnvironmentMetadata {
 	osName: string
@@ -44,7 +44,7 @@ export class EnvironmentTracker {
 		const cost = EnvironmentTracker.estimateCost(usage)
 		const tokens = usage.promptTokens + usage.completionTokens
 
-		await dbPool.push(
+		const ops: any[] = [
 			{
 				type: "insert",
 				table: "telemetry",
@@ -63,50 +63,42 @@ export class EnvironmentTracker {
 				},
 				layer: "infrastructure",
 			},
-			agentId,
-		)
-
-		const inc = (v: number) => ({ _type: "increment", value: v })
-
-		// Global Aggregates
-		await dbPool.push({
-			type: "upsert",
-			table: "telemetry_aggregates",
-			where: [
-				{ column: "repoPath", value: repoPath },
-				{ column: "id", value: "global" },
-			],
-			values: {
-				repoPath,
-				id: "global",
-				totalCommits: inc(1),
-				totalTokens: inc(tokens),
-				totalCost: inc(cost),
+			{
+				type: "upsert",
+				table: "telemetry_aggregates",
+				where: [
+					{ column: "repoPath", value: repoPath },
+					{ column: "id", value: "global" },
+				],
+				values: {
+					repoPath,
+					id: "global",
+					totalCommits: BufferedDbPool.increment(1),
+					totalTokens: BufferedDbPool.increment(tokens),
+					totalCost: BufferedDbPool.increment(cost),
+				},
+				layer: "infrastructure",
 			},
-			layer: "infrastructure",
-		})
-
-		// Agent Aggregates
-		await dbPool.push({
-			type: "upsert",
-			table: "telemetry_aggregates",
-			where: [
-				{ column: "repoPath", value: repoPath },
-				{ column: "id", value: `agent_${agentId}` },
-			],
-			values: {
-				repoPath,
-				id: `agent_${agentId}`,
-				totalCommits: inc(1),
-				totalTokens: inc(tokens),
-				totalCost: inc(cost),
+			{
+				type: "upsert",
+				table: "telemetry_aggregates",
+				where: [
+					{ column: "repoPath", value: repoPath },
+					{ column: "id", value: `agent_${agentId}` },
+				],
+				values: {
+					repoPath,
+					id: `agent_${agentId}`,
+					totalCommits: BufferedDbPool.increment(1),
+					totalTokens: BufferedDbPool.increment(tokens),
+					totalCost: BufferedDbPool.increment(cost),
+				},
+				layer: "infrastructure",
 			},
-			layer: "infrastructure",
-		})
+		]
 
-		// Task Aggregates
 		if (taskId) {
-			await dbPool.push({
+			ops.push({
 				type: "upsert",
 				table: "telemetry_aggregates",
 				where: [
@@ -116,13 +108,15 @@ export class EnvironmentTracker {
 				values: {
 					repoPath,
 					id: `task_${taskId}`,
-					totalCommits: inc(1),
-					totalTokens: inc(tokens),
-					totalCost: inc(cost),
+					totalCommits: BufferedDbPool.increment(1),
+					totalTokens: BufferedDbPool.increment(tokens),
+					totalCost: BufferedDbPool.increment(cost),
 				},
 				layer: "infrastructure",
 			})
 		}
+
+		await dbPool.pushBatch(ops, agentId)
 	}
 
 	static async getStats(

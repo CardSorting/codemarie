@@ -1,5 +1,6 @@
 import * as path from "path"
 import { v4 as uuidv4 } from "uuid"
+import { Logger } from "@/shared/services/Logger"
 import { dbPool } from "../db/BufferedDbPool"
 
 export interface AgentStream {
@@ -178,20 +179,24 @@ export class AgentOrchestrator {
 		// Commit any pending shadow work before storing the completion summary
 		await dbPool.commitWork(streamId)
 
-		await dbPool.push({
-			type: "update",
-			table: "agent_streams",
-			values: { status: "completed" },
-			where: { column: "id", value: streamId },
-			layer: "infrastructure",
-		})
-		// Persist the final summary — pushed directly to global since shadow was just committed
-		await dbPool.push({
-			type: "upsert",
-			table: "agent_memory",
-			values: { streamId, key: "stream_summary", value: summary, updatedAt: Date.now() },
-			layer: "domain",
-		})
+		await dbPool.pushBatch(
+			[
+				{
+					type: "update",
+					table: "agent_streams",
+					values: { status: "completed" },
+					where: { column: "id", value: streamId },
+					layer: "infrastructure",
+				},
+				{
+					type: "upsert",
+					table: "agent_memory",
+					values: { streamId, key: "stream_summary", value: summary, updatedAt: Date.now() },
+					layer: "domain",
+				},
+			],
+			streamId,
+		)
 	}
 
 	/**
@@ -303,6 +308,30 @@ export class AgentOrchestrator {
 		const entropy = 1 - similarity
 
 		return Number(entropy.toFixed(2))
+	}
+
+	/**
+	 * Level 9: Sovereign Recovery (Warmup)
+	 * Reconstitutes the agent's "Brain" (RAM) from the "Notebook" (Disk)
+	 * by populating Level 7 indices for all active workflows.
+	 */
+	public async warmup(): Promise<void> {
+		const start = performance.now()
+		const activeStreams = await dbPool.selectAllFrom("agent_streams")
+		const activeIds = activeStreams.filter((s) => s.status === "active").map((s) => s.id)
+
+		if (activeIds.length === 0) return
+
+		const counts = await Promise.all([
+			dbPool.warmupTable("agent_streams", "status", "active"),
+			dbPool.warmupTable("agent_tasks", "status", "pending"),
+			dbPool.warmupTable("agent_tasks", "status", "running"),
+			...activeIds.map((id) => dbPool.warmupTable("agent_memory", "streamId", id)),
+		])
+
+		const total = counts.reduce((acc, c) => acc + c, 0)
+		const duration = (performance.now() - start).toFixed(1)
+		Logger.info(`[Orchestrator] Sovereign Warmup: ${total} records reconstituted in ${duration}ms (Level 9 Active)`)
 	}
 }
 

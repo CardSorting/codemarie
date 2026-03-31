@@ -1,7 +1,7 @@
 import { createHash } from "crypto"
 import { nanoid } from "nanoid"
 import { Logger } from "@/shared/services/Logger"
-import { dbPool, type WriteOp } from "../../infrastructure/db/BufferedDbPool"
+import { BufferedDbPool, dbPool, type WriteOp } from "../../infrastructure/db/BufferedDbPool"
 import { getDb, type Schema } from "../../infrastructure/db/Config"
 
 export interface EmbeddingHandler {
@@ -304,29 +304,31 @@ export class KnowledgeGraphService {
 	}
 
 	async addEdge(sourceId: string, targetId: string, type: string, weight = 1.0): Promise<void> {
-		await this._push({
-			type: "insert",
-			table: "agent_knowledge_edges",
-			values: {
-				sourceId,
-				targetId,
-				type,
-				weight,
-				createdAt: Date.now(),
+		const ops: WriteOp[] = [
+			{
+				type: "insert",
+				table: "agent_knowledge_edges",
+				values: {
+					sourceId,
+					targetId,
+					type,
+					weight,
+					createdAt: Date.now(),
+				},
+				layer: "domain",
 			},
-			layer: "domain",
-		})
+			{
+				type: "update",
+				table: "agent_knowledge",
+				where: [{ column: "id", value: [sourceId, targetId], operator: "IN" }],
+				values: {
+					hubScore: BufferedDbPool.increment(1),
+				},
+				layer: "domain",
+			},
+		]
 
-		// Increment hub scores using atomic increment
-		await this._push({
-			type: "update",
-			table: "agent_knowledge",
-			where: [{ column: "id", value: [sourceId, targetId], operator: "IN" }],
-			values: {
-				hubScore: dbPool.constructor.prototype.constructor.increment?.(1) || { _type: "increment", value: 1 },
-			},
-			layer: "domain",
-		})
+		await dbPool.pushBatch(ops)
 	}
 
 	async traverseGraph(startId: string, maxDepth = 2, filter?: GraphTraversalFilter): Promise<KnowledgeNode[]> {
@@ -494,19 +496,22 @@ export class KnowledgeGraphService {
 	 * Deletes a knowledge node and its edges.
 	 */
 	async deleteKnowledge(id: string): Promise<void> {
-		await this._push({ type: "delete", table: "agent_knowledge", where: [{ column: "id", value: id }], layer: "domain" })
-		await this._push({
-			type: "delete",
-			table: "agent_knowledge_edges",
-			where: [{ column: "sourceId", value: id }],
-			layer: "domain",
-		})
-		await this._push({
-			type: "delete",
-			table: "agent_knowledge_edges",
-			where: [{ column: "targetId", value: id }],
-			layer: "domain",
-		})
+		const ops: WriteOp[] = [
+			{ type: "delete", table: "agent_knowledge", where: [{ column: "id", value: id }], layer: "domain" },
+			{
+				type: "delete",
+				table: "agent_knowledge_edges",
+				where: [{ column: "sourceId", value: id }],
+				layer: "domain",
+			},
+			{
+				type: "delete",
+				table: "agent_knowledge_edges",
+				where: [{ column: "targetId", value: id }],
+				layer: "domain",
+			},
+		]
+		await dbPool.pushBatch(ops)
 	}
 
 	/**

@@ -26,6 +26,7 @@ import * as path from "path"
 import { CodemarieEnv } from "@/config"
 import type { FolderLockWithRetryResult } from "@/core/locks/types"
 import { HostProvider } from "@/hosts/host-provider"
+import { orchestrator } from "@/infrastructure/ai/Orchestrator"
 import { dbPool } from "@/infrastructure/db/BufferedDbPool"
 import { getDb, setDbPath } from "@/infrastructure/db/Config"
 import { ExtensionRegistryInfo } from "@/registry"
@@ -161,9 +162,15 @@ export class Controller {
 		// Initialize Joy-Zoning Persistence Layer
 		const dbPath = path.join(this.context.globalStorageUri.fsPath, "joyzoning.sqlite")
 		setDbPath(dbPath)
-		getDb().catch((error) => {
-			Logger.error("[Controller] Failed to initialize Joy-Zoning database:", error)
-		})
+		getDb()
+			.then(() => {
+				orchestrator.warmup().catch((error) => {
+					Logger.error("[Controller] Sovereign Warmup failed:", error)
+				})
+			})
+			.catch((error) => {
+				Logger.error("[Controller] Failed to initialize Joy-Zoning database:", error)
+			})
 
 		Logger.log("[Controller] CodemarieProvider instantiated")
 	}

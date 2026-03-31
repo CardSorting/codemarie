@@ -639,6 +639,8 @@ export async function getDb(): Promise<Kysely<Schema>> {
 	await execute(`CREATE INDEX IF NOT EXISTS idx_swarm_locks_owner ON swarm_locks(ownerId)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_swarm_locks_expires ON swarm_locks(expiresAt)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_tasks_stream ON agent_tasks(streamId)`)
+	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_tasks_status ON agent_tasks(status)`)
+	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_streams_status ON agent_streams(status)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_agent_memory_stream ON agent_memory(streamId)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_streams_external ON agent_streams(externalId)`)
 	await execute(`CREATE INDEX IF NOT EXISTS idx_cognitive_snapshots_stream ON agent_cognitive_snapshots(streamId)`)
@@ -650,9 +652,12 @@ export async function getDb(): Promise<Kysely<Schema>> {
 	// Migrations
 	try {
 		await execute("ALTER TABLE nodes ADD COLUMN changes TEXT")
-	} catch (_e) {
-		// Already exists or other error
-	}
+	} catch (_e) {}
 
 	return _db
+}
+
+export async function getRawDb(): Promise<Database.Database> {
+	if (!_db) await getDb()
+	return new Database(_dbPath!) as Database.Database
 }
