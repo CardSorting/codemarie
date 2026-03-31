@@ -217,7 +217,7 @@ const extensionConfig = {
 	...baseConfig,
 	entryPoints: ["src/extension.ts"],
 	outfile: `${destDir}/extension.js`,
-	external: ["vscode", "better-sqlite3"],
+	external: ["vscode", "better-sqlite3", "bindings", "file-uri-to-path"],
 }
 
 // Standalone-specific configuration
@@ -227,7 +227,7 @@ const standaloneConfig = {
 	outfile: `${destDir}/codemarie-core.js`,
 	// These modules need to load files from the module directory at runtime,
 	// so they cannot be bundled.
-	external: ["vscode", "@grpc/reflection", "grpc-health-check", "better-sqlite3"],
+	external: ["vscode", "@grpc/reflection", "grpc-health-check", "better-sqlite3", "bindings", "file-uri-to-path"],
 }
 
 // E2E build script configuration
@@ -235,7 +235,7 @@ const e2eBuildConfig = {
 	...baseConfig,
 	entryPoints: ["src/test/e2e/utils/build.ts"],
 	outfile: `${destDir}/e2e-build.mjs`,
-	external: ["@vscode/test-electron", "execa"],
+	external: ["@vscode/test-electron", "execa", "bindings", "file-uri-to-path"],
 	sourcemap: false,
 	plugins: [aliasResolverPlugin, esbuildProblemMatcherPlugin],
 }
