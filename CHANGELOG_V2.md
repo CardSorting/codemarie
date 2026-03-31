@@ -1,5 +1,10 @@
 # Changelog (V2)
 
+## [3.88.1] - 2026-03-31
+
+### Fixed
+- **Packaging & Bindings**: Resolved "Could not locate the bindings file" error for `better-sqlite3` by correctly marking it as an external dependency and including native binaries in the VSIX package.
+
 ## [3.88.0] - 2026-03-30
 
 ### Added
