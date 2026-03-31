@@ -1,5 +1,10 @@
 # Changelog (V2)
 
+## [3.88.4] - 2026-03-31
+
+### Changed
+- Production VSIX build and version bump.
+
 ## [3.88.3] - 2026-03-31
 
 ### Fixed
