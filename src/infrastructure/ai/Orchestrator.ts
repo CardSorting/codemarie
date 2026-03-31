@@ -24,8 +24,10 @@ export interface AgentTask {
 	id: string
 	streamId: string
 	description: string
+	subagent_type?: "worker" | "verifier" | "researcher"
 	status: "pending" | "running" | "completed" | "failed"
 	result: string | null
+	linkedKnowledgeIds?: string[]
 	metadata?: TaskAuditMetadata
 	createdAt: number
 }
@@ -70,19 +72,22 @@ export class AgentOrchestrator {
 		}
 	}
 
-	public async createTask(streamId: string, description: string): Promise<AgentTask> {
+	public async createTask(
+		streamId: string,
+		description: string,
+		subagent_type: AgentTask["subagent_type"] = "worker",
+	): Promise<AgentTask> {
 		const now = Date.now()
 		const task: AgentTask = {
 			id: uuidv4(),
 			streamId,
 			description,
+			subagent_type,
 			status: "pending",
 			result: null,
 			createdAt: now,
 		}
 
-		// Push directly to global buffer — no shadow needed since this is
-		// a single atomic insert that should be flushed immediately.
 		await dbPool.push({
 			type: "insert",
 			table: "agent_tasks",
@@ -91,6 +96,15 @@ export class AgentOrchestrator {
 		})
 
 		return task
+	}
+
+	public async auditTask(
+		_taskId: string,
+		_taskDescription: string,
+		_taskResult: string,
+		_streamFocus: string,
+	): Promise<TaskAuditMetadata> {
+		return {}
 	}
 
 	public async updateTaskStatus(
@@ -148,9 +162,10 @@ export class AgentOrchestrator {
 	}
 
 	public async getStreamTasks(streamId: string, requestingAgentId?: string): Promise<AgentTask[]> {
-		const results = await dbPool.selectWhere("agent_tasks", { column: "streamId", value: streamId }, requestingAgentId)
-		return results.map((t) => ({
+		const results = await dbPool.selectWhere("agent_tasks" as any, { column: "streamId", value: streamId }, requestingAgentId)
+		return results.map((t: any) => ({
 			...t,
+			linkedKnowledgeIds: t.linkedKnowledgeIds ? JSON.parse(t.linkedKnowledgeIds) : [],
 			metadata: t.metadata ? JSON.parse(t.metadata) : undefined,
 		})) as AgentTask[]
 	}
@@ -174,10 +189,19 @@ export class AgentOrchestrator {
 
 	/**
 	 * Mark a stream as completed and store a summary in agent memory.
+	 * Returns a structured XML notification for autonomous coordination.
 	 */
-	public async completeStream(streamId: string, summary: string): Promise<void> {
+	public async completeStream(streamId: string, summary: string): Promise<string> {
 		// Commit any pending shadow work before storing the completion summary
 		await dbPool.commitWork(streamId)
+
+		const taskNotification = `
+<task-notification>
+<task-id>${streamId}</task-id>
+<status>completed</status>
+<summary>${summary.slice(0, 100)}...</summary>
+<result>${summary}</result>
+</task-notification>`.trim()
 
 		await dbPool.pushBatch(
 			[
@@ -197,6 +221,8 @@ export class AgentOrchestrator {
 			],
 			streamId,
 		)
+
+		return taskNotification
 	}
 
 	/**
@@ -221,14 +247,23 @@ export class AgentOrchestrator {
 	 * a compact JSON summary suitable for injection into a
 	 * new agent's context window.
 	 */
-	public async getCompressedContext(streamId: string): Promise<string> {
+	public async getCompressedContext(streamId: string, agentContext?: any): Promise<string> {
 		const tasks = await this.getStreamTasks(streamId)
 		const summary = await this.recallMemory(streamId, "stream_summary")
 		const failureReason = await this.recallMemory(streamId, "failure_reason")
 
+		// [Pillar 4] Epistemic Score injection
+		let soundness = 1.0
+		if (agentContext) {
+			const knowledgeIds = tasks.flatMap((t) => t.linkedKnowledgeIds || [])
+			if (knowledgeIds.length > 0) {
+				soundness = await agentContext.getLogicalSoundness(knowledgeIds)
+			}
+		}
+
 		// Count child streams
-		const allStreams = await dbPool.selectAllFrom("agent_streams")
-		const childStreams = allStreams.filter((s) => s.parentId === streamId)
+		const allStreams = await dbPool.selectAllFrom("agent_streams" as any)
+		const childStreams = allStreams.filter((s: any) => s.parentId === streamId)
 
 		const completedTasks = tasks.filter((t) => t.status === "completed").length
 		const failedTasks = tasks.filter((t) => t.status === "failed").length
@@ -246,13 +281,16 @@ export class AgentOrchestrator {
 			streamId,
 			summary: summary || "No summary available",
 			failureReason: failureReason || undefined,
-			taskCount: tasks.length,
-			completedTasks,
-			failedTasks,
-			childStreamCount: childStreams.length,
-			activeChildStreams: childStreams.filter((s) => s.status === "active").length,
-			uniqueViolations: [...new Set(violations)],
+			soundnessScore: Number(soundness.toFixed(2)),
 			avgEntropy: Number(avgEntropy.toFixed(2)),
+			stats: {
+				totalTasks: tasks.length,
+				completedTasks,
+				failedTasks,
+				childStreams: childStreams.length,
+				violationsCount: violations.length,
+			},
+			uniqueViolations: [...new Set(violations)],
 			lastActivity: tasks.length > 0 ? Math.max(...tasks.map((t) => t.createdAt)) : null,
 		}
 
@@ -308,6 +346,85 @@ export class AgentOrchestrator {
 		const entropy = 1 - similarity
 
 		return Number(entropy.toFixed(2))
+	}
+
+	/**
+	 * Swarm Signaling (Vibe Checks).
+	 * Absorbed from src/utils/agentSwarmsEnabled.ts.
+	 */
+	public async emitSwarmSignal(streamId: string, signal: { type: "vibe" | "audit" | "error"; value: string }): Promise<void> {
+		Logger.info(`[Orchestrator] Swarm Signal from ${streamId.slice(0, 8)}: ${signal.type}=${signal.value}`)
+
+		const signalKey = `swarm_signal_${Date.now()}`
+		await dbPool.push({
+			type: "insert",
+			table: "agent_memory",
+			values: {
+				streamId,
+				key: signalKey,
+				value: JSON.stringify({ ...signal, timestamp: Date.now() }),
+				updatedAt: Date.now(),
+			},
+		})
+	}
+
+	/**
+	 * Pre-audit user intent using the Ephemeral Side Reasoning thread.
+	 * Absorbed from src/utils/sideQuery.ts.
+	 */
+	public async preAuditIntent(_userInput: string): Promise<string> {
+		Logger.info(`[Orchestrator] 🌓 Pre-Auditing User Intent...`)
+		// Direct instantiation for now, assuming workspace will provide this in production
+		// For this implementation, we use a placeholder that delegates to our SideQueryService pattern
+		return "REFACTOR" // Simplified placeholder for the walkthrough
+	}
+
+	/**
+	 * Level 10: Sovereign Swarm Orchestration.
+	 * Spawns an "In-Process Teammate" that shares the workspace memory.
+	 * Absorbed from src/utils/swarm/spawnInProcess.ts.
+	 */
+	public async spawnTeammateTask(parentStreamId: string, agentId: string, prompt: string): Promise<string> {
+		const parentStream = (await dbPool.selectAllFrom("agent_streams")).find((s) => s.id === parentStreamId)
+		if (!parentStream) throw new Error(`Parent stream ${parentStreamId} not found.`)
+
+		Logger.info(`[Orchestrator] Spawning Sovereign Teammate ${agentId} for task: ${prompt.slice(0, 50)}...`)
+
+		// Initialize Warm Teammate Stream
+		const streamId = crypto.randomUUID()
+		await dbPool.push({
+			type: "insert",
+			table: "agent_streams",
+			values: {
+				id: streamId,
+				parentId: parentStreamId,
+				externalId: agentId,
+				status: "active",
+				createdAt: Date.now(),
+			},
+		})
+
+		// Store shared workspace info in memory
+		if (parentStream.sharedMemoryLayer) {
+			await dbPool.push({
+				type: "insert",
+				table: "agent_memory",
+				values: {
+					streamId,
+					key: "sharedMemoryLayer",
+					value: parentStream.sharedMemoryLayer,
+					updatedAt: Date.now(),
+				},
+			})
+		}
+
+		// Notify Parent Mailbox
+		await this.emitSwarmSignal(parentStreamId, {
+			type: "vibe",
+			value: `Teammate ${agentId} deployed for task: ${prompt.slice(0, 50)}...`,
+		})
+
+		return streamId
 	}
 
 	/**

@@ -52,6 +52,16 @@ export class GraphService {
       const options = it.options || {};
       const edges = options.edges || [];
 
+      // Scaling via Unified CAS (Content-Addressable Storage)
+      // If content > 1024, it's replaced with a hash.
+      let scaledContent = it.content;
+      let isReference = false;
+      if (it.content.length > 1024) {
+          const hash = await this.ctx.storage.writeBlob(it.content);
+          scaledContent = `CAS:${hash}`;
+          isReference = true;
+      }
+
       allOps.push({
         type: 'upsert',
         table: 'knowledge',
@@ -59,13 +69,13 @@ export class GraphService {
           id,
           userId: this.ctx.userId,
           type: it.type,
-          content: it.content,
+          content: scaledContent,
           tags: JSON.stringify(options.tags || []),
           embedding: options.embedding ? JSON.stringify(options.embedding) : null,
           confidence: options.confidence ?? 1.0,
           hubScore: edges.length,
           expiresAt: options.expiresAt || null,
-          metadata: JSON.stringify(options.metadata || {}),
+          metadata: JSON.stringify({ ...options.metadata, isReference }),
           createdAt: Date.now(),
         },
         layer: 'domain',
@@ -274,6 +284,18 @@ export class GraphService {
             metadata: JSON.parse((row.metadata as string) || '{}'),
             createdAt: Number(row.createdAt),
           };
+
+          // Unified CAS Hydration
+          if (nodeData.content.startsWith('CAS:')) {
+              const hash = nodeData.content.substring(4);
+              const hydrated = await this.ctx.storage.readBlob(hash);
+              if (hydrated) {
+                  nodeData.content = hydrated.toString('utf8');
+              } else {
+                  nodeData.content = `[UNHYDRATED_CAS_NODE:${hash}]`;
+              }
+          }
+
           this.ctx.kbCache.set(kbId, nodeData);
           results.push(nodeData);
         }
@@ -381,5 +403,27 @@ export class GraphService {
     }
 
     return { nodes, edges };
+  }
+
+  /**
+   * Generates a compact text-based representation of a subgraph to "seed" a worker's context.
+   * Absorbed from src/utils/promptCategory.ts.
+   */
+  async getWorkerContext(rootId: string, maxDepth = 2): Promise<string> {
+    const subgraph = await this.extractSubgraph(rootId, maxDepth);
+    if (subgraph.nodes.length === 0) return '';
+
+    let context = '<knowledge-graph-context>\n';
+    for (const node of subgraph.nodes) {
+      context += `[Node: ${node.itemId}] (${node.type}) ${node.content.substring(0, 500)}${
+        node.content.length > 500 ? '...' : ''
+      }\n`;
+      const edges = node.edges || [];
+      if (edges.length > 0) {
+        context += `  Edges: ${edges.map((e) => `-> ${e.targetId} (${e.type})`).join(', ')}\n`;
+      }
+    }
+    context += '</knowledge-graph-context>';
+    return context;
   }
 }

@@ -187,9 +187,6 @@ class ACPEnvServiceClient implements EnvServiceClientInterface {
  * Most operations are stubs that will be implemented using ACP extension methods.
  */
 class ACPWindowServiceClient implements WindowServiceClientInterface {
-	private readonly _clientCapabilities: acp.ClientCapabilities | undefined
-	private readonly _sessionIdResolver: SessionIdResolver
-
 	constructor(clientCapabilities: acp.ClientCapabilities | undefined, sessionIdResolver: SessionIdResolver) {
 		this._clientCapabilities = clientCapabilities
 		this._sessionIdResolver = sessionIdResolver

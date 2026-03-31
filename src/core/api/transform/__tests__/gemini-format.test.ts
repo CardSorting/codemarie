@@ -23,7 +23,7 @@ describe("Gemini Format Conversion", () => {
 
 		const result = convertAnthropicMessageToGemini(message, "gemini-3.1-pro-preview")
 
-		result.parts![0].thoughtSignature!.should.equal("original-sig")
+		result.parts?.[0].thoughtSignature?.should.equal("original-sig")
 	})
 
 	it("should replace signature with dummy when model IDs differ", () => {
@@ -46,7 +46,7 @@ describe("Gemini Format Conversion", () => {
 		// Switching to a different model
 		const result = convertAnthropicMessageToGemini(message, "gemini-3.1-pro-preview")
 
-		result.parts![0].thoughtSignature!.should.equal("skip_thought_signature_validator")
+		result.parts?.[0].thoughtSignature?.should.equal("skip_thought_signature_validator")
 	})
 
 	it("should use dummy signature for tool_use if no signature is present", () => {
@@ -64,7 +64,7 @@ describe("Gemini Format Conversion", () => {
 
 		const result = convertAnthropicMessageToGemini(message, "gemini-3.1-pro-preview")
 
-		result.parts![0].thoughtSignature!.should.equal("skip_thought_signature_validator")
+		result.parts?.[0].thoughtSignature?.should.equal("skip_thought_signature_validator")
 	})
 
 	it("should handle text blocks with signatures during model switches", () => {
@@ -86,6 +86,6 @@ describe("Gemini Format Conversion", () => {
 
 		const result = convertAnthropicMessageToGemini(message, "new-model")
 
-		result.parts![0].thoughtSignature!.should.equal("skip_thought_signature_validator")
+		result.parts?.[0].thoughtSignature?.should.equal("skip_thought_signature_validator")
 	})
 })

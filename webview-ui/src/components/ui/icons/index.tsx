@@ -21,7 +21,7 @@ export interface IconProps extends React.SVGProps<SVGSVGElement> {
 export const Icon = React.forwardRef<SVGSVGElement, IconProps>(({ name, className, title, size = 16, ...props }, ref) => {
 	// Find icon in either set
 	const isLucide = name in LUCIDE_ICONS
-	const pathData = LUCIDE_ICONS[name] || CODICONS[name] || CODICONS["question"]
+	const pathData = LUCIDE_ICONS[name] || CODICONS[name] || CODICONS.question
 
 	// Lucide icons use 24x24, Codicons typically use 16x16
 	const viewBox = isLucide ? "0 0 24 24" : "0 0 16 16"

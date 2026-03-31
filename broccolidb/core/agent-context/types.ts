@@ -1,14 +1,24 @@
 import type { BufferedDbPool } from '../../infrastructure/db/BufferedDbPool.js';
-import type { AiService } from '../embedding.js';
 import type { LRUCache } from '../lru-cache.js';
 import type { Workspace } from '../workspace.js';
+import type { LspService } from './LspService.js';
+import type { CoordinatorService } from './CoordinatorService.js';
+import type { ScratchpadService } from './ScratchpadService.js';
+import type { CompactService } from './CompactService.js';
+
+export interface MemoryMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+}
 
 export interface AgentProfile {
   agentId: string;
   name: string;
   role: string;
   permissions: string[];
-  memoryLayer?: string[];
+  status: 'active' | 'completed' | 'failed' | 'running';
+  memoryLayer?: MemoryMessage[];
   createdAt: number;
   lastActive: number;
 }
@@ -21,7 +31,17 @@ export interface GraphEdge {
 
 export interface KnowledgeBaseItem {
   itemId: string;
-  type: 'fact' | 'vector' | 'rule' | 'hypothesis' | 'conclusion' | 'structural_snapshot';
+  type:
+    | 'fact'
+    | 'vector'
+    | 'rule'
+    | 'hypothesis'
+    | 'conclusion'
+    | 'structural_snapshot'
+    | 'user'
+    | 'feedback'
+    | 'project'
+    | 'reference';
   content: string;
   tags: string[];
   edges: GraphEdge[]; // Outbound edges
@@ -88,6 +108,15 @@ export interface ImpactReport {
   soundnessDelta: number;
 }
 
+export interface AiService {
+  isAvailable: () => boolean;
+  getGraphForSession: (sessionId: string) => Promise<any>;
+  auditCodeAgainstRule: (path: string, code: string, rule: string) => Promise<any>;
+  completeOneOff(prompt: string, options: { model: string; maxTokens: number; system: string }): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number } }>;
+  evaluateLogicRelationship: (contentA: string, contentB: string) => Promise<'supports' | 'contradicts' | 'blocks' | 'depends_on' | 'references' | 'neutral'>;
+  explainReasoningChain: (content: string, lineage: { content: string; type: string }[]) => Promise<string>;
+}
+
 export interface ServiceContext {
   db: BufferedDbPool;
   aiService: AiService | null;
@@ -104,6 +133,14 @@ export interface ServiceContext {
     options?: { augmentWithGraph?: boolean; skipVerification?: boolean }
   ) => Promise<KnowledgeBaseItem[]>;
   updateTaskStatus: (taskId: string, status: any, result?: any) => Promise<void>;
+  getStructuralImpact: (filePath: string) => { summary: string; blastRadius: any };
+  pasteStore: import('./PasteStore.js').PasteStore;
+  compact: import('./CompactService.js').CompactService;
+  storage: import('../../infrastructure/storage/StorageService.js').StorageService;
+  token: import('./TokenService.js').TokenService;
+  lsp: LspService;
+  coordinator: CoordinatorService;
+  scratchpad: ScratchpadService;
 }
 
 export interface IAgentContext {

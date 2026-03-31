@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { AgentGitError } from '../errors.js';
 import type { GraphService } from './GraphService.js';
 import type {
@@ -13,6 +15,64 @@ export class TaskService {
     private ctx: ServiceContext,
     private graph: GraphService
   ) {}
+
+  /**
+   * Returns the disk path for the Sovereign Scratchpad (SOFT_STATE.md).
+   * Absorbed from src/coordinator/coordinatorMode.ts.
+   */
+  getScratchpadPath(): string {
+    return path.resolve(process.cwd(), '.broccolidb', 'SOFT_STATE.md');
+  }
+
+  /**
+   * Loads the current Sovereign Scratchpad content.
+   */
+  async loadScratchpad(): Promise<string> {
+    const p = this.getScratchpadPath();
+    if (!fs.existsSync(p)) return '# Sovereign Scratchpad\n\n*No shared state yet.*';
+    return fs.promises.readFile(p, 'utf8');
+  }
+
+  /**
+   * Updates the Sovereign Scratchpad content atomically.
+   */
+  async updateScratchpad(content: string): Promise<void> {
+    const p = this.getScratchpadPath();
+    const dir = path.dirname(p);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    await fs.promises.writeFile(p, content, 'utf8');
+  }
+
+  /**
+   * Returns the disk path for a task's sidechain output.
+   * Absorbed from src/utils/task/diskOutput.ts.
+   */
+  getTaskOutputPath(taskId: string): string {
+    const taskDir = path.resolve(process.cwd(), '.broccolidb', 'tasks');
+    if (!fs.existsSync(taskDir)) {
+      fs.mkdirSync(taskDir, { recursive: true });
+    }
+    return path.join(taskDir, `${taskId}.output`);
+  }
+
+  /**
+   * Appends content to a task's durable disk buffer.
+   */
+  async appendTaskBuffer(taskId: string, content: string): Promise<void> {
+    const p = this.getTaskOutputPath(taskId);
+    await fs.promises.appendFile(p, content, 'utf8');
+  }
+
+  /**
+   * Reads a task's durable disk buffer.
+   */
+  async readTaskBuffer(taskId: string): Promise<string> {
+    const p = this.getTaskOutputPath(taskId);
+    if (!fs.existsSync(p)) return '';
+    return fs.promises.readFile(p, 'utf8');
+  }
 
   async registerAgent(
     agentId: string,
@@ -64,10 +124,17 @@ export class TaskService {
     } as any;
   }
 
+  /**
+   * Persists a message to an agent's memory for context reuse (SendMessage primitive).
+   */
   async appendMemoryLayer(agentId: string, memory: string): Promise<void> {
     const agent = await this.getAgent(agentId);
     const currentMemory = [...(agent.memoryLayer || [])];
-    currentMemory.push(memory);
+    currentMemory.push({
+      role: 'system',
+      content: memory,
+      timestamp: Date.now()
+    });
 
     await this.ctx.push(
       {

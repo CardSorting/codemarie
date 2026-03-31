@@ -1,10 +1,16 @@
-import * as crypto from 'node:crypto';
-import type { BufferedDbPool, WriteOp } from '../infrastructure/db/BufferedDbPool.js';
 import { AuditService } from './agent-context/AuditService.js';
+import { CleanupService } from './agent-context/CleanupService.js';
+import { DiagnosisService } from './agent-context/DiagnosisService.js';
 import { GraphService } from './agent-context/GraphService.js';
+import { LspService } from './agent-context/LspService.js';
+import { MailboxService } from './agent-context/MailboxService.js';
+import { MutexService } from './agent-context/MutexService.js';
+import { PasteStore } from './agent-context/PasteStore.js';
 import { ReasoningService } from './agent-context/ReasoningService.js';
+import { SideQueryService } from './agent-context/SideQueryService.js';
 import { SpiderService } from './agent-context/SpiderService.js';
 import { TaskService } from './agent-context/TaskService.js';
+import { BufferedDbPool, type WriteOp } from '../infrastructure/db/BufferedDbPool.js';
 
 export type {
   AgentBundle,
@@ -18,6 +24,7 @@ export type {
 
 import type {
   AgentBundle,
+  AgentProfile,
   ImpactReport,
   KnowledgeBaseItem,
   Pedigree,
@@ -42,6 +49,14 @@ export class AgentContext {
   private readonly _taskService: TaskService;
   private readonly _auditService: AuditService;
   private readonly _spiderService: SpiderService;
+  private readonly _diagnosisService: DiagnosisService;
+  private readonly _mailboxService: MailboxService;
+  private readonly _pasteStore: PasteStore;
+  private readonly _sideQueryService: SideQueryService;
+  private readonly _mutexService: MutexService;
+  private readonly _cleanupService: CleanupService;
+  private readonly _lspService: LspService;
+  private readonly _teammates: Set<string> = new Set();
 
   public readonly userId: string;
 
@@ -62,9 +77,12 @@ export class AgentContext {
       workspace: workspace,
       userId: this.userId,
       push: this._push.bind(this),
-      pushBatch: this._pushBatch.bind(this),
+      pushBatch: (ops: WriteOp[]) => this._pushBatch(ops),
       searchKnowledge: this.searchKnowledge.bind(this),
       updateTaskStatus: this.updateTaskStatus.bind(this),
+      getStructuralImpact: (p: string) => this.getStructuralImpact(p) as any,
+      pasteStore: undefined as any, // Bootstrapped below
+      lsp: undefined as any, // Bootstrapped below
     };
 
     this._graphService = new GraphService(this._serviceContext);
@@ -76,6 +94,24 @@ export class AgentContext {
       this._reasoningService
     );
     this._spiderService = new SpiderService(this._serviceContext);
+    this._diagnosisService = new DiagnosisService(this._serviceContext, this._graphService, this._reasoningService);
+    this._mailboxService = new MailboxService(this._serviceContext);
+    this._pasteStore = new PasteStore(this._serviceContext);
+    this._sideQueryService = new SideQueryService(this._serviceContext);
+    this._mutexService = new MutexService(this._serviceContext);
+    this._cleanupService = new CleanupService(this._serviceContext, this._taskService, this._reasoningService);
+    this._lspService = new LspService(this._serviceContext);
+
+    // Final bootstrap
+    (this._serviceContext as any).pasteStore = this._pasteStore;
+    (this._serviceContext as any).lsp = this._lspService;
+  }
+
+  /**
+   * Overrides the mailbox with a shared instance for swarm coordination.
+   */
+  public setSharedMailbox(mailbox: MailboxService) {
+    (this as any)._mailboxService = mailbox;
   }
 
   public get db() {
@@ -90,8 +126,64 @@ export class AgentContext {
   public get taskService() {
     return this._taskService;
   }
-  public get spiderService() {
+  public get diagnosisService() {
+    return this._diagnosisService;
+  }
+  public get mailbox() {
+    return this._mailboxService;
+  }
+  public get audit() {
+    return this._auditService;
+  }
+  public get sideQuery() {
+    return this._sideQueryService;
+  }
+  public get cleanup() {
+    return this._cleanupService;
+  }
+  public get lsp() {
+    return this._lspService;
+  }
+  public get spider() {
     return this._spiderService;
+  }
+  public get mutex() {
+    return this._mutexService;
+  }
+  public get pasteStore() {
+    return this._pasteStore;
+  }
+  public get graph() {
+    return this._graphService;
+  }
+  public get tasks() {
+    return this._taskService;
+  }
+
+  /**
+   * Registers a sibling agent that shares the same workspace and memory space.
+   * Absorbed from src/utils/swarm/inProcessRunner.ts.
+   */
+  public registerTeammate(agentId: string) {
+    this._teammates.add(agentId);
+    console.log(`[AgentContext] Teammate registered: ${agentId}`);
+  }
+
+  /**
+   * Epistemic Retraction (Sovereign Undo).
+   * Absorbed from src/history.ts (removeLastFromHistory).
+   */
+  public async retractLastOperation() {
+      console.log(`[AgentContext] ↩️ Retracting last operation for user ${this.userId}...`);
+      // Rolls back the most recent uncommitted shadow write for this agent.
+      await this._db.rollbackWork(this.userId);
+      
+      // Also invalidate the last added KB item in cache
+      this._kbCache.clear(); // Safe but expensive; in practice we'd target the last ID.
+  }
+
+  public getTeammates(): string[] {
+    return Array.from(this._teammates);
   }
 
   private async _push(op: WriteOp, agentId?: string) {
@@ -226,6 +318,25 @@ export class AgentContext {
     };
   }
 
+  /**
+   * CCR (Cross-Conversation Resume).
+   * Fast-forwards graph state from history snapshots. 
+   * Captured from src/utils/ultraplan/ccrSession.ts.
+   */
+  async reconstituteFromDigest(digest: string): Promise<void> {
+    const data = JSON.parse(digest);
+    if (!data.knowledgeIds || !Array.isArray(data.knowledgeIds)) {
+        return;
+    }
+
+    console.log(`[AgentContext] CCR: Reconstituting ${data.knowledgeIds.length} items from historic digest.`);
+
+    for (const id of data.knowledgeIds) {
+        // Hydrate from disk to RAM hot-layer
+        await this._graphService.getKnowledge(id).catch(() => null);
+    }
+  }
+
   // ─── TASK & MEMORY BRIDGES ───
   async spawnTask(
     taskId: string,
@@ -322,15 +433,24 @@ export class AgentContext {
   // ─── SYSTEM BRIDGES ───
   async selfHealGraph() {
     return this._reasoningService.selfHealGraph(async () => {
-      const rows = await this._db.selectWhere('knowledge', [
+      const results = await this._db.selectWhere('agent_knowledge' as any, [
         { column: 'userId', value: this.userId },
       ]);
-      return this._graphService.getKnowledgeBatch(rows.map((r) => r.id as string));
+      return results.map((r: any) => ({
+        ...r,
+        itemId: r.id,
+        metadata: r.metadata ? JSON.parse(r.metadata) : {},
+      })) as KnowledgeBaseItem[];
     });
   }
+
+  async performMemorySynthesis() {
+      return this._cleanupService.performMemorySynthesis();
+  }
+
   async decayConfidence(factor: number, olderThan: number | Date) {
     const threshold = olderThan instanceof Date ? olderThan.getTime() : olderThan;
-    const rows = await this._db.selectWhere('knowledge', [
+    const rows = await this._db.selectWhere('agent_knowledge' as any, [
       { column: 'userId', value: this.userId },
       { column: 'createdAt', value: threshold, operator: '<' },
     ]);
@@ -338,7 +458,7 @@ export class AgentContext {
       const current = (row.confidence as number) ?? 1.0;
       await this._push({
         type: 'update',
-        table: 'knowledge',
+        table: 'agent_knowledge' as any,
         where: [{ column: 'id', value: row.id }],
         values: { confidence: Math.max(0, current * factor) },
         layer: 'infrastructure',
@@ -357,28 +477,46 @@ export class AgentContext {
     };
   }
   async getAgentBundle(agentId: string): Promise<AgentBundle> {
-    const profile = await this.getAgent(agentId);
-    const tasks = await this._db.selectWhere('tasks', [
+    const profile = await this.getAgentProfile(agentId);
+    const tasks = await this._db.selectWhere('agent_tasks' as any, [
       { column: 'agentId', value: agentId },
       { column: 'status', value: ['pending', 'active'], operator: 'IN' },
     ]);
-    const recent = await this._db.selectWhere(
-      'knowledge',
-      [{ column: 'userId', value: this.userId }],
-      undefined,
-      {
-        orderBy: { column: 'createdAt', direction: 'desc' },
-        limit: 10,
-      }
-    );
-    const recentKnowledge =
-      recent.length > 0
-        ? await this._graphService.getKnowledgeBatch(recent.map((r) => r.id as string))
-        : [];
+    
+    const results = await this._db.selectWhere('agent_knowledge' as any, [
+      { column: 'userId', value: this.userId },
+    ]);
+    const recentKnowledge = results.map((r: any) => ({
+      ...r,
+      metadata: r.metadata ? JSON.parse(r.metadata) : {},
+    })) as KnowledgeBaseItem[];
+
     return {
       profile,
       activeTasks: tasks.map((t) => ({ ...t, taskId: t.id }) as any),
       recentKnowledge,
+    };
+  }
+
+  public async getTaskById(taskId: string): Promise<any> {
+    const tResults = await this._db.selectWhere('agent_tasks' as any, [
+      { column: 'id', value: taskId },
+    ]);
+    return tResults.length > 0 ? tResults[0] : null;
+  }
+
+  // Helper for bundle
+  private async getAgentProfile(agentId: string): Promise<AgentProfile> {
+    const results = await this._db.selectWhere('agent_streams' as any, [{ column: 'id', value: agentId }]);
+    const row = results.length > 0 ? results[0] : { id: agentId, status: 'active' } as any;
+    return {
+      agentId: row.id,
+      name: row.externalId || row.id,
+      role: 'swarm-agent',
+      status: row.status as any,
+      permissions: [],
+      createdAt: row.createdAt || Date.now(),
+      lastActive: Date.now()
     };
   }
 }

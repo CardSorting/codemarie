@@ -714,6 +714,11 @@ export class BufferedDbPool {
               if (opStr === '<') return Number(val) < Number(c.value);
               if (opStr === '>=') return Number(val) >= Number(c.value);
               if (opStr === '<=') return val !== null && Number(val) <= Number(c.value);
+              if (opStr === 'LIKE') {
+                  if (typeof val !== 'string' || typeof c.value !== 'string') return false;
+                  const pattern = c.value.replace(/%/g, '.*').replace(/_/g, '.');
+                  return new RegExp(`^${pattern}$`, 'i').test(val);
+              }
               return false;
             });
           };

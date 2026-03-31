@@ -1339,7 +1339,6 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				mcpServers,
 				remoteConfigSettings?.remoteGlobalWorkflows,
 				remoteWorkflowToggles,
-				platform,
 			],
 		)
 		// Replace Meta with the platform specific key and uppercase the command letter.

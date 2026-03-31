@@ -652,7 +652,7 @@ const ICONS: Record<string, React.ReactNode> = {
 }
 
 export const VscIcon = React.forwardRef<SVGSVGElement, VscIconProps>(({ name, className, ...props }, ref) => {
-	const iconContent = ICONS[name] || ICONS["question"]
+	const iconContent = ICONS[name] || ICONS.question
 
 	return (
 		<svg

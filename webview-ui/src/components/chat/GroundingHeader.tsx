@@ -169,7 +169,7 @@ export const GroundingHeader = ({
 								<Bullet />
 								{c}
 							</ConstraintLabel>
-							{constraintExplanations && constraintExplanations[c] && (
+							{constraintExplanations?.[c] && (
 								<ConstraintExplanation>{constraintExplanations[c]}</ConstraintExplanation>
 							)}
 						</ConstraintItem>

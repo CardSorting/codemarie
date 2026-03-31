@@ -159,7 +159,7 @@ export const ChatRowContent = memo(
 				}
 			}
 			return []
-		}, [message.ask, message.say, message.text])
+		}, [message.ask, message.text])
 
 		const [selectedActions, setSelectedActions] = useState<string[]>(initialActions)
 
