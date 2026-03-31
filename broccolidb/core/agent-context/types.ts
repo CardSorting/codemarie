@@ -5,11 +5,35 @@ import type { LspService } from './LspService.js';
 import type { CoordinatorService } from './CoordinatorService.js';
 import type { ScratchpadService } from './ScratchpadService.js';
 import type { CompactService } from './CompactService.js';
+import type { MailboxService } from './MailboxService.js';
 
 export interface MemoryMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
+export interface ToolDef {
+  name: string;
+  description: string;
+  parameters: any; // JSON Schema
+  isSearchOrReadCommand?: boolean;
+  isDestructive?: boolean;
+  maxResultSizeChars?: number;
+  execute: (args: any, context: ServiceContext) => Promise<any>;
+}
+
+export interface ToolUseContext {
+  agentId?: string;
+  sessionId?: string;
+  options: {
+    tools: ToolDef[];
+  };
+  onProgress?: (progress: any) => void;
 }
 
 export interface AgentProfile {
@@ -141,6 +165,8 @@ export interface ServiceContext {
   lsp: LspService;
   coordinator: CoordinatorService;
   scratchpad: ScratchpadService;
+  mailbox: MailboxService;
+  toolUseContext?: ToolUseContext;
 }
 
 export interface IAgentContext {

@@ -37,6 +37,13 @@ export class MailboxService {
   }
 
   /**
+   * Helper to post a status notification.
+   */
+  async postStatus(agentId: string, status: string): Promise<void> {
+    await this.postMessage('system', agentId, 'vibe', { status });
+  }
+
+  /**
    * Polls unread messages for a specific agent.
    */
   async pollInbox(agentId: string): Promise<MailboxMessage[]> {
