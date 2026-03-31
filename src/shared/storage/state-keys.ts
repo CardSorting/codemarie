@@ -120,7 +120,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	awsProfile: { default: undefined as string | undefined },
 	awsBedrockEndpoint: { default: undefined as string | undefined },
 	claudeCodePath: { default: undefined as string | undefined },
-	vertexApiKey: { default: undefined as string | undefined },
 	openAiBaseUrl: { default: undefined as string | undefined },
 	ollamaBaseUrl: { default: undefined as string | undefined },
 	ollamaApiOptionsCtxNum: { default: undefined as string | undefined },
@@ -149,7 +148,6 @@ const API_HANDLER_SETTINGS_FIELDS = {
 	aihubmixBaseUrl: { default: undefined as string | undefined },
 	aihubmixAppCode: { default: undefined as string | undefined },
 	cloudflareAccountId: { default: undefined as string | undefined },
-	cloudflareApiToken: { default: undefined as string | undefined },
 
 	// Embedding configuration
 	embeddingProvider: { default: DEFAULT_API_PROVIDER as ApiProvider },

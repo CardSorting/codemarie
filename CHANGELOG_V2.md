@@ -1,5 +1,10 @@
 # Changelog (V2)
 
+## [3.88.2] - 2026-03-31
+
+### Fixed
+- **Sovereign Native Stack Hardening**: Resolved "Module not found" errors for `better-sqlite3` and its dependencies (`bindings`, `file-uri-to-path`) by externalizing them in the build process and expanding the packaging whitelist. This ensures consistent loading of native binaries in the production VSIX.
+
 ## [3.88.1] - 2026-03-31
 
 ### Fixed

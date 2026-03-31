@@ -106,7 +106,7 @@ message Secrets {
   optional string cloudflare_api_token = 50;
   optional string embedding_api_key = 53;
   optional string vertex_api_key = 58;
-  optional string openai_codex_oauth_credentials = 66;
+  optional string openai_codex_oauth_credentials = 67;
 }
 
 // NOTE: Add new fields under API_HANDLER_SETTINGS_FIELDS or USER_SETTINGS_FIELDS
@@ -283,12 +283,10 @@ message Settings {
   optional string act_mode_codemarie_model_id = 180;
   optional OpenRouterModelInfo act_mode_codemarie_model_info = 181;
   optional string cloudflare_account_id = 183;
-  optional string cloudflare_api_token = 184;
   optional ApiProvider embedding_provider = 186;
   optional string embedding_model_id = 187;
   optional string embedding_open_ai_base_url = 188;
   optional int32 max_swarm_depth = 192;
-  optional string vertex_api_key = 194;
   optional bool safe_yolo_mode_toggled = 196;
   optional bool mas_enabled = 198;
   map<string, string> open_ai_headers = 199;
